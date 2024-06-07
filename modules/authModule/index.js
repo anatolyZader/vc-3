@@ -2,7 +2,7 @@
 const autoload = require('@fastify/autoload');
 const path = require('path');
 
-module.exports = async function videoModuleIndex(app, opts) {
+module.exports = async function authModuleIndex(app, opts) {
   app.register(autoload, {
     dir: path.join(__dirname, 'plugins'),
     options: {
