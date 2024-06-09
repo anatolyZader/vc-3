@@ -15,9 +15,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@eslint/js": "^9.4.0",
     "@fastify/autoload": "^5.0.0",
     "@fastify/awilix": "^5.1.0",
     "@fastify/sensible": "^5.0.0",
+    "eslint": "^9.4.0",
     "fastify": "^4.26.1",
     "fastify-cli": "^6.1.1",
     "fastify-plugin": "^4.0.0"
