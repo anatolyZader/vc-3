@@ -1,16 +1,16 @@
 const { v4: uuid } = require('uuid');
-const CodeSnippetService = require('../../plugins/codeSnippetService');
+const ICodeSnippetService = require('../../application/services/interfaces/ICodeSnippetService');
 
 class CodeSnippet {
-  constructor(code, IcodeSnippetService) {
+  constructor(code) {
     this.codeSnippetId = uuid();
     this.code = code;
-    this.codeSnippetService = IcodeSnippetService;
+    this.ICodeSnippetService = ICodeSnippetService;
   }
 
   async explainCode() {
     console.log('Explaining code!');
-    return await this.codeSnippetService.explainCode(this.code);
+    return await this.ICodeSnippetService.explainCode(this.code);
   }
 }
 

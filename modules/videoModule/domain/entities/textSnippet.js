@@ -1,12 +1,12 @@
 /* eslint-disable no-unused-vars */
 const { v4: uuid } = require('uuid');
-const ItextSnippetService = require('../../application/interfaces/ItextSnippetService');
+const ITextSnippetService = require('../../application/interfaces/ITextSnippetService');
 
 class TextSnippet {
-  constructor(ItextSnippetService) {
+  constructor(ITextSnippetService) {
     this.textSnippetId = uuid();
     this.text = 'text';
-    this.textSnippetServicePort = ItextSnippetServicePort;
+    this.textSnippetService = ITextSnippetService;
   }
 
   async explainText() {

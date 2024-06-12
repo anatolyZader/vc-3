@@ -1,17 +1,10 @@
-const IyoutubeDataPort = require('../../ports/IyoutubeDataPort');
-
-const videoData = {
-  title: 'default title',
-  author: 'default author',
-  duration: 0,
-  description: 'default description',
-};
 
 class VideoConstructService {
   constructor(youtubeApiKey) {
     if (!youtubeApiKey) {
       throw new Error('YOUTUBE_API_KEY is not set');
     }
+    // eslint-disable-next-line no-undef
     this.youtubeDataAdapter = diContainer.resolve('youtubeDataAdapter', youtubeApiKey);
   }
 

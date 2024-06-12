@@ -1,4 +1,4 @@
-const IaiPort = require('../../domain/ports/IAiPort');
+const IaiPort = require('../../domain/ports/IAIPort');
 
 class AiAdapter extends IaiPort {
   constructor(text, code) {

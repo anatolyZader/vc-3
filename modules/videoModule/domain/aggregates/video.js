@@ -1,18 +1,15 @@
 // Video.js aggregate
 
 const { v4: uuidv4 } = require('uuid');
-const Snapshot = require('../entities/snapshot.js');
-const Transcript = require('../entities/transcript.js');
-const CodeSnippet = require('../entities/codeSnippet.js');
-const TextSnippet = require('../entities/textSnippet.js');
-const videoConstructService = require('../services/videoConstructService.js');
+const Snapshot = require('../entities/snapshot');
 
+const videoConstructService = require('../services/videoConstructService');
 const youtubeAPIKey = process.env.YOUTUBE_API_KEY || '';
 
 class Video {
   constructor(
     videoYoutubeId,
-    videoConstructService,  
+    // videoConstructService,  
     IsnapshotPort,
     IaiPort,
     IdatabasePort,
@@ -39,7 +36,7 @@ class Video {
   
   async init() {
     try {
-      const videoData = await this.videoConstructService.fetchVideoData(this.videoYoutubeId); // Await the asynchronous fetch operation
+      const videoData = await this.videoConstructService.fetchVideoData(this.videoYoutubeId); 
       this.title = videoData.title;
       this.author = videoData.author;
       this.duration = videoData.duration;

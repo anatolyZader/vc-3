@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 class IDatabasePort {
     constructor() {
       if (new.target === IDatabasePort) {

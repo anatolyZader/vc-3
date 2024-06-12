@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // IOcrService.js
 class IOcrService {
 

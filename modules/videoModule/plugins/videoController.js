@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const fp = require('fastify-plugin');
 
 async function videoController(fastify, options) {
@@ -8,7 +9,12 @@ async function videoController(fastify, options) {
 
   fastify.decorate('logHola', async function (request, reply) {
     try {
-      reply.send('hola videoController.logHola()!');
+      
+      reply.send(
+        { message: 'Hola! This is the videoController.',
+          YAK_env_var: fastify.secrets.YOUTUBE_API_KEY
+       });
+     
     } catch (error) {
       reply.status(500).send({ error: 'Internal Server Error' });
     }

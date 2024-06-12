@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 class IYoutubeDataPort {
     constructor() {
       if (new.target === IYoutubeDataPort) {

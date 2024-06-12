@@ -1,0 +1,15 @@
+
+{
+  "type": "object",
+  "$id": "schema:dotenv",
+  "properties": {
+    "YOUTUBE_API_KEY": {
+      "type": "string"
+    },
+    "PORT": {
+      "type": "integer",
+      "default": 3000
+    }
+
+  }
+}

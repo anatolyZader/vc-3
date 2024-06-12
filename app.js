@@ -2,11 +2,14 @@
 
 const path = require('node:path')
 const AutoLoad = require('@fastify/autoload')
+const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin')
 
 // Pass --options via CLI arguments in command to enable these options.
 const options = {}
 
 module.exports = async function (fastify, opts) {
+
+  fastify.register(schemaLoaderPlugin);
  
   fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
