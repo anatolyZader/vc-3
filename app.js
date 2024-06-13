@@ -13,29 +13,20 @@ const { asClass, asFunction, asValue } = require('awilix')
 const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin')
 
 
-
-
-
 //  imports required for dependency injection:
 // -----------------------------------------------------------------------
 
 const SimpleService = require('./simpleService')
-// const simpleService = new SimpleService();
-
-const VideoAppService = require('./modules/videoModule/application/services/videoAppService');
-
-// Controller
+// controller
 const { videoController } = require('./modules/videoModule/plugins/videoController');
-// Services to be injected
+// Services injected
+const VideoAppService = require('./modules/videoModule/application/services/videoAppService');
 const { takeSnapshot } = require('./modules/videoModule/application/services/videoAppService');
 const { downloadTranscript } = require('./modules/videoModule/application/services/videoAppService');
-
-
 const { CodeSnippetService } = require('./modules/videoModule/application/services/codeSnippetService');
 const OcrService = require('./modules/videoModule//application/services/ocrService');
 const { TextSnippetService } = require('./modules/videoModule/application/services/textSnippetService');
 const VideoConstructService = require('./modules/videoModule/application/services/videoConstructService');
-
 // Adapters injected
 const AiAdapter = require('./modules/videoModule/infrastructure/ai/aiAdapter');
 const PostgresAdapter = require('./modules/videoModule/infrastructure/database/postgresAdapter');
@@ -43,9 +34,6 @@ const OcrAdapter = require('./modules/videoModule/infrastructure/ocr/ocrAdapter'
 const { SnapshotAdapter } = require('./modules/videoModule/infrastructure/youtube/snapshotAdapter');
 // const YoutubeDataAdapter = require('./modules/videoModule/infrastructure/youtube/youtubeDataAdapter');
 // -----------------------------------------------------------------------
-
-
-
 
 // Pass --options via CLI arguments in command to enable these options.
 const options = {}
@@ -59,7 +47,6 @@ module.exports = async function (fastify, opts) {
     disposeOnResponse: true,
     strictBooleanEnforced: true
   })
-
   
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
@@ -83,10 +70,7 @@ module.exports = async function (fastify, opts) {
     // youtubeDataAdapter: asClass(YoutubeDataAdapter),
   }) 
    
-    
-
-
-  
+ 
   // fastify.addHook('onRequest', (request, reply, done) => {
   //   request.diScope.register({
   //     userService: asFunction(
@@ -104,9 +88,6 @@ module.exports = async function (fastify, opts) {
 
   const simpleService = fastify.diContainer.resolve('simpleService');
   console.log(simpleService.getMessage());
- 
-  // const videoAppService = fastify.diContainer.resolve('videoAppService');
-  // console.log(videoAppService.takeSnapshot());  
 
   await fastify.setErrorHandler(async (err, request, reply) => {
     if (err.validation) {

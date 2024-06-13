@@ -1,7 +1,7 @@
 // Transcript.js
 const { v4: uuidv4 } = require('uuid');
-const IDatabasePort = require('../../ports/IDatabasePort');
-const { IAIPort } = require('../../ports/IAIPort');
+const IDatabasePort = require('../../domain/ports/IDatabasePort');
+const { IAIPort } = require('../../domain/ports/IAIPort');
 
 class Transcript {
     constructor(videoYoutubeId) {

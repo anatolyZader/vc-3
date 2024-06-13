@@ -7,15 +7,20 @@ module.exports = async function (fastify, opts) {
   fastify.route({
     method: 'GET',
     url: `/hola`,
-    handler: fastify.logHola 
+    handler: fastify.logHola  
   });
-
 
   fastify.route({
     method: 'GET',
-    url: `/:videoYoutubeId/transcript`,
+    url: `/transcript`,
     handler: fastify.downloadTranscript
   });
+
+  // fastify.route({
+  //   method: 'GET',
+  //   url: `/:videoYoutubeId/transcript`,
+  //   handler: fastify.downloadTranscript
+  // });
 
   // Snapshot creation
   fastify.route({

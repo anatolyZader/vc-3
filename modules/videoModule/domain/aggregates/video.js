@@ -31,6 +31,9 @@ class Video {
     this.IdatabasePort = IdatabasePort;
     this.IyoutubeDataPort = IyoutubeDataPort;
     this.videoConstructService = videoConstructService;
+
+    this.videoId = 123456123456 // remove this line!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     this.init(); // Automatically fetch video details when Video object is instantiated
   }
   
@@ -47,7 +50,7 @@ class Video {
     }
   }
   
-  async doSnapshot(videoYoutubeId, snapshotPort, databasePort) {
+  async takeSnapshot(videoYoutubeId, snapshotPort, databasePort) {
     try {
       const receivedSnapshotDto = await this.IsnapshotPort.doSnapshot(this.videoYoutubeId, youtubeAPIKey);
       const snapshotDto = receivedSnapshotDto;
@@ -55,16 +58,19 @@ class Video {
       await this.IdatabasePort.saveSnapshot(this.videoYoutubeId, snapshot);
       console.log('new snapshot saved successfully!');
       return snapshotDto;
+
     } catch (error) {
         console.error('Error taking snapshot:', error);
         throw error;
     }
   }
 
-  async downloadTranscript(videoId) {
+  async downloadTranscript(videoId, IDatabasePort) {
     try {
-        const transcript = await this.IyoutubeDataPort.downloadTranscript(videoId);
-        return transcript;
+        // const transcript = await this.IyoutubeDataPort.downloadTranscript(videoId);
+        const transcript = 'This is a video transcript';
+        IDatabasePort.saveTranscript(transcript, videoId);
+        return transcript; 
     } catch (error) {
         console.error('Error downloading transcript:', error);
         throw error;

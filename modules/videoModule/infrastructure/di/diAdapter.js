@@ -1,4 +1,3 @@
-
 const IDependencyResolver = require('./IDependencyResolver');
 
 class DIAdapter extends IDependencyResolver {

@@ -11,7 +11,7 @@ class VideoAppService {
     async takeSnapshot(videoYoutubeId, snapshotAdapter, databaseAdapter) {       
         try {
             console.log('Taking snapshot ...')
-            // await this.video.doSnapshot();
+            await this.video.takeSnapshot();
         } catch (error) {
             console.error('Error taking snapshot:', error);
             throw error;

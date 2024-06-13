@@ -6,16 +6,15 @@ let videoAppService, ocrService, codeSnippetService, textSnippetService; //  dec
 async function videoController(fastify, options) {
 
   fastify.decorate('logHola', async function (request, reply) {
-    try {     
+    try {
+      console.log('Starting logHola handler');
       console.log('Hola! This is the videoController.');
       console.log('videoAppService: ', videoAppService);
       console.log('YAK_env_var: ', fastify.secrets.YOUTUBE_API_KEY);
-      reply.send(
-        { message: 'Hola! This is the videoController in browser.',
-          YAK_env_var: fastify.secrets.YOUTUBE_API_KEY,
-          nana: 'banana'
-       });    
+      reply.send({ message: 'Hola! This is the videoController in browser.', YAK_env_var: fastify.secrets.YOUTUBE_API_KEY });
+      console.log('Finished logHola handler');
     } catch (error) {
+      console.error('Error in logHola handler:', error);
       reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
@@ -33,7 +32,7 @@ async function videoController(fastify, options) {
   fastify.decorate('downloadTranscript', async function (request, reply) {
     const videoYoutubeId = request.params.videoYoutubeId;
     try {
-      const transcript = await this.videoAppService. downloadTranscript(videoYoutubeId);
+      const transcript = await this.videoAppService.downloadTranscript(videoYoutubeId);
       reply.send(transcript);
     } catch (error) {
       reply.status(500).send({ error: 'Internal Server Error' });
