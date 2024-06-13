@@ -21,7 +21,7 @@ module.exports = async function (fastify, opts) {
   fastify.route({
     method: 'POST',
     url: `/videos/:videoYoutubeId/snapshot`,
-    handler: fastify.takeSnapshot
+    handler: fastify.makeSnapshot
   });
 
   // Extracting code from a snapshot

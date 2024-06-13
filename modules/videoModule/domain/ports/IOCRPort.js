@@ -1,9 +1,9 @@
-class IOcrPort {
+class IOCRPort {
     constructor() {
-      if (new.target === IOcrPort) {
+      if (new.target === IOCRPort) {
         throw new Error("Cannot instantiate an abstract class.");
       }
     }
 }
 
-module.exports = IOcrPort;
+module.exports = IOCRPort;

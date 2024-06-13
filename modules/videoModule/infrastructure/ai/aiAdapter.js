@@ -5,6 +5,7 @@ class AiAdapter extends IaiPort {
     super();
     this.text = text;
     this.code = code;
+    this.testVar = 'testVar';
   }
 
   async explainText(text) {

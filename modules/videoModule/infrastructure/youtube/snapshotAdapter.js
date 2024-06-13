@@ -1,8 +1,8 @@
 const { createCanvas, loadImage } = require('canvas');
 const { v4: uuidv4 } = require('uuid'); 
-const IsnapshotPort = require('../../domain/ports/IsnapshotPort');
+const ISnapshotPort = require('../../domain/ports/ISnapshotPort');
 
-class SnapshotAdapter extends IsnapshotPort {
+class SnapshotAdapter extends ISnapshotPort {
   constructor(videoYouTubeId, youtubeApiKey) {
     super();
     this.videoYouTubeId = videoYouTubeId;

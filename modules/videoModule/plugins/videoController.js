@@ -1,28 +1,29 @@
 /* eslint-disable no-unused-vars */
 const fp = require('fastify-plugin');
 
+let videoAppService, ocrService, codeSnippetService, textSnippetService; //  declare variables outside the onReady hook and assign them within the hook. This way, they will be accessible throughout the module.
+
 async function videoController(fastify, options) {
-  const videoAppService = fastify.videoAppService;
-  const ocrService = fastify.ocrService;  
-  const codeSnippetService = fastify.codeSnippetService;
-  const textSnippetService = fastify.textSnippetService;
 
   fastify.decorate('logHola', async function (request, reply) {
-    try {
-      
+    try {     
+      console.log('Hola! This is the videoController.');
+      console.log('videoAppService: ', videoAppService);
+      console.log('YAK_env_var: ', fastify.secrets.YOUTUBE_API_KEY);
       reply.send(
-        { message: 'Hola! This is the videoController.',
-          YAK_env_var: fastify.secrets.YOUTUBE_API_KEY
-       });
-     
+        { message: 'Hola! This is the videoController in browser.',
+          YAK_env_var: fastify.secrets.YOUTUBE_API_KEY,
+          nana: 'banana'
+       });    
     } catch (error) {
       reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
-  fastify.decorate('takeSnapshot', async function (request, reply) {
+  fastify.decorate('makeSnapshot', async function (request, reply) {
     try {
-      await videoAppService.takeSnapshot();
+      const videoYoutubeId = 1234567;
+      await this.videoAppService.takeSnapshot(videoYoutubeId);
       reply.send('Snapshot saved successfully.');
     } catch (error) {
       reply.status(500).send({ error: 'Internal Server Error' });
@@ -32,7 +33,7 @@ async function videoController(fastify, options) {
   fastify.decorate('downloadTranscript', async function (request, reply) {
     const videoYoutubeId = request.params.videoYoutubeId;
     try {
-      const transcript = await videoAppService.downloadTranscript(videoYoutubeId);
+      const transcript = await this.videoAppService. downloadTranscript(videoYoutubeId);
       reply.send(transcript);
     } catch (error) {
       reply.status(500).send({ error: 'Internal Server Error' });
@@ -88,6 +89,18 @@ async function videoController(fastify, options) {
       reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
+  fastify.addHook('onReady', async function () {
+    try {
+      const videoAppService = fastify.diContainer.resolve('videoAppService');
+      const ocrService = fastify.diContainer.resolve("ocrService");
+      const codeSnippetService = fastify.diContainer.resolve("codeSnippetService");
+      const textSnippetService = fastify.diContainer.resolve("textSnippetService");
+      console.log('videoAppService:', videoAppService);
+    } catch (error) {
+      fastify.log.error('Error resolving videoAppService:', error);
+    }
+  });
 }
+
 
 module.exports = fp(videoController);

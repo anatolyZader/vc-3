@@ -1,8 +1,8 @@
-// OcrService.js
-const IOcrService = require('./services/IOcrService');
+// ocrService.js
+const IOCRService = require('./interfaces/IOCRService');
 const snapshot = require('../../domain/entities/snapshot'); 
 
-class OcrService extends IOcrService {
+class OcrService extends IOCRService {
     async extractCode(imageUrl) {
         try {
             return await snapshot.captureCode(imageUrl);

@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 // snapshot.js
 const { v4: uuidv4 } = require('uuid');
-const { IocrPort } = require('../../ports/IocrPort');
+const { IOCRPort } = require('../ports/IOCRPort');
 class Snapshot {
   constructor(videoId, timestamp, IocrPort, databasePort) {
     this.snapshotId = uuidv4();

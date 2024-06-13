@@ -3,7 +3,7 @@
 const { v4: uuidv4 } = require('uuid');
 const Snapshot = require('../entities/snapshot');
 
-const videoConstructService = require('../services/videoConstructService');
+const videoConstructService = require('../../application/services/videoConstructService');
 const youtubeAPIKey = process.env.YOUTUBE_API_KEY || '';
 
 class Video {
@@ -47,9 +47,9 @@ class Video {
     }
   }
   
-  async takeSnapshot(videoYoutubeId, youtubeApiKey, snapshotPort, databasePort) {
+  async doSnapshot(videoYoutubeId, snapshotPort, databasePort) {
     try {
-      const receivedSnapshotDto = await this.IsnapshotPort.takeSnapshot(this.videoYoutubeId, youtubeAPIKey);
+      const receivedSnapshotDto = await this.IsnapshotPort.doSnapshot(this.videoYoutubeId, youtubeAPIKey);
       const snapshotDto = receivedSnapshotDto;
       const snapshot = new Snapshot(snapshotDto.videoYoutubeId, snapshotDto.timestamp, this.IocrPort, databasePort);
       await this.IdatabasePort.saveSnapshot(this.videoYoutubeId, snapshot);

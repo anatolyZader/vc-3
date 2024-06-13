@@ -1,10 +1,15 @@
 // IcodeSnippetService.js
 class ICodeSnippetService {
-    // eslint-disable-next-line no-unused-vars
-    async explainCode(code) {
-      throw new Error('Method not implemented.');
-    }
+  constructor() {
+  if (new.target === ICodeSnippetService) {
+    throw new Error("Cannot instantiate an abstract class.");
+  }};
+
+  // eslint-disable-next-line no-unused-vars
+  async explainCode(code) {
+    throw new Error('Method not implemented.');
   }
+}
   
-  module.exports = ICodeSnippetService;
+module.exports = ICodeSnippetService;
   
