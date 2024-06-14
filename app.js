@@ -15,11 +15,8 @@ const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin')
 
 //  imports required for dependency injection:
 // -----------------------------------------------------------------------
-
 const SimpleService = require('./simpleService')
-// controller
 const { videoController } = require('./modules/videoModule/plugins/videoController');
-// Services injected
 const VideoAppService = require('./modules/videoModule/application/services/videoAppService');
 const { takeSnapshot } = require('./modules/videoModule/application/services/videoAppService');
 const { downloadTranscript } = require('./modules/videoModule/application/services/videoAppService');
@@ -27,7 +24,7 @@ const { CodeSnippetService } = require('./modules/videoModule/application/servic
 const OcrService = require('./modules/videoModule//application/services/ocrService');
 const { TextSnippetService } = require('./modules/videoModule/application/services/textSnippetService');
 const VideoConstructService = require('./modules/videoModule/application/services/videoConstructService');
-// Adapters injected
+
 const AiAdapter = require('./modules/videoModule/infrastructure/ai/aiAdapter');
 const PostgresAdapter = require('./modules/videoModule/infrastructure/database/postgresAdapter');
 const OcrAdapter = require('./modules/videoModule/infrastructure/ocr/ocrAdapter');
@@ -36,7 +33,49 @@ const { SnapshotAdapter } = require('./modules/videoModule/infrastructure/youtub
 // -----------------------------------------------------------------------
 
 // Pass --options via CLI arguments in command to enable these options.
-const options = {}
+const options = {
+  disableRequestLogging: true,
+  requestIdLogLabel: false,
+  requestIdHeader: 'x-request-id',
+  logger: {
+    level: 'trace',
+    timestamp: () => {
+      const dateString = new Date(Date.now()).toISOString()
+      return `,"@timestamp":"${dateString}"`
+    },
+    redact: {
+      censor: '***',
+      paths: [
+        'req.headers.authorization',
+        'req.body.password',
+        'req.body.email'
+      ]
+    },
+    serializers: {
+      req: function (request) {
+        const shouldLogBody = request.context.config.logBody === true
+        return {
+          method: request.method,
+          url: request.raw.url,
+          routeUrl: request.routerPath,
+          version: request.headers?.['accept-version'],
+          user: request.user?.id,
+          headers: request.headers,
+          body: shouldLogBody ? request.body : undefined,
+          hostname: request.hostname,
+          remoteAddress: request.ip,
+          remotePort: request.socket?.remotePort
+        }
+      },
+      res: function (reply) {
+        return {
+          statusCode: reply.statusCode,
+          responseTime: reply.getResponseTime()
+        }
+      }
+    }
+  }
+}
 
 module.exports = async function (fastify, opts) {
 

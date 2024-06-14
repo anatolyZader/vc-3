@@ -10,7 +10,7 @@
   "scripts": {
     "test": "node --test test/**/*.test.js",
     "start": "fastify start -l info app.js",
-    "dev": "fastify start -w -l info -P app.js"
+    "dev": "fastify start -w --options -P app.js"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +20,7 @@
     "@fastify/autoload": "^5.0.0",
     "@fastify/awilix": "^5.1.0",
     "@fastify/env": "^4.3.0",
+    "@fastify/postgres": "^5.2.2",
     "@fastify/sensible": "^5.0.0",
     "canvas": "^2.11.2",
     "eslint": "^9.4.0",
