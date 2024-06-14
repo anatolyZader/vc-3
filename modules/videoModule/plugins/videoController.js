@@ -11,7 +11,22 @@ async function videoController(fastify, options) {
       console.log('Hola! This is the videoController.');
       console.log("videoAppService at videoController.logHola(): ", videoAppService);
       console.log('YAK_env_var: ', fastify.secrets.YOUTUBE_API_KEY);
+
+      const client = await fastify.pg.connect();
+      try {
+        await client.query(
+          `INSERT INTO video (id, youtube_id, title, author, duration, description, created_at)
+           VALUES ('550e8400-e29b-41d4-a716-446655440000', 'your_youtube_id', 'Your Title', 'Author Name', 120, 'Sample Description', NOW());`
+        );
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        reply.status(500).send({ error: 'Database operation failed' });
+      } finally {
+        client.release();
+      }
+    
       reply.send({ message: 'Hola! This is the videoController in browser.', YAK_env_var: fastify.secrets.YOUTUBE_API_KEY });
+
       console.log('Finished logHola handler');
     } catch (error) {
       console.error('Error in logHola handler:', error);

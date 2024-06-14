@@ -24,7 +24,6 @@ const { CodeSnippetService } = require('./modules/videoModule/application/servic
 const OcrService = require('./modules/videoModule//application/services/ocrService');
 const { TextSnippetService } = require('./modules/videoModule/application/services/textSnippetService');
 const VideoConstructService = require('./modules/videoModule/application/services/videoConstructService');
-
 const AiAdapter = require('./modules/videoModule/infrastructure/ai/aiAdapter');
 const PostgresAdapter = require('./modules/videoModule/infrastructure/database/postgresAdapter');
 const OcrAdapter = require('./modules/videoModule/infrastructure/ocr/ocrAdapter');
@@ -81,6 +80,15 @@ module.exports = async function (fastify, opts) {
 
   await fastify.register(schemaLoaderPlugin);
 
+  await fastify.register(require('@fastify/postgres'), {
+    connectionString: fastify.secrets.PG_CONNECTION_STRING
+  }) // This plugin will add the pg namespace to your Fastify instance, with the following properties:
+          // connect: the function to get a connection from the pool
+          // pool: the pool instance
+          // Client: a client constructor for a single query
+          // query: a utility to perform a query _without_ a transaction
+          // transact: a utility to perform multiple queries _with_ a transaction
+
   await fastify.register(fastifyAwilixPlugin, { 
     disposeOnClose: true, 
     disposeOnResponse: true,
@@ -93,6 +101,15 @@ module.exports = async function (fastify, opts) {
     encapsulate: false,
     maxDepth: 1
   })
+
+  await fastify.register(require('@fastify/postgres'), {
+    connectionString: fastify.secrets.PG_CONNECTION_STRING
+  }) // This plugin will add the pg namespace to your Fastify instance, with the following properties:
+          // connect: the function to get a connection from the pool
+          // pool: the pool instance
+          // Client: a client constructor for a single query
+          // query: a utility to perform a query _without_ a transaction
+          // transact: a utility to perform multiple queries _with_ a transaction
 
   await diContainer.register({ 
     simpleService: asClass(SimpleService),
