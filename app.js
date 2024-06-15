@@ -12,7 +12,6 @@ const {
 const { asClass, asFunction, asValue } = require('awilix')
 const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin')
 
-
 //  imports required for dependency injection:
 // -----------------------------------------------------------------------
 const SimpleService = require('./simpleService')
@@ -28,6 +27,7 @@ const AiAdapter = require('./modules/videoModule/infrastructure/ai/aiAdapter');
 const PostgresAdapter = require('./modules/videoModule/infrastructure/database/postgresAdapter');
 const OcrAdapter = require('./modules/videoModule/infrastructure/ocr/ocrAdapter');
 const { SnapshotAdapter } = require('./modules/videoModule/infrastructure/youtube/snapshotAdapter');
+const { connect } = require('node:http2')
 // const YoutubeDataAdapter = require('./modules/videoModule/infrastructure/youtube/youtubeDataAdapter');
 // -----------------------------------------------------------------------
 
@@ -80,15 +80,6 @@ module.exports = async function (fastify, opts) {
 
   await fastify.register(schemaLoaderPlugin);
 
-  await fastify.register(require('@fastify/postgres'), {
-    connectionString: fastify.secrets.PG_CONNECTION_STRING
-  }) // This plugin will add the pg namespace to your Fastify instance, with the following properties:
-          // connect: the function to get a connection from the pool
-          // pool: the pool instance
-          // Client: a client constructor for a single query
-          // query: a utility to perform a query _without_ a transaction
-          // transact: a utility to perform multiple queries _with_ a transaction
-
   await fastify.register(fastifyAwilixPlugin, { 
     disposeOnClose: true, 
     disposeOnResponse: true,
@@ -104,12 +95,8 @@ module.exports = async function (fastify, opts) {
 
   await fastify.register(require('@fastify/postgres'), {
     connectionString: fastify.secrets.PG_CONNECTION_STRING
-  }) // This plugin will add the pg namespace to your Fastify instance, with the following properties:
-          // connect: the function to get a connection from the pool
-          // pool: the pool instance
-          // Client: a client constructor for a single query
-          // query: a utility to perform a query _without_ a transaction
-          // transact: a utility to perform multiple queries _with_ a transaction
+    // connectionString: 'postgresql://postgres:kazantip@10.208.0.2:5432/videodb'
+  }) 
 
   await diContainer.register({ 
     simpleService: asClass(SimpleService),
