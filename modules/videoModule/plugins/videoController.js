@@ -6,10 +6,9 @@ let videoAppService, ocrService, codeSnippetService, textSnippetService;
 
 async function videoController(fastify, options) {
 
-  const connectionString = fastify.secrets.PG_CONNECTION_STRING;
-  const client = await fastify.pg.connect()
 
   fastify.decorate('logHola', async function (request, reply) {
+    const client = await fastify.pg.connect();
     try {
       let dbOperationSuccessful = false;
       try {
@@ -24,11 +23,11 @@ async function videoController(fastify, options) {
       } finally {
         client.release();
       }
-  
+
       if (dbOperationSuccessful) {
         reply.send({ message: 'Hola! This is the videoController in browser.', YAK_env_var: fastify.secrets.YOUTUBE_API_KEY });
       }
-  
+
       console.log('Finished logHola handler');
     } catch (error) {
       console.error('Error in logHola handler:', error);
@@ -37,7 +36,6 @@ async function videoController(fastify, options) {
       }
     }
   });
-
 
   fastify.decorate('makeSnapshot', async function (request, reply) {
 

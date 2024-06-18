@@ -1,37 +1,28 @@
 /* eslint-disable no-unused-vars */
-'use strict'
+'use strict';
 
-const path = require('node:path')
-const AutoLoad = require('@fastify/autoload')
-const { fastifyAwilixPlugin } = require('@fastify/awilix')
-const { 
-  diContainer, // this is an alias for diContainerProxy
-  diContainerClassic, // this instance will be used for `injectionMode = 'CLASSIC'`
-  diContainerProxy // this instance will be used by default
-} = require('@fastify/awilix')
-const { asClass, asFunction, asValue } = require('awilix')
-const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin')
+const path = require('node:path');
+const AutoLoad = require('@fastify/autoload');
+const { fastifyAwilixPlugin } = require('@fastify/awilix');
+const { diContainer, diContainerClassic, diContainerProxy } = require('@fastify/awilix');
+const { asClass, asFunction, asValue } = require('awilix');
+const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin');
 
-//  imports required for dependency injection:
-// -----------------------------------------------------------------------
-const SimpleService = require('./simpleService')
+// Imports required for dependency injection
+const SimpleService = require('./simpleService');
 const { videoController } = require('./modules/videoModule/plugins/videoController');
 const VideoAppService = require('./modules/videoModule/application/services/videoAppService');
-const { takeSnapshot } = require('./modules/videoModule/application/services/videoAppService');
-const { downloadTranscript } = require('./modules/videoModule/application/services/videoAppService');
-const { CodeSnippetService } = require('./modules/videoModule/application/services/codeSnippetService');
-const OcrService = require('./modules/videoModule//application/services/ocrService');
+const { takeSnapshot, downloadTranscript } = require('./modules/videoModule/application/services/videoAppService');
+const CodeSnippetService = require('./modules/videoModule/application/services/codeSnippetService');
+const OcrService = require('./modules/videoModule/application/services/ocrService');
 const { TextSnippetService } = require('./modules/videoModule/application/services/textSnippetService');
 const VideoConstructService = require('./modules/videoModule/application/services/videoConstructService');
 const AiAdapter = require('./modules/videoModule/infrastructure/ai/aiAdapter');
 const PostgresAdapter = require('./modules/videoModule/infrastructure/database/postgresAdapter');
 const OcrAdapter = require('./modules/videoModule/infrastructure/ocr/ocrAdapter');
 const { SnapshotAdapter } = require('./modules/videoModule/infrastructure/youtube/snapshotAdapter');
-const { connect } = require('node:http2')
 // const YoutubeDataAdapter = require('./modules/videoModule/infrastructure/youtube/youtubeDataAdapter');
-// -----------------------------------------------------------------------
 
-// Pass --options via CLI arguments in command to enable these options.
 const options = {
   disableRequestLogging: true,
   requestIdLogLabel: false,
@@ -39,20 +30,20 @@ const options = {
   logger: {
     level: 'trace',
     timestamp: () => {
-      const dateString = new Date(Date.now()).toISOString()
-      return `,"@timestamp":"${dateString}"`
+      const dateString = new Date(Date.now()).toISOString();
+      return `,"@timestamp":"${dateString}"`;
     },
     redact: {
       censor: '***',
       paths: [
         'req.headers.authorization',
         'req.body.password',
-        'req.body.email'
-      ]
+        'req.body.email',
+      ],
     },
     serializers: {
       req: function (request) {
-        const shouldLogBody = request.context.config.logBody === true
+        const shouldLogBody = request.context.config.logBody === true;
         return {
           method: request.method,
           url: request.raw.url,
@@ -63,42 +54,37 @@ const options = {
           body: shouldLogBody ? request.body : undefined,
           hostname: request.hostname,
           remoteAddress: request.ip,
-          remotePort: request.socket?.remotePort
-        }
+          remotePort: request.socket?.remotePort,
+        };
       },
       res: function (reply) {
         return {
           statusCode: reply.statusCode,
-          responseTime: reply.getResponseTime()
-        }
-      }
-    }
-  }
-}
+          responseTime: reply.getResponseTime(),
+        };
+      },
+    },
+  },
+};
 
 module.exports = async function (fastify, opts) {
-
   await fastify.register(schemaLoaderPlugin);
 
-  await fastify.register(fastifyAwilixPlugin, { 
-    disposeOnClose: true, 
+  await fastify.register(fastifyAwilixPlugin, {
+    disposeOnClose: true,
     disposeOnResponse: true,
-    strictBooleanEnforced: true
-  })
-  
+    strictBooleanEnforced: true,
+  });
+
+
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
     encapsulate: false,
-    maxDepth: 1
-  })
+    maxDepth: 1,
+  });
 
-  await fastify.register(require('@fastify/postgres'), {
-    connectionString: fastify.secrets.PG_CONNECTION_STRING
-    // connectionString: 'postgresql://postgres:kazantip@10.208.0.2:5432/videodb'
-  }) 
-
-  await diContainer.register({ 
+  await diContainer.register({
     simpleService: asClass(SimpleService),
     videoAppService: asClass(VideoAppService),
     videoController: asValue(videoController),
@@ -111,42 +97,35 @@ module.exports = async function (fastify, opts) {
     // ocrAdapter: asClass(OcrAdapter),
     snapshotAdapter: asValue(SnapshotAdapter),
     // youtubeDataAdapter: asClass(YoutubeDataAdapter),
-  }) 
-   
- 
-  // fastify.addHook('onRequest', (request, reply, done) => {
-  //   request.diScope.register({
-  //     userService: asFunction(
-  //       ({ userRepository }) => {
-  //         return new UserService(userRepository, request.params.countryId)
-  //       },
-  //       {
-  //         lifetime: Lifetime.SCOPED,
-  //         dispose: (module) => module.dispose(),
-  //       }
-  //     ),
-  //   })
-  //   done()
-  // })
+  });
 
   const simpleService = fastify.diContainer.resolve('simpleService');
   console.log(simpleService.getMessage());
 
+  console.log('fastify.secrets.PORT at app.js:', fastify.secrets.PORT);
+  console.log('fastify.secrets.PG_CONNECTION_STRING at app.js:', fastify.secrets.PG_CONNECTION_STRING);
+
   await fastify.setErrorHandler(async (err, request, reply) => {
     if (err.validation) {
-      reply.code(403)
-      return err.message
+      reply.code(403);
+      return err.message;
     }
-    request.log.error({ err })
-    reply.code(err.statusCode || 500)
-
-    return "I'm sorry, there was an error processing your request."
-  })
+    request.log.error({ err });
+    reply.code(err.statusCode || 500);
+    return "I'm sorry, there was an error processing your request.";
+  });
 
   fastify.setNotFoundHandler(async (request, reply) => {
-    reply.code(404)
-    return "I'm sorry, I couldn't find what you were looking for."
-  })
-}
+    reply.code(404);
+    return "I'm sorry, I couldn't find what you were looking for.";
+  });
 
-module.exports.options = options
+  fastify.after(async () => {
+    await fastify.register(require('@fastify/postgres'), {
+      connectionString: fastify.secrets.PG_CONNECTION_STRING,
+    });
+    console.log('fastify.secret.PG_CONNECTION_STRING at app.js/after:', fastify.secrets.PG_CONNECTION_STRING);
+  });
+};
+
+module.exports.options = options;
