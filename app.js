@@ -7,6 +7,7 @@ const { fastifyAwilixPlugin } = require('@fastify/awilix');
 const { diContainer, diContainerClassic, diContainerProxy } = require('@fastify/awilix');
 const { asClass, asFunction, asValue } = require('awilix');
 const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin');
+const auth = require('./auth');
 
 // Imports required for dependency injection
 const SimpleService = require('./simpleService');
@@ -127,6 +128,7 @@ module.exports = async function (fastify, opts) {
   });
 
   fastify.after(async () => {
+    await fastify.register(auth);
     await fastify.register(require('@fastify/postgres'), {
       connectionString: fastify.secrets.PG_CONNECTION_STRING,
     });

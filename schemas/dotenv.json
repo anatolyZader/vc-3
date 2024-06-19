@@ -12,6 +12,9 @@
     },
     "PG_CONNECTION_STRING": {
       "type": "string"
+    },
+    "JWT_SECRET": {
+      "type": "string"
     }
 
     }
