@@ -76,7 +76,13 @@ module.exports = async function (fastify, opts) {
     strictBooleanEnforced: true,
   });
 
-
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'shared-plugins'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 1,
+  });
+  
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
