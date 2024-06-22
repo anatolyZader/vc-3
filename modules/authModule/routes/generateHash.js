@@ -24,9 +24,6 @@ module.exports = async function generateHash(password, salt) {
     salt = String(salt)
   }
 
-
-  
-
   // Hash the password using the salt value and SHA-256 algorithm
   const hash = (await pbkdf2(passwordString, salt, 1000, 64, 'sha256')).toString('hex')
   return { salt, hash }

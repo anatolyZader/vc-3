@@ -10,7 +10,7 @@ class Video {
   constructor(
     videoYoutubeId,
     // videoConstructService,  
-    IsnapshotPort,
+    ISnapshotPort,
     IaiPort,
     IdatabasePort,
     IyoutubeDataPort,
@@ -25,7 +25,7 @@ class Video {
     this.snapshots = [];
     this.codeSnippets = [];
     this.textSnippets = [];
-    this.IsnapshotPort = IsnapshotPort;
+    this.IsnapshotPort = ISnapshotPort;
     this.IaiPort = IaiPort;
     this.IocrPort = IocrPort;
     this.IdatabasePort = IdatabasePort;
@@ -50,15 +50,14 @@ class Video {
     }
   }
   
-  async takeSnapshot(videoYoutubeId, snapshotPort, databasePort) {
+  async takeSnapshot(videoYoutubeId, ISnapshotPort, databasePort) {
     try {
-      const receivedSnapshotDto = await this.IsnapshotPort.doSnapshot(this.videoYoutubeId, youtubeAPIKey);
+      const receivedSnapshotDto = await this.ISnapshotPort.doSnapshot(this.videoYoutubeId, youtubeAPIKey);
       const snapshotDto = receivedSnapshotDto;
       const snapshot = new Snapshot(snapshotDto.videoYoutubeId, snapshotDto.timestamp, this.IocrPort, databasePort);
       await this.IdatabasePort.saveSnapshot(this.videoYoutubeId, snapshot);
       console.log('new snapshot saved successfully!');
       return snapshotDto;
-
     } catch (error) {
         console.error('Error taking snapshot:', error);
         throw error;
