@@ -1,17 +1,20 @@
 /* eslint-disable no-unused-vars */
 const { Pool } = require('pg');
+require('dotenv').config() // dotenv is used to load environment variables in non-fastify modules where the fastify.secrets functionality is not available
 const IDatabasePort = require('../../domain/ports/IDatabasePort');
 const Video = require('../../domain/aggregates/video');  
 const Snapshot = require('../../domain/entities/snapshot');
 const CodeSnippet = require('../../domain/entities/codeSnippet');
 const TextSnippet = require('../../domain/entities/textSnippet');
 const Transcript = require('../../domain/entities/transcript');
+const secretsProvider = require('../../../../shared-plugins/secretsProvider');
+
 
 class PostgresAdapter extends IDatabasePort {
   constructor() {
     super();
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: process.env.PG_CONNECTION_STRING,
     });
   }
 

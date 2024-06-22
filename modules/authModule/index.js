@@ -13,7 +13,8 @@ module.exports = async function authModuleIndex(app, opts) {
   app.register(autoload, {
     dir: path.join(__dirname, 'routes'),
     options: {
-      prefix: opts.prefix
+      prefix: opts.prefix,
+      autoHooks: true, // Apply hooks from autohooks.js file(s) to plugins found in folder
     }
   });
 }
