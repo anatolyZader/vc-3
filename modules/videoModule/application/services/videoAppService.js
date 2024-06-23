@@ -7,19 +7,19 @@ class VideoAppService {
       }
 
     // eslint-disable-next-line no-unused-vars
-    async takeSnapshot(videoYoutubeId, snapshotAdapter, postgresAdapter) {       
+    async takeSnapshot(videoYoutubeId) {       
         try {
             console.log('Taking snapshot ...')
-            await this.video.takeSnapshot(videoYoutubeId, snapshotAdapter, postgresAdapter);
+            await this.video.takeSnapshot(videoYoutubeId, this.snapshotAdapter, this.postgresAdapter);
         } catch (error) {
             console.error('Error taking snapshot:', error);
             throw error;
         }
     }
 
-    async downloadTranscript(videoYoutubeId, postgresAdapter) {
+    async downloadTranscript(videoYoutubeId) {
         try {
-            await this.video.downloadTranscript(videoYoutubeId, postgresAdapter);
+            await this.video.downloadTranscript(videoYoutubeId, this.postgresAdapter);
         } catch (error) {
             console.error('Error downloading transcript:', error);
             throw error;

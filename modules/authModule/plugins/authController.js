@@ -21,6 +21,22 @@ async function authController(fastify, options) {
     }
   });
 
+  fastify.decorate('removeUser', async function (request, reply) {
+    if (!userService) {
+      reply.status(500).send({ error: 'Service not initialized' });
+      return;
+    }
+    const { username, password } = request.body;
+    try {
+      await userService.remove(username, password);
+      reply.send({ message: 'User removed successfully' });
+
+    } catch (error) {
+      fastify.log.error('Error registering user:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
+
   fastify.decorate('loginUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -40,23 +56,26 @@ async function authController(fastify, options) {
     }
   });
 
-  fastify.decorate('findUser', async function (request, reply) {
+  fastify.decorate('logoutUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
       return;
     }
-    const { username } = request.params;
+    const { username, password } = request.body;
     try {
-      const user = await userService.findUser(username);
+      const user = await userService.logout(username, password);
       if (user) {
-        reply.send(user);
+        reply.send({ message: 'User logged in successfully', user });
       } else {
-        reply.status(404).send({ error: 'User not found' });
+        reply.status(401).send({ error: 'Invalid username or password' });
       }
     } catch (error) {
-      fastify.log.error('Error fetching user:', error);
+      fastify.log.error('Error logging in user:', error);
       reply.status(500).send({ error: 'Internal Server Error' });
     }
+  });
+
+}
     fastify.decorate('createAccount', async function (request, reply) {
       if (!accountService) {
         reply.status(500).send({ error: 'Service not initialized' });
@@ -68,25 +87,6 @@ async function authController(fastify, options) {
         reply.send({ message: 'Account created successfully', account: newAccount });
       } catch (error) {
         fastify.log.error('Error creating account:', error);
-        reply.status(500).send({ error: 'Internal Server Error' });
-      }
-    });
-  
-    fastify.decorate('getAccount', async function (request, reply) {
-      if (!accountService) {
-        reply.status(500).send({ error: 'Service not initialized' });
-        return;
-      }  
-      const { accountId } = request.params;
-      try {
-        const account = await accountService.getAccount(accountId);
-        if (account) {
-          reply.send(account);
-        } else {
-          reply.status(404).send({ error: 'Account not found' });
-        }
-      } catch (error) {
-        fastify.log.error('Error fetching account:', error);
         reply.status(500).send({ error: 'Internal Server Error' });
       }
     });

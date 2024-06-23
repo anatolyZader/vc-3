@@ -19,18 +19,31 @@ class UserService {
         }
     }
 
-    async login(username, password) {
+    async remove(username, passwordHash, authPostgresAdapter) {
         try {
-            const user = await this.user.authenticate(username, password);
-            if (user) {
-                console.log('User logged in successfully:', user);
-                return user;
-            } else {
-                console.error('Invalid username or password');
-                return null;
-            }
+             await this.user.remove(username, passwordHash, authPostgresAdapter);
+            console.log('User removed successfully');
+        } catch (error) {
+            console.error('Error removing user:', error);
+            throw error;
+        }
+    }   
+
+    async login(username, password, authPostgresAdapter) {
+        try {
+            await this.user.login(username, password, authPostgresAdapter);
+            console.log('User logged in successfully:');             
         } catch (error) {
             console.error('Error logging in user:', error);
+            throw error;
+        }
+    }
+
+    async logout(username, password, authPostgresAdapter) {
+        try {
+            await this.user.logout(username, password, authPostgresAdapter);
+        } catch (error) {
+            console.error('Error logging out user:', error);
             throw error;
         }
     }

@@ -10,6 +10,7 @@ class User {
     this.email = email;
     this.passwordHash = '';
     this.databasePort = IAuthDatabasePort;
+    this.accounts = []
     }
 
     async register(username, email, passwordHash, IAuthDatabasePort) {
