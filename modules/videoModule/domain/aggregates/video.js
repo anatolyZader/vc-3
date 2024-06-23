@@ -1,3 +1,4 @@
+'strict'
 // Video.js aggregate
 
 const { v4: uuidv4 } = require('uuid');
@@ -48,7 +49,7 @@ class Video {
       console.error("Error initializing video details:", error);
       throw error;
     }
-  }
+  } // ensure that init() is not blocking other critical operations if the fetch fails.
   
   async takeSnapshot(videoYoutubeId, ISnapshotPort, databasePort) {
     try {
