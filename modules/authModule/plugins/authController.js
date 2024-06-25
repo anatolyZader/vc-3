@@ -73,9 +73,8 @@ async function authController(fastify, options) {
       fastify.log.error('Error logging in user:', error);
       reply.status(500).send({ error: 'Internal Server Error' });
     }
-  });
+    });
 
-}
     fastify.decorate('createAccount', async function (request, reply) {
       if (!accountService) {
         reply.status(500).send({ error: 'Service not initialized' });
@@ -154,28 +153,28 @@ async function authController(fastify, options) {
         reply.status(500).send({ error: 'Internal Server Error' });
       }
     });
-  });
 
-  fastify.addHook('onReady', async function () {
-    try {
-      userService = fastify.diContainer.resolve('userService');
-      console.log('userService at authController / onReady:', userService);
-    } catch (error) {
-      fastify.log.error('Error resolving services:', error);
-    }
-    try {
-      accountService = fastify.diContainer.resolve('accountService');
-      console.log('accountService at authController / onReady:', accountService);
-    } catch (error) {
-      fastify.log.error('Error resolving services:', error);
-    }
-    try {
-      sessionService = fastify.diContainer.resolve('sessionService');
-      console.log('sessionService at authController / onReady:', sessionService);
-    } catch (error) {
-      fastify.log.error('Error resolving services:', error);
-    }
-  });
+    fastify.addHook('onReady', async function () {
+      try {
+        userService = fastify.diContainer.resolve('userService');
+        console.log('userService at authController / onReady:', userService);
+      } catch (error) {
+        fastify.log.error('Error resolving services:', error);
+      }
+      try {
+        accountService = fastify.diContainer.resolve('accountService');
+        console.log('accountService at authController / onReady:', accountService);
+      } catch (error) {
+        fastify.log.error('Error resolving services:', error);
+      }
+      try {
+        sessionService = fastify.diContainer.resolve('sessionService');
+        console.log('sessionService at authController / onReady:', sessionService);
+      } catch (error) {
+        fastify.log.error('Error resolving services:', error);
+      }
+    });
+  
 }
 
 module.exports = fp(authController);

@@ -33,6 +33,10 @@ class IDatabasePort {
     async saveCodeSnippet(codeSnippet) {
       throw new Error("Method 'saveCodeSnippet(codeSnippet)' must be implemented.");
     }
+
+    async saveCodeExplanation(codeExplanation) {
+      throw new Error("Method 'saveCodeExplanation(codeExplanation))' must be implemented.");
+    }
   
     async findCodeSnippetById(id) {
       throw new Error("Method 'findCodeSnippetById(id)' must be implemented.");
@@ -44,6 +48,10 @@ class IDatabasePort {
   
     async saveTextSnippet(textSnippet) {
       throw new Error("Method 'saveTextSnippet(textSnippet)' must be implemented.");
+    }
+
+    async saveTextExplanation(textExplanation) {
+      throw new Error("Method 'saveTextExplanation(textExplanation))' must be implemented.");
     }
   
     async findTextSnippetById(id) {

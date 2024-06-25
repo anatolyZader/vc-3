@@ -16,17 +16,17 @@ module.exports = async function (fastify, opts) {
     handler: fastify.downloadTranscript
   });
 
-  // fastify.route({
-  //   method: 'GET',
-  //   url: `/:videoYoutubeId/transcript`,
-  //   handler: fastify.downloadTranscript
-  // });
+  fastify.route({
+    method: 'GET',
+    url: `/:videoYoutubeId/transcript`,
+    handler: fastify.downloadTranscript
+  });
 
   // Snapshot creation
   fastify.route({
     method: 'POST',
     url: `/videos/:videoYoutubeId/snapshot`,
-    handler: fastify.makeSnapshot
+    handler: fastify.takeSnapshot
   });
 
   // Extracting code from a snapshot

@@ -5,17 +5,17 @@ const { v4: uuidv4 } = require('uuid');
 const Snapshot = require('../entities/snapshot');
 
 const videoConstructService = require('../../application/services/videoConstructService');
-const youtubeAPIKey = process.env.YOUTUBE_API_KEY || '';
 
 class Video {
   constructor(
     videoYoutubeId,
     // videoConstructService,  
     ISnapshotPort,
-    IaiPort,
-    IdatabasePort,
-    IyoutubeDataPort,
-    IocrPort
+    IAIPort,
+    IDatabasePort,
+    IYoutubeDataPort,
+    IOCRPort,
+    youtubeAPIKey
   ) {
     this.videoYoutubeId = videoYoutubeId;
     this.videoId = uuidv4();   
@@ -26,11 +26,12 @@ class Video {
     this.snapshots = [];
     this.codeSnippets = [];
     this.textSnippets = [];
-    this.IsnapshotPort = ISnapshotPort;
-    this.IaiPort = IaiPort;
-    this.IocrPort = IocrPort;
-    this.IdatabasePort = IdatabasePort;
-    this.IyoutubeDataPort = IyoutubeDataPort;
+    this.ISnapshotPort = ISnapshotPort;
+    this.IAIPort = IAIPort;
+    this.IOCRPort = IOCRPort;
+    this.IDatabasePort = IDatabasePort;
+    this.IYoutubeDataPort = IYoutubeDataPort;
+    this.youtubeAPIKey = youtubeAPIKey;
     this.videoConstructService = videoConstructService;
 
     this.videoId = 123456123456 // remove this line!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -51,12 +52,12 @@ class Video {
     }
   } // ensure that init() is not blocking other critical operations if the fetch fails.
   
-  async takeSnapshot(videoYoutubeId, ISnapshotPort, databasePort) {
+  async takeSnapshot(videoYoutubeId, ISnapshotPort, IDatabasePort) {
     try {
-      const receivedSnapshotDto = await this.ISnapshotPort.doSnapshot(this.videoYoutubeId, youtubeAPIKey);
+      const receivedSnapshotDto = await this.ISnapshotPort.takeSnapshot(this.videoYoutubeId, IDatabasePort);
       const snapshotDto = receivedSnapshotDto;
-      const snapshot = new Snapshot(snapshotDto.videoYoutubeId, snapshotDto.timestamp, this.IocrPort, databasePort);
-      await this.IdatabasePort.saveSnapshot(this.videoYoutubeId, snapshot);
+      const snapshot = new Snapshot(snapshotDto.videoYoutubeId, snapshotDto.timestamp, this.IocrPort, IDatabasePort);
+      await this.IdatabasePort.saveSnapshot(this.videoYoutubeId,snapshot);
       console.log('new snapshot saved successfully!');
       return snapshotDto;
     } catch (error) {
@@ -65,11 +66,11 @@ class Video {
     }
   }
 
-  async downloadTranscript(videoId, IDatabasePort) {
+  async downloadTranscript(videoYoutubeId, youtubeAPIKey, IYoutubeDataPort, IDatabasePort) {
     try {
         // const transcript = await this.IyoutubeDataPort.downloadTranscript(videoId);
-        const transcript = 'This is a video transcript';
-        IDatabasePort.saveTranscript(transcript, videoId);
+        const transcript = await IYoutubeDataPort.downloadTranscript(videoYoutubeId, youtubeAPIKey);
+        IDatabasePort.saveTranscript(transcript, videoYoutubeId);
         return transcript; 
     } catch (error) {
         console.error('Error downloading transcript:', error);

@@ -6,7 +6,7 @@ class ISnapshotPort {
       }
     }
   
-    async doSnapshot(videoYoutubeId, snapshotPort, databasePort) {
+    async takeSnapshot(videoYoutubeId, databasePort) {
       throw new Error("Method 'takeSnapshot(videoYoutubeId, youtubeApiKey)' must be implemented.");
     }
   }

@@ -10,7 +10,7 @@ class IYoutubeDataPort {
       throw new Error("Method 'getVideoData(videoYoutubeID)' must be implemented.");
     }
   
-    downloadTranscript(videoId) {
+    downloadTranscript(videoId, youtubeAPIKey, IYoutubeDataPort, IDatabasePort) {
       throw new Error("Method 'downloadTranscript(videoId)' must be implemented.");
     }
   }

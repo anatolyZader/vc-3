@@ -88,6 +88,16 @@ class PostgresAdapter extends IDatabasePort {
     }
   }
 
+  async saveCodeExplanation(codeSnippetId, codeExplanation) {
+    const client = await this.pool.connect();
+    try {
+      const sql = 'INSERT INTO code_explanations (code_snippet_id, codeExplanation) VALUES ($1, $2)';
+      await client.query(sql, [codeSnippetId, codeExplanation]);
+    } finally {
+      client.release();
+    }
+  }
+
   async findCodeSnippetById(id) {
     const client = await this.pool.connect();
     try {
@@ -113,6 +123,16 @@ class PostgresAdapter extends IDatabasePort {
     try {
       const sql = 'INSERT INTO text_snippets (id, snapshot_id, text) VALUES ($1, $2, $3)';
       await client.query(sql, [textSnippetId, snapshotId, text]);
+    } finally {
+      client.release();
+    }
+  }
+
+  async saveTextExplanation( textExplanation) {
+    const client = await this.pool.connect();
+    try {
+      const sql = 'INSERT INTO text_explanations (text_snippet_id, textExplanation) VALUES ($1, $2)';
+      await client.query(sql, [textExplanation]);
     } finally {
       client.release();
     }

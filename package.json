@@ -33,6 +33,7 @@
     "fastify-plugin": "^4.0.0",
     "fastify-secrets-env": "^2.1.8",
     "pg": "^8.12.0",
+    "tesseract.js": "^5.1.0",
     "uuid": "^10.0.0"
   }
 }

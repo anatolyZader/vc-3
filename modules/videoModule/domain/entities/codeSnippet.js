@@ -1,16 +1,22 @@
+'strict'
+// CodeSnippet.js
+const IOCRPort = require('../ports/IOCRPort');
+const IDatabasePort = require('../ports/IDatabasePort');
 const { v4: uuid } = require('uuid');
-const ICodeSnippetService = require('../../application/services/interfaces/ICodeSnippetService');
 
 class CodeSnippet {
   constructor(code) {
     this.codeSnippetId = uuid();
     this.code = code;
-    this.ICodeSnippetService = ICodeSnippetService;
+    this.ICodeSnippetPort = IOCRPort;
+    this.IDatabasePort = IDatabasePort;
   }
 
-  async explainCode() {
+  async explainCode(code, ICodeSnippetPort,  IDatabasePort) {
     console.log('Explaining code!');
-    return await this.ICodeSnippetService.explainCode(this.code);
+    const codeExplanation =  await ICodeSnippetPort.explainCode(code);
+    await IDatabasePort.saveCodeExplanation(codeExplanation);
+
   }
 }
 

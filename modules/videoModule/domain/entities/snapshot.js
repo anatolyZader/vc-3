@@ -12,9 +12,9 @@ class Snapshot {
     this.IocrPort = IocrPort;
   }
 
-  async captureCode(imageURL) {
-    console.log('Capturing displayed code!');
-    const codeSnippet = await this.IocrPort.extractCode(imageURL);
+  async extractCode(imageURL, IOCRPort, databasePort) {
+    console.log('Extracting displayed code!');
+    const codeSnippet = await IOCRPort.extractCode(imageURL);
     try {
       await this.databasePort.saveCodeSnippet(codeSnippet);
       console.log('Code snippet saved successfully!');

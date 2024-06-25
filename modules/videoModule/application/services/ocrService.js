@@ -1,20 +1,23 @@
+'strict'
 // ocrService.js
-const IOCRService = require('./interfaces/IOCRService');
-const snapshot = require('../../domain/entities/snapshot'); 
-
-class OcrService extends IOCRService {
-    async extractCode(imageUrl) {
+class OcrService {
+    constructor(snapshot, ocrAdapter, postgresAdapter) {
+        this.snapshot = snapshot;
+        this.ocrAdapter = ocrAdapter;
+        this.postrgresAdapter = postgresAdapter;
+    }
+    async extractCode(imageUrl, ocrAdapter, postgresAdapter) {
         try {
-            return await snapshot.captureCode(imageUrl);
+            await this.snapshot.captureCode(imageUrl, ocrAdapter, postgresAdapter);
         } catch (error) {
             console.error('Error extracting code:', error);
             throw error;
         }
     }
 
-    async extractText(imageUrl) {
+    async extractText(imageUrl, ocrAdapter, postrgresAdapter) {
         try {
-            return await snapshot.captureText(imageUrl);
+            return await this.snapshot.captureText(imageUrl, ocrAdapter, postrgresAdapter);
         } catch (error) {
             console.error('Error extracting text:', error);
             throw error;
