@@ -1,7 +1,7 @@
 'strict'
 // ocrService.js
 class OcrService {
-    constructor(snapshot, ocrAdapter, postgresAdapter) {
+    constructor({snapshot, ocrAdapter, postgresAdapter}) {
         this.snapshot = snapshot;
         this.ocrAdapter = ocrAdapter;
         this.postrgresAdapter = postgresAdapter;

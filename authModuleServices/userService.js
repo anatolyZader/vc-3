@@ -1,16 +1,31 @@
 // userService.js
-    const User = require('../../domain/aggregates/user');
+    const User = require('../modules/authModule/domain/entities/user');
 
 class UserService {
 
-    constructor() {
+    constructor(
+        {authPostgresAdapter}
+    ) {
         console.log('UserService instantiated!');
         this.user = new User();
+        this.authPostgresAdapter = authPostgresAdapter;
     }
 
-    async register(username, email, passwordHash, authPostgresAdapter) {
+    async readUser(username, authPostgresAdapter) {
         try {
-            const newUser = await this.user.addUser(username, email, passwordHash, authPostgresAdapter);
+            const user = await this.user.readUser(username, authPostgresAdapter);
+            console.log('User read successfully:', user);
+            return user;
+        } catch (error) {
+            console.error('Error reading user:', error);
+            throw error;
+        }
+    }
+
+    async register(username, email, password, authPostgresAdapter) {
+        try {
+            console.log('hello /authModuleServices/userService.js')
+            const newUser = await this.user.addUser(username, email, password, authPostgresAdapter);
             console.log('User registered successfully:', newUser);
             return newUser;
         } catch (error) {

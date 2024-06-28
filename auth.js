@@ -14,27 +14,5 @@ module.exports = fp(async function authenticationPlugin (fastify, opts) {
     }
   })
 
-  fastify.decorate('authenticate', async function authenticate (request, reply) { // [4]
-    try {
-      await request.jwtVerify() // [5]
-    } catch (err) {
-      reply.send(err)
-    }
-  })
 
-  fastify.decorateRequest('revokeToken', function () { // [6]
-    revokedTokens.set(this.user.jti, true)
-  })
-
-  fastify.decorateRequest('generateToken', async function () { // [7]
-    const token = await fastify.jwt.sign({
-      id: String(this.user._id),
-      username: this.user.username
-    }, {
-      jti: String(Date.now()),
-      expiresIn: fastify.secrets.JWT_EXPIRE_IN
-    })
-
-    return token
-  })
 })

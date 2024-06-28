@@ -6,7 +6,8 @@ module.exports = async function authModuleIndex(app, opts) {
   app.register(autoload, {
     dir: path.join(__dirname, 'plugins'),
     options: {
-      prefix: opts.prefix
+      prefix: opts.prefix,
+      encapsulate: false
     }
   });
 
@@ -15,6 +16,7 @@ module.exports = async function authModuleIndex(app, opts) {
     options: {
       prefix: opts.prefix,
       autoHooks: true, // Apply hooks from autohooks.js file(s) to plugins found in folder
+      encapsulate: false
     }
   });
 }

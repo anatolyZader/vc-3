@@ -1,15 +1,23 @@
+'strict'
+// TextSnippetService.js
+class TextSnippetService {
+    constructor({textSnippet, aiAdapter, 
+          postgresAdapter}) {
+        this.textSnippet = textSnippet;
+        this.aiAdapter = aiAdapter;
+        this.postgresAdapter = postgresAdapter;   
+    }
 
-async function explainText(textSnippet, videoYoutubeId, textSnippetId, aiAdapter, postgresAdapter) {
-    console.log('Explaining text!');
-    return await textSnippet.explainText( textSnippetId, aiAdapter, postgresAdapter);
+    async explainText(text) {
+        console.log('Explaining text!');
+        const textExplanation = await this.textSnippet.explainCode(text, this.aiAdapter, this.postgresAdapter);
+        await this.postgresAdapter.saveTextExplanation(textExplanation);
+    }
 }
+    // async translateText(text) {
+    //     console.log('Translating text!');
+    //     return await textSnippet.translateText(  this.aiAdapter, this.postgresAdapter);
+    // }
 
-async function translateText(textSnippet, videoYoutubeId, textSnippetId, aiAdapter, postgresAdapter) {
-    console.log('Translating text!');
-    return await aiAdapter.translateText(videoYoutubeId, textSnippetId, aiAdapter, postgresAdapter);
-}
 
-module.exports = {
-    explainText,
-    translateText
-};
+module.exports = TextSnippetService;

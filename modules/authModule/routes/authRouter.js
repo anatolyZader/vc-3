@@ -3,7 +3,6 @@
 'use strict'
 
 const fp = require('fastify-plugin')
-const generateHash = require('./generateHash')  
 
 module.exports.prefixOverride = '' // expose the routes directly on the root path 
 module.exports = fp(
@@ -13,18 +12,16 @@ module.exports = fp(
         body: fastify.getSchema('schema:auth:register')  
       },
       handler: async function registerHandler (request, reply) {
-        const existingUser = await this.usersDataSource.readUser(request.body.username)  
+        const existingUser = await fastify.readUser(request.body.userId)  
         if (existingUser) {  
           const err = new Error('User already registered')
           err.statusCode = 409
           throw err
         }
-        const { hash, salt } = await generateHash(request.body.password | 'password')  
         try {
-          const newUserId = await this.usersDataSource.createUser({  
+          const newUserId = await fastify.registerUser({  
             username: request.body.username,
-            salt,
-            hash
+            password: request.body.password // store plain text password
           })
           request.log.info({ userId: newUserId }, 'User registered')
 
@@ -48,15 +45,7 @@ module.exports = fp(
       handler: async function authenticateHandler (request, reply) {
         const user = await this.usersDataSource.readUser(request.body.username) 
 
-        if (!user) { 
-          // if we return 404, an attacker can use this to find out which users are registered
-          const err = new Error('Wrong credentials provided')
-          err.statusCode = 401
-          throw err
-        }
-
-        const { hash } = await generateHash(request.body.password, user.salt) 
-        if (hash !== user.hash) { 
+        if (!user || user.password !== request.body.password) { 
           const err = new Error('Wrong credentials provided')
           err.statusCode = 401
           throw err

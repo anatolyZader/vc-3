@@ -1,7 +1,7 @@
 'strict'
 // videoAppService.js
 class VideoAppService {
-    constructor(video, snapshotAdapter, postgresAdapter) {
+    constructor({video, snapshotAdapter, postgresAdapter}) {
         console.log('VideoAppService instantiated!');
         this.video = video;  
         this.snapshotAdapter = snapshotAdapter;

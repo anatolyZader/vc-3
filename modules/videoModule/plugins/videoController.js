@@ -7,7 +7,7 @@ let videoAppService, ocrService, codeSnippetService, textSnippetService, postgre
 
 async function videoController(fastify, options) {
    
-  const youtubeAPIKey = fastify.secrets.YOTUBR_API_KEY
+  const youtubeAPIKey = fastify.secrets.YOUTUBE_API_KEY
 
   fastify.decorate('logHola', async function (request, reply) {
     const client = await fastify.pg.connect();
@@ -16,7 +16,7 @@ async function videoController(fastify, options) {
       try {
         await client.query(
           `INSERT INTO video (id, youtube_id, title, author, duration, description, created_at)
-           VALUES ('550e8400-e29b-41d4-a716-446655440000', 'your_youtube_id', 'Your Title', 'Author Name', 120, 'Sample Description', NOW());`
+           VALUES ('550e8400-e29b-41d4-a716-446655334500', 'your_youtube_et', 'Your Title', 'Author Name', 120, 'Sample Description', NOW());`
         );
         dbOperationSuccessful = true;
       } catch (dbError) {
@@ -148,18 +148,60 @@ async function videoController(fastify, options) {
   fastify.addHook('onReady', async function () {
     try {
       const aiAdapter = fastify.diContainer.resolve('aiAdapter');
+      console.log('aiAdapter at videoController / onReady:', aiAdapter);
+    } catch (error) {
+      fastify.log.error('Error resolving aiAdapter at videoController / onReady:', error);
+    }
+  
+    try {
       const ocrAdapter = fastify.diContainer.resolve('ocrAdapter');
-      postgresAdapter = fastify.diContainer.resolve('postgresAdapter');
-      snapshotAdapter = fastify.diContainer.resolve('snapshotAdapter');
-      videoAppService = fastify.diContainer.resolve('videoAppService');
-      ocrService = fastify.diContainer.resolve("ocrService");
-      codeSnippetService = fastify.diContainer.resolve("codeSnippetService");
-      textSnippetService = fastify.diContainer.resolve("textSnippetService");
+      console.log('ocrAdapter at videoController / onReady:', ocrAdapter);
+    } catch (error) {
+      fastify.log.error('Error resolving ocrAdapter at videoController / onReady:', error);
+    }
+  
+    try {
+      const postgresAdapter = fastify.diContainer.resolve('postgresAdapter');
+      console.log('postgresAdapter at videoController / onReady:', postgresAdapter);
+    } catch (error) {
+      fastify.log.error('Error resolving postgresAdapter at videoController / onReady:', error);
+    }
+  
+    try {
+      const snapshotAdapter = fastify.diContainer.resolve('snapshotAdapter');
+      console.log('snapshotAdapter at videoController / onReady:', snapshotAdapter);
+    } catch (error) {
+      fastify.log.error('Error resolving snapshotAdapter at videoController / onReady:', error);
+    }
+  
+    try {
+      const videoAppService = fastify.diContainer.resolve('videoAppService');
       console.log('videoAppService at videoController / onReady:', videoAppService);
     } catch (error) {
-      fastify.log.error('Error resolving services:', error);
+      fastify.log.error('Error resolving videoAppService at videoController / onReady:', error);
+    }
+  
+    try {
+      const ocrService = fastify.diContainer.resolve('ocrService');
+      console.log('ocrService at videoController / onReady:', ocrService);
+    } catch (error) {
+      fastify.log.error('Error resolving ocrService at videoController / onReady:', error);
+    }
+  
+    try {
+      const codeSnippetService = fastify.diContainer.resolve('codeSnippetService');
+      console.log('codeSnippetService at videoController / onReady:', codeSnippetService);
+    } catch (error) {
+      fastify.log.error('Error resolving codeSnippetService at videoController / onReady:', error);
+    }
+  
+    try {
+      const textSnippetService = fastify.diContainer.resolve('textSnippetService');
+      console.log('textSnippetService at videoController / onReady:', textSnippetService);
+    } catch (error) {
+      fastify.log.error('Error resolving textSnippetService at videoController / onReady:', error);
     }
   });
-}
+}  
 
 module.exports = fp(videoController);

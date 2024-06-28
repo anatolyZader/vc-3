@@ -1,6 +1,6 @@
 const IaiPort = require('../../domain/ports/IAIPort');
 
-class AiAdapter extends IaiPort {
+class AIAdapter extends IaiPort {
   constructor(text, code) {
     super();
     this.text = text;
@@ -29,4 +29,4 @@ class AiAdapter extends IaiPort {
   }
 }
 
-module.exports = AiAdapter;
+module.exports = AIAdapter;

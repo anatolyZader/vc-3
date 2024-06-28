@@ -1,3 +1,4 @@
+'strict'
 // Transcript.js
 const { v4: uuidv4 } = require('uuid');
 const IDatabasePort = require('../../domain/ports/IDatabasePort');

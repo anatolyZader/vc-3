@@ -2,7 +2,7 @@
 // accountService.js
 
 class AccountService {
-  constructor(account, user, authPostgresAdapter) {
+  constructor({account, user, authPostgresAdapter}) {
     this.account = account;
     this.user = user;
     this.authPostgresAdapter = authPostgresAdapter;

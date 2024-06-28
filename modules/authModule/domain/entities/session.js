@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 'strict';
 // session.js
 
@@ -11,6 +12,23 @@ class Session {
     this.databasePort = IAuthDatabasePort;
     this.createSession(); // Automatically create session when Session object is instantiated
   }
+
+  async login (username, passwordHash, IAuthDatabasePort) {
+      try {
+        console.log('Logging in user...'); 
+  } catch (error) {    
+      console.error('Error logging in user:', error);
+      throw error;
+  }};
+
+  async logout () {
+      try {
+          console.log('Logging out user...'); 
+  } catch (error) {    
+      console.error('Error logging out user:', error);
+      throw error;
+  }};
+
 
   async createSession() {
     try {
@@ -35,5 +53,7 @@ class Session {
     }
   }
 }
+
+
 
 module.exports = Session;

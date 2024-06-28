@@ -3,13 +3,11 @@
 
 const { v4: uuidv4 } = require('uuid');
 const Snapshot = require('../entities/snapshot');
-
-const videoConstructService = require('../../application/services/videoConstructService');
+const videoConstructService = require('../../application/services/videoConstructService')
 
 class Video {
   constructor(
     videoYoutubeId,
-    // videoConstructService,  
     ISnapshotPort,
     IAIPort,
     IDatabasePort,

@@ -2,22 +2,33 @@
 'strict'
 // user.js
 const { v4: uuidv4 } = require('uuid');
-
+const IAuthDatabasePort = require('../ports/IAuthDatabasePort')
 class User {
   constructor(username, email, IAuthDatabasePort) {
     this.userId = uuidv4();
     this.username = username;
     this.email = email;
     this.passwordHash = '';
-    this.databasePort = IAuthDatabasePort;
+    this.IAuthDatabasePort = IAuthDatabasePort;
     this.accounts = []
     }
 
-    async register(username, email, passwordHash, IAuthDatabasePort) {
+    async readUser(userId, IAuthDatabasePort) {
         try {
-            const newUserDTO = await IAuthDatabasePort.createUser(username,  passwordHash);
+            const userDTO = await IAuthDatabasePort.readUser(userId);
+            console.log('User read successfully:', userDTO);
+            return userDTO;
+        } catch (error) {
+            console.error('Error reading user:', error);
+            throw error;
+        }
+    }
+
+    async register(username, email, password, IAuthDatabasePort) {
+        try {
+            // const newUserDTO = await IAuthDatabasePort.createUser(username,  password);
             console.log('new user added successfully!');
-            return newUserDTO;
+            // return newUserDTO;
         } catch (error) {
             console.error('Error adding new user: ', error);
         throw error;
@@ -33,23 +44,7 @@ class User {
         throw error;
     }
     }
-
-    async login (username, passwordHash, IAuthDatabasePort) {
-        try {
-           console.log('Logging in user...'); 
-    } catch (error) {    
-        console.error('Error logging in user:', error);
-        throw error;
-    }};
-
-    async logout () {
-        try {
-            console.log('Logging out user...'); 
-    } catch (error) {    
-        console.error('Error logging out user:', error);
-        throw error;
-    }};
-
+    
 } 
 
 module.exports = User;
