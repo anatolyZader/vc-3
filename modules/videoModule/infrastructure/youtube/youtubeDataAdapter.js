@@ -3,7 +3,6 @@
 //youtubeDataAdapter.js
 
 const { google } = require('googleapis');
-const { IvideoInfoDto } = require('../../DTOs/IvideoInfoDto');
 
 class YoutubeDataAdapter {
   constructor(youtubeApiKey) {

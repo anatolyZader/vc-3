@@ -1,17 +1,20 @@
+const YoutubeDataAdapter = require('../../infrastructure/youtube/youtubeDataAdapter');
 
 class VideoConstructService {
-  constructor(youtubeApiKey) {
-    if (!youtubeApiKey) {
-      throw new Error('YOUTUBE_API_KEY is not set');
-    }
+  constructor() {
+    // if (!youtubeApiKey) {
+    //   throw new Error('YOUTUBE_API_KEY is not set');
+    // }
     // eslint-disable-next-line no-undef
-    this.youtubeDataAdapter = diContainer.resolve('youtubeDataAdapter', youtubeApiKey);
+    this.youtubeDataAdapter = new YoutubeDataAdapter();
   }
 
   async fetchVideoData(youtubeVideoId) {
     try {
-      const fetchedVideoData = await this.youtubeDataAdapter.getVideoData(youtubeVideoId);
+      const fetchedVideoData = await this.youtubeDataAdapter.fetchVideoData(youtubeVideoId);
+      console.log('youtubeDataAdapter at vcs.fetchVideoData(): ', fetchedVideoData);
       const videoData = {
+        id: fetchedVideoData.id,
         title: fetchedVideoData.title,
         author: fetchedVideoData.author,
         duration: fetchedVideoData.duration,

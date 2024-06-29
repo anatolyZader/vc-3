@@ -3,7 +3,9 @@
 
 const { v4: uuidv4 } = require('uuid');
 const Snapshot = require('../entities/snapshot');
-const videoConstructService = require('../../application/services/videoConstructService')
+// eslint-disable-next-line no-unused-vars
+const VideoConstructService = require('../../application/services/videoConstructService')
+const videoConstructService = new VideoConstructService;
 
 class Video {
   constructor(

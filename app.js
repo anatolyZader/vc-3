@@ -116,9 +116,9 @@ module.exports = async function (fastify, opts) {
     snapshotAdapter: asClass(SnapshotAdapter),
     account: asClass(Account),
     user: asClass(User),
-    accountService : asClass(AccountService),
     userService: asClass(UserService),
     authPostgresAdapter: asClass(AuthPostgresAdapter),
+    accountService : asClass(AccountService),   
   });
 
     // Logging to check which imports are undefined

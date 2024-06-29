@@ -184,7 +184,11 @@ async function authController(fastify, options) {
         accountService = fastify.diContainer.resolve('accountService');
         console.log('accountService at authController / onReady:', accountService);
       } catch (error) {
-        fastify.log.error('Error resolving accountService at authController:', error);
+        fastify.log.error('Error resolving accountService at authController:', {
+          error: error.message,
+          stack: error.stack,
+          resolutionContext: 'accountService'
+        });
       }
       try {
         authPostgresAdapter = fastify.diContainer.resolve('authPostgresAdapter');
