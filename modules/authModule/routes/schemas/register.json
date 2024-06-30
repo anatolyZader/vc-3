@@ -3,13 +3,17 @@
   "$id": "schema:auth:register",
   "required": [
     "username",
+    "email",
     "password"
   ],
   "properties": {
     "username": {
       "type": "string",
-      "pattern": "^[a-zA-Z0-9_]{3,50}$",
       "maxLength": 50
+    },
+    "email": {
+      "type": "string",
+      "maxLength": 20
     },
     "password": {
       "type": "string",

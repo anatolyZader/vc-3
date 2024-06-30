@@ -6,34 +6,47 @@ const fp = require('fastify-plugin')
 
 module.exports.prefixOverride = '' // expose the routes directly on the root path 
 module.exports = fp(
-  async function applicationAuth (fastify, opts) {
-    fastify.post('/register', {  
-      schema: {
-        body: fastify.getSchema('schema:auth:register')  
-      },
-      handler: async function registerHandler (request, reply) {
-        const existingUser = await fastify.readUser(request.body.userId)  
-        if (existingUser) {  
-          const err = new Error('User already registered')
-          err.statusCode = 409
-          throw err
-        }
-        try {
-          const newUserId = await fastify.registerUser({  
-            username: request.body.username,
-            password: request.body.password // store plain text password
-          })
-          request.log.info({ userId: newUserId }, 'User registered')
+  async function authRouter (fastify, opts) {
 
-          reply.code(201)
-          return { registered: true } 
-        } catch (error) {
-          request.log.error(error, 'Failed to register user')
-          reply.code(500)
-          return { registered: false } 
-        }
-      }
-    })
+
+  const registerSchemaBody = fastify.getSchema('schema:auth:register')
+  console.log('Schema for "schema:auth:register retreived at authRouter.js":', registerSchemaBody); 
+
+  // fastify.route({
+  //   method: 'GET',
+  //   url: `/hola`,
+  //   handler: fastify.logHola  
+  // });
+    fastify.route({
+    method: 'POST',
+    url: '/register',
+    handler: fastify.registerUser
+    });
+  
+ 
+
+
+    // fastify.post('/register', {  
+    //   schema: {
+    //     body: registerSchemaBody 
+    //   },
+    //   handler: 
+    //     try {
+    //       const newUserId = await fastify.registerUser({  
+    //         username: request.body.username,
+    //         password: request.body.password // store plain text password
+    //       })
+    //       request.log.info({ userId: newUserId }, 'User registered')
+
+    //       reply.code(201)
+    //       return { registered: true } 
+    //     } catch (error) {
+    //       request.log.error(error, 'Failed to register user')
+    //       reply.code(500)
+    //       return { registered: false } 
+    //     }
+    //   }
+    // })
 
     fastify.post('/authenticate', {
       schema: {  

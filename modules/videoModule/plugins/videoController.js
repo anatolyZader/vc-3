@@ -148,56 +148,56 @@ async function videoController(fastify, options) {
   fastify.addHook('onReady', async function () {
     try {
       const aiAdapter = fastify.diContainer.resolve('aiAdapter');
-      console.log('aiAdapter at videoController / onReady:', aiAdapter);
+      // console.log('aiAdapter at videoController / onReady:', aiAdapter);
     } catch (error) {
       fastify.log.error('Error resolving aiAdapter at videoController / onReady:', error);
     }
   
     try {
       const ocrAdapter = fastify.diContainer.resolve('ocrAdapter');
-      console.log('ocrAdapter at videoController / onReady:', ocrAdapter);
+      // console.log('ocrAdapter at videoController / onReady:', ocrAdapter);
     } catch (error) {
       fastify.log.error('Error resolving ocrAdapter at videoController / onReady:', error);
     }
   
     try {
       const postgresAdapter = fastify.diContainer.resolve('postgresAdapter');
-      console.log('postgresAdapter at videoController / onReady:', postgresAdapter);
+      // console.log('postgresAdapter at videoController / onReady:', postgresAdapter);
     } catch (error) {
       fastify.log.error('Error resolving postgresAdapter at videoController / onReady:', error);
     }
   
     try {
       const snapshotAdapter = fastify.diContainer.resolve('snapshotAdapter');
-      console.log('snapshotAdapter at videoController / onReady:', snapshotAdapter);
+      // console.log('snapshotAdapter at videoController / onReady:', snapshotAdapter);
     } catch (error) {
       fastify.log.error('Error resolving snapshotAdapter at videoController / onReady:', error);
     }
   
     try {
       const videoAppService = fastify.diContainer.resolve('videoAppService');
-      console.log('videoAppService at videoController / onReady:', videoAppService);
+      // console.log('videoAppService at videoController / onReady:', videoAppService);
     } catch (error) {
       fastify.log.error('Error resolving videoAppService at videoController / onReady:', error);
     }
   
     try {
       const ocrService = fastify.diContainer.resolve('ocrService');
-      console.log('ocrService at videoController / onReady:', ocrService);
+      // console.log('ocrService at videoController / onReady:', ocrService);
     } catch (error) {
       fastify.log.error('Error resolving ocrService at videoController / onReady:', error);
     }
   
     try {
       const codeSnippetService = fastify.diContainer.resolve('codeSnippetService');
-      console.log('codeSnippetService at videoController / onReady:', codeSnippetService);
+      // console.log('codeSnippetService at videoController / onReady:', codeSnippetService);
     } catch (error) {
       fastify.log.error('Error resolving codeSnippetService at videoController / onReady:', error);
     }
   
     try {
       const textSnippetService = fastify.diContainer.resolve('textSnippetService');
-      console.log('textSnippetService at videoController / onReady:', textSnippetService);
+      // console.log('textSnippetService at videoController / onReady:', textSnippetService);
     } catch (error) {
       fastify.log.error('Error resolving textSnippetService at videoController / onReady:', error);
     }

@@ -12,7 +12,7 @@ class VideoConstructService {
   async fetchVideoData(youtubeVideoId) {
     try {
       const fetchedVideoData = await this.youtubeDataAdapter.fetchVideoData(youtubeVideoId);
-      console.log('youtubeDataAdapter at vcs.fetchVideoData(): ', fetchedVideoData);
+      // console.log('youtubeDataAdapter at videoConstructService.fetchVideoData(): ', fetchedVideoData);
       const videoData = {
         id: fetchedVideoData.id,
         title: fetchedVideoData.title,

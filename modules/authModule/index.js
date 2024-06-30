@@ -2,8 +2,8 @@
 const autoload = require('@fastify/autoload');
 const path = require('path');
 
-module.exports = async function authModuleIndex(app, opts) {
-  app.register(autoload, {
+module.exports = async function authModuleIndex(fastify, opts) {
+  fastify.register(autoload, {
     dir: path.join(__dirname, 'plugins'),
     options: {
       prefix: opts.prefix,
@@ -11,7 +11,7 @@ module.exports = async function authModuleIndex(app, opts) {
     }
   });
 
-  app.register(autoload, {
+  fastify.register(autoload, {
     dir: path.join(__dirname, 'routes'),
     options: {
       prefix: opts.prefix,
@@ -19,4 +19,7 @@ module.exports = async function authModuleIndex(app, opts) {
       encapsulate: false
     }
   });
+  
+  fastify.addSchema(require('./routes/schemas/register.json'));
+
 }

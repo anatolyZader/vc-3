@@ -6,9 +6,19 @@ let userService, accountService, sessionService, authPostgresAdapter;
 // eslint-disable-next-line no-unused-vars
 async function authController(fastify, options) {
 
+  console.log('Schema for "schema:auth:register retreived at authController.js":', fastify.getSchema('schema:auth:register'));
+
   fastify.decorate('registerUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
+      return;
+    }
+    fastify.log.info('Headers:', request.headers);
+    fastify.log.info('Content-Type:', request.headers['content-type']);
+    fastify.log.info('Received body:', request.body);
+    console.log('request: ', request)
+    if (!request.body || !request.body.username || !request.body.email || !request.body.password) {
+      reply.status(400).send({ error: 'Invalid request payload' });
       return;
     }
     const { username, email, password } = request.body;
@@ -42,7 +52,7 @@ async function authController(fastify, options) {
       reply.status(500).send({ error: 'Service not initialized' });
       return;
     }
-    const { username } = request.query; 
+    const { username } = request.body; 
     try {
       const user = await userService.readUser(username);
       if (user) {
@@ -176,13 +186,13 @@ async function authController(fastify, options) {
     fastify.addHook('onReady', async function () {
       try {
         userService = fastify.diContainer.resolve('userService');
-        console.log('userService at authController / onReady:', userService);
+        // console.log('userService at authController / onReady:', userService);
       } catch (error) {
         fastify.log.error('Error resolving userService at authController:', error);
       }
       try {
         accountService = fastify.diContainer.resolve('accountService');
-        console.log('accountService at authController / onReady:', accountService);
+        // console.log('accountService at authController / onReady:', accountService);
       } catch (error) {
         fastify.log.error('Error resolving accountService at authController:', {
           error: error.message,
@@ -192,7 +202,7 @@ async function authController(fastify, options) {
       }
       try {
         authPostgresAdapter = fastify.diContainer.resolve('authPostgresAdapter');
-        console.log('authPostgresAdapter at authController / onReady:', authPostgresAdapter);
+        // console.log('authPostgresAdapter at authController / onReady:', authPostgresAdapter);
       } catch (error) {
         fastify.log.error('Error resolving authPostgresAdapter at authController:', error);
       }

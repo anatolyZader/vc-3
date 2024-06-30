@@ -2,13 +2,10 @@
     const User = require('../modules/authModule/domain/entities/user');
 
 class UserService {
-
-    constructor(
-        {authPostgresAdapter}
+    constructor(       
     ) {
         console.log('UserService instantiated!');
         this.user = new User();
-        this.authPostgresAdapter = authPostgresAdapter;
     }
 
     async readUser(username, authPostgresAdapter) {

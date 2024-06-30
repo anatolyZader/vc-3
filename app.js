@@ -161,8 +161,8 @@ module.exports = async function (fastify, opts) {
   const simpleService = fastify.diContainer.resolve('simpleService');
   console.log(simpleService.getMessage());
 
-  console.log('fastify.secrets.PORT at app.js:', fastify.secrets.PORT);
-  console.log('fastify.secrets.PG_CONNECTION_STRING at app.js:', fastify.secrets.PG_CONNECTION_STRING);
+  // console.log('fastify.secrets.PORT at app.js:', fastify.secrets.PORT);
+  // console.log('fastify.secrets.PG_CONNECTION_STRING at app.js:', fastify.secrets.PG_CONNECTION_STRING);
 
   await fastify.setErrorHandler(async (err, request, reply) => {
     if (err.validation) {
@@ -180,15 +180,12 @@ module.exports = async function (fastify, opts) {
   });
 
   fastify.after(async () => {
-    console.log('authModule/authPostgresAdapter at app.js/after:', AuthPostgresAdapter);
-    console.log('')
-
-
+    // console.log('authModule/authPostgresAdapter at app.js/after:', AuthPostgresAdapter);
     await fastify.register(auth);
     await fastify.register(require('@fastify/postgres'), {
       connectionString: fastify.secrets.PG_CONNECTION_STRING,
     });
-    console.log('fastify.secret.PG_CONNECTION_STRING at app.js/after:', fastify.secrets.PG_CONNECTION_STRING);
+    // console.log('fastify.secret.PG_CONNECTION_STRING at app.js/after:', fastify.secrets.PG_CONNECTION_STRING);
   });
 };
 
