@@ -21,8 +21,8 @@ class UserService {
 
     async register(username, email, password, authPostgresAdapter) {
         try {
-            console.log('hello /authModuleServices/userService.js')
-            const newUser = await this.user.addUser(username, email, password, authPostgresAdapter);
+            console.log('hello userService.js')
+            const newUser = await this.user.register(username, email, password, authPostgresAdapter);
             console.log('User registered successfully:', newUser);
             return newUser;
         } catch (error) {

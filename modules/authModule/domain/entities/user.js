@@ -26,9 +26,9 @@ class User {
 
     async register(username, email, password, IAuthDatabasePort) {
         try {
-            // const newUserDTO = await IAuthDatabasePort.createUser(username,  password);
-            console.log('new user added successfully!');
-            // return newUserDTO;
+            const newUserDTO = await IAuthDatabasePort.createUser(username, email, password);
+            console.log(`hello user.js! new user added successfully with following credentials: ${newUserDTO}`);
+            return newUserDTO;
         } catch (error) {
             console.error('Error adding new user: ', error);
         throw error;

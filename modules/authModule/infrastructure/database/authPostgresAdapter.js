@@ -12,13 +12,12 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
     });
   }
 
-  async createUser(username, email, passwordHash) {
+  async createUser(username, email, password) {
     const client = await this.pool.connect();
     try {
-      const sql = 'INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4)';
-      const userId = uuidv4();
-      await client.query(sql, [userId, username, email, passwordHash]);
-      return { userId, username, email };
+      const id = uuidv4();
+      const sql = 'INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)';
+      await client.query(sql, [id, username, email, password]);
     } finally {
       client.release();
     }
