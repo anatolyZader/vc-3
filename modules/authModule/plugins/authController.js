@@ -8,6 +8,7 @@ async function authController(fastify, options) {
 
   console.log('Schema for "schema:auth:register retreived at authController.js":', fastify.getSchema('schema:auth:register'));
 
+
   fastify.decorate('registerUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -31,6 +32,47 @@ async function authController(fastify, options) {
     }
   });
 
+  fastify.decorate('authenticateUser', async function (request, reply) {
+    if (!userService) {
+      reply.status(500).send({ error: 'Service not initialized' });
+      return;
+    }
+  
+    const { username, password } = request.body;
+  
+    try {
+      const user = await userService.readUser(username, authPostgresAdapter);
+  
+      if (!user) {
+        reply.status(404).send({ error: 'User not found' });
+        return;
+      }
+  
+      console.log("User found!");
+  
+      if (user.password !== password) {
+        const err = new Error('Wrong credentials provided');
+        err.statusCode = 401;
+        throw err;
+      }
+  
+      // Authentication successful
+      reply.send({ message: 'Authentication successful', user });
+    } catch (error) {
+      fastify.log.error('Error authenticating user:', error);
+  
+      if (error.statusCode) {
+        reply.status(error.statusCode).send({ error: error.message });
+      } else {
+        reply.status(500).send({ error: 'Internal Server Error' });
+      }
+    }
+  });
+  
+
+
+
+
   fastify.decorate('removeUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -47,24 +89,7 @@ async function authController(fastify, options) {
     }
   });
 
-  fastify.decorate('readUser', async function (request, reply) {
-    if (!userService) {
-      reply.status(500).send({ error: 'Service not initialized' });
-      return;
-    }
-    const { username } = request.body; 
-    try {
-      const user = await userService.readUser(username);
-      if (user) {
-        reply.send({ message: 'User found', user });
-      } else {
-        reply.status(404).send({ error: 'User not found' });
-      }
-    } catch (error) {
-      fastify.log.error('Error reading user:', error);
-      reply.status(500).send({ error: 'Internal Server Error' });
-    }
-  });
+
 
   fastify.decorate('loginUser', async function (request, reply) {
     if (!userService) {

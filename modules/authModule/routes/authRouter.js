@@ -22,6 +22,12 @@ module.exports = fp(
     url: '/register',
     handler: fastify.registerUser
     });
+
+    fastify.route({
+      method: 'POST',
+      url: '/authenticate',
+      handler: fastify.authenticateUser
+    })
   
  
 
@@ -48,26 +54,22 @@ module.exports = fp(
     //   }
     // })
 
-    fastify.post('/authenticate', {
-      schema: {  
-        body: fastify.getSchema('schema:auth:register'),
-        response: {
-          200: fastify.getSchema('schema:auth:token')
-        }
-      },
-      handler: async function authenticateHandler (request, reply) {
-        const user = await this.usersDataSource.readUser(request.body.username) 
+    // fastify.post('/authenticate', {
+    //   schema: {  
+    //     body: fastify.getSchema('schema:auth:register'),
+    //     response: {
+    //       200: fastify.getSchema('schema:auth:token')
+    //     }
+    //   },
+    //   handler: async function authenticateHandler (request, reply) {
+    //     const user = await this.usersDataSource.readUser(request.body.username) 
 
-        if (!user || user.password !== request.body.password) { 
-          const err = new Error('Wrong credentials provided')
-          err.statusCode = 401
-          throw err
-        }
 
-        request.user = user 
-        return refreshHandler(request, reply) 
-      }
-    })
+
+    //     request.user = user 
+    //     return refreshHandler(request, reply) 
+    //   }
+    // })
 
     fastify.get('/me', {
       onRequest: fastify.authenticate,

@@ -8,16 +8,6 @@ class UserService {
         this.user = new User();
     }
 
-    async readUser(username, authPostgresAdapter) {
-        try {
-            const user = await this.user.readUser(username, authPostgresAdapter);
-            console.log('User read successfully:', user);
-            return user;
-        } catch (error) {
-            console.error('Error reading user:', error);
-            throw error;
-        }
-    }
 
     async register(username, email, password, authPostgresAdapter) {
         try {
@@ -27,6 +17,18 @@ class UserService {
             return newUser;
         } catch (error) {
             console.error('Error registering user:', error);
+            throw error;
+        }
+    }
+
+
+    async readUser(username, authPostgresAdapter) {
+        try {
+            const user = await this.user.readUser(username, authPostgresAdapter);
+            console.log('User read successfully:', user);
+            return user;
+        } catch (error) {
+            console.error('Error reading user:', error);
             throw error;
         }
     }

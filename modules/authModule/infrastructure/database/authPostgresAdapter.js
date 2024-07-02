@@ -23,10 +23,10 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
     }
   }
 
-  async readUser(userId) {
+  async readUser(username) {
     const client = await this.pool.connect();
     try {
-      const { rows } = await client.query('SELECT * FROM users WHERE id=$1', [userId]);
+      const { rows } = await client.query('SELECT * FROM users WHERE username=$1', [username]);
       return rows.length ? rows[0] : null;
     } finally {
       client.release();

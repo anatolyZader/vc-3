@@ -2,26 +2,14 @@
 'strict'
 // user.js
 const { v4: uuidv4 } = require('uuid');
-const IAuthDatabasePort = require('../ports/IAuthDatabasePort')
+// const IAuthDatabasePort = require('../ports/IAuthDatabasePort')
 class User {
-  constructor(username, email, IAuthDatabasePort) {
+  constructor(username, email) {
     this.userId = uuidv4();
     this.username = username;
     this.email = email;
     this.passwordHash = '';
-    this.IAuthDatabasePort = IAuthDatabasePort;
     this.accounts = []
-    }
-
-    async readUser(userId, IAuthDatabasePort) {
-        try {
-            const userDTO = await IAuthDatabasePort.readUser(userId);
-            console.log('User read successfully:', userDTO);
-            return userDTO;
-        } catch (error) {
-            console.error('Error reading user:', error);
-            throw error;
-        }
     }
 
     async register(username, email, password, IAuthDatabasePort) {
@@ -34,10 +22,21 @@ class User {
         throw error;
     }
  }
+
+    async readUser(username, IAuthDatabasePort) {
+        try {
+            const userDTO = await IAuthDatabasePort.readUser(username);
+            console.log('User read successfully:', userDTO);
+            return userDTO;
+        } catch (error) {
+            console.error('Error reading user:', error);
+            throw error;
+        }
+    }
     
     async remove (username, passwordHash, IAuthDatabasePort) {
         try {
-            await IAuthDatabasePort.removeUser(username,  passwordHash, IAuthDatabasePort);
+            await IAuthDatabasePort.removeUser(username,  passwordHash);
             console.log('user removed successfully!');
         } catch (error) {
             console.error('Error removing user: ', error);

@@ -12,7 +12,7 @@ class IAuthDatabasePort {
       throw new Error("Method 'createUser(username, email, passwordHash)' must be implemented.");
     }
   
-    async readUser(userId) {
+    async readUser(username) {
       throw new Error("Method 'readUser(userId)' must be implemented.");
     }
   
