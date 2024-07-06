@@ -1,4 +1,6 @@
 // 'use strict'
+// config.js
+
 const fp = require('fastify-plugin');
 const fastifyEnv = require('@fastify/env');
 

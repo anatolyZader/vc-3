@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // authController.js
 const fp = require('fastify-plugin');
 
@@ -7,7 +8,6 @@ let userService, accountService, sessionService, authPostgresAdapter;
 async function authController(fastify, options) {
 
   console.log('Schema for "schema:auth:register retreived at authController.js":', fastify.getSchema('schema:auth:register'));
-
 
   fastify.decorate('registerUser', async function (request, reply) {
     if (!userService) {
@@ -32,35 +32,32 @@ async function authController(fastify, options) {
     }
   });
 
+
+  // generate a new JWT token using their password
   fastify.decorate('authenticateUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
       return;
-    }
-  
-    const { username, password } = request.body;
-  
+    }   
+    const { username, password } = request.body; 
     try {
       const user = await userService.readUser(username, authPostgresAdapter);
   
       if (!user) {
         reply.status(404).send({ error: 'User not found' });
         return;
-      }
-  
-      console.log("User found!");
-  
+      }  
+      console.log("User found!"); 
       if (user.password !== password) {
         const err = new Error('Wrong credentials provided');
         err.statusCode = 401;
         throw err;
       }
-  
-      // Authentication successful
       reply.send({ message: 'Authentication successful', user });
+      request.user = user  
+      return fastify.refreshToken(request, reply) // !!!
     } catch (error) {
-      fastify.log.error('Error authenticating user:', error);
-  
+      fastify.log.error('Error authenticating user:', error); 
       if (error.statusCode) {
         reply.status(error.statusCode).send({ error: error.message });
       } else {
@@ -68,11 +65,30 @@ async function authController(fastify, options) {
       }
     }
   });
+
+  // Once authenticated,  generate more tokens without providing  username and password
+  fastify.decorate('refreshToken', async function (request, reply) {  
+    const token = await request.generateToken()  
+    return { token }
+  })
   
+  
+  fastify.decorate('getMe', async function (request, reply) {
+    return request.user
+  })
+
+
+  fastify.decorate('logoutUser', async function (request, reply) {
+      request.revokeToken() 
+      reply.code(204)  
+  })
 
 
 
 
+// ----------------------------------------------------------------------
+
+  
   fastify.decorate('removeUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -91,43 +107,7 @@ async function authController(fastify, options) {
 
 
 
-  fastify.decorate('loginUser', async function (request, reply) {
-    if (!userService) {
-      reply.status(500).send({ error: 'Service not initialized' });
-      return;
-    }
-    const { username, password } = request.body;
-    try {
-      const user = await userService.login(username, password);
-      if (user) {
-        reply.send({ message: 'User logged in successfully', user });
-      } else {
-        reply.status(401).send({ error: 'Invalid username or password' });
-      }
-    } catch (error) {
-      fastify.log.error('Error logging in user:', error);
-      reply.status(500).send({ error: 'Internal Server Error' });
-    }
-  });
-
-  fastify.decorate('logoutUser', async function (request, reply) {
-    if (!userService) {
-      reply.status(500).send({ error: 'Service not initialized' });
-      return;
-    }
-    const { username, password } = request.body;
-    try {
-      const user = await userService.logout(username, password);
-      if (user) {
-        reply.send({ message: 'User logged in successfully', user });
-      } else {
-        reply.status(401).send({ error: 'Invalid username or password' });
-      }
-    } catch (error) {
-      fastify.log.error('Error logging in user:', error);
-      reply.status(500).send({ error: 'Internal Server Error' });
-    }
-    });
+// -----------------------------------------------------------------------------------------------
 
     fastify.decorate('createAccount', async function (request, reply) {
       if (!accountService) {

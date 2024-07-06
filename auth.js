@@ -1,18 +1,44 @@
 'use strict'
+// auth.js
 
 const fp = require('fastify-plugin')
-const fastifyJwt = require('@fastify/jwt') // [1]
+const fastifyJwt = require('@fastify/jwt')  
 
 // eslint-disable-next-line no-unused-vars
 module.exports = fp(async function authenticationPlugin (fastify, opts) {
-  const revokedTokens = new Map() // [2]
+  const revokedTokens = new Map()  
 
-  fastify.register(fastifyJwt, { // [3]
+  fastify.register(fastifyJwt, {  
     secret: fastify.secrets.JWT_SECRET,
     trusted: function isTrusted (request, decodedToken) {
       return !revokedTokens.has(decodedToken.jti)
     }
   })
+  
+  fastify.decorate('authenticate', async function (request, reply) {  
+    try {
+      await request.jwtVerify()  
+    } catch (err) {
+      reply.send(err)
+    }
+  })
+
+  fastify.decorateRequest('revokeToken', function () {  
+    revokedTokens.set(this.user.jti, true)
+  })
+
+  fastify.decorateRequest('generateToken', async function () {  
+    const token = await fastify.jwt.sign({
+      id: String(this.user._id),
+      username: this.user.username
+    }, {
+      jti: String(Date.now()),
+      expiresIn: fastify.secrets.JWT_EXPIRE_IN
+    })
+
+    return token
+})
+
 
 
 })

@@ -3,17 +3,15 @@
 // eslint-disable-next-line no-unused-vars
 module.exports = async function (fastify, opts) {
 
-  
+  await fastify.register(require('../../../auth')); // Ensure auth plugin is registered to the child instance
+  console.log('fastify.authenticate at videoRouter.js: ', fastify.authenticate.toString())
+
+  fastify.addHook('onRequest', fastify.authenticate) // check whether the incoming request has the authentication HTTP header, and after validating it,   add the user information object to the request.
+
   fastify.route({
     method: 'GET',
     url: `/hola`,
     handler: fastify.logHola  
-  });
-
-  fastify.route({
-    method: 'GET',
-    url: `/transcript`,
-    handler: fastify.downloadTranscript
   });
 
   fastify.route({
@@ -57,9 +55,4 @@ module.exports = async function (fastify, opts) {
     handler: fastify.translateText
   });
 }
-
-
-  // fastify.get('/', async function (request, reply) {
-  //   return { root: true }
-  // })
 

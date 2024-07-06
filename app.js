@@ -6,6 +6,7 @@ const AutoLoad = require('@fastify/autoload');
 const { fastifyAwilixPlugin, diContainer, diContainerClassic, diContainerProxy } = require('@fastify/awilix');
 const { asClass, asFunction, asValue } = require('awilix');
 const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin');
+const config = require('./config')
 const auth = require('./auth');
 
 // Imports required for dependency injection (video module)
@@ -80,8 +81,9 @@ const options = {
 };
 
 module.exports = async function (fastify, opts) {
-  await fastify.register(schemaLoaderPlugin);
 
+  await fastify.register(schemaLoaderPlugin);
+  await fastify.register(config);
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
