@@ -1,20 +1,33 @@
 /* eslint-disable no-unused-vars */
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import HomePage from './components/homepage-components/HomePage';
-import VideoPage from './components/videopage-components/VideoPage';
-import Layout from './components/Layout';
+import AuthPanel from './components/app-components/AuthPanel';
+import Header from './components/app-components/Header';
+import Logo from './components/app-components/Logo';
+import LogoutBtn from './components/app-components/LogoutBtn';
+import Main from './components/app-components/Main';
+import SideBar from './components/app-components/SideBar';
+import VideoDisplay from './components/videopage-components/VideoDisplay';
+import VideoLibrary from './components/videopage-components/VideoLibrary';
+import NotFound from './components/NotFound';
+
 import './App.css';
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="video" element={<VideoPage />} />
-        </Route>
-      </Routes>
+      <div className="app-grid">
+        <Header className="header" />
+        <SideBar className="sidebar" />
+        <div className="main">
+          <Routes>
+            <Route path="/" element={<VideoLibrary />} />
+            <Route path="video" element={<VideoDisplay />} />
+            <Route path="lib" element={<VideoLibrary />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+      </div>
     </BrowserRouter>
   );
 }
