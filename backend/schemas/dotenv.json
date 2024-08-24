@@ -19,9 +19,13 @@
     "JWT_EXPIRE_IN": {
       "type": "string",
       "default": "1h"
+    },
+    "GCP_OAUTH2_CLIENT_SECRET": {
+      "type": "string"
+    },
+    "GCP_OAUTH2_CLIENT_ID": {
+      "type": "string"
     }
 
-    }
-
-  
+  }
 }

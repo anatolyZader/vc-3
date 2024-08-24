@@ -1,0 +1,8 @@
+.header {
+    background-color: aliceblue;
+    grid-area: header;
+    display: flex;
+    align-items: center; /* Center content vertically */
+    justify-content: space-between; /* Center content horizontally */
+    
+}
