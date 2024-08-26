@@ -5,7 +5,6 @@ import AuthPanel from './components/app-components/AuthPanel';
 import Header from './components/app-components/Header';
 import Logo from './components/app-components/Logo';
 import LogoutBtn from './components/app-components/LogoutBtn';
-import Main from './components/app-components/Main';
 import SideBar from './components/app-components/SideBar';
 import VideoDisplay from './components/videopage-components/VideoDisplay';
 import VideoLibrary from './components/videopage-components/VideoLibrary';

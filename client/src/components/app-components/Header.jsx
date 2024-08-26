@@ -1,20 +1,15 @@
-// eslint-disable-next-line no-unused-vars
+/* eslint-disable no-unused-vars */
 import React from 'react';
 import './header.css';
-// import Logo from './Logo';
-// import ButtonContainer from './ButtonContainer';
 
-const Header = () => {
+function Header() {
   return (
-
-    <div className="header">  
-      {/* <Logo />
-      <ButtonContainer /> */}
-      <p>hola header!</p>
-
-    </div>
+      <div className="header">
+        <h1> Hello Header! </h1>
+      </div>
 
   );
-};
+}
 
 export default Header;
+
