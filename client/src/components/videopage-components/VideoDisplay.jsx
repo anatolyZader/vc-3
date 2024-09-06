@@ -1,11 +1,15 @@
 /* eslint-disable no-unused-vars */
 import React from 'react';
 import './videodisplay.css';
+import Video from './Video';
+import PauseAnalyzeBtn from './PauseAnalyzeBtn';
+
 
 function VideoDisplay() {
   return (
       <div className="video-display">
-        <h1> Hello VideoDisplay! </h1>
+        < Video className="video" />
+        < PauseAnalyzeBtn />
       </div>
 
   );

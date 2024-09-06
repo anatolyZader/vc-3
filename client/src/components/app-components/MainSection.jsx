@@ -1,14 +1,14 @@
 /* eslint-disable no-unused-vars */
 import React from 'react';
-import './main.css';
+import './mainsection.css';
 
-function Main() {
+function MainSection() {
   return (
       <div className="main">
-        <h1> Hello Main! </h1>
+        <h1> main </h1>
       </div>
 
   );
 }
 
-export default Main;
+export default MainSection;

@@ -1,13 +1,28 @@
-/* eslint-disable no-unused-vars */
-import React from 'react';
+import { Link } from 'react-router-dom';
+import NavBtn from './NavBtn';
 import './navpanel.css';
 
 function NavPanel() {
   return (
-      <div className="nav-panel">
-        <h1> Hello NavPanel! </h1>
-      </div>
-
+    <nav className="nav-panel">
+      <ul>
+        <li>
+          <Link to="/lib" className="link-btn">
+            <NavBtn btnName='library'/> 
+          </Link>
+        </li>
+        <li>
+          <Link to="/history" className="link-btn">
+            <NavBtn btnName='history'/> 
+          </Link>
+        </li>
+        <li>
+          <Link to="/video" className="link-btn">
+            <NavBtn btnName='video'/> 
+          </Link>
+        </li>
+      </ul>
+    </nav>
   );
 }
 

@@ -1,0 +1,9 @@
+.video-page{
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    background-color: rgba(156, 11, 101, 0);
+    justify-content: space-around;
+    height: 100vh;
+  
+ }

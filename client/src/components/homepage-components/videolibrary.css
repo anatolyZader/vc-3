@@ -1,0 +1,7 @@
+.video-library {
+  display: flex;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0);
+  border: 1px solid black;
+  height: 100vh;
+}
