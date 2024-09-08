@@ -1,37 +1,63 @@
-/* eslint-disable no-unused-vars */
-// App.jsx
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import AuthPanel from './components/app-components/AuthPanel';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import AuthPanel from './components/auth-components/AuthPanel';
 import Header from './components/app-components/Header';
-import Logo from './components/app-components/Logo';
-import LogoutBtn from './components/app-components/LogoutBtn';
-import MainSection from './components/app-components/MainSection';
 import SideBar from './components/app-components/SideBar';
 import VideoPage from './components/videopage-components/VideoPage';
 import VideoLibrary from './components/homepage-components/VideoLibrary';
 import WatchHistory from './components/videopage-components/WatchHistory';
 import NotFound from './components/NotFound';
-
+import AuthProvider from './components/auth-components/AuthContext';
+import PrivateRoute from './components/auth-components/PrivateRoute';
 import './App.css';
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="app-grid">
-        <Header className="header" />
-        <SideBar className="sidebar" />          
-        <div className="main">
-          <Routes>
-            <Route path="/" element={<VideoLibrary />} />
-            <Route path="video" element={<VideoPage />} />
-            <Route path="lib" element={<VideoLibrary />} />
-            <Route path="history" element={<WatchHistory />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="app-grid">
+          <Header className="header" />
+          <SideBar className="sidebar" />
+          <div className="main">
+            <Routes>
+              <Route path="/login" element={<AuthPanel />} />
+              <Route
+                path="/"
+                element={
+                  <PrivateRoute>
+                    <VideoLibrary />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="video"
+                element={
+                  <PrivateRoute>
+                    <VideoPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="lib"
+                element={
+                  <PrivateRoute>
+                    <VideoLibrary />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="history"
+                element={
+                  <PrivateRoute>
+                    <WatchHistory />
+                  </PrivateRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
         </div>
-      </div>
-    </BrowserRouter>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

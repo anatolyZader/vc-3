@@ -1,14 +1,26 @@
-/* eslint-disable no-unused-vars */
-import React from 'react';
-import './videocard.css';
+/* eslint-disable react/prop-types */
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardMedia from '@mui/material/CardMedia';
+import Typography from '@mui/material/Typography';
 
-function VideoCard() {
+export default function VideoCard({ video }) {
   return (
-      <div className="video-card">
-        <h1> Hello VideoCard! </h1>
-      </div>
-
+    <Card sx={{ maxWidth: 345 }}>
+      <CardMedia
+        component="img"
+        height="140"
+        image={video.thumbnailUrl}
+        alt={video.title}
+      />
+      <CardContent>
+        <Typography gutterBottom variant="h5" component="div">
+          {video.title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {video.author}
+        </Typography>
+      </CardContent>
+    </Card>
   );
 }
-
-export default VideoCard;

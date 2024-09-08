@@ -2,7 +2,7 @@
 import React from 'react';
 import './header.css';
 import Logo from './Logo';
-import AuthPanel from './AuthPanel';
+import AuthPanel from '../auth-components/AuthPanel';
 
 function Header() {
   return (
