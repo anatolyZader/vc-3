@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { Navigate } from 'react-router-dom';
-import { useAuth } from './useAuth';
+import useAuth from './useAuth';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();

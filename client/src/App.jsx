@@ -6,7 +6,7 @@ import VideoPage from './components/videopage-components/VideoPage';
 import VideoLibrary from './components/homepage-components/VideoLibrary';
 import WatchHistory from './components/videopage-components/WatchHistory';
 import NotFound from './components/NotFound';
-import AuthProvider from './components/auth-components/AuthContext';
+import { AuthProvider } from './components/auth-components/AuthContext';
 import PrivateRoute from './components/auth-components/PrivateRoute';
 import './App.css';
 
