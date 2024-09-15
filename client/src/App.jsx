@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import AuthPanel from './components/auth-components/AuthPanel';
+import LoginPage from './components/auth-components/LoginPage';
 import Header from './components/app-components/Header';
 import SideBar from './components/app-components/SideBar';
 import VideoPage from './components/videopage-components/VideoPage';
@@ -8,7 +8,7 @@ import WatchHistory from './components/videopage-components/WatchHistory';
 import NotFound from './components/NotFound';
 import { AuthProvider } from './components/auth-components/AuthContext';
 import PrivateRoute from './components/auth-components/PrivateRoute';
-import './App.css';
+import './app.css';
 
 function App() {
   return (
@@ -19,7 +19,7 @@ function App() {
           <SideBar className="sidebar" />
           <div className="main">
             <Routes>
-              <Route path="/login" element={<AuthPanel />} />
+              <Route path="/login" element={<LoginPage />} />
               <Route
                 path="/"
                 element={

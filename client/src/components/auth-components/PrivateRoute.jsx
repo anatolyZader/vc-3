@@ -1,18 +1,15 @@
 /* eslint-disable react/prop-types */
+
+
+import { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
-import useAuth from './useAuth';
+import { AuthContext } from './AuthContext';
 
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useContext(AuthContext);
 
-  return isAuthenticated ? (
-    children
-  ) : (
-    <div>
-      <h2>You must be logged in to view this page.</h2>
-      <Navigate to="/login" />
-    </div>
-  );
+  return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 export default PrivateRoute;
+
