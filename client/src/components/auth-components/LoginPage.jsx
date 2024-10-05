@@ -6,34 +6,36 @@ const LoginPage = () => {
   const { login, googleLogin, logout, userProfile, isAuthenticated } = useContext(AuthContext);
 
   // State for manual login form
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(null);
 
   // Handle manual login form submission
   const handleLogin = async (e) => {
     e.preventDefault();
-
     try {
-      const response = await fetch.post('/api/login', {
-        username,
-        password,
+      const response = await fetch('/api/authenticate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
 
-      // Assuming the backend responds with a token
-      const { token } = response.data;
-
-      // Store the token in localStorage (or sessionStorage)
-      localStorage.setItem('authToken', token);
-
-      // Call the login function from AuthContext to update the app state
-      login();
-
-      // Clear any error messages
-      setLoginError(null);
+      const data = await response.json();
+      if (response.ok) {
+        const { token } = data;
+        localStorage.setItem('authToken', token);
+        login();
+        setLoginError(null);
+      } else {
+        setLoginError('Invalid credentials. Please try again.');
+      }
     } catch (error) {
-      // Handle login failure
-      setLoginError('Invalid credentials. Please try again.');
+      setLoginError('An error occurred during login. Please try again later.');
     }
   };
 
@@ -45,7 +47,6 @@ const LoginPage = () => {
 
       {!isAuthenticated ? (
         <Box>
-          {/* Google Login Button */}
           <Button
             variant="contained"
             color="primary"
@@ -56,15 +57,14 @@ const LoginPage = () => {
             Sign in with Google 🚀
           </Button>
 
-          {/* Manual Login Form */}
           <form onSubmit={handleLogin}>
             <Box sx={{ mb: 2 }}>
               <TextField
-                label="Username"
+                label="Email"
                 variant="outlined"
                 fullWidth
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </Box>

@@ -4,10 +4,9 @@ const fp = require('fastify-plugin');
 
 let userService, accountService, sessionService, authPostgresAdapter;
 
-// eslint-disable-next-line no-unused-vars
 async function authController(fastify, options) {
 
-  console.log('Schema for "schema:auth:register retreived at authController.js":', fastify.getSchema('schema:auth:register'));
+  // console.log('Schema for "schema:auth:register retreived at authController.js":', fastify.getSchema('schema:auth:register'));
 
   fastify.decorate('registerUser', async function (request, reply) {
     if (!userService) {
@@ -34,7 +33,7 @@ async function authController(fastify, options) {
 
 
   // generate a new JWT token using their password
-  fastify.decorate('authenticateUser', async function (request, reply) {
+  fastify.decorate('loginUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
       return;
@@ -54,8 +53,8 @@ async function authController(fastify, options) {
         throw err;
       }
       reply.send({ message: 'Authentication successful', user });
-      request.user = user  
-      return fastify.refreshToken(request, reply) // !!!
+      request.user = user // make the authenticated user data available throughout the rest of the request lifecycle. 1) Subsequent actions during the request:  By assigning user to request.user, you are making this data accessible to other methods, hooks, or middlewares that may need user information. 2) Token generation: In the next step of login flow, the request.user object is used to generate the JWT token.  
+      return fastify.refreshToken(request, reply) // using the refreshToken method in your login process, even when a user logs in and receives a token for the first time, because it standardizes the process of generating and returning a JWT token across different scenarios (both login and token refresh).
     } catch (error) {
       fastify.log.error('Error authenticating user:', error); 
       if (error.statusCode) {
@@ -66,7 +65,7 @@ async function authController(fastify, options) {
     }
   });
 
-  // Once authenticated,  generate more tokens without providing  username and password
+  // Once authenticated, generate more tokens without providing  username and password
   fastify.decorate('refreshToken', async function (request, reply) {  
     const token = await request.generateToken()  
     return { token }

@@ -10,33 +10,7 @@ async function videoController(fastify, options) {
   const youtubeAPIKey = fastify.secrets.YOUTUBE_API_KEY
 
   fastify.decorate('logHola', async function (request, reply) {
-    const client = await fastify.pg.connect();
-    try {
-      let dbOperationSuccessful = false;
-      try {
-        await client.query(
-          `INSERT INTO video (id, youtube_id, title, author, duration, description, created_at)
-           VALUES ('550e8400-e29b-41d4-a716-446655334500', 'your_youtube_et', 'Your Title', 'Author Name', 120, 'Sample Description', NOW());`
-        );
-        dbOperationSuccessful = true;
-      } catch (dbError) {
-        console.error('Database error:', dbError);
-        reply.status(500).send({ error: 'Database operation failed' });
-      } finally {
-        client.release();
-      }
-
-      if (dbOperationSuccessful) {
-        reply.send({ message: 'Hola! This is the videoController in browser.', YAK_env_var: fastify.secrets.YOUTUBE_API_KEY });
-      }
-
-      console.log('Finished logHola handler');
-    } catch (error) {
-      console.error('Error in logHola handler:', error);
-      if (!reply.sent) {
-        reply.status(500).send({ error: 'Internal Server Error' });
-      }
-    }
+    console.log('Hola!')
   });
 
   fastify.decorate('takeSnapshot', async function (request, reply) {

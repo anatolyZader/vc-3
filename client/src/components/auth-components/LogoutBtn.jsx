@@ -1,16 +1,19 @@
 /* eslint-disable no-unused-vars */
-import React from 'react';
+import React, { useContext } from 'react';
 import Button from '@mui/material/Button';
+import { AuthContext } from './AuthContext';  
 import './logoutbtn.css';
 
 function LogoutBtn() {
+  const { logout } = useContext(AuthContext);  
+
   return (
     <div className="logout-btn">
       <Button 
         variant="outlined"
-        onClick={() => console.log("logging out")} 
+        onClick={logout}   
         sx={{
-          backgroundColor: 'rgba(0, 0, 0, 0)', // Correct transparency format
+          backgroundColor: 'rgba(0, 0, 0, 0)', 
           color: 'black',
           '&:hover': { backgroundColor: 'lightgrey' },
           width: '100%'

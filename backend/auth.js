@@ -15,7 +15,7 @@ module.exports = fp(async function authenticationPlugin (fastify, opts) {
     }
   })
   
-  fastify.decorate('authenticate', async function (request, reply) {  
+  fastify.decorate('verifyToken', async function (request, reply) {  
     try {
       await request.jwtVerify()  
     } catch (err) {
@@ -38,7 +38,5 @@ module.exports = fp(async function authenticationPlugin (fastify, opts) {
 
     return token
 })
-
-
 
 })

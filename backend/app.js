@@ -11,12 +11,10 @@ const auth = require('./auth');
 
 // Imports required for dependency injection (video module)
 const Video = require("./modules/videoModule/domain/aggregates/video");
-const CodeSnippet =require("./modules/videoModule/domain/entities/codeSnippet")
-const Snapshot = require("./modules/videoModule/domain/entities/snapshot")
-const TextSnippet = require("./modules/videoModule/domain/entities/textSnippet")
-const Transcript =  require("./modules/videoModule/domain/entities/transcript")
-
-const SimpleService = require('./simpleService'); 
+const CodeSnippet =require("./modules/videoModule/domain/entities/codeSnippet");
+const Snapshot = require("./modules/videoModule/domain/entities/snapshot");
+const TextSnippet = require("./modules/videoModule/domain/entities/textSnippet");
+const Transcript =  require("./modules/videoModule/domain/entities/transcript");
 const videoController = require('./modules/videoModule/plugins/videoController'); // plugin
 const VideoAppService = require('./modules/videoModule/application/services/videoAppService');  
 const CodeSnippetService = require('./modules/videoModule/application/services/codeSnippetService');
@@ -105,7 +103,6 @@ module.exports = async function (fastify, opts) {
     snapshot: asClass(Snapshot),
     textSnippet: asClass(TextSnippet),
     transcript: asClass(Transcript),
-    simpleService: asClass(SimpleService), // defined
     videoAppService: asClass(VideoAppService), // defined
     codeSnippetService: asClass(CodeSnippetService), // defined
     aiAdapter: asValue(AIAdapter), // defined
@@ -130,7 +127,6 @@ module.exports = async function (fastify, opts) {
     Snapshot,
     TextSnippet,
     Transcript,
-    SimpleService,
     VideoAppService,
     videoController,
     CodeSnippetService,
@@ -159,9 +155,6 @@ module.exports = async function (fastify, opts) {
     console.log(`${key}:`, value !== undefined ? 'Defined' : 'Undefined');
   }
 
-  
-  const simpleService = fastify.diContainer.resolve('simpleService');
-  console.log(simpleService.getMessage());
 
   // console.log('fastify.secrets.PORT at app.js:', fastify.secrets.PORT);
   // console.log('fastify.secrets.PG_CONNECTION_STRING at app.js:', fastify.secrets.PG_CONNECTION_STRING);
