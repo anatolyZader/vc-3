@@ -1,4 +1,4 @@
-const { createCanvas, loadImage } = require('canvas');
+// const { createCanvas, loadImage } = require('canvas');
 const { v4: uuidv4 } = require('uuid'); 
 const ISnapshotPort = require('../../domain/ports/ISnapshotPort');
 
@@ -10,33 +10,37 @@ class SnapshotAdapter extends ISnapshotPort {
   }
 
   async takeSnapshot(videoYoutubeId, youtubeApiKey) {
-    try {
-      const snapshotId = uuidv4();
-      // Get video thumbnail URL from YouTube API
-      const thumbnailUrl = await this.getThumbnailUrl(videoYoutubeId, youtubeApiKey);
 
-      // Load image from URL
-      const image = await loadImage(thumbnailUrl);
-
-      // Create canvas and draw image on it
-      const canvas = createCanvas(image.width, image.height);
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(image, 0, 0, image.width, image.height);
-
-      // Convert canvas to base64 data URL
-      const dataUrl = canvas.toDataURL('image/png');
-      const snapshotDto = {
-        videoYoutubeId: this.videoYouTubeId,
-        snapshotId: snapshotId,
-        timestamp: 0,
-        imageURL: dataUrl,
-      };
-      return snapshotDto;
-    } catch (error) {
-      console.error('Error taking snapshot:', error);
-      throw error;
-    }
+     console.log('taking snapshot and saving it to db')
   }
+  //   try {
+  //     const snapshotId = uuidv4();
+  //     // Get video thumbnail URL from YouTube API
+  //     const thumbnailUrl = await this.getThumbnailUrl(videoYoutubeId, youtubeApiKey);
+
+  //     // Load image from URL
+  //     const image = await loadImage(thumbnailUrl);
+
+  //     // Create canvas and draw image on it
+  //     const canvas = createCanvas(image.width, image.height);
+  //     const ctx = canvas.getContext('2d');
+  //     ctx.drawImage(image, 0, 0, image.width, image.height);
+
+  //     // Convert canvas to base64 data URL
+  //     const dataUrl = canvas.toDataURL('image/png');
+  //     const snapshotDto = {
+  //       videoYoutubeId: this.videoYouTubeId,
+  //       snapshotId: snapshotId,
+  //       timestamp: 0,
+  //       imageURL: dataUrl,
+  //     };
+  //     return snapshotDto;
+  //   } catch (error) {
+  //     console.error('Error taking snapshot:', error);
+  //     throw error;
+  //   }
+  // }
+
 
   async getThumbnailUrl(videoYoutubeId, youtubeApiKey) {
     // const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${videoYoutubeId}&key=${this.youtubeApiKey}&part=snippet`);
