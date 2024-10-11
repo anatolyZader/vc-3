@@ -1,14 +1,48 @@
 'strict'
 // authPostgresAdapter.js
+
+// TODO
+
+// Hash Passwords: Use a strong password hashing algorithm like bcrypt or Argon2 to hash passwords before storing them in the database.
+// Secure Password Storage: Ensure that the password_hash column in the users table is properly protected using a strong encryption algorithm.
+// Configuration Management: Use a configuration management tool or environment variables that are securely stored and managed to avoid hardcoding sensitive information.
+// Error Handling: Implement proper error handling mechanisms to gracefully handle exceptions and provide informative error messages.
+// Security Best Practices: Follow security best practices to protect the application from vulnerabilities and unauthorized access.
+
 const { Pool } = require('pg');
-const IAuthDatabasePort = require('../../domain/ports/IAuthDatabasePort');
 const { v4: uuidv4 } = require('uuid');
+const { GoogleAuth } = require('google-auth-library');
+const { Connector } = require('@google-cloud/cloud-sql-connector');
+const IAuthDatabasePort = require('../../domain/ports/IAuthDatabasePort');
+
 
 class AuthPostgresAdapter extends IAuthDatabasePort {
   constructor() {
     super();
+    this.connector = new Connector();
+    this.initPool();
+  }
+
+  async initPool() {
+    const auth = new GoogleAuth({
+      scopes: [
+        'https://www.googleapis.com/auth/cloud-platform',
+        'https://www.googleapis.com/auth/sqlservice.admin'
+      ]
+    });
+    const client = await auth.getClient();
+    const token = await client.getAccessToken();
+
+    console.log("PG_USER at authPostgresAdapter.js: ", process.env.PG_USER )
+
     this.pool = new Pool({
-      connectionString: process.env.PG_CONNECTION_STRING,
+      user: process.env.PG_USER,
+      host: "/cloudsql/" + process.env.CLOUD_SQL_CONNECTION_NAME,  // connection string for the Cloud SQL instance
+      password: process.env.PG_PASSWORD,
+      database: process.env.PG_DATABASE,
+      connection: {
+        headers: { Authorization: `Bearer ${token.token}` }
+      }
     });
   }
 

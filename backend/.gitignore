@@ -1,5 +1,6 @@
 
 .env
+google-application-credentials.json
 
 # Logs
 logs

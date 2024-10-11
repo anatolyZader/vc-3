@@ -25,7 +25,21 @@
     },
     "GCP_OAUTH2_CLIENT_ID": {
       "type": "string"
+    },
+    "CLOUD_SQL_CONNECTION_NAME": {
+      "type": "string"
+    },
+    "PG_USER": {
+      "type": "string"
+    },
+    "PG_PASSWORD": {
+      "type": "string"
+    },
+    "PG_DATABASE": {
+      "type": "string"
+    },
+    "GOOGLE_APPLICATION_CREDENTIALS": {
+      "type": "string"
     }
-
   }
 }

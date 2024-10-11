@@ -34,6 +34,8 @@ const AccountService = require('./authModuleServices/accountService');
 const AuthPostgresAdapter = require('./modules/authModule/infrastructure/database/authPostgresAdapter');
 const { AsyncLocalStorage } = require('node:async_hooks');
 
+require('dotenv').config();
+
 const options = {
   disableRequestLogging: true,
   requestIdLogLabel: false,
@@ -79,6 +81,8 @@ const options = {
 };
 
 module.exports = async function (fastify, opts) {
+
+  console.log("PG_USER at app.js: ", process.env.PG_USER )
 
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(config);
