@@ -24,27 +24,30 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
   }
 
   async initPool() {
-    const auth = new GoogleAuth({
-      scopes: [
-        'https://www.googleapis.com/auth/cloud-platform',
-        'https://www.googleapis.com/auth/sqlservice.admin'
-      ]
-    });
-    const client = await auth.getClient();
-    const token = await client.getAccessToken();
+    try {
+      const connector = new Connector();
 
-    console.log("PG_USER at authPostgresAdapter.js: ", process.env.PG_USER )
+      // Obtain client configuration options from the connector
+      const clientConfig = await connector.getOptions({
+        instanceConnectionName: process.env.CLOUD_SQL_CONNECTION_NAME,
+        ipType: 'PUBLIC', // Use 'PRIVATE' if connecting over private IP
+      });
 
-    this.pool = new Pool({
-      user: process.env.PG_USER,
-      host: "/cloudsql/" + process.env.CLOUD_SQL_CONNECTION_NAME,  // connection string for the Cloud SQL instance
-      password: process.env.PG_PASSWORD,
-      database: process.env.PG_DATABASE,
-      connection: {
-        headers: { Authorization: `Bearer ${token.token}` }
-      }
-    });
+      // Create a new pool with the client configuration
+      this.pool = new Pool({
+        ...clientConfig, // Spread the client configuration options
+        user: process.env.PG_USER,
+        password: process.env.PG_PASSWORD,
+        database: process.env.PG_DATABASE,
+      });
+
+      console.log('PostgreSQL connection pool initialized successfully.');
+    } catch (error) {
+      console.error('Error initializing connection pool:', error);
+      throw error;
+    }
   }
+
 
   async createUser(username, email, password) {
     const client = await this.pool.connect();
@@ -58,7 +61,9 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
   }
 
   async readUser(username) {
+    console.log('hello from authPostgresAdapter/readUser!')
     const client = await this.pool.connect();
+    console.log("client in!")
     try {
       const { rows } = await client.query('SELECT * FROM users WHERE username=$1', [username]);
       return rows.length ? rows[0] : null;
@@ -67,6 +72,22 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
     }
   }
 
+  async readAllUsers() {
+    console.log('hello from authPostgresAdapter/readAllUsers!');
+    let client;
+    try {
+      client = await this.pool.connect();
+      console.log('client in!');
+      const { rows } = await client.query('SELECT * FROM users');
+      return rows;
+    } catch (error) {
+      console.error('Error executing readAllUsers query:', error.message, error.stack);
+      throw error;
+    } finally {
+      if (client) client.release();
+    }
+  }
+  
   async removeUser(username, passwordHash) {
     const client = await this.pool.connect();
     try {

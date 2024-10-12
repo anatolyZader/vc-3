@@ -21,16 +21,20 @@ class UserService {
         }
     }
 
+    async readUsers(authPostgresAdapter) {
+        // try {
+        //     const user = await this.user.readUser(username, authPostgresAdapter);
+        //     console.log('User read successfully:', user);
+        //     return user;
+        // } catch (error) {
+        //     console.error('Error reading user:', error);
+        //     throw error;
+        // }
+        console.log('hello from userService/readUsers')
+        const users = await authPostgresAdapter.readAllUsers();
+        console.log(users);
+        return users;
 
-    async readUser(username, authPostgresAdapter) {
-        try {
-            const user = await this.user.readUser(username, authPostgresAdapter);
-            console.log('User read successfully:', user);
-            return user;
-        } catch (error) {
-            console.error('Error reading user:', error);
-            throw error;
-        }
     }
 
     async remove(username, passwordHash, authPostgresAdapter) {

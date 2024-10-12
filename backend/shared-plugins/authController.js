@@ -8,6 +8,25 @@ async function authController(fastify, options) {
 
   // console.log('Schema for "schema:auth:register retreived at authController.js":', fastify.getSchema('schema:auth:register'));
 
+  
+  fastify.decorate('discoverUsers', async function (request, reply) {
+    if (!userService) {
+      reply.status(500).send({ error: 'Service not initialized' });
+      return;
+    }
+    // fastify.log.info('Headers:', request.headers);
+    // fastify.log.info('Content-Type:', request.headers['content-type']);
+    // fastify.log.info('Received body:', request.body);
+
+    try {
+      const users = await userService.readUsers(authPostgresAdapter);
+      reply.send({ message: 'users discovered!'});
+    } catch (error) {
+      fastify.log.error('Error discovering users:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
+    }
+  })
+
   fastify.decorate('registerUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });

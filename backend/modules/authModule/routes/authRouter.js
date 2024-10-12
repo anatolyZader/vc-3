@@ -19,16 +19,24 @@ module.exports = fp(
     });
 
     fastify.route({
-    method: 'POST',
-    url: '/register',
-    handler: fastify.registerUser
-    });
+      method: 'GET',
+      url: '/disco',
+      handler: fastify.discoverUsers
+    })
 
     fastify.route({
       method: 'POST',
       url: '/authenticate',
       handler: fastify.loginUser
-    })
+    })    
+
+    fastify.route({
+    method: 'POST',
+    url: '/register',
+    handler: fastify.registerUser
+    });
+
+
   
     fastify.route({
       method: 'POST',

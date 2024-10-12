@@ -8,7 +8,7 @@ class User {
     this.userId = uuidv4();
     this.username = username;
     this.email = email;
-    this.passwordHash = '';
+    this.password = '';
     this.accounts = []
     }
 
@@ -34,9 +34,9 @@ class User {
         }
     }
     
-    async remove (username, passwordHash, IAuthDatabasePort) {
+    async remove (username, password, IAuthDatabasePort) {
         try {
-            await IAuthDatabasePort.removeUser(username,  passwordHash);
+            await IAuthDatabasePort.removeUser(username,  password);
             console.log('user removed successfully!');
         } catch (error) {
             console.error('Error removing user: ', error);

@@ -8,12 +8,13 @@ class IAuthDatabasePort {
       }
     }
   
-    async createUser(username, email, passwordHash) {
+    async createUser(username, email, password) {
       throw new Error("Method 'createUser(username, email, passwordHash)' must be implemented.");
     }
   
     async readUser(username) {
       throw new Error("Method 'readUser(userId)' must be implemented.");
+      
     }
   
     async removeUser(username, passwordHash) {
