@@ -14,9 +14,9 @@ async function authController(fastify, options) {
       reply.status(500).send({ error: 'Service not initialized' });
       return;
     }
-    // fastify.log.info('Headers:', request.headers);
-    // fastify.log.info('Content-Type:', request.headers['content-type']);
-    // fastify.log.info('Received body:', request.body);
+    fastify.log.info('Headers:', request.headers);
+    fastify.log.info('Content-Type:', request.headers['content-type']);
+    fastify.log.info('Received body:', request.body);
 
     try {
       const users = await userService.readUsers(authPostgresAdapter);
@@ -26,6 +26,8 @@ async function authController(fastify, options) {
       reply.status(500).send({ error: 'Internal Server Error' });
     }
   })
+
+
 
   fastify.decorate('registerUser', async function (request, reply) {
     if (!userService) {
@@ -50,8 +52,6 @@ async function authController(fastify, options) {
     }
   });
 
-
-  // generate a new JWT token using their password
   fastify.decorate('loginUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -83,6 +83,25 @@ async function authController(fastify, options) {
       }
     }
   });
+
+
+// -----------------------------------------------------------------------------------
+// TO FIX :
+
+
+
+
+
+
+fastify.decorate('getMe', async function (request, reply) {
+  return request.user
+})
+
+
+
+
+
+ 
 
   // Once authenticated, generate more tokens without providing  username and password
   fastify.decorate('refreshToken', async function (request, reply) {  

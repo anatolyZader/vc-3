@@ -11,13 +11,6 @@ module.exports = fp(
     const registerSchemaBody = fastify.getSchema('schema:auth:register')
     console.log('Schema for "schema:auth:register retreived at authRouter.js":', registerSchemaBody); 
 
-    fastify.get('/testo', async (request, reply) => {
-      request.log.info('Received request from:', request.headers['user-agent']);
-      reply
-        .type('application/json')
-        .send({ hello: 'testo!' });
-    });
-
     fastify.route({
       method: 'GET',
       url: '/disco',
@@ -26,24 +19,22 @@ module.exports = fp(
 
     fastify.route({
       method: 'POST',
-      url: '/authenticate',
-      handler: fastify.loginUser
-    })    
+      url: '/register',
+      handler: fastify.registerUser
+      });
 
-    fastify.route({
-    method: 'POST',
-    url: '/register',
-    handler: fastify.registerUser
-    });
-
-
-  
     fastify.route({
       method: 'POST',
-      url: '/refresh',
-      onRequest: fastify.verifyToken,      
-      handler: fastify.refreshToken
-    })
+      url: '/login',
+      handler: fastify.loginUser
+    })  
+    
+
+
+
+    
+// -----------------------------------------------------------------------------------
+// TO FIX :
 
     fastify.route({
       method: 'GET',
@@ -51,6 +42,16 @@ module.exports = fp(
       onRequest: fastify.verifyToken,
       handler: fastify.getMe
     })
+    
+
+    fastify.route({
+      method: 'POST',
+      url: '/refresh',
+      onRequest: fastify.verifyToken,      
+      handler: fastify.refreshToken
+    })
+
+
 
     fastify.route({
       method: 'POST',
