@@ -11,13 +11,17 @@ module.exports = fp(async function authenticationPlugin (fastify, opts) {
 
   fastify.register(fastifyJwt, {  
     secret: fastify.secrets.JWT_SECRET,
-    jwtVerify: {
-      requestProperty: 'jwtPayload', // Corrected option
+    sign: {
+      expiresIn: fastify.secrets.JWT_EXPIRE_IN // Optional if you want to add a default expiry
+    },
+    verify: {
+      requestProperty: 'jwtPayload', // Specify where the decoded JWT should be added in the request object
     },
     trusted: function isTrusted (request, decodedToken) {
       return !revokedTokens.has(decodedToken.jti)
     }
-  })
+  });
+  
 
   fastify.decorate('verifyToken', async function (request, reply) {
     try {

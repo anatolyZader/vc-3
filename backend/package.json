@@ -29,7 +29,7 @@
     "@google-cloud/cloud-sql-connector": "^1.4.0",
     "dotenv": "^16.4.5",
     "eslint": "^9.4.0",
-    "fastify": "^4.26.1",
+    "fastify": "^4.28.0",
     "fastify-cli": "^6.1.1",
     "fastify-plugin": "^4.0.0",
     "fastify-secrets-env": "^2.1.8",
