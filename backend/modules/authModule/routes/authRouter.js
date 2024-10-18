@@ -1,62 +1,70 @@
 /* eslint-disable no-unused-vars */
 // authRouter.js
-'use strict'
+'use strict';
 
-const fp = require('fastify-plugin')
+const fp = require('fastify-plugin');
 
-module.exports.prefixOverride = '' // expose the routes directly on the root path 
-module.exports = fp(
-  async function authRouter (fastify, opts) {
+module.exports = fp(async function authRouter(fastify, opts) {
+  // Retrieve the schema for user registration
+  const registerSchemaBody = fastify.getSchema('schema:auth:register');
+  console.log(
+    'Schema for "schema:auth:register" retrieved at authRouter.js:',
+    registerSchemaBody
+  );
 
-    const registerSchemaBody = fastify.getSchema('schema:auth:register')
-    console.log('Schema for "schema:auth:register retreived at authRouter.js":', registerSchemaBody); 
-
-    fastify.route({
-      method: 'GET',
-      url: '/disco',
-      handler: fastify.discoverUsers
-    })
-
-    fastify.route({
-      method: 'POST',
-      url: '/register',
-      handler: fastify.registerUser
-      });
-
-    fastify.route({
-      method: 'POST',
-      url: '/login',
-      handler: fastify.loginUser
-    })  
-    
-
-
-
-    
-// -----------------------------------------------------------------------------------
-// TO FIX :
-
-    fastify.route({
-      method: 'GET',
-      url: '/me',
-      onRequest: fastify.verifyToken,
-      handler: fastify.getMe
-    })
-    
-
-    fastify.route({
-      method: 'POST',
-      url: '/refresh',
-      onRequest: fastify.verifyToken,      
-      handler: fastify.refreshToken
-    })
-
-
-
-    fastify.route({
-      method: 'POST',
-      url: '/logout',
-      onRequest: fastify.verifyToken,
-      handler: fastify.logoutUser
-  })
+  // Route: GET /disco
+  fastify.route({
+    method: 'GET',
+    url: '/disco',
+    handler: fastify.discoverUsers,
   });
+
+  // Route: POST /register
+  fastify.route({
+    method: 'POST',
+    url: '/register',
+    handler: fastify.registerUser,
+  });
+
+  // Route: POST /login
+  fastify.route({
+    method: 'POST',
+    url: '/login',
+    handler: fastify.loginUser,
+  });
+
+  // Route: POST /remove (Protected Route)
+  fastify.route({
+    method: 'POST',
+    url: '/remove',
+    preValidation: [fastify.verifyToken], // Use preValidation hook
+    handler: fastify.removeUser,
+  });
+
+  // Protected Routes
+  // These routes require authentication using verifyToken
+
+  // Route: GET /me
+  fastify.route({
+    method: 'GET',
+    url: '/me',
+    preValidation: [fastify.verifyToken], // Use preValidation hook
+    handler: fastify.getMe,
+  });
+
+  // Route: POST /refresh
+  fastify.route({
+    method: 'POST',
+    url: '/refresh',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.refreshToken,
+  });
+
+  // Route: POST /logout
+  fastify.route({
+    method: 'POST',
+    url: '/logout',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.logoutUser,
+  });
+});

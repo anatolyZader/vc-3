@@ -86,6 +86,7 @@ module.exports = async function (fastify, opts) {
 
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(config);
+  await fastify.register(auth);
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
@@ -180,7 +181,7 @@ module.exports = async function (fastify, opts) {
 
   fastify.after(async () => {
     // console.log('authModule/authPostgresAdapter at app.js/after:', AuthPostgresAdapter);
-    await fastify.register(auth);
+
     await fastify.register(require('@fastify/postgres'), {
       connectionString: fastify.secrets.PG_CONNECTION_STRING,
     });

@@ -48,6 +48,21 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
     }
   }
 
+  async readAllUsers() {
+    console.log('hello from authPostgresAdapter/readAllUsers!');
+    let client;
+    try {
+      client = await this.pool.connect();
+      console.log('client in!');
+      const { rows } = await client.query('SELECT * FROM users');
+      return rows;
+    } catch (error) {
+      console.error('Error executing readAllUsers query:', error.message, error.stack);
+      throw error;
+    } finally {
+      if (client) client.release();
+    }
+  }
 
   async createUser(username, email, password) {
     const client = await this.pool.connect();
@@ -55,6 +70,17 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
       const id = uuidv4();
       const sql = 'INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)';
       await client.query(sql, [id, username, email, password]);
+    } finally {
+      client.release();
+    }
+  }
+
+
+  async removeUser(username, password) {
+    const client = await this.pool.connect();
+    try {
+      const sql = 'DELETE FROM users WHERE username=$1 AND password=$2';
+      await client.query(sql, [username, password]);
     } finally {
       client.release();
     }
@@ -72,56 +98,15 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
     }
   }
 
-  async readAllUsers() {
-    console.log('hello from authPostgresAdapter/readAllUsers!');
-    let client;
-    try {
-      client = await this.pool.connect();
-      console.log('client in!');
-      const { rows } = await client.query('SELECT * FROM users');
-      return rows;
-    } catch (error) {
-      console.error('Error executing readAllUsers query:', error.message, error.stack);
-      throw error;
-    } finally {
-      if (client) client.release();
-    }
-  }
-  
-  async removeUser(username, passwordHash) {
-    const client = await this.pool.connect();
-    try {
-      const sql = 'DELETE FROM users WHERE username=$1 AND password_hash=$2';
-      await client.query(sql, [username, passwordHash]);
-    } finally {
-      client.release();
-    }
-  }
 
-  async findUserByUsername(username) {
-    const client = await this.pool.connect();
-    try {
-      const { rows } = await client.query('SELECT * FROM users WHERE username=$1', [username]);
-      return rows.length ? rows[0] : null;
-    } finally {
-      client.release();
-    }
-  }
 
-  async loginUser(username, passwordHash) {
-    const client = await this.pool.connect();
-    try {
-      const { rows } = await client.query('SELECT * FROM users WHERE username=$1 AND password_hash=$2', [username, passwordHash]);
-      if (rows.length) {
-        const sessionId = uuidv4();
-        await client.query('INSERT INTO sessions (id, user_id) VALUES ($1, $2)', [sessionId, rows[0].id]);
-        return { sessionId, user: rows[0] };
-      }
-      return null;
-    } finally {
-      client.release();
-    }
-  }
+
+
+// -------------------------------------------------------------------------------
+
+
+
+
 
   async logoutUser(sessionId) {
     const client = await this.pool.connect();

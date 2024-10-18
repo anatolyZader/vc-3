@@ -9,8 +9,6 @@ class UserService {
     }
 
 
-
-
     async readUsers(authPostgresAdapter) {
         try {
           const users = await authPostgresAdapter.readAllUsers();
@@ -22,11 +20,6 @@ class UserService {
         }
       }
       
-
-// ----------------------------------------------------------
-
-
-
     async register(username, email, password, authPostgresAdapter) {
         try {
             console.log('hello userService.js')
@@ -48,12 +41,13 @@ class UserService {
             console.error('Error reading user:', error);
             throw error;
         }
-
     }
 
-    async remove(username, passwordHash, authPostgresAdapter) {
+
+
+    async removeUser(username, password, authPostgresAdapter) {
         try {
-             await this.user.remove(username, passwordHash, authPostgresAdapter);
+             await this.user.removeUser(username, password, authPostgresAdapter);
             console.log('User removed successfully');
         } catch (error) {
             console.error('Error removing user:', error);
@@ -61,15 +55,11 @@ class UserService {
         }
     }   
 
-    async login(username, password, authPostgresAdapter) {
-        try {
-            await this.user.login(username, password, authPostgresAdapter);
-            console.log('User logged in successfully:');             
-        } catch (error) {
-            console.error('Error logging in user:', error);
-            throw error;
-        }
-    }
+
+
+
+
+// ----------------------------------------------------------
 
     async logout(username, password, authPostgresAdapter) {
         try {

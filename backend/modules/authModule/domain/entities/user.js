@@ -34,7 +34,7 @@ class User {
         }
     }
     
-    async remove (username, password, IAuthDatabasePort) {
+    async removeUser (username, password, IAuthDatabasePort) {
         try {
             await IAuthDatabasePort.removeUser(username,  password);
             console.log('user removed successfully!');
@@ -43,6 +43,16 @@ class User {
         throw error;
     }
     }
+
+
+
+// --------------------------------------------------------------------------------------
+
+
+
+
+
+
     
 } 
 
