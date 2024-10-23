@@ -40,6 +40,17 @@
     },
     "GOOGLE_APPLICATION_CREDENTIALS": {
       "type": "string"
+    },
+    "REDIS_SECRET": {
+      "type": "string"
+    },
+    "SSL_KEY_PATH": {
+      "type": "string"
+    },
+    "SSL_CERT_PATH": {
+      "type": "string"
     }
+
+
   }
 }

@@ -1,22 +1,24 @@
 /* eslint-disable no-unused-vars */
 'use strict';
-
+const fs = require('fs');
 const path = require('node:path');
+
 const AutoLoad = require('@fastify/autoload');
 const { fastifyAwilixPlugin, diContainer, diContainerClassic, diContainerProxy } = require('@fastify/awilix');
 const { asClass, asFunction, asValue } = require('awilix');
+
 const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin');
-const config = require('./config')
+const config = require('./config');
 const auth = require('./auth');
 
 // Imports required for dependency injection (video module)
 const Video = require("./modules/videoModule/domain/aggregates/video");
-const CodeSnippet =require("./modules/videoModule/domain/entities/codeSnippet");
+const CodeSnippet = require("./modules/videoModule/domain/entities/codeSnippet");
 const Snapshot = require("./modules/videoModule/domain/entities/snapshot");
 const TextSnippet = require("./modules/videoModule/domain/entities/textSnippet");
-const Transcript =  require("./modules/videoModule/domain/entities/transcript");
+const Transcript = require("./modules/videoModule/domain/entities/transcript");
 const videoController = require('./modules/videoModule/plugins/videoController'); // plugin
-const VideoAppService = require('./modules/videoModule/application/services/videoAppService');  
+const VideoAppService = require('./modules/videoModule/application/services/videoAppService');
 const CodeSnippetService = require('./modules/videoModule/application/services/codeSnippetService');
 const OcrService = require('./modules/videoModule/application/services/ocrService');
 const TextSnippetService = require('./modules/videoModule/application/services/textSnippetService');
@@ -82,7 +84,8 @@ const options = {
 
 module.exports = async function (fastify, opts) {
 
-  console.log("PG_USER at app.js: ", process.env.PG_USER )
+
+  
 
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(config);
@@ -180,12 +183,24 @@ module.exports = async function (fastify, opts) {
   });
 
   fastify.after(async () => {
-    // console.log('authModule/authPostgresAdapter at app.js/after:', AuthPostgresAdapter);
+  
+    const keyPath = fastify.secrets.SSL_KEY_PATH;
+    const certPath = fastify.secrets.SSL_CERT_PATH;
+    
+    // Read the key and certificate files
+    if (keyPath && certPath) {
+      opts.https = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+      };
+      console.log('HTTPS options configured.');
+    } else {
+      console.log('HTTPS options not provided in secrets. Starting in HTTP mode.');
+    }
 
     await fastify.register(require('@fastify/postgres'), {
       connectionString: fastify.secrets.PG_CONNECTION_STRING,
     });
-    // console.log('fastify.secret.PG_CONNECTION_STRING at app.js/after:', fastify.secrets.PG_CONNECTION_STRING);
   });
 };
 

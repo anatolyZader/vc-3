@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 let userService, accountService, sessionService, authPostgresAdapter;
 
 async function authController(fastify, options) {
-  // Discover Users
+
   fastify.decorate('discoverUsers', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -27,7 +27,6 @@ async function authController(fastify, options) {
     }
   });
 
-  // Register User
   fastify.decorate('registerUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -57,7 +56,7 @@ async function authController(fastify, options) {
     }
   });
 
-  // Login User
+
   fastify.decorate('loginUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -78,7 +77,6 @@ async function authController(fastify, options) {
         throw err;
       }
 
-      // Assign user data to a custom property to avoid conflicts
       request.authenticatedUser = user;
 
       // Generate JWT token
@@ -120,7 +118,7 @@ async function authController(fastify, options) {
 
   // Get Me (User Info)
   fastify.decorate('getMe', async function (request, reply) {
-    // Use the jwtPayload attached by @fastify/jwt
+ 
     reply.send(request.jwtPayload);
   });
 
@@ -147,8 +145,12 @@ async function authController(fastify, options) {
   // Logout User
   fastify.decorate('logoutUser', async function (request, reply) {
     request.revokeToken();
+    console.log("user logged out")
     reply.code(204).send();
   });
+
+
+
 
   // Create Account
   fastify.decorate('createAccount', async function (request, reply) {

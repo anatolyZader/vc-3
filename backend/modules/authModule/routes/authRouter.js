@@ -5,12 +5,6 @@
 const fp = require('fastify-plugin');
 
 module.exports = fp(async function authRouter(fastify, opts) {
-  // Retrieve the schema for user registration
-  const registerSchemaBody = fastify.getSchema('schema:auth:register');
-  console.log(
-    'Schema for "schema:auth:register" retrieved at authRouter.js:',
-    registerSchemaBody
-  );
 
   // Route: GET /disco
   fastify.route({
@@ -41,18 +35,21 @@ module.exports = fp(async function authRouter(fastify, opts) {
     handler: fastify.removeUser,
   });
 
-  // Protected Routes
-  // These routes require authentication using verifyToken
-
-  // Route: GET /me
   fastify.route({
     method: 'GET',
     url: '/me',
-    preValidation: [fastify.verifyToken], // Use preValidation hook
+    preValidation: [fastify.verifyToken], 
     handler: fastify.getMe,
   });
 
-  // Route: POST /refresh
+  fastify.route({
+    method: 'POST',
+    url: '/logout',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.logoutUser,
+  }); 
+  
+
   fastify.route({
     method: 'POST',
     url: '/refresh',
@@ -60,11 +57,4 @@ module.exports = fp(async function authRouter(fastify, opts) {
     handler: fastify.refreshToken,
   });
 
-  // Route: POST /logout
-  fastify.route({
-    method: 'POST',
-    url: '/logout',
-    preValidation: [fastify.verifyToken],
-    handler: fastify.logoutUser,
-  });
 });

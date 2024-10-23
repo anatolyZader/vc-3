@@ -3,7 +3,7 @@
 // eslint-disable-next-line no-unused-vars
 module.exports = async function (fastify, opts) {
 
-  await fastify.register(require('../../../auth')); // Ensure auth plugin is registered to the child instance
+  // await fastify.register(require('../../../auth')); // Ensure auth plugin is registered to the child instance
 
   fastify.addHook('onRequest', fastify.verifyToken) // check whether the incoming request has the authentication HTTP header, and after validating it,   add the user information object to the request.
 
