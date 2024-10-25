@@ -9,9 +9,9 @@
   },
   "scripts": {
     "test": "node --test test/**/*.test.js",
-    "start": " fastify start app.js",
-    
-    "dev": "fastify start app.js --address 0.0.0.0 --options /home/totoro/vc-3/backend/server_options.js"
+ 
+    "start": "fastify start app.js",
+    "dev":  "sudo /home/totoro/.nvm/versions/node/v22.9.0/bin/npx fastify start app.js -p 443 -a 0.0.0.0 --https"
   },
   "keywords": [],
   "author": "",
