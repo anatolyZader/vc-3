@@ -1,5 +1,5 @@
 // userService.js
-    const User = require('../modules/authModule/domain/entities/user');
+    const User = require('../../domain/entities/user');
 
 class UserService {
     constructor(       

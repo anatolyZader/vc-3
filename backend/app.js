@@ -10,7 +10,7 @@ const logOptions = require('./shared-plugins/loggingPlugin');
 const loggingPlugin = require('./shared-plugins/loggingPlugin'); // Import for logging plugin registration
 const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin');
 const config = require('./config');
-const auth = require('./auth');
+// const auth = require('./shared-plugins/auth');
 
 // Imports required for dependency injection (video module)
 const Video = require("./modules/videoModule/domain/aggregates/video");
@@ -30,27 +30,27 @@ const OcrAdapter = require('./modules/videoModule/infrastructure/ocr/ocrAdapter'
 const SnapshotAdapter = require('./modules/videoModule/infrastructure/youtube/snapshotAdapter');
 
 // Imports required for dependency injection (auth module)
-const Account = require('./modules/authModule/domain/entities/account');
-const User = require('./modules/authModule/domain/entities/user');
-const UserService = require('./authModuleServices/userService');
-const AccountService = require('./authModuleServices/accountService');
-const AuthPostgresAdapter = require('./modules/authModule/infrastructure/database/authPostgresAdapter');
+const Account = require('./aop/auth/domain/entities/account');
+const User = require('./aop/auth/domain/entities/user');
+const UserService = require('./aop/auth/application/services/userService');
+const AccountService = require('./aop/auth/application/services/accountService');
+const AuthPostgresAdapter = require('./aop/auth/infrastructure/database/authPostgresAdapter');
 require('dotenv').config();
 
-// Create Fastify instance with the logger configuration
-const fastify = require('fastify')({
-  logger: logOptions,  // Integrate the logger options
-  disableRequestLogging: true,
-  requestIdLogLabel: false,
-  requestIdHeader: 'x-request-id',
-});
+// // Create Fastify instance with the logger configuration
+// const fastify = require('fastify')({
+//   logger: logOptions,  // Integrate the logger options
+//   disableRequestLogging: true,
+//   requestIdLogLabel: false,
+//   requestIdHeader: 'x-request-id',
+// });
 
 module.exports = async function (fastifyRootInstance, opts) {
   await fastifyRootInstance.register(loggingPlugin);
   await fastifyRootInstance.register(schemaLoaderPlugin);
   await fastifyRootInstance.register(config);
-  await fastifyRootInstance.register(auth);
 
+  // await fastifyRootInstance.register(auth);
   await fastifyRootInstance.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
     options: Object.assign({}, opts),
@@ -60,6 +60,13 @@ module.exports = async function (fastifyRootInstance, opts) {
 
   await fastifyRootInstance.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 1,
+  });
+
+  await fastifyRootInstance.register(AutoLoad, {
+    dir: path.join(__dirname, 'aop'),
     options: Object.assign({}, opts),
     encapsulate: false,
     maxDepth: 1,

@@ -4,6 +4,8 @@ const fp = require('fastify-plugin');
 async function loggingPlugin(fastify, opts) {
   fastify.log.info('Logging plugin registered');
 
+  console.log(opts) // remove later
+
   // Enrich logs with detailed information on request and response
   fastify.addHook('onResponse', async (request, reply) => {
     const enrichedLog = {

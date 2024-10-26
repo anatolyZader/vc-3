@@ -11,7 +11,7 @@
 
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
-const { GoogleAuth } = require('google-auth-library');
+// const { GoogleAuth } = require('google-auth-library');
 const { Connector } = require('@google-cloud/cloud-sql-connector');
 const IAuthDatabasePort = require('../../domain/ports/IAuthDatabasePort');
 

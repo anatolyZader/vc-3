@@ -1,5 +1,5 @@
 // const { createCanvas, loadImage } = require('canvas');
-const { v4: uuidv4 } = require('uuid'); 
+// const { v4: uuidv4 } = require('uuid'); 
 const ISnapshotPort = require('../../domain/ports/ISnapshotPort');
 
 class SnapshotAdapter extends ISnapshotPort {
@@ -9,10 +9,10 @@ class SnapshotAdapter extends ISnapshotPort {
     this.youtubeApiKey = youtubeApiKey;
   }
 
-  async takeSnapshot(videoYoutubeId, youtubeApiKey) {
+  // async takeSnapshot(videoYoutubeId, youtubeApiKey) {
 
-     console.log('taking snapshot and saving it to db')
-  }
+  //    console.log('taking snapshot and saving it to db')
+  // }
   //   try {
   //     const snapshotId = uuidv4();
   //     // Get video thumbnail URL from YouTube API
