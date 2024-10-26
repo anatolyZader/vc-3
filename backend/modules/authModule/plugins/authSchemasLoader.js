@@ -1,12 +1,21 @@
 /* eslint-disable no-unused-vars */
-// loader.js
-'use strict'
+// authSchemasLoader.js
 
-const fp = require('fastify-plugin')
+'use strict';
 
-module.exports = fp(async function schemaLoaderPlugin (fastify, opts) {
-  // fastify.addSchema(require('../routes/schemas/register.json'))
-  fastify.addSchema(require('../routes/schemas/token-header.json'))
-  fastify.addSchema(require('../routes/schemas/token.json'))
-  fastify.addSchema(require('../routes/schemas/user.json'))
-})
+const fp = require('fastify-plugin');
+
+module.exports = fp(async function schemaLoaderPlugin(fastify, opts) {
+  const schemas = [
+    { id: 'schema:auth:register', path: '../routes/schemas/register.json' },
+    { id: 'schema:auth:token-header', path: '../routes/schemas/token-header.json' },
+    { id: 'schema:auth:token', path: '../routes/schemas/token.json' },
+    { id: 'schema:auth:user', path: '../routes/schemas/user.json' },
+  ];
+
+  schemas.forEach(({ id, path }) => {
+    if (!fastify.getSchema(id)) {
+      fastify.addSchema(require(path));
+    }
+  });
+});

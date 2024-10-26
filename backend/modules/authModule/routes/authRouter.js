@@ -6,24 +6,30 @@ const fp = require('fastify-plugin');
 
 module.exports = fp(async function authRouter(fastify, opts) {
 
-  // Route: GET /disco
   fastify.route({
     method: 'GET',
     url: '/disco',
     handler: fastify.discoverUsers,
   });
 
-  // Route: POST /register
   fastify.route({
     method: 'POST',
     url: '/register',
+    schema: {
+      body: fastify.getSchema('schema:auth:register') // [1.2]
+    },
     handler: fastify.registerUser,
   });
 
-  // Route: POST /login
   fastify.route({
     method: 'POST',
     url: '/login',
+    schema: { 
+      body: fastify.getSchema('schema:auth:register'),
+      response: {
+        200: fastify.getSchema('schema:auth:token')
+      }
+    },
     handler: fastify.loginUser,
   });
 
@@ -38,6 +44,12 @@ module.exports = fp(async function authRouter(fastify, opts) {
   fastify.route({
     method: 'GET',
     url: '/me',
+    schema: {
+      headers: fastify.getSchema('schema:auth:token-header'),
+      response: {
+        200: fastify.getSchema('schema:user')
+      }
+    },
     preValidation: [fastify.verifyToken], 
     handler: fastify.getMe,
   });
@@ -53,6 +65,12 @@ module.exports = fp(async function authRouter(fastify, opts) {
   fastify.route({
     method: 'POST',
     url: '/refresh',
+    schema: {
+      headers: fastify.getSchema('schema:auth:token-header'),
+      response: {
+        200: fastify.getSchema('schema:auth:token')
+      }
+    },
     preValidation: [fastify.verifyToken],
     handler: fastify.refreshToken,
   });

@@ -1,12 +1,13 @@
-/* eslint-disable no-unused-vars */
+// app.js
 'use strict';
 const fs = require('fs');
 const path = require('node:path');
 
 const AutoLoad = require('@fastify/autoload');
-const { fastifyAwilixPlugin, diContainer, diContainerClassic, diContainerProxy } = require('@fastify/awilix');
-const { asClass, asFunction, asValue } = require('awilix');
-
+const { fastifyAwilixPlugin, diContainer } = require('@fastify/awilix');
+const { asClass, asValue } = require('awilix');
+const logOptions = require('./shared-plugins/loggingPlugin');
+const loggingPlugin = require('./shared-plugins/loggingPlugin'); // Import for logging plugin registration
 const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin');
 const config = require('./config');
 const auth = require('./auth');
@@ -34,71 +35,30 @@ const User = require('./modules/authModule/domain/entities/user');
 const UserService = require('./authModuleServices/userService');
 const AccountService = require('./authModuleServices/accountService');
 const AuthPostgresAdapter = require('./modules/authModule/infrastructure/database/authPostgresAdapter');
-const { AsyncLocalStorage } = require('node:async_hooks');
-
 require('dotenv').config();
 
-const options = {
+// Create Fastify instance with the logger configuration
+const fastify = require('fastify')({
+  logger: logOptions,  // Integrate the logger options
   disableRequestLogging: true,
   requestIdLogLabel: false,
   requestIdHeader: 'x-request-id',
-  logger: {
-    level: 'trace',
-    timestamp: () => {
-      const dateString = new Date(Date.now()).toISOString();
-      return `,"@timestamp":"${dateString}"`;
-    },
-    redact: {
-      censor: '***',
-      paths: [
-        'req.headers.authorization',
-        'req.body.password',
-        'req.body.email',
-      ],
-    },
-    serializers: {
-      req: function (request) {
-        const shouldLogBody = request.context.config.logBody === true;
-        return {
-          method: request.method,
-          url: request.raw.url,
-          routeUrl: request.routerPath,
-          version: request.headers?.['accept-version'],
-          user: request.user?.id,
-          headers: request.headers,
-          body: shouldLogBody ? request.body : undefined,
-          hostname: request.hostname,
-          remoteAddress: request.ip,
-          remotePort: request.socket?.remotePort,
-        };
-      },
-      res: function (reply) {
-        return {
-          statusCode: reply.statusCode,
-          responseTime: reply.getResponseTime(),
-        };
-      },
-    },
-  },
-};
+});
 
-module.exports = async function (fastify, opts) {
+module.exports = async function (fastifyRootInstance, opts) {
+  await fastifyRootInstance.register(loggingPlugin);
+  await fastifyRootInstance.register(schemaLoaderPlugin);
+  await fastifyRootInstance.register(config);
+  await fastifyRootInstance.register(auth);
 
-
-  
-
-  await fastify.register(schemaLoaderPlugin);
-  await fastify.register(config);
-  await fastify.register(auth);
-
-  await fastify.register(AutoLoad, {
+  await fastifyRootInstance.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
     options: Object.assign({}, opts),
     encapsulate: false,
     maxDepth: 1,
   });
-  
-  await fastify.register(AutoLoad, {
+
+  await fastifyRootInstance.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
     encapsulate: false,
@@ -111,13 +71,13 @@ module.exports = async function (fastify, opts) {
     snapshot: asClass(Snapshot),
     textSnippet: asClass(TextSnippet),
     transcript: asClass(Transcript),
-    videoAppService: asClass(VideoAppService), // defined
-    codeSnippetService: asClass(CodeSnippetService), // defined
-    aiAdapter: asValue(AIAdapter), // defined
-    postgresAdapter: asClass(PostgresAdapter), // defined
-    ocrAdapter: asClass(OcrAdapter), // defined
-    ocrService: asClass(OcrService), // defined 
-    videoController: asValue(videoController),      
+    videoAppService: asClass(VideoAppService),
+    codeSnippetService: asClass(CodeSnippetService),
+    aiAdapter: asValue(AIAdapter),
+    postgresAdapter: asClass(PostgresAdapter),
+    ocrAdapter: asClass(OcrAdapter),
+    ocrService: asClass(OcrService),
+    videoController: asValue(videoController),
     textSnippetService: asClass(TextSnippetService),
     videoConstructService: asClass(VideoConstructService),
     snapshotAdapter: asClass(SnapshotAdapter),
@@ -125,10 +85,17 @@ module.exports = async function (fastify, opts) {
     user: asClass(User),
     userService: asClass(UserService),
     authPostgresAdapter: asClass(AuthPostgresAdapter),
-    accountService : asClass(AccountService),   
+    accountService: asClass(AccountService),
   });
 
-    // Logging to check which imports are undefined
+  // Register Awilix plugin for dependency injection
+  await fastifyRootInstance.register(fastifyAwilixPlugin, {
+    disposeOnClose: true,
+    disposeOnResponse: true,
+    strictBooleanEnforced: true,
+  });
+
+  // Define dependencies for logging
   const dependencies = {
     Video,
     CodeSnippet,
@@ -152,22 +119,13 @@ module.exports = async function (fastify, opts) {
     AuthPostgresAdapter,
   };
 
-  await fastify.register(fastifyAwilixPlugin, {
-    disposeOnClose: true,
-    disposeOnResponse: true,
-    strictBooleanEnforced: true,
-  });
-
-
+  // Logging to check which imports are undefined
   for (const [key, value] of Object.entries(dependencies)) {
     console.log(`${key}:`, value !== undefined ? 'Defined' : 'Undefined');
   }
 
-
-  // console.log('fastify.secrets.PORT at app.js:', fastify.secrets.PORT);
-  // console.log('fastify.secrets.PG_CONNECTION_STRING at app.js:', fastify.secrets.PG_CONNECTION_STRING);
-
-  await fastify.setErrorHandler(async (err, request, reply) => {
+  // Error and Not Found Handlers
+  await fastifyRootInstance.setErrorHandler(async (err, request, reply) => {
     if (err.validation) {
       reply.code(403);
       return err.message;
@@ -177,31 +135,31 @@ module.exports = async function (fastify, opts) {
     return "I'm sorry, there was an error processing your request.";
   });
 
-  fastify.setNotFoundHandler(async (request, reply) => {
+  fastifyRootInstance.setNotFoundHandler(async (request, reply) => {
     reply.code(404);
     return "I'm sorry, I couldn't find what you were looking for.";
   });
 
-  fastify.after(async () => {
-  
-    const keyPath = fastify.secrets.SSL_KEY_PATH;
-    const certPath = fastify.secrets.SSL_CERT_PATH;
-    
-    // Read the key and certificate files
+  // HTTPS configuration
+  fastifyRootInstance.after(async () => {
+    const keyPath = fastifyRootInstance.secrets.SSL_KEY_PATH;
+    const certPath = fastifyRootInstance.secrets.SSL_CERT_PATH;
+
     if (keyPath && certPath) {
       opts.https = {
         key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath)
+        cert: fs.readFileSync(certPath),
       };
       console.log('HTTPS options configured.');
     } else {
       console.log('HTTPS options not provided in secrets. Starting in HTTP mode.');
     }
-
-    await fastify.register(require('@fastify/postgres'), {
-      connectionString: fastify.secrets.PG_CONNECTION_STRING,
-    });
   });
 };
 
-module.exports.options = options;
+module.exports.appConfig = {
+  logger: logOptions,
+  disableRequestLogging: true,
+  requestIdLogLabel: false,
+  requestIdHeader: 'x-request-id',
+};
