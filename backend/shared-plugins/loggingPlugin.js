@@ -3,6 +3,40 @@ const fp = require('fastify-plugin');
 
 async function loggingPlugin(fastify, opts) {
   fastify.log.info('Logging plugin registered');
+
+  // Enrich logs with detailed information on request and response
+  fastify.addHook('onResponse', async (request, reply) => {
+    const enrichedLog = {
+      reqId: request.id,
+      method: request.method,
+      url: request.raw.url,
+      routeUrl: request.routerPath,
+      query: request.query,
+      params: request.params,
+      statusCode: reply.statusCode,
+      responseTime: reply.getResponseTime(),
+      user: request.user ? { id: request.user.id, role: request.user.role } : undefined,
+      headers: reply.getHeaders(),
+    };
+    fastify.log.info(enrichedLog, 'Request completed');
+  });
+
+  // Log errors with enriched information
+  fastify.setErrorHandler((error, request, reply) => {
+    const enrichedErrorLog = {
+      reqId: request.id,
+      method: request.method,
+      url: request.raw.url,
+      routeUrl: request.routerPath,
+      user: request.user ? { id: request.user.id, role: request.user.role } : undefined,
+      error: {
+        message: error.message,
+        stack: error.stack,
+      }
+    };
+    fastify.log.error(enrichedErrorLog, 'Error occurred during request');
+    reply.send(error);
+  });
 }
 
 const logOptions = {
@@ -32,7 +66,9 @@ const logOptions = {
         version: request.headers?.['accept-version'],
         user: request.user?.id,
         headers: request.headers,
-        body: shouldLogBody ? request.body : undefined,
+        query: request.query, // Log query parameters
+        params: request.params, // Log route parameters
+        body: shouldLogBody ? request.body : undefined, // Log request body if allowed
         hostname: request.hostname,
         remoteAddress: request.ip,
         remotePort: request.socket?.remotePort
@@ -41,7 +77,8 @@ const logOptions = {
     res: function (reply) {
       return {
         statusCode: reply.statusCode,
-        responseTime: reply.getResponseTime()
+        responseTime: reply.getResponseTime(),
+        headers: reply.getHeaders(), // Log response headers
       };
     }
   }
