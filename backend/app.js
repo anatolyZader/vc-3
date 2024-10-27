@@ -4,12 +4,15 @@ const fs = require('fs');
 const path = require('node:path');
 
 const AutoLoad = require('@fastify/autoload');
+const fastifyCookie = require('@fastify/cookie');
+const fastifySession = require('@fastify/session');
 const { fastifyAwilixPlugin, diContainer } = require('@fastify/awilix');
 const { asClass, asValue } = require('awilix');
 const logOptions = require('./shared-plugins/loggingPlugin');
-const loggingPlugin = require('./shared-plugins/loggingPlugin'); // Import for logging plugin registration
-const schemaLoaderPlugin = require('./schemas/schemaLoaderPlugin');
+const loggingPlugin = require('./shared-plugins/loggingPlugin'); 
+const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const config = require('./config');
+const redisClient = require('./redisClient');
 // const auth = require('./shared-plugins/auth');
 
 // Imports required for dependency injection (video module)
@@ -49,6 +52,23 @@ module.exports = async function (fastifyRootInstance, opts) {
   await fastifyRootInstance.register(loggingPlugin);
   await fastifyRootInstance.register(schemaLoaderPlugin);
   await fastifyRootInstance.register(config);
+
+    await fastifyRootInstance.register(fastifyCookie, {
+      secret: fastifyRootInstance.secrets.COOKIE_SECRET,  
+      parseOptions: {},
+    });
+  
+    await fastifyRootInstance.register(fastifySession, {
+      secret: fastifyRootInstance.secrets.SESSION_SECRET, 
+      cookie: {
+        secure: false,
+        maxAge: 86400000, // 1 day 
+      },
+      store: new fastifySession.stores.RedisStore({
+        client: redisClient, 
+      }),
+      saveUninitialized: false, //
+    });
 
   // await fastifyRootInstance.register(auth);
   await fastifyRootInstance.register(AutoLoad, {

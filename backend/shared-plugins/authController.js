@@ -56,7 +56,6 @@ async function authController(fastify, options) {
     }
   });
 
-
   fastify.decorate('loginUser', async function (request, reply) {
     if (!userService) {
       reply.status(500).send({ error: 'Service not initialized' });
@@ -70,14 +69,14 @@ async function authController(fastify, options) {
         reply.status(404).send({ error: 'User not found' });
         return;
       }
-      console.log('User found!');
       if (user.password !== password) {
         const err = new Error('Wrong credentials provided');
         err.statusCode = 401;
         throw err;
       }
 
-      request.authenticatedUser = user;
+      // Store user in session
+      request.session.user = { id: user.id, username: user.username };
 
       // Generate JWT token
       const token = fastify.jwt.sign(
@@ -88,8 +87,8 @@ async function authController(fastify, options) {
         }
       );
 
-      // Send response with token
-      reply.send({ message: 'Authentication successful', token });
+      // Send response with token and session information
+      reply.send({ message: 'Authentication successful', user: request.session.user, token });
     } catch (error) {
       fastify.log.error('Error authenticating user:', error);
       if (error.statusCode) {
@@ -100,35 +99,35 @@ async function authController(fastify, options) {
     }
   });
 
-  // Remove User
-  fastify.decorate('removeUser', async function (request, reply) {
-    if (!userService) {
-      reply.status(500).send({ error: 'Service not initialized' });
-      return;
-    }
-    const { username, password } = request.body;
+  // Logout User
+  fastify.decorate('logoutUser', async function (request, reply) {
     try {
-      await userService.removeUser(username, password, authPostgresAdapter);
-      reply.send({ message: 'User removed successfully' });
+      await request.session.destroy(); // Destroy session data
+      console.log("User logged out");
+      reply.code(204).send();
     } catch (error) {
-      fastify.log.error('Error removing user:', error);
+      fastify.log.error('Error during logout:', error);
       reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   // Get Me (User Info)
   fastify.decorate('getMe', async function (request, reply) {
- 
-    reply.send(request.jwtPayload);
+    if (!request.session || !request.session.user) {
+      reply.status(401).send({ error: 'Unauthorized' });
+      return;
+    }
+    reply.send(request.session.user); // Send user info from session
   });
 
   // Refresh Token
   fastify.decorate('refreshToken', async function (request, reply) {
     try {
+      // Generate a new JWT token
       const token = await fastify.jwt.sign(
         {
-          id: request.jwtPayload.id,
-          username: request.jwtPayload.username,
+          id: request.session.user.id,
+          username: request.session.user.username,
         },
         {
           jwtid: uuidv4(),
@@ -142,101 +141,13 @@ async function authController(fastify, options) {
     }
   });
 
-  // Logout User
-  fastify.decorate('logoutUser', async function (request, reply) {
-    request.revokeToken();
-    console.log("user logged out")
-    reply.code(204).send();
-  });
-
-
-
-
-  // Create Account
-  fastify.decorate('createAccount', async function (request, reply) {
-    if (!accountService) {
-      reply.status(500).send({ error: 'Service not initialized' });
-      return;
-    }
-    const { userId, accountType } = request.body;
-    try {
-      const newAccount = await accountService.createAccount(
-        userId,
-        accountType
-      );
-      reply.send({ message: 'Account created successfully', account: newAccount });
-    } catch (error) {
-      fastify.log.error('Error creating account:', error);
-      reply.status(500).send({ error: 'Internal Server Error' });
-    }
-  });
-
-  // Add Video to Account
-  fastify.decorate('addVideoToAccount', async function (request, reply) {
-    if (!accountService) {
-      reply.status(500).send({ error: 'Service not initialized' });
-      return;
-    }
-    const { accountId, videoYoutubeId } = request.body;
-    try {
-      await accountService.addVideoToAccount(accountId, videoYoutubeId);
-      reply.send({ message: 'Video added to account successfully' });
-    } catch (error) {
-      fastify.log.error('Error adding video to account:', error);
-      reply.status(500).send({ error: 'Internal Server Error' });
-    }
-  });
-
-  // Remove Video from Account
-  fastify.decorate('removeVideoFromAccount', async function (request, reply) {
-    if (!accountService) {
-      reply.status(500).send({ error: 'Service not initialized' });
-      return;
-    }
-    const { accountId, videoYoutubeId } = request.body;
-    try {
-      await accountService.removeVideoFromAccount(accountId, videoYoutubeId);
-      reply.send({ message: 'Video removed from account successfully' });
-    } catch (error) {
-      fastify.log.error('Error removing video from account:', error);
-      reply.status(500).send({ error: 'Internal Server Error' });
-    }
-  });
-
-  // Create Session
-  fastify.decorate('createSession', async function (request, reply) {
-    if (!sessionService) {
-      reply.status(500).send({ error: 'Service not initialized' });
-      return;
-    }
-    const { userId } = request.body;
-    try {
-      const newSession = await sessionService.createSession(userId);
-      reply.send({ message: 'Session created successfully', session: newSession });
-    } catch (error) {
-      fastify.log.error('Error creating session:', error);
-      reply.status(500).send({ error: 'Internal Server Error' });
-    }
-  });
-
-  // Validate Session
+  // Validate Session and JWT
   fastify.decorate('validateSession', async function (request, reply) {
-    if (!sessionService) {
-      reply.status(500).send({ error: 'Service not initialized' });
+    if (!request.session || !request.session.user) {
+      reply.status(401).send({ error: 'Session is invalid or expired' });
       return;
     }
-    const { sessionId } = request.params;
-    try {
-      const isValid = await sessionService.validateSession(sessionId);
-      if (isValid) {
-        reply.send({ message: 'Session is valid' });
-      } else {
-        reply.status(401).send({ error: 'Session is invalid or expired' });
-      }
-    } catch (error) {
-      fastify.log.error('Error validating session:', error);
-      reply.status(500).send({ error: 'Internal Server Error' });
-    }
+    reply.send({ message: 'Session is valid', user: request.session.user });
   });
 
   // Hook: onReady

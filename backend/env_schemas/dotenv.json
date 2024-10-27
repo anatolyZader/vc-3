@@ -49,6 +49,12 @@
     },
     "SSL_CERT_PATH": {
       "type": "string"
+    },
+    "COOKIE_SECRET": {
+      "type": "string"
+    },
+    "SESSION_SECRET": {
+      "type": "string"
     }
 
 
