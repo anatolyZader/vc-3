@@ -13,6 +13,7 @@ const loggingPlugin = require('./shared-plugins/loggingPlugin');
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const config = require('./config');
 const redisClient = require('./redisClient');
+const fastifyRedis = require('@fastify/redis')
 // const auth = require('./shared-plugins/auth');
 
 // Imports required for dependency injection (video module)
@@ -52,6 +53,12 @@ module.exports = async function (fastifyRootInstance, opts) {
   await fastifyRootInstance.register(loggingPlugin);
   await fastifyRootInstance.register(schemaLoaderPlugin);
   await fastifyRootInstance.register(config);
+
+  await fastifyRootInstance.register(fastifyRedis, { 
+    client: redisClient 
+  });
+
+
 
     await fastifyRootInstance.register(fastifyCookie, {
       secret: fastifyRootInstance.secrets.COOKIE_SECRET,  
