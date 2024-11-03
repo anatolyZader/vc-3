@@ -6,13 +6,15 @@ const path = require('node:path');
 const AutoLoad = require('@fastify/autoload');
 const fastifyCookie = require('@fastify/cookie');
 const fastifySession = require('@fastify/session');
+const RedisStore = require('connect-redis').default;
+const redisClient = require('./redisClient');
+const redisStore = new RedisStore({ client: redisClient });  
 const { fastifyAwilixPlugin, diContainer } = require('@fastify/awilix');
 const { asClass, asValue } = require('awilix');
 const logOptions = require('./shared-plugins/loggingPlugin');
 const loggingPlugin = require('./shared-plugins/loggingPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const config = require('./config');
-const redisClient = require('./redisClient');
 const fastifyRedis = require('@fastify/redis')
 // const auth = require('./shared-plugins/auth');
 
@@ -39,60 +41,64 @@ const User = require('./aop/auth/domain/entities/user');
 const UserService = require('./aop/auth/application/services/userService');
 const AccountService = require('./aop/auth/application/services/accountService');
 const AuthPostgresAdapter = require('./aop/auth/infrastructure/database/authPostgresAdapter');
+const fastifyFormbody = require('@fastify/formbody');
 require('dotenv').config();
 
-// // Create Fastify instance with the logger configuration
-// const fastify = require('fastify')({
-//   logger: logOptions,  // Integrate the logger options
-//   disableRequestLogging: true,
-//   requestIdLogLabel: false,
-//   requestIdHeader: 'x-request-id',
-// });
+module.exports = async function (fastify, opts) {
+  await fastify.register(loggingPlugin);
+  await fastify.register(schemaLoaderPlugin);
+  await fastify.register(config);
 
-module.exports = async function (fastifyRootInstance, opts) {
-  await fastifyRootInstance.register(loggingPlugin);
-  await fastifyRootInstance.register(schemaLoaderPlugin);
-  await fastifyRootInstance.register(config);
-
-  await fastifyRootInstance.register(fastifyRedis, { 
+  await fastify.register(fastifyRedis, { 
     client: redisClient 
   });
+  console.log('fastify.config: ', fastify.config);
+  console.log('fastify.secrets: ', fastify.secrets);
+  console.log('fastify.secrets.COOKIE_SECRET: ', fastify.secrets.COOKIE_SECRET);
 
-
-
-    await fastifyRootInstance.register(fastifyCookie, {
-      secret: fastifyRootInstance.secrets.COOKIE_SECRET,  
+  try {
+    await fastify.register(fastifyCookie, {
+      secret: fastify.secrets.COOKIE_SECRET,
       parseOptions: {},
     });
-  
-    await fastifyRootInstance.register(fastifySession, {
-      secret: fastifyRootInstance.secrets.SESSION_SECRET, 
-      cookie: {
-        secure: false,
-        maxAge: 86400000, // 1 day 
-      },
-      store: new fastifySession.stores.RedisStore({
-        client: redisClient, 
-      }),
-      saveUninitialized: false, //
-    });
+    console.log('Cookie plugin successfully registered');
+  } catch (error) {
+    console.error('Error registering @fastify/cookie:', error);
+  }
 
-  // await fastifyRootInstance.register(auth);
-  await fastifyRootInstance.register(AutoLoad, {
+  console.log('fastifyCookie', fastifyCookie);
+  console.log('Cookie plugin registered:', fastify.hasDecorator('cookie'));
+
+
+  console.log('fastifySession object', fastifySession);
+
+  await fastify.register(fastifySession, {
+    secret: fastify.secrets.SESSION_SECRET, 
+    cookie: { 
+      secure: false,
+      maxAge: 86400000, // 1 day 
+    },
+    store: redisStore,
+    saveUninitialized: false,
+  });
+
+  // await fastify.register(auth);
+
+  await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
     options: Object.assign({}, opts),
     encapsulate: false,
     maxDepth: 1,
   });
 
-  await fastifyRootInstance.register(AutoLoad, {
+  await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
     encapsulate: false,
     maxDepth: 1,
   });
 
-  await fastifyRootInstance.register(AutoLoad, {
+  await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop'),
     options: Object.assign({}, opts),
     encapsulate: false,
@@ -123,7 +129,7 @@ module.exports = async function (fastifyRootInstance, opts) {
   });
 
   // Register Awilix plugin for dependency injection
-  await fastifyRootInstance.register(fastifyAwilixPlugin, {
+  await fastify.register(fastifyAwilixPlugin, {
     disposeOnClose: true,
     disposeOnResponse: true,
     strictBooleanEnforced: true,
@@ -159,7 +165,7 @@ module.exports = async function (fastifyRootInstance, opts) {
   }
 
   // Error and Not Found Handlers
-  await fastifyRootInstance.setErrorHandler(async (err, request, reply) => {
+  await fastify.setErrorHandler(async (err, request, reply) => {
     if (err.validation) {
       reply.code(403);
       return err.message;
@@ -169,15 +175,15 @@ module.exports = async function (fastifyRootInstance, opts) {
     return "I'm sorry, there was an error processing your request.";
   });
 
-  fastifyRootInstance.setNotFoundHandler(async (request, reply) => {
+  fastify.setNotFoundHandler(async (request, reply) => {
     reply.code(404);
     return "I'm sorry, I couldn't find what you were looking for.";
   });
 
   // HTTPS configuration
-  fastifyRootInstance.after(async () => {
-    const keyPath = fastifyRootInstance.secrets.SSL_KEY_PATH;
-    const certPath = fastifyRootInstance.secrets.SSL_CERT_PATH;
+  fastify.after(async () => {
+    const keyPath = fastify.secrets.SSL_KEY_PATH;
+    const certPath = fastify.secrets.SSL_CERT_PATH;
 
     if (keyPath && certPath) {
       opts.https = {

@@ -1,11 +1,22 @@
-// shemaLoaderPlugin.js
+// schemaLoaderPlugin.js
 
 'use strict'
 
 const fp = require('fastify-plugin')
+const env = require('@fastify/env')
 
-module.exports = fp(function schemaLoaderPlugin (fastify, opts, next) {
-  fastify.addSchema(require('./dotenv.json'))
+module.exports = fp(async function schemaLoaderPlugin (fastify, opts) { 
+  const schema = require('./dotenv.json')
 
-  next()
+  await fastify.register(env, {
+    schema: schema,
+    dotenv: true 
+  })
+
+  await fastify.addSchema(schema);
+
+
+  console.log("Schema as imported from dotenv.json to schemaLoaderPlugin.js :", schema); 
+ 
+ 
 })
