@@ -33,11 +33,13 @@ class AuthPostgresAdapter extends IAuthDatabasePort {
         ipType: 'PUBLIC', // Use 'PRIVATE' if connecting over private IP
       });
 
+      console.log('process.env.PG_PASSWORD: ', process.env.PG_PASSWORD);
+
       // Create a new pool with the client configuration
       this.pool = new Pool({
         ...clientConfig, // Spread the client configuration options
         user: process.env.PG_USER,
-        password: process.env.PG_PASSWORD,
+        password: process.env.PG_DATABASE_PASSWORD,
         database: process.env.PG_DATABASE,
       });
 

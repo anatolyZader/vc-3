@@ -185,15 +185,15 @@ module.exports = async function (fastify, opts) {
     const keyPath = fastify.secrets.SSL_KEY_PATH;
     const certPath = fastify.secrets.SSL_CERT_PATH;
 
-    if (keyPath && certPath) {
-      opts.https = {
-        key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath),
-      };
-      console.log('HTTPS options configured.');
-    } else {
-      console.log('HTTPS options not provided in secrets. Starting in HTTP mode.');
-    }
+    // if (keyPath && certPath) {
+    //   opts.https = {
+    //     key: fs.readFileSync(keyPath),
+    //     cert: fs.readFileSync(certPath),
+    //   };
+    //   console.log('HTTPS options configured.');
+    // } else {
+    //   console.log('HTTPS options not provided in secrets. Starting in HTTP mode.');
+    // }
   });
 };
 

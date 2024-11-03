@@ -34,12 +34,12 @@ module.exports = fp(async function authRouter(fastify, opts) {
   });
 
   // Route: POST /remove (Protected Route)
-  fastify.route({
-    method: 'POST',
-    url: '/remove',
-    preValidation: [fastify.verifyToken], // Use preValidation hook
-    handler: fastify.removeUser,
-  });
+  // fastify.route({
+  //   method: 'POST',
+  //   url: '/remove',
+  //   preValidation: [fastify.verifyToken], // Use preValidation hook
+  //   handler: fastify.removeUser,
+  // });
 
   fastify.route({
     method: 'GET',

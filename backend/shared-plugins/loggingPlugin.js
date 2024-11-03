@@ -16,7 +16,7 @@ async function loggingPlugin(fastify, opts) {
       query: request.query,
       params: request.params,
       statusCode: reply.statusCode,
-      responseTime: reply.getResponseTime(),
+      // responseTime: reply.getResponseTime(),
       user: request.user ? { id: request.user.id, role: request.user.role } : undefined,
       headers: reply.getHeaders(),
     };
