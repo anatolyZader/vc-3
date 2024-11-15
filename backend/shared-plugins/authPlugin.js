@@ -1,5 +1,5 @@
+// authPlugin.js
 'use strict'
-// auth.js
 
 const fp = require('fastify-plugin')
 const fastifyJwt = require('@fastify/jwt')  

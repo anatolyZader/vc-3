@@ -25,7 +25,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
     method: 'POST',
     url: '/login',
     schema: { 
-      body: fastify.getSchema('schema:auth:register'),
+      // body: fastify.getSchema('schema:auth:register'),
       response: {
         200: fastify.getSchema('schema:auth:token')
       }
