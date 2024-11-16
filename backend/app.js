@@ -11,36 +11,36 @@ const redisClient = require('./redisClient');
 const redisStore = new RedisStore({ client: redisClient });  
 const { fastifyAwilixPlugin, diContainer } = require('@fastify/awilix');
 const { asClass, asValue } = require('awilix');
-const logOptions = require('./shared-plugins/logPlugin');
-const loggingPlugin = require('./shared-plugins/logPlugin'); 
+const logOptions = require('./aop/log/logPlugin');
+const loggingPlugin = require('./aop/log/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const config = require('./config');
 const fastifyRedis = require('@fastify/redis')
 // const auth = require('./shared-plugins/auth');
 
 // Imports required for dependency injection (video module)
-const Video = require("./modules/videoModule/domain/aggregates/video");
-const CodeSnippet = require("./modules/videoModule/domain/entities/codeSnippet");
-const Snapshot = require("./modules/videoModule/domain/entities/snapshot");
-const TextSnippet = require("./modules/videoModule/domain/entities/textSnippet");
-const Transcript = require("./modules/videoModule/domain/entities/transcript");
-const videoController = require('./modules/videoModule/plugins/videoController'); // plugin
-const VideoAppService = require('./modules/videoModule/application/services/videoAppService');
-const CodeSnippetService = require('./modules/videoModule/application/services/codeSnippetService');
-const OcrService = require('./modules/videoModule/application/services/ocrService');
-const TextSnippetService = require('./modules/videoModule/application/services/textSnippetService');
-const VideoConstructService = require('./modules/videoModule/application/services/videoConstructService');
-const AIAdapter = require('./modules/videoModule/infrastructure/ai/aiAdapter');
-const PostgresAdapter = require('./modules/videoModule/infrastructure/database/postgresAdapter');
-const OcrAdapter = require('./modules/videoModule/infrastructure/ocr/ocrAdapter');
-const SnapshotAdapter = require('./modules/videoModule/infrastructure/youtube/snapshotAdapter');
+const Video = require("./modules/video_module/domain/aggregates/video");
+const CodeSnippet = require("./modules/video_module/domain/entities/codeSnippet");
+const Snapshot = require("./modules/video_module/domain/entities/snapshot");
+const TextSnippet = require("./modules/video_module/domain/entities/textSnippet");
+const Transcript = require("./modules/video_module/domain/entities/transcript");
+const videoController = require('./modules/video_module/application/videoController'); // plugin
+const VideoAppService = require('./modules/video_module/application/services/videoAppService');
+const CodeSnippetService = require('./modules/video_module/application/services/codeSnippetService');
+const OcrService = require('./modules/video_module/application/services/ocrService');
+const TextSnippetService = require('./modules/video_module/application/services/textSnippetService');
+const VideoConstructService = require('./modules/video_module/application/services/videoConstructService');
+const AIAdapter = require('./modules/video_module/infrastructure/ai/aiAdapter');
+const PostgresAdapter = require('./modules/video_module/infrastructure/persistence/videoPostgresAdapter');
+const OcrAdapter = require('./modules/video_module/infrastructure/ocr/ocrAdapter');
+const SnapshotAdapter = require('./modules/video_module/infrastructure/youtube/snapshotAdapter');
 
 // Imports required for dependency injection (auth module)
 const Account = require('./aop/auth/domain/entities/account');
 const User = require('./aop/auth/domain/entities/user');
 const UserService = require('./aop/auth/application/services/userService');
 const AccountService = require('./aop/auth/application/services/accountService');
-const AuthPostgresAdapter = require('./aop/auth/infrastructure/database/authPostgresAdapter');
+const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
 const fastifyFormbody = require('@fastify/formbody');
 require('dotenv').config();
 
@@ -52,9 +52,6 @@ module.exports = async function (fastify, opts) {
   await fastify.register(fastifyRedis, { 
     client: redisClient 
   });
-  console.log('fastify.config: ', fastify.config);
-  console.log('fastify.secrets: ', fastify.secrets);
-  console.log('fastify.secrets.COOKIE_SECRET: ', fastify.secrets.COOKIE_SECRET);
 
   try {
     await fastify.register(fastifyCookie, {
@@ -66,11 +63,7 @@ module.exports = async function (fastify, opts) {
     console.error('Error registering @fastify/cookie:', error);
   }
 
-  console.log('fastifyCookie', fastifyCookie);
-  console.log('Cookie plugin registered:', fastify.hasDecorator('cookie'));
 
-
-  console.log('fastifySession object', fastifySession);
 
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET, 
@@ -92,18 +85,30 @@ module.exports = async function (fastify, opts) {
   });
 
   await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'modules'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 1,
-  });
-
-  await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop'),
     options: Object.assign({}, opts),
     encapsulate: false,
-    maxDepth: 1,
+    maxDepth: 4,
+    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
   });
+
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'modules'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 4,
+    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
+  });
+
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'doc'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 3,
+    matchFilter: (path) => path.includes('Plugin')
+  });
+
+
 
   await diContainer.register({
     video: asClass(Video),

@@ -5,15 +5,15 @@
 const { v4: uuidv4 } = require('uuid');
 
 class Session {
-  constructor(userId, IAuthDatabasePort) {
+  constructor(userId, IAuthPersistencePort) {
     this.sessionId = uuidv4();
     this.userId = userId;
     this.createdAt = new Date();
-    this.databasePort = IAuthDatabasePort;
+    this.databasePort = IAuthPersistencePort;
     this.createSession(); // Automatically create session when Session object is instantiated
   }
 
-  async login (username, passwordHash, IAuthDatabasePort) {
+  async login (username, passwordHash, IAuthPersistencePort) {
       try {
         console.log('Logging in user...'); 
   } catch (error) {    
@@ -32,7 +32,7 @@ class Session {
 
   async createSession() {
     try {
-      await this.IAuthDatabasePort.saveSession(this);
+      await this.IAuthPersistencePort.saveSession(this);
       console.log('Session created successfully!');
     } catch (error) {
       console.error("Error creating session:", error);
@@ -42,7 +42,7 @@ class Session {
 
   async validateSession() {
     try {
-      const sessionData = await this.IAuthDatabasePort.fetchSession(this.sessionId);
+      const sessionData = await this.IAuthPersistencePort.fetchSession(this.sessionId);
       if (sessionData && new Date() - new Date(sessionData.createdAt) < 3600000) {
         return true;
       }

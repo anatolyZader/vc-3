@@ -4,20 +4,20 @@
 const { v4: uuidv4 } = require('uuid');
 
 class Account {
-  constructor(userId, userName,  IAuthDatabasePort) {
+  constructor(userId, userName,  IAuthPersistencePort) {
     this.accountId = uuidv4();
     this.userId = userId;
     this.createdAt = new Date();
-    this.IAuthdatabasePort = IAuthDatabasePort;
+    this.IAuthPersistencePort = IAuthPersistencePort;
     this.videos = [];
     this.createAccount(); // Automatically create account when Account object is instantiated
   }
 
 
 
-  async fetchAccountDetails(accountId, IAuthDatabasePort) {
+  async fetchAccountDetails(accountId, IAuthPersistencePort) {
     try {
-      const accountData = await IAuthDatabasePort.fetchAccountDetails(accountId);
+      const accountData = await IAuthPersistencePort.fetchAccountDetails(accountId);
       if (accountData) {
         this.accountType = accountData.accountType;
         this.createdAt = accountData.createdAt;

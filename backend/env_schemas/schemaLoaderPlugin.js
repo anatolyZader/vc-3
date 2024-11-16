@@ -14,9 +14,6 @@ module.exports = fp(async function schemaLoaderPlugin (fastify, opts) {
   })
 
   await fastify.addSchema(schema);
-
-
-  console.log("Schema as imported from dotenv.json to schemaLoaderPlugin.js :", schema); 
  
  
 })
