@@ -9,7 +9,8 @@ class User {
     this.username = username;
     this.email = email;
     this.password = '';
-    this.accounts = []
+    this.accounts = [];
+    this.roles = '';
     }
 
     async register(username, email, password, IAuthPersistencePort) {
