@@ -1,10 +1,10 @@
-import React, { useContext, useState } from 'react';
-import { AuthContext } from './AuthContext';
-import { Typography, Box } from '@mui/material';
-import EmailPasswordAuth from './EmailPasswordAuth';
-import GoogleAuth from './GoogleAuth';
-import Logout from './Logout';
-import TwoStageVerification from './TwoStageVerification';
+const React = require('react');
+const { useContext, useState } = React;
+const { AuthContext } = require('./AuthContext');
+const EmailPasswordAuth = require('./EmailPasswordAuth');
+const GoogleAuth = require('./GoogleAuth');
+const Logout = require('./Logout');
+const TwoStageVerification = require('./TwoStageVerification');
 
 const LoginPage = () => {
   const { login, googleLogin, logout, userProfile, isAuthenticated } = useContext(AuthContext);
@@ -26,13 +26,11 @@ const LoginPage = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 400, mx: 'auto', p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Login Panel
-      </Typography>
+    <div className="login-container">
+      <h1>Login Panel</h1>
 
       {!isAuthenticated ? (
-        <Box>
+        <div>
           {isVerifying ? (
             <TwoStageVerification
               email={email}
@@ -45,28 +43,26 @@ const LoginPage = () => {
               <EmailPasswordAuth onProceedToVerification={handleProceedToVerification} />
             </>
           )}
-        </Box>
+        </div>
       ) : (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            User is logged in
-          </Typography>
+        <div>
+          <h2>User is logged in</h2>
           {userProfile && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div className="user-profile">
               <img
                 src={userProfile.picture}
                 alt="user"
-                style={{ width: 100, height: 100, borderRadius: '50%', marginBottom: '16px' }}
+                className="user-image"
               />
-              <Typography>Name: {userProfile.name}</Typography>
-              <Typography>Email: {userProfile.email}</Typography>
-            </Box>
+              <p>Name: {userProfile.name}</p>
+              <p>Email: {userProfile.email}</p>
+            </div>
           )}
           <Logout onLogout={logout} />
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
-export default LoginPage;
+module.exports = LoginPage;
