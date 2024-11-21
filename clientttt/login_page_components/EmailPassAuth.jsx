@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { TextField, Button, Alert, Box } from '@mui/material';
+const React = require('react');
+const { useState } = React;
 
 const EmailPasswordAuth = ({ onProceedToVerification }) => {
   const [email, setEmail] = useState('');
@@ -29,34 +29,31 @@ const EmailPasswordAuth = ({ onProceedToVerification }) => {
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <Box sx={{ mb: 2 }}>
-        <TextField
-          label="Email"
-          variant="outlined"
-          fullWidth
+    <form onSubmit={handleLogin} className="email-password-auth">
+      <div className="form-group">
+        <label htmlFor="email">Email</label>
+        <input
+          id="email"
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-      </Box>
-      <Box sx={{ mb: 2 }}>
-        <TextField
-          label="Password"
+      </div>
+      <div className="form-group">
+        <label htmlFor="password">Password</label>
+        <input
+          id="password"
           type="password"
-          variant="outlined"
-          fullWidth
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-      </Box>
-      {loginError && <Alert severity="error">{loginError}</Alert>}
-      <Button type="submit" variant="contained" color="primary" fullWidth>
-        Manual Login
-      </Button>
+      </div>
+      {loginError && <div className="error-message">{loginError}</div>}
+      <button type="submit">Manual Login</button>
     </form>
   );
 };
 
-export default EmailPasswordAuth;
+module.exports = EmailPasswordAuth;
