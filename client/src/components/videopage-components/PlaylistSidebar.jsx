@@ -1,9 +1,9 @@
-/* eslint-disable no-unused-vars */
+import React from 'react';
 import './playlistsidebar.css';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import List from '@mui/material/List';
 import Divider from '@mui/material/Divider';
-import PlaylistItem from './PlaylistItem'; // Import the PlaylistItem component
+import PlaylistItem from './PlaylistItem';  
 
 export default function PlaylistSidebar() {
   const [videos, setVideos] = useState([]);
