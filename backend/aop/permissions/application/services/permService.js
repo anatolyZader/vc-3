@@ -1,9 +1,9 @@
 // services/permService.js
 
-const Role = require('../aop/permissions/domain/entities/Role');
-const Resource = require('../aop/permissions/domain/entities/Resource');
-const Permission = require('../aop/permissions/domain/entities/Permission');
-const Policy = require('../aop/permissions/domain/entities/Policy');
+const Role = require('../../domain/entities/role');
+const Resource = require('../../domain/entities/resource');
+const Permission = require('../../domain/entities/permission');
+const Policy = require('../../domain/entities/policy');
 
 class PermService {
   constructor({ permissionsRepository, iamAdapter }) {

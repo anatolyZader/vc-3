@@ -39,9 +39,8 @@ const SnapshotAdapter = require('./modules/video_module/infrastructure/youtube/s
 const Account = require('./aop/auth/domain/entities/account');
 const User = require('./aop/auth/domain/entities/user');
 const UserService = require('./aop/auth/application/services/userService');
-const AccountService = require('./aop/auth/application/services/accountService');
 const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
-const fastifyFormbody = require('@fastify/formbody');
+const PermService = require('./aop/permissions/application/services/permService');
 require('dotenv').config();
 
 module.exports = async function (fastify, opts) {
@@ -49,9 +48,19 @@ module.exports = async function (fastify, opts) {
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(config);
 
-  await fastify.register(fastifyRedis, { 
-    client: redisClient 
-  });
+  try {
+    fastify.log.info('Attempting to register @fastify/redis plugin.');
+  
+    await fastify.register(fastifyRedis, { 
+      client: redisClient 
+    });
+  
+    fastify.log.info('@fastify/redis plugin registered successfully.');
+  } catch (err) {
+    fastify.log.error(`Failed to register @fastify/redis plugin: ${err.message}`);
+    throw err; // Rethrow to ensure proper error handling upstream
+  }
+
 
   try {
     await fastify.register(fastifyCookie, {
@@ -91,7 +100,7 @@ module.exports = async function (fastify, opts) {
     maxDepth: 4,
     matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
   });
-
+  
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
@@ -107,8 +116,6 @@ module.exports = async function (fastify, opts) {
     maxDepth: 3,
     matchFilter: (path) => path.includes('Plugin')
   });
-
-
 
   await diContainer.register({
     video: asClass(Video),
@@ -131,6 +138,7 @@ module.exports = async function (fastify, opts) {
     userService: asClass(UserService),
     authPostgresAdapter: asClass(AuthPostgresAdapter),
     accountService: asClass(AccountService),
+    permissionService: asClass(PermService)
   });
 
   // Register Awilix plugin for dependency injection

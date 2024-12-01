@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import Button from '@mui/material/Button';
 import './pauseanalyzebtn.css';
 

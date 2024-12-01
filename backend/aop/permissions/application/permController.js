@@ -4,7 +4,7 @@ const fp = require('fastify-plugin');
 
 async function permController(fastify, options) {
 
-  const permissionsService = fastify.diContainer.resolve('permissionsService');
+  const permissionsService = fastify.diContainer.resolve('permissionService');
 
   // Role Routes
   fastify.decorate('getRoleById', async function (request, reply) {
