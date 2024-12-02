@@ -8,17 +8,16 @@
     "test": "test"
   },
   "scripts": {
+    "lint": "eslint .",
     "test": "node --test test/**/*.test.js",
     "starrrt": "fastify start app.js -l trace",
-    "start": "NODE_DEBUG=fastify,avvio,node-fastify,node node --trace-deprecation --trace-warnings --trace-tls --trace-uncaught $(which fastify) start app.js -l trace"
-    ,
+    "start": "NODE_DEBUG=fastify,avvio,node-fastify,node node --trace-deprecation --trace-warnings --trace-tls --trace-uncaught $(which fastify) start app.js -l trace",
     "dev": "sudo /home/totoro/.nvm/versions/node/v22.9.0/bin/npx fastify start app.js -p 443 -a 0.0.0.0 --https"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@eslint/js": "^9.4.0",
     "@fastify/autoload": "^5.0.0",
     "@fastify/awilix": "latest",
     "@fastify/cookie": "latest",
@@ -35,7 +34,6 @@
     "@google-cloud/cloud-sql-connector": "^1.4.0",
     "connect-redis": "^7.1.1",
     "dotenv": "^16.4.5",
-    "eslint": "^9.4.0",
     "fastify": "latest",
     "fastify-cli": "^6.1.1",
     "fastify-plugin": "^5.0.1",
@@ -47,5 +45,10 @@
     "redis": "^4.7.0",
     "tesseract.js": "^5.1.0",
     "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "eslint": "^9.16.0",
+    "globals": "^15.12.0"
   }
 }
