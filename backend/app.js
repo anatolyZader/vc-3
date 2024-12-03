@@ -47,7 +47,7 @@ const MonitorService = require('./aop/monitoring/application/services/monitorSer
 module.exports = async function (fastify, opts) {
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
-  await fastify.register(config);
+  await fastify.register(config); 
 
   try {
     fastify.log.info('Attempting to register @fastify/redis plugin.');
