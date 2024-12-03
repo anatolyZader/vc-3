@@ -136,7 +136,7 @@ module.exports = async function (fastify, opts) {
     userService: asClass(UserService),
     authPostgresAdapter: asClass(AuthPostgresAdapter),
     // accountService: asClass(AccountService),
-    permissionService: asClass(PermService),
+    permService: asClass(PermService),
     monitorService: asClass(MonitorService)
   });
 
