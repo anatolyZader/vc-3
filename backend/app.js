@@ -62,7 +62,6 @@ module.exports = async function (fastify, opts) {
     throw err; // Rethrow to ensure proper error handling upstream
   }
 
-
   try {
     await fastify.register(fastifyCookie, {
       secret: fastify.secrets.COOKIE_SECRET,
@@ -72,8 +71,6 @@ module.exports = async function (fastify, opts) {
   } catch (error) {
     console.error('Error registering @fastify/cookie:', error);
   }
-
-
 
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET, 
@@ -212,7 +209,7 @@ module.exports = async function (fastify, opts) {
 //     //   console.log('HTTPS options not provided in secrets. Starting in HTTP mode.');
 //     // }
 //   });
-// };
+};
 
 module.exports.appConfig = {
   logger: logOptions,
