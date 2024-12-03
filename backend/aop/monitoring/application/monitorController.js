@@ -20,7 +20,7 @@ async function monitorController(fastify, options) {
 
   fastify.addHook('onReady', async function () { 
     try {
-      const monitorService = fastify.diContainer.resolve('monitorService');  
+      const monitorService = fastify.diContainer.resolve('monitorService');
     } catch (error) {
       fastify.log.error('Error resolving monitorService at authController:', error);
     }
