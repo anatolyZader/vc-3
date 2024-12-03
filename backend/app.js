@@ -42,7 +42,7 @@ const UserService = require('./aop/auth/application/services/userService');
 const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
 const PermService = require('./aop/permissions/application/services/permService');
 require('dotenv').config();
-const monitorService = require('/aop/monitoring/application/services/permService')
+const MonitorService = require('/aop/monitoring/application/services/monitorService')
 
 module.exports = async function (fastify, opts) {
   await fastify.register(loggingPlugin);
