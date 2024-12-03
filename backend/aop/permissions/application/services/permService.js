@@ -4,13 +4,10 @@ const Role = require('../../domain/entities/role');
 const Resource = require('../../domain/entities/resource');
 const Permission = require('../../domain/entities/permission');
 const Policy = require('../../domain/entities/policy');
-const PermPostgresAdapter = require("../../infrastructure/persistence/permPostgresAdapter")
-const IPermPersistPort = require('../../domain/ports/IPermPersistPort');
+const PermPostgresAdapter = require("../../infrastructure/persistence/permPostgresAdapter"); 
 
 class PermService {
-  constructor({ IPermPersistPort, iamAdapter }) {
-      
-    this.iamAdapter = iamAdapter;
+  constructor() { 
     this.permPostgresAdapter = PermPostgresAdapter;
   }
 
@@ -25,7 +22,7 @@ class PermService {
 
   async createRole(roleData) {
     const newRole = new Role(roleData.id, roleData.name, roleData.description);
-    await this.IPermPersistPort.saveRole(newRole);
+    await this.permPostgresAdapter.saveRole(newRole);
     return newRole;
   }
 
@@ -33,13 +30,13 @@ class PermService {
     const role = await this.getRoleById(roleId);
     role.rename(roleData.name);
     role.updateDescription(roleData.description);
-    await this.IPermPersistPort.saveRole(role);
+    await this.permPostgresAdapter.saveRole(role);
     return role;
   }
 
   // Resource Methods
   async getResourceById(resourceId) {
-    const resource = await this.IPermPersistPort.findResourceById(resourceId);
+    const resource = await this.permPostgresAdapter.findResourceById(resourceId);
     if (!resource) {
       throw new Error('Resource not found');
     }
@@ -48,13 +45,13 @@ class PermService {
 
   async createResource(resourceData) {
     const newResource = new Resource(resourceData.id, resourceData.name, resourceData.type);
-    await this.IPermPersistPort.saveResource(newResource);
+    await this.permPostgresAdapter.saveResource(newResource);
     return newResource;
   }
 
   // Permission Methods
   async getPermissionByRoleAndResource(roleId, resourceId) {
-    const permission = await this.IPermPersistPort.findPermissionByRoleAndResource(roleId, resourceId);
+    const permission = await this.permPostgresAdapter.findPermissionByRoleAndResource(roleId, resourceId);
     if (!permission) {
       throw new Error('Permission not found');
     }
@@ -63,13 +60,13 @@ class PermService {
 
   async createPermission(permissionData) {
     const newPermission = new Permission(permissionData.roleId, permissionData.resourceId, permissionData.actions);
-    await this.IPermPersistPort.savePermission(newPermission);
+    await this.permPostgresAdapter.savePermission(newPermission);
     return newPermission;
   }
 
   // Policy Methods
   async getPolicyById(policyId) {
-    const policy = await this.IPermPersistPort.findPolicyById(policyId);
+    const policy = await this.permPostgresAdapter.findPolicyById(policyId);
     if (!policy) {
       throw new Error('Policy not found');
     }
@@ -78,15 +75,16 @@ class PermService {
 
   async createPolicy(policyData) {
     const newPolicy = new Policy(policyData.id, policyData.name, policyData.description, policyData.permissions);
-    await this.IPermPersistPort.savePolicy(newPolicy);
+    await this.permPostgresAdapter.savePolicy(newPolicy);
     return newPolicy;
   }
 
 
-  // Authorization Logic
   async checkPermission(userId, resourceId, action) {
-    const userRole = await this.iamAdapter.getUserRole(userId);
-    const policy = await this.IPermPersistPort.findPolicyForResource(resourceId);
+    // Get user role using permPostgresAdapter (assuming it has this functionality now)
+    const userRole = await this.permPostgresAdapter.getUserRole(userId); 
+    const policy = await this.permPostgresAdapter.findPolicyForResource(resourceId);
+
     if (policy && policy.isAllowed(userRole.id, resourceId, action)) {
       return true;
     } else {
