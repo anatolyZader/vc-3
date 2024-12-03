@@ -6,7 +6,7 @@ async function permController(fastify, options) {
 
   const permService = fastify.diContainer.resolve('permService');
 
-  // Role Rou tes
+  // Role Routes
   fastify.decorate('getRoleById', async function (request, reply) {
     try {
       const { roleId } = request.params;
