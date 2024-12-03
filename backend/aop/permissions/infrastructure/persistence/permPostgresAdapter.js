@@ -1,7 +1,7 @@
-// infra/permPostgresAdapter.js
+// infrastructure/persistence/permPostgresAdapter.js
 
 const { Pool } = require('pg');
-const IPermPersistPort = require('../../permissions/domain/repositories/IPermPersistPort');
+const IPermPersistPort = require('../../domain/ports/IPermPersistPort');
 
 class PermPostgresAdapter extends IPermPersistPort {
   constructor(connectionString) {
