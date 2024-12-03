@@ -166,7 +166,7 @@ module.exports = async function (fastify, opts) {
     SnapshotAdapter,
     // Account,
     User,
-    AccountService,
+    // AccountService,
     UserService,
     AuthPostgresAdapter,
     PermService,

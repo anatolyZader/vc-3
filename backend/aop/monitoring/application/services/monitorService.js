@@ -1,10 +1,11 @@
 'use strict';
-const healthCheckGCPAdapter = require('../../infrastructure/healthCheckGCPAdapter')
+
+const healthCheckGCPAdapter = require('../../infrastructure/healthCheckGCPAdapter');
 
 class MonitorService {
-  constructor({ healthCheckGCPAdapter }) {
+  constructor(adapter = healthCheckGCPAdapter) {
     console.log('MonitorService instantiated!');
-    this.healthCheckGCPAdapter = healthCheckGCPAdapter;
+    this.healthCheckGCPAdapter = adapter;
   }
 
   async checkHealth() {
