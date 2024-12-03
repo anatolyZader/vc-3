@@ -4,13 +4,13 @@ const fp = require('fastify-plugin');
 
 async function permController(fastify, options) {
 
-  const permissionsService = fastify.diContainer.resolve('permissionService');
+  const permService = fastify.diContainer.resolve('permService');
 
   // Role Routes
   fastify.decorate('getRoleById', async function (request, reply) {
     try {
       const { roleId } = request.params;
-      const role = await permissionsService.getRoleById(roleId);
+      const role = await permService.getRoleById(roleId);
       reply.send(role);
     } catch (error) {
       fastify.log.error('Error getting role:', error);
@@ -21,7 +21,7 @@ async function permController(fastify, options) {
   fastify.decorate('createRole', async function (request, reply) {
     try {
       const roleData = request.body;
-      const newRole = await permissionsService.createRole(roleData);
+      const newRole = await permService.createRole(roleData);
       reply.send(newRole);
     } catch (error) {
       fastify.log.error('Error creating role:', error);
@@ -33,7 +33,7 @@ async function permController(fastify, options) {
     try {
       const { roleId } = request.params;
       const roleData = request.body;
-      const updatedRole = await permissionsService.updateRole(roleId, roleData);
+      const updatedRole = await permService.updateRole(roleId, roleData);
       reply.send(updatedRole);
     } catch (error) {
       fastify.log.error('Error updating role:', error);
@@ -45,7 +45,7 @@ async function permController(fastify, options) {
   fastify.decorate('getResourceById', async function (request, reply) {
     try {
       const { resourceId } = request.params;
-      const resource = await permissionsService.getResourceById(resourceId);
+      const resource = await permService.getResourceById(resourceId);
       reply.send(resource);
     } catch (error) {
       fastify.log.error('Error getting resource:', error);
@@ -56,7 +56,7 @@ async function permController(fastify, options) {
   fastify.decorate('createResource', async function (request, reply) {
     try {
       const resourceData = request.body;
-      const newResource = await permissionsService.createResource(resourceData);
+      const newResource = await permService.createResource(resourceData);
       reply.send(newResource);
     } catch (error) {
       fastify.log.error('Error creating resource:', error);
@@ -68,7 +68,7 @@ async function permController(fastify, options) {
   fastify.decorate('getPermissionByRoleAndResource', async function (request, reply) {
     try {
       const { roleId, resourceId } = request.params;
-      const permission = await permissionsService.getPermissionByRoleAndResource(roleId, resourceId);
+      const permission = await permService.getPermissionByRoleAndResource(roleId, resourceId);
       reply.send(permission);
     } catch (error) {
       fastify.log.error('Error getting permission:', error);
@@ -79,7 +79,7 @@ async function permController(fastify, options) {
   fastify.decorate('createPermission', async function (request, reply) {
     try {
       const permissionData = request.body;
-      const newPermission = await permissionsService.createPermission(permissionData);
+      const newPermission = await permService.createPermission(permissionData);
       reply.send(newPermission);
     } catch (error) {
       fastify.log.error('Error creating permission:', error);
@@ -91,7 +91,7 @@ async function permController(fastify, options) {
   fastify.decorate('getPolicyById', async function (request, reply) {
     try {
       const { policyId } = request.params;
-      const policy = await permissionsService.getPolicyById(policyId);
+      const policy = await permService.getPolicyById(policyId);
       reply.send(policy);
     } catch (error) {
       fastify.log.error('Error getting policy:', error);
@@ -102,7 +102,7 @@ async function permController(fastify, options) {
   fastify.decorate('createPolicy', async function (request, reply) {
     try {
       const policyData = request.body;
-      const newPolicy = await permissionsService.createPolicy(policyData);
+      const newPolicy = await permService.createPolicy(policyData);
       reply.send(newPolicy);
     } catch (error) {
       fastify.log.error('Error creating policy:', error);
