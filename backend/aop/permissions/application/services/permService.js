@@ -4,7 +4,7 @@ const Role = require('../../domain/entities/role');
 const Resource = require('../../domain/entities/resource');
 const Permission = require('../../domain/entities/permission');
 const Policy = require('../../domain/entities/policy');
-const PermPostgresAdapter = require("../../infrastrucure/persistence/permPostgresAdapter")
+const PermPostgresAdapter = require("../../infrastructure/persistence/permPostgresAdapter")
 
 class PermService {
   constructor({ permissionsRepository, iamAdapter }) {
