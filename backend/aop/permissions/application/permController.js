@@ -1,5 +1,5 @@
+/* eslint-disable no-unused-vars */
 // controllers/permController.js
-
 const fp = require('fastify-plugin');
 
 async function permController(fastify, options) {

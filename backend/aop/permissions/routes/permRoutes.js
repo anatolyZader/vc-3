@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // routes/permRoutes.js
 
 const fastify = require('fastify');

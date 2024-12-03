@@ -1,6 +1,6 @@
 // app.js
 'use strict';
-const fs = require('fs');
+// const fs = require('fs');
 const path = require('node:path');
 
 const AutoLoad = require('@fastify/autoload');
@@ -35,13 +35,14 @@ const PostgresAdapter = require('./modules/video_module/infrastructure/persisten
 const OcrAdapter = require('./modules/video_module/infrastructure/ocr/ocrAdapter');
 const SnapshotAdapter = require('./modules/video_module/infrastructure/youtube/snapshotAdapter');
 
-// Imports required for dependency injection (auth module)
+// Imports required for dependency injection (aop)
 const Account = require('./aop/auth/domain/entities/account');
 const User = require('./aop/auth/domain/entities/user');
 const UserService = require('./aop/auth/application/services/userService');
 const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
 const PermService = require('./aop/permissions/application/services/permService');
 require('dotenv').config();
+const monitorService = require('/aop/monitoring/application/services/permService')
 
 module.exports = async function (fastify, opts) {
   await fastify.register(loggingPlugin);
@@ -137,8 +138,9 @@ module.exports = async function (fastify, opts) {
     user: asClass(User),
     userService: asClass(UserService),
     authPostgresAdapter: asClass(AuthPostgresAdapter),
-    accountService: asClass(AccountService),
-    permissionService: asClass(PermService)
+    // accountService: asClass(AccountService),
+    permissionService: asClass(PermService),
+    monitorService: asClass(MonitorService)
   });
 
   // Register Awilix plugin for dependency injection
@@ -165,11 +167,13 @@ module.exports = async function (fastify, opts) {
     PostgresAdapter,
     OcrAdapter,
     SnapshotAdapter,
-    Account,
+    // Account,
     User,
     AccountService,
     UserService,
     AuthPostgresAdapter,
+    PermService,
+    MonitorService
   };
 
   // Logging to check which imports are undefined
@@ -194,21 +198,21 @@ module.exports = async function (fastify, opts) {
   });
 
   // HTTPS configuration
-  fastify.after(async () => {
-    const keyPath = fastify.secrets.SSL_KEY_PATH;
-    const certPath = fastify.secrets.SSL_CERT_PATH;
+//   fastify.after(async () => {
+//     const keyPath = fastify.secrets.SSL_KEY_PATH;
+//     const certPath = fastify.secrets.SSL_CERT_PATH;
 
-    // if (keyPath && certPath) {
-    //   opts.https = {
-    //     key: fs.readFileSync(keyPath),
-    //     cert: fs.readFileSync(certPath),
-    //   };
-    //   console.log('HTTPS options configured.');
-    // } else {
-    //   console.log('HTTPS options not provided in secrets. Starting in HTTP mode.');
-    // }
-  });
-};
+//     // if (keyPath && certPath) {
+//     //   opts.https = {
+//     //     key: fs.readFileSync(keyPath),
+//     //     cert: fs.readFileSync(certPath),
+//     //   };
+//     //   console.log('HTTPS options configured.');
+//     // } else {
+//     //   console.log('HTTPS options not provided in secrets. Starting in HTTP mode.');
+//     // }
+//   });
+// };
 
 module.exports.appConfig = {
   logger: logOptions,
