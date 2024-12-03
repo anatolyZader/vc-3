@@ -82,39 +82,6 @@ module.exports = async function (fastify, opts) {
     saveUninitialized: false,
   });
 
-  // await fastify.register(auth);
-
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'shared-plugins'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 1,
-  });
-
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'aop'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 4,
-    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
-  });
-  
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'modules'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 4,
-    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
-  });
-
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'doc'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 3,
-    matchFilter: (path) => path.includes('Plugin')
-  });
-
   await diContainer.register({
     video: asClass(Video),
     codeSnippet: asClass(CodeSnippet),
@@ -177,6 +144,40 @@ module.exports = async function (fastify, opts) {
   for (const [key, value] of Object.entries(dependencies)) {
     console.log(`${key}:`, value !== undefined ? 'Defined' : 'Undefined');
   }
+
+  // await fastify.register(auth);
+
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'shared-plugins'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 1,
+  });
+
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'aop'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 4,
+    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
+  });
+  
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'modules'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 4,
+    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
+  });
+
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'doc'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 3,
+    matchFilter: (path) => path.includes('Plugin')
+  });
+
 
   // Error and Not Found Handlers
   await fastify.setErrorHandler(async (err, request, reply) => {
