@@ -3,6 +3,8 @@
 const fp = require('fastify-plugin');
 
 async function permController(fastify, options) {
+  
+  console.log(fastify.diContainer ? 'diContainer is defined' : 'diContainer is undefined');
 
   const permService = fastify.diContainer.resolve('permService');
 
