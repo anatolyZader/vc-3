@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // schemaLoaderPlugin.js
 
 'use strict'

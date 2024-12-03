@@ -5,7 +5,7 @@ class VideoConstructService {
     // if (!youtubeApiKey) {
     //   throw new Error('YOUTUBE_API_KEY is not set');
     // }
-    // eslint-disable-next-line no-undef
+
     this.youtubeDataAdapter = new YoutubeDataAdapter();
   }
 
