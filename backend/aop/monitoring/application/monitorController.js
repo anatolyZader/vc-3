@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 // monitorController.js
 'use strict';
 
@@ -7,6 +6,9 @@ const fp = require('fastify-plugin');
 async function monitorController(fastify, options) {
   fastify.decorate('checkHealth', async function (request, reply) {
     try {
+      // Wait for monitorService to be resolved
+      await fastify.ready();  
+      const monitorService = fastify.diContainer.resolve('monitorService'); 
       const healthStatus = await monitorService.checkHealth();
       reply.send(healthStatus); 
     } catch (error) {
@@ -17,10 +19,10 @@ async function monitorController(fastify, options) {
 
   fastify.addHook('onReady', async function () { 
     try {
-        monitorService = fastify.diContainer.resolve('monitorService');  
-      } catch (error) {
-        fastify.log.error('Error resolving monitorService at authController:', error);
-      }
+      const monitorService = fastify.diContainer.resolve('monitorService');  
+    } catch (error) {
+      fastify.log.error('Error resolving monitorService at authController:', error);
+    }
   });
 }
 
