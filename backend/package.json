@@ -8,11 +8,12 @@
     "test": "test"
   },
   "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watchAll",
     "lint": "eslint .", 
-    "test": "node --test test/**/*.test.js",
-    "starrrt": "fastify start app.js -l trace",
-    "start": "NODE_DEBUG=fastify,avvio,node-fastify,node node --trace-deprecation --trace-warnings --trace-tls --trace-uncaught $(which fastify) start app.js -l trace",
-    "dev": "sudo /home/totoro/.nvm/versions/node/v22.9.0/bin/npx fastify start app.js -p 443 -a 0.0.0.0 --https"
+    "dev": "sudo /home/totoro/.nvm/versions/node/v22.9.0/bin/npx fastify start app.js -p 443 -a 0.0.0.0 --https",
+    "start": "NODE_DEBUG=fastify,avvio,node-fastify,node node --trace-deprecation --trace-warnings --trace-tls --trace-uncaught $(which fastify) start app.js -l trace"
+    
   },
   "keywords": [],
   "author": "",
