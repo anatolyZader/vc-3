@@ -5,10 +5,11 @@ const Resource = require('../../domain/entities/resource');
 const Permission = require('../../domain/entities/permission');
 const Policy = require('../../domain/entities/policy');
 const PermPostgresAdapter = require("../../infrastructure/persistence/permPostgresAdapter")
+const IPermPersistPort = require('../../domain/ports/IPermPersistPort');
 
 class PermService {
-  constructor({ permissionsRepository, iamAdapter }) {
-    this.permissionsRepository = permissionsRepository;
+  constructor({ IPER, iamAdapter }) {
+      
     this.iamAdapter = iamAdapter;
     this.permPostgresAdapter = PermPostgresAdapter;
   }
@@ -24,7 +25,7 @@ class PermService {
 
   async createRole(roleData) {
     const newRole = new Role(roleData.id, roleData.name, roleData.description);
-    await this.permissionsRepository.saveRole(newRole);
+    await this.IPermPersistPort.saveRole(newRole);
     return newRole;
   }
 
@@ -32,13 +33,13 @@ class PermService {
     const role = await this.getRoleById(roleId);
     role.rename(roleData.name);
     role.updateDescription(roleData.description);
-    await this.permissionsRepository.saveRole(role);
+    await this.IPermPersistPort.saveRole(role);
     return role;
   }
 
   // Resource Methods
   async getResourceById(resourceId) {
-    const resource = await this.permissionsRepository.findResourceById(resourceId);
+    const resource = await this.IPermPersistPort.findResourceById(resourceId);
     if (!resource) {
       throw new Error('Resource not found');
     }
@@ -47,13 +48,13 @@ class PermService {
 
   async createResource(resourceData) {
     const newResource = new Resource(resourceData.id, resourceData.name, resourceData.type);
-    await this.permissionsRepository.saveResource(newResource);
+    await this.IPermPersistPort.saveResource(newResource);
     return newResource;
   }
 
   // Permission Methods
   async getPermissionByRoleAndResource(roleId, resourceId) {
-    const permission = await this.permissionsRepository.findPermissionByRoleAndResource(roleId, resourceId);
+    const permission = await this.IPermPersistPort.findPermissionByRoleAndResource(roleId, resourceId);
     if (!permission) {
       throw new Error('Permission not found');
     }
@@ -62,13 +63,13 @@ class PermService {
 
   async createPermission(permissionData) {
     const newPermission = new Permission(permissionData.roleId, permissionData.resourceId, permissionData.actions);
-    await this.permissionsRepository.savePermission(newPermission);
+    await this.IPermPersistPort.savePermission(newPermission);
     return newPermission;
   }
 
   // Policy Methods
   async getPolicyById(policyId) {
-    const policy = await this.permissionsRepository.findPolicyById(policyId);
+    const policy = await this.IPermPersistPort.findPolicyById(policyId);
     if (!policy) {
       throw new Error('Policy not found');
     }
@@ -77,7 +78,7 @@ class PermService {
 
   async createPolicy(policyData) {
     const newPolicy = new Policy(policyData.id, policyData.name, policyData.description, policyData.permissions);
-    await this.permissionsRepository.savePolicy(newPolicy);
+    await this.IPermPersistPort.savePolicy(newPolicy);
     return newPolicy;
   }
 
@@ -85,7 +86,7 @@ class PermService {
   // Authorization Logic
   async checkPermission(userId, resourceId, action) {
     const userRole = await this.iamAdapter.getUserRole(userId);
-    const policy = await this.permissionsRepository.findPolicyForResource(resourceId);
+    const policy = await this.IPermPersistPort.findPolicyForResource(resourceId);
     if (policy && policy.isAllowed(userRole.id, resourceId, action)) {
       return true;
     } else {
