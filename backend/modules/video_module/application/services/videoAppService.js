@@ -8,7 +8,7 @@ class VideoAppService {
         this.postgresAdapter = postgresAdapter;     
       }
 
-    // eslint-disable-next-line no-unused-vars
+
     async takeSnapshot(videoYoutubeId, snapshotAdapter, postgresAdapter) {       
         try {
             console.log('Taking snapshot ...')
