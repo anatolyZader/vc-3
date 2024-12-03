@@ -8,7 +8,7 @@
     "test": "test"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint .", 
     "test": "node --test test/**/*.test.js",
     "starrrt": "fastify start app.js -l trace",
     "start": "NODE_DEBUG=fastify,avvio,node-fastify,node node --trace-deprecation --trace-warnings --trace-tls --trace-uncaught $(which fastify) start app.js -l trace",
