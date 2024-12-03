@@ -27,4 +27,4 @@ async function monitorController(fastify, options) {
   });
 }
 
-module.exports = fp(monitorController); 
+module.exports = fp(monitorController);
