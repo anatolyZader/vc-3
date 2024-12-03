@@ -5,7 +5,7 @@
 const fp = require('fastify-plugin');
 const { v4: uuidv4 } = require('uuid');
 
-let userService, accountService, sessionService, authPostgresAdapter;
+let userService, sessionService, authPostgresAdapter;
 
 async function authController(fastify, options) {
 
@@ -152,20 +152,13 @@ async function authController(fastify, options) {
 
   // Hook: onReady
   fastify.addHook('onReady', async function () {
+    
     try {
       userService = fastify.diContainer.resolve('userService');
     } catch (error) {
       fastify.log.error('Error resolving userService at authController:', error);
     }
-    try {
-      accountService = fastify.diContainer.resolve('accountService');
-    } catch (error) {
-      fastify.log.error('Error resolving accountService at authController:', {
-        error: error.message,
-        stack: error.stack,
-        resolutionContext: 'accountService',
-      });
-    }
+
     try {
       authPostgresAdapter = fastify.diContainer.resolve('authPostgresAdapter');
     } catch (error) {
