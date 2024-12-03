@@ -8,7 +8,7 @@ const PermPostgresAdapter = require("../../infrastructure/persistence/permPostgr
 const IPermPersistPort = require('../../domain/ports/IPermPersistPort');
 
 class PermService {
-  constructor({ IPER, iamAdapter }) {
+  constructor({ IPermPersistPort, iamAdapter }) {
       
     this.iamAdapter = iamAdapter;
     this.permPostgresAdapter = PermPostgresAdapter;
