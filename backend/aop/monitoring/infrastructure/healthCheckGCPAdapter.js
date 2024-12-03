@@ -2,7 +2,7 @@
 
 'use strict';
 
-const { CloudSQL } = require('@google-cloud/cloudsql'); 
+const { CloudSQL } = require('@google-cloud/sql'); 
 const { Redis } = require('@google-cloud/redis');
 
 class HealthCheckGCPAdapter {
