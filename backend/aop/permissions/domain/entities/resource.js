@@ -1,5 +1,5 @@
 // domain/entities/resource.js
-
+// dfs
 class Resource {
     constructor(id, name, type) {
       this.id = id;
