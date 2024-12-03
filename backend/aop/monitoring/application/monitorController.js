@@ -7,7 +7,6 @@ const fp = require('fastify-plugin');
 async function monitorController(fastify, options) {
   fastify.decorate('checkHealth', async function (request, reply) {
     try {
-      const monitorService = fastify.diContainer.resolve('monitorService'); 
       const healthStatus = await monitorService.checkHealth();
       reply.send(healthStatus); 
     } catch (error) {
