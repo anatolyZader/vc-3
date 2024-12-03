@@ -30,7 +30,7 @@ class IAuthPersistPort {
     }
   
     async logoutUser(sessionId) {
-      throw new ErrorI("Method 'logoutUser(sessionId)' must be implemented.");
+      throw new Error("Method 'logoutUser(sessionId)' must be implemented.");
     }
   }
   

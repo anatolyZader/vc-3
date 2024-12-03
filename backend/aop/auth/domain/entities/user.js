@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 'strict'
 // user.js
 const { v4: uuidv4 } = require('uuid');

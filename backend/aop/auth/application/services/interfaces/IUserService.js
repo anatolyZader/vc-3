@@ -1,4 +1,5 @@
 // IUserService.js
+/* eslint-disable no-unused-vars */
 
 class IUserService {
     constructor() {
