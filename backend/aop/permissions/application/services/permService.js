@@ -30,6 +30,16 @@ class PermService {
     return role;
   }
 
+  async deleteRole(roleId) {
+    const role = await this.getRoleById(roleId);
+    if (!role) throw new Error('Role not found');
+    await this.permPersistPort.deleteRole(roleId);
+  }
+
+  async getAllRoles() {
+    return await this.permPersistPort.findAllRoles();
+  }
+
   // Resource Methods
   async getResourceById(resourceId) {
     const resource = await this.permPersistPort.findResourceById(resourceId);
@@ -43,6 +53,12 @@ class PermService {
     const newResource = new Resource(resourceData.id, resourceData.name, resourceData.type);
     await this.permPersistPort.saveResource(newResource);
     return newResource;
+  }
+
+  async deleteResource(resourceId) {
+    const resource = await this.getResourceById(resourceId);
+    if (!resource) throw new Error('Resource not found');
+    await this.permPersistPort.deleteResource(resourceId);
   }
 
   // Permission Methods
@@ -62,6 +78,12 @@ class PermService {
     return newPermission;
   }
 
+  async deletePermission(roleId, resourceId) {
+    const permission = await this.getPermissionByRoleAndResource(roleId, resourceId);
+    if (!permission) throw new Error('Permission not found');
+    await this.permPersistPort.deletePermission(roleId, resourceId);
+  }
+
   // Policy Methods
   async getPolicyById(policyId) {
     const policy = await this.permPersistPort.findPolicyById(policyId);
@@ -78,6 +100,16 @@ class PermService {
     );
     await this.permPersistPort.savePolicy(newPolicy);
     return newPolicy;
+  }
+
+  async deletePolicy(policyId) {
+    const policy = await this.getPolicyById(policyId);
+    if (!policy) throw new Error('Policy not found');
+    await this.permPersistPort.deletePolicy(policyId);
+  }
+
+  async getAllPolicies() {
+    return await this.permPersistPort.findAllPolicies();
   }
 }
 

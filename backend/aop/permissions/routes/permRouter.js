@@ -29,6 +29,18 @@ module.exports = fp(async function permRouter(fastify, opts) {
     handler: fastify.updateRole,
   });
 
+  fastify.route({
+    method: 'DELETE',
+    url: '/roles/:roleId',
+    handler: fastify.deleteRole,
+  });
+
+  fastify.route({
+    method: 'GET',
+    url: '/roles',
+    handler: fastify.getAllRoles,
+  });
+
   // Resource Routes
   fastify.route({
     method: 'GET',
@@ -43,6 +55,12 @@ module.exports = fp(async function permRouter(fastify, opts) {
       body: fastify.getSchema('schema:perm:createResource'),
     },
     handler: fastify.createResource,
+  });
+
+  fastify.route({
+    method: 'DELETE',
+    url: '/resources/:resourceId',
+    handler: fastify.deleteResource,
   });
 
   // Permission Routes
@@ -61,6 +79,12 @@ module.exports = fp(async function permRouter(fastify, opts) {
     handler: fastify.createPermission,
   });
 
+  fastify.route({
+    method: 'DELETE',
+    url: '/permissions/:roleId/:resourceId',
+    handler: fastify.deletePermission,
+  });
+
   // Policy Routes
   fastify.route({
     method: 'GET',
@@ -75,5 +99,17 @@ module.exports = fp(async function permRouter(fastify, opts) {
       body: fastify.getSchema('schema:perm:createPolicy'),
     },
     handler: fastify.createPolicy,
+  });
+
+  fastify.route({
+    method: 'DELETE',
+    url: '/policies/:policyId',
+    handler: fastify.deletePolicy,
+  });
+
+  fastify.route({
+    method: 'GET',
+    url: '/policies',
+    handler: fastify.getAllPolicies,
   });
 });

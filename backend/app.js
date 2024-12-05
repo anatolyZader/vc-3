@@ -52,7 +52,6 @@ module.exports = async function (fastify, opts) {
 
   try {
     fastify.log.info('Attempting to register @fastify/redis plugin.');
-  
     await fastify.register(fastifyRedis, { 
       client: redisClient 
     });
@@ -160,17 +159,17 @@ module.exports = async function (fastify, opts) {
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop'),
     options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 4,
-    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
+    encapsulate: true,
+    maxDepth: 5,
+    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
   });
   
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 4,
-    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin')
+    encapsulate: true,
+    maxDepth: 5,
+    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
   });
 
   await fastify.register(AutoLoad, {

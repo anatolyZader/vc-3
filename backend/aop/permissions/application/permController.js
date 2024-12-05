@@ -41,6 +41,25 @@ async function permController(fastify, options) {
     }
   });
 
+  fastify.decorate('deleteRole', async (request, reply) => {
+    try {
+      const { roleId } = request.params;
+      await permService.deleteRole(roleId);
+      reply.status(204).send();
+    } catch (error) {
+      handleError(error, reply);
+    }
+  });
+
+  fastify.decorate('getAllRoles', async (request, reply) => {
+    try {
+      const roles = await permService.getAllRoles();
+      reply.send(roles);
+    } catch (error) {
+      handleError(error, reply);
+    }
+  });
+
   // Resource Routes
   fastify.decorate('getResourceById', async (request, reply) => {
     try {
@@ -57,6 +76,16 @@ async function permController(fastify, options) {
       const resourceData = request.body;
       const newResource = await permService.createResource(resourceData);
       reply.send(newResource);
+    } catch (error) {
+      handleError(error, reply);
+    }
+  });
+
+  fastify.decorate('deleteResource', async (request, reply) => {
+    try {
+      const { resourceId } = request.params;
+      await permService.deleteResource(resourceId);
+      reply.status(204).send();
     } catch (error) {
       handleError(error, reply);
     }
@@ -83,6 +112,16 @@ async function permController(fastify, options) {
     }
   });
 
+  fastify.decorate('deletePermission', async (request, reply) => {
+    try {
+      const { roleId, resourceId } = request.params;
+      await permService.deletePermission(roleId, resourceId);
+      reply.status(204).send();
+    } catch (error) {
+      handleError(error, reply);
+    }
+  });
+
   // Policy Routes
   fastify.decorate('getPolicyById', async (request, reply) => {
     try {
@@ -99,6 +138,25 @@ async function permController(fastify, options) {
       const policyData = request.body;
       const newPolicy = await permService.createPolicy(policyData);
       reply.send(newPolicy);
+    } catch (error) {
+      handleError(error, reply);
+    }
+  });
+
+  fastify.decorate('deletePolicy', async (request, reply) => {
+    try {
+      const { policyId } = request.params;
+      await permService.deletePolicy(policyId);
+      reply.status(204).send();
+    } catch (error) {
+      handleError(error, reply);
+    }
+  });
+
+  fastify.decorate('getAllPolicies', async (request, reply) => {
+    try {
+      const policies = await permService.getAllPolicies();
+      reply.send(policies);
     } catch (error) {
       handleError(error, reply);
     }
