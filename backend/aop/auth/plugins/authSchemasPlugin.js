@@ -1,11 +1,11 @@
 /* eslint-disable no-unused-vars */
-// authSchemasLoader.js
+// authSchemasPlugin.js
 
 'use strict';
 
 const fp = require('fastify-plugin');
 
-module.exports = fp(async function schemaLoaderPlugin(fastify, opts) {
+module.exports = fp(async function authSchemasPlugin(fastify, opts) {
   const schemas = [
     { id: 'schema:auth:register', path: '../routes/schemas/register.json' },
     { id: 'schema:auth:token-header', path: '../routes/schemas/token-header.json' },

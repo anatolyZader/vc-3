@@ -40,6 +40,7 @@ const Account = require('./aop/auth/domain/entities/account');
 const User = require('./aop/auth/domain/entities/user');
 const UserService = require('./aop/auth/application/services/userService');
 const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
+const AuthRedisAdapter = require('./aop/auth/infrastructure/in_memory_storage/authRedisAdapter')
 const PermService = require('./aop/permissions/application/services/permService');
 require('dotenv').config();
 const MonitorService = require('./aop/monitoring/application/services/monitorService')
@@ -102,6 +103,7 @@ module.exports = async function (fastify, opts) {
     user: asClass(User),
     userService: asClass(UserService),
     authPostgresAdapter: asClass(AuthPostgresAdapter),
+    authRedisAdapter: asClass(AuthRedisAdapter),
     // accountService: asClass(AccountService),
     permService: asClass(PermService),
     monitorService: asClass(MonitorService)
@@ -131,11 +133,12 @@ module.exports = async function (fastify, opts) {
     PostgresAdapter,
     OcrAdapter,
     SnapshotAdapter,
-    // Account,
+    Account,
     User,
     // AccountService,
     UserService,
     AuthPostgresAdapter,
+    AuthRedisAdapter,
     PermService,
     MonitorService
   };

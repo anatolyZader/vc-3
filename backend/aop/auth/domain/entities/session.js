@@ -9,11 +9,11 @@ class Session {
     this.sessionId = uuidv4();
     this.userId = userId;
     this.createdAt = new Date();
-    this.databasePort = IAuthPersistencePort;
+    this.IAuthPersistencePort = IAuthPersistencePort;
     this.createSession(); // Automatically create session when Session object is instantiated
   }
 
-  async login (username, passwordHash, IAuthPersistencePort) {
+  async login (username, password, IAuthPersistencePort) {
       try {
         console.log('Logging in user...'); 
   } catch (error) {    

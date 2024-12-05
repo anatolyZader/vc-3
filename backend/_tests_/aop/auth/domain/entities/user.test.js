@@ -1,4 +1,5 @@
-const User = require('../../../../../aop/auth/domain/entities/user'); // Adjust the path as necessary
+/* eslint-disable no-unused-vars */
+const User = require('../../../../../aop/auth/domain/entities/user'); 
 const { v4: uuidv4 } = require('uuid');
 
 jest.mock('uuid', () => ({ v4: jest.fn(() => 'mocked-uuid') }));
