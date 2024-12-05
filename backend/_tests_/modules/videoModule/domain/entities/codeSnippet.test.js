@@ -1,4 +1,5 @@
-const CodeSnippet = require('../../../../../modules/video_module/domain/entities/codeSnippet'); // Adjust the path as needed
+/* eslint-disable no-unused-vars */
+const CodeSnippet = require('../../../../../modules/video_module/domain/entities/codeSnippet'); 
 const { v4: uuid } = require('uuid');
 
 jest.mock('uuid', () => ({ v4: jest.fn(() => 'mocked-uuid') }));

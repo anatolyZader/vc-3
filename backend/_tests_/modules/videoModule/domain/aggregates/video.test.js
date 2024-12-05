@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const Video = require('../../../../../modules/video_module/domain/aggregatess/video');
 const Snapshot = require('../../../../../modules/video_module/domain/entities/snapshot'); 
 const { v4: uuidv4 } = require('uuid');

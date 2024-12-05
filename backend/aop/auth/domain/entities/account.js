@@ -4,7 +4,10 @@
 const { v4: uuidv4 } = require('uuid');
 
 class Account {
-  constructor(userId, userName,  IAuthPersistencePort) {
+  constructor(userId, IAuthPersistencePort) {
+    if (!IAuthPersistencePort) {
+      throw new Error("IAuthPersistencePort is required");
+    }
     this.accountId = uuidv4();
     this.userId = userId;
     this.createdAt = new Date();
@@ -13,7 +16,15 @@ class Account {
     this.createAccount(); // Automatically create account when Account object is instantiated
   }
 
-
+  async createAccount() {
+    try {
+        await this.IAuthPersistencePort.saveAccount(this); // Example dependency call
+        console.log("Account created successfully");
+    } catch (error) {
+        console.error("Error creating account:", error);
+        throw error;
+    }
+  }
 
   async fetchAccountDetails(accountId, IAuthPersistencePort) {
     try {

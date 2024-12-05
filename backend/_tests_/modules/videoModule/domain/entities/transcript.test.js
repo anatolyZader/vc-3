@@ -1,4 +1,5 @@
-const Transcript = require('../../../../../modules/video_module/domain/entities/transcript'); // Adjust the path as necessary
+/* eslint-disable no-unused-vars */
+const Transcript = require('../../../../../modules/video_module/domain/entities/transcript'); 
 const { v4: uuidv4 } = require('uuid');
 
 jest.mock('uuid', () => ({ v4: jest.fn(() => 'mocked-uuid') }));

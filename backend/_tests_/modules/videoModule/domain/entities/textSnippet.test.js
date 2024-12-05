@@ -1,4 +1,5 @@
-const TextSnippet = require('../../../../../modules/video_module/domain/entities/textSnippet'); // Adjust the path as necessary
+/* eslint-disable no-unused-vars */
+const TextSnippet = require('../../../../../modules/video_module/domain/entities/textSnippet'); 
 const { v4: uuid } = require('uuid');
 
 jest.mock('uuid', () => ({ v4: jest.fn(() => 'mocked-uuid') }));
@@ -37,4 +38,6 @@ describe('TextSnippet', () => {
     it('should explain text and save the explanation', async () => {
       const mockTextExplanation = { explanation: 'This is a greeting.' };
       mockIDatabasePort.findText.mockResolvedValue(sampleText);
-      mock
+    })
+  });
+});  

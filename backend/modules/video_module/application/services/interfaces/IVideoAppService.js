@@ -8,7 +8,7 @@ class IVideoAppService {
     }
   }
 
-  async takeSnapshot(videoYoutubeId, snapshotAdapter, postgresAdapter) {
+  async takeSnapshot(videoYoutubeId, IVideoPersistPort, ISnapshotPort) {
     throw new Error('Method not implemented.');
   }
 
@@ -16,8 +16,8 @@ class IVideoAppService {
   async downloadTranscript(
     videoYoutubeId,
     youtubeAPIKey,
-    youtubeDataAdapter,
-    postgresAdapter
+    IyoutubeDataPort,
+    IVideoPersistPort
   ) {
     throw new Error('Method not implemented.');
   }

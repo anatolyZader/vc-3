@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const Snapshot = require('../../src/domain/entities/snapshot'); // Adjust the path as necessary
 const { v4: uuidv4 } = require('uuid');
 
