@@ -29,9 +29,9 @@ async function authController(fastify, options) {
   });
 
   fastify.decorate('loginUser', async function (request, reply) {
-    const { username, password } = request.body;
+    const { email, password } = request.body;
     try {
-      const user = await userService.readUser(username, authPostgresAdapter);
+      const user = await userService.readUser(email, authPostgresAdapter);
 
       if (!user || user.password !== password) {
         reply.status(401).send({ error: 'Invalid credentials' });
