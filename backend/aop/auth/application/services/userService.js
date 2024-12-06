@@ -1,6 +1,7 @@
 // userService.js
     const User = require('../../domain/entities/user');
 
+
 class UserService {
     constructor(       
     ) {
@@ -32,9 +33,9 @@ class UserService {
         }
     }
 
-    async readUser(username, authPostgresAdapter) {
+    async readUser(email, authPostgresAdapter) {
         try {
-            const user = await this.user.readUser(username, authPostgresAdapter);
+            const user = await this.user.readUser(email, authPostgresAdapter);
             console.log('User read successfully:', user);
             return user;
         } catch (error) {
@@ -45,9 +46,9 @@ class UserService {
 
 
 
-    async removeUser(username, password, authPostgresAdapter) {
+    async removeUser(email, password, authPostgresAdapter) {
         try {
-             await this.user.removeUser(username, password, authPostgresAdapter);
+             await this.user.removeUser(email, password, authPostgresAdapter);
             console.log('User removed successfully');
         } catch (error) {
             console.error('Error removing user:', error);

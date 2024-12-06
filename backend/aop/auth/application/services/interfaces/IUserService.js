@@ -14,11 +14,11 @@ class IUserService {
     throw new Error('Method not implemented.');
   }
 
-  async readUser(username, IAuthPersistPort) {
+  async readUser(email, IAuthPersistPort) {
     throw new Error('Method not implemented.');
   }
 
-  async removeUser(username, IAuthPersistPort) {
+  async removeUser(email, IAuthPersistPort) {
     throw new Error('Method not implemented.');
   }
 }

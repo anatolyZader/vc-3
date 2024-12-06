@@ -23,9 +23,9 @@ class User {
     }
  }
 
-    async readUser(username, IAuthPersistencePort) {
+    async readUser(email, IAuthPersistencePort) {
         try {
-            const userDTO = await IAuthPersistencePort.readUser(username);
+            const userDTO = await IAuthPersistencePort.readUser(email);
             console.log('User read successfully:', userDTO);
             return userDTO;
         } catch (error) {
@@ -34,9 +34,9 @@ class User {
         }
     }
     
-    async removeUser (username, password, IAuthPersistencePort) {
+    async removeUser (email, password, IAuthPersistencePort) {
         try {
-            await IAuthPersistencePort.removeUser(username,  password);
+            await IAuthPersistencePort.removeUser(email,  password);
             console.log('user removed successfully!');
         } catch (error) {
             console.error('Error removing user: ', error);

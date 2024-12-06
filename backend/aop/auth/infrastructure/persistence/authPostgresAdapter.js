@@ -2,6 +2,7 @@ const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const IAuthPersistPort = require('../../domain/ports/IAuthPersistPort');
 
+
 class AuthPostgresAdapter extends IAuthPersistPort {
   constructor() {
     super();
@@ -12,6 +13,17 @@ class AuthPostgresAdapter extends IAuthPersistPort {
       host: process.env.PG_HOST,
       port: process.env.PG_PORT,
     });
+    console.log("pool at authPostgresAdapter.js controller: ", this.pool);
+  }
+
+  async readAllUsers() {
+    const client = await this.pool.connect();
+    try {
+      const { rows } = await client.query('SELECT * FROM users');
+      return rows; // Returns an array of all user records
+    } finally {
+      client.release();
+    }
   }
 
   async createUser(username, email, password) {
@@ -24,34 +36,25 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     }
   }
 
-  async readUser(username) {
+  async readUser(email) {
     const client = await this.pool.connect();
     try {
-      const { rows } = await client.query('SELECT * FROM users WHERE username=$1', [username]);
+      const { rows } = await client.query('SELECT * FROM users WHERE email=$1', [email]);
       return rows.length ? rows[0] : null;
     } finally {
       client.release();
     }
   }
 
-  async removeUser(username) {
+  async removeUser(email) {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM users WHERE username=$1', [username]);
+      await client.query('DELETE FROM users WHERE email=$1', [email]);
     } finally {
       client.release();
     }
   }
 
-  async readUsers() {
-    const client = await this.pool.connect();
-    try {
-      const { rows } = await client.query('SELECT * FROM users');
-      return rows;
-    } finally {
-      client.release();
-    }
-  }
 }
 
 module.exports = AuthPostgresAdapter;

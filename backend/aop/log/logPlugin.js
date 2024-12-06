@@ -80,7 +80,7 @@ const logOptions = {
       return {
         statusCode: reply.statusCode,
         responseTime: reply.getResponseTime(),
-        headers: reply.getHeaders(), // Log response headers
+        headers: reply.getHeaders(), 
       };
     }
   }
