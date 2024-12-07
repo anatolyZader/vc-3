@@ -35,12 +35,19 @@ const PostgresAdapter = require('./modules/video_module/infrastructure/persisten
 const OcrAdapter = require('./modules/video_module/infrastructure/ocr/ocrAdapter');
 const SnapshotAdapter = require('./modules/video_module/infrastructure/youtube/snapshotAdapter');
 
+
 // Imports required for dependency injection (aop)
 const Account = require('./aop/auth/domain/entities/account');
 const User = require('./aop/auth/domain/entities/user');
 const UserService = require('./aop/auth/application/services/userService');
-const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
-const AuthRedisAdapter = require('./aop/auth/infrastructure/in_memory_storage/authRedisAdapter')
+
+// revise
+const authInfraConfig = require('./aop/auth/infrastructure/authInfraConfig.json');
+const AuthPersistAdapter = require(`./aop/auth/infrastructure/persistence/${authInfraConfig.persistanceAdapter}`);
+console.log("AuthPersistAdapter at app.js: ", AuthPersistAdapter);
+const AuthInMemStorageAdapter = require(`./aop/auth/infrastructure/in_memory_storage/${authInfraConfig.inMemStorageAdapter}`)
+console.log("AuthInMemStorageAdapter at app.js: ", AuthInMemStorageAdapter);
+
 const PermService = require('./aop/permissions/application/services/permService');
 require('dotenv').config();
 const MonitorService = require('./aop/monitoring/application/services/monitorService')
@@ -82,6 +89,14 @@ module.exports = async function (fastify, opts) {
     saveUninitialized: false,
   });
 
+  // Register Awilix plugin for dependency injection
+  await fastify.register(fastifyAwilixPlugin, {
+    disposeOnClose: true,
+    disposeOnResponse: true,
+    strictBooleanEnforced: true,
+    injectionMode: 'CLASSIC'
+  });
+
   await diContainer.register({
     video: asClass(Video),
     codeSnippet: asClass(CodeSnippet),
@@ -101,19 +116,14 @@ module.exports = async function (fastify, opts) {
     account: asClass(Account),
     user: asClass(User),
     userService: asClass(UserService),
-    authPostgresAdapter: asClass(AuthPostgresAdapter),
-    authRedisAdapter: asClass(AuthRedisAdapter),
+    authPersistAdapter: asClass(AuthPersistAdapter),
+    authInMemStorageAdapter: asClass(AuthInMemStorageAdapter),
     // accountService: asClass(AccountService),
     permService: asClass(PermService),
     monitorService: asClass(MonitorService)
   });
 
-  // Register Awilix plugin for dependency injection
-  await fastify.register(fastifyAwilixPlugin, {
-    disposeOnClose: true,
-    disposeOnResponse: true,
-    strictBooleanEnforced: true,
-  });
+
 
   // Define dependencies for logging
   const dependencies = {
@@ -136,8 +146,8 @@ module.exports = async function (fastify, opts) {
     User,
     // AccountService,
     UserService,
-    AuthPostgresAdapter,
-    AuthRedisAdapter,
+    AuthPersistAdapter,
+    AuthInMemStorageAdapter,
     PermService,
     MonitorService
   };

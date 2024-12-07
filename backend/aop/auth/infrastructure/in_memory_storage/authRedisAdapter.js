@@ -1,13 +1,12 @@
 'use strict';
 
-const IAuthInMemoryPort = require('../../domain/ports/IAuthInMemStoragePort');
+const IAuthInMemStoragePort = require('../../domain/ports/IAuthInMemStoragePort');
 const redisClient = require('../../../../redisClient');
 
-class AuthRedisAdapter extends IAuthInMemoryPort {
-
+class AuthRedisAdapter extends IAuthInMemStoragePort {
   async storeSession(sessionId, user) {
     try {
-      await redisClient.set(`session:${sessionId}`, JSON.stringify(user), 'EX', 3600);
+      await redisClient.set(`session:${sessionId}`, JSON.stringify(user), 'EX', process.env.SESSION_TTL || 3600);
     } catch (error) {
       console.error('Error storing session in Redis:', error);
       throw error;

@@ -1,18 +1,16 @@
-/* eslint-disable no-unused-vars */
 'use strict';
+/* eslint-disable no-unused-vars */
 
 const fp = require('fastify-plugin');
- 
-module.exports = fp(async function authRouter(fastify, opts) {
 
-  // ok
+module.exports = fp(async function authRouter(fastify, opts) {
+  
   fastify.route({
     method: 'GET',
     url: '/disco',
     handler: fastify.discoverUsers,
   });
 
-  // ok
   fastify.route({
     method: 'POST',
     url: '/register',
@@ -22,7 +20,6 @@ module.exports = fp(async function authRouter(fastify, opts) {
     handler: fastify.registerUser,
   });
 
-  
   fastify.route({
     method: 'POST',
     url: '/login',
@@ -34,12 +31,12 @@ module.exports = fp(async function authRouter(fastify, opts) {
     handler: fastify.loginUser,
   });
 
-  // fastify.route({
-  //   method: 'POST',
-  //   url: '/remove',
-  //   preValidation: [fastify.verifyToken],
-  //   handler: fastify.removeUser,
-  // });
+  fastify.route({
+    method: 'POST',
+    url: '/remove',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.removeUser,
+  });
 
   fastify.route({
     method: 'GET',

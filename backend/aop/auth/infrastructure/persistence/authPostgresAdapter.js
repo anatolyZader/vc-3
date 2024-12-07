@@ -1,7 +1,9 @@
+'use strict';
+
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
 const IAuthPersistPort = require('../../domain/ports/IAuthPersistPort');
-
 
 class AuthPostgresAdapter extends IAuthPersistPort {
   constructor() {
@@ -13,14 +15,16 @@ class AuthPostgresAdapter extends IAuthPersistPort {
       host: process.env.PG_HOST,
       port: process.env.PG_PORT,
     });
-    console.log("pool at authPostgresAdapter.js controller: ", this.pool);
   }
 
   async readAllUsers() {
     const client = await this.pool.connect();
     try {
       const { rows } = await client.query('SELECT * FROM users');
-      return rows; // Returns an array of all user records
+      return rows;
+    } catch (error) {
+      console.error('Error reading all users:', error);
+      throw error;
     } finally {
       client.release();
     }
@@ -30,7 +34,22 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     const client = await this.pool.connect();
     try {
       const id = uuidv4();
-      await client.query('INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)', [id, username, email, password]);
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Check for duplicate email
+      const existingUser = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+      if (existingUser.rows.length > 0) {
+        throw new Error('Email already exists');
+      }
+
+      await client.query(
+        'INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)',
+        [id, username, email, hashedPassword]
+      );
+      return { id, username, email };
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
     } finally {
       client.release();
     }
@@ -41,6 +60,9 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     try {
       const { rows } = await client.query('SELECT * FROM users WHERE email=$1', [email]);
       return rows.length ? rows[0] : null;
+    } catch (error) {
+      console.error('Error reading user:', error);
+      throw error;
     } finally {
       client.release();
     }
@@ -49,12 +71,15 @@ class AuthPostgresAdapter extends IAuthPersistPort {
   async removeUser(email) {
     const client = await this.pool.connect();
     try {
-      await client.query('DELETE FROM users WHERE email=$1', [email]);
+      const result = await client.query('DELETE FROM users WHERE email=$1', [email]);
+      return result.rowCount > 0; // Returns true if a row was deleted
+    } catch (error) {
+      console.error('Error removing user:', error);
+      throw error;
     } finally {
       client.release();
     }
   }
-
 }
 
 module.exports = AuthPostgresAdapter;

@@ -1,69 +1,57 @@
-'strict'
-// account.js
+'use strict';
 
 const { v4: uuidv4 } = require('uuid');
 
 class Account {
   constructor(userId, IAuthPersistencePort) {
-    if (!IAuthPersistencePort) {
-      throw new Error("IAuthPersistencePort is required");
-    }
     this.accountId = uuidv4();
     this.userId = userId;
     this.createdAt = new Date();
     this.IAuthPersistencePort = IAuthPersistencePort;
     this.videos = [];
-    this.createAccount(); // Automatically create account when Account object is instantiated
+    this.accountType = 'standard'; // Default account type
   }
 
   async createAccount() {
     try {
-        await this.IAuthPersistencePort.saveAccount(this); // Example dependency call
-        console.log("Account created successfully");
+      await this.IAuthPersistencePort.saveAccount(this);
+      console.log('Account created successfully.');
     } catch (error) {
-        console.error("Error creating account:", error);
-        throw error;
+      console.error('Error creating account:', error);
+      throw error;
     }
   }
 
-  async fetchAccountDetails(accountId, IAuthPersistencePort) {
+  async fetchAccountDetails(accountId) {
     try {
-      const accountData = await IAuthPersistencePort.fetchAccountDetails(accountId);
-      if (accountData) {
-        this.accountType = accountData.accountType;
-        this.createdAt = accountData.createdAt;
-        return accountData;
-      }
-      return null;
+      const accountData = await this.IAuthPersistencePort.fetchAccountDetails(accountId);
+      Object.assign(this, accountData); // Update instance properties
+      return accountData;
     } catch (error) {
       console.error('Error fetching account details:', error);
       throw error;
     }
   }
 
-  async addVideo(videoYoutubeId, accountId, databasePort) {
+  async addVideo(videoYoutubeId) {
     try {
-      // Assuming there's a method in databasePort to add a video to an account
-      await databasePort.addVideoToAccount(accountId, videoYoutubeId);
-      console.log('Video added successfully to account!');
+      await this.IAuthPersistencePort.addVideoToAccount(this.accountId, videoYoutubeId);
+      console.log('Video added successfully to account.');
     } catch (error) {
       console.error('Error adding video to account:', error);
       throw error;
     }
   }
 
-  async removeVideo(videoYoutubeId, accountId, databasePort) {
+  async removeVideo(videoYoutubeId) {
     try {
-      // Assuming there's a method in databasePort to add a video to an account
-      await databasePort.removeVideo(accountId, videoYoutubeId);
-      console.log(`Video successfully removed from  account!`);
+      await this.IAuthPersistencePort.removeVideo(this.accountId, videoYoutubeId);
+      console.log('Video removed successfully from account.');
     } catch (error) {
       console.error('Error removing video from account:', error);
       throw error;
     }
   }
-
 }
-
 
 module.exports = Account;
