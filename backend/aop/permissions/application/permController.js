@@ -1,53 +1,52 @@
+'use strict';
 /* eslint-disable no-unused-vars */
+
 const fp = require('fastify-plugin');
+let permService;
 
-async function permController(fastify, options) {
-  const permService = fastify.diContainer.resolve('permService');
-
-  const handleError = (error, reply) => {
-    fastify.log.error(error);
-    reply.status(500).send({ error: 'Internal Server Error' });
-  };
-
-  // Role Routes
+const permController = async (fastify, options) => {
   fastify.decorate('getRoleById', async (request, reply) => {
     try {
       const { roleId } = request.params;
       const role = await permService.getRoleById(roleId);
       reply.send(role);
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error getting role:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('createRole', async (request, reply) => {
+    const { id, name, description } = request.body;
     try {
-      const roleData = request.body;
-      const newRole = await permService.createRole(roleData);
-      reply.send(newRole);
+      const newRole = await permService.createRole({ id, name, description });
+      reply.send({ message: 'Role created successfully', role: newRole });
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error creating role:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('updateRole', async (request, reply) => {
+    const { roleId } = request.params;
+    const roleData = request.body;
     try {
-      const { roleId } = request.params;
-      const roleData = request.body;
       const updatedRole = await permService.updateRole(roleId, roleData);
-      reply.send(updatedRole);
+      reply.send({ message: 'Role updated successfully', role: updatedRole });
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error updating role:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('deleteRole', async (request, reply) => {
+    const { roleId } = request.params;
     try {
-      const { roleId } = request.params;
       await permService.deleteRole(roleId);
       reply.status(204).send();
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error deleting role:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
@@ -56,111 +55,185 @@ async function permController(fastify, options) {
       const roles = await permService.getAllRoles();
       reply.send(roles);
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error fetching all roles:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
-  // Resource Routes
   fastify.decorate('getResourceById', async (request, reply) => {
+    const { resourceId } = request.params;
     try {
-      const { resourceId } = request.params;
       const resource = await permService.getResourceById(resourceId);
       reply.send(resource);
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error getting resource:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('createResource', async (request, reply) => {
+    const { id, name, type } = request.body;
     try {
-      const resourceData = request.body;
-      const newResource = await permService.createResource(resourceData);
-      reply.send(newResource);
+      const newResource = await permService.createResource({ id, name, type });
+      reply.send({ message: 'Resource created successfully', resource: newResource });
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error creating resource:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('deleteResource', async (request, reply) => {
+    const { resourceId } = request.params;
     try {
-      const { resourceId } = request.params;
       await permService.deleteResource(resourceId);
       reply.status(204).send();
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error deleting resource:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
-  // Permission Routes
-  fastify.decorate('getPermissionByRoleAndResource', async (request, reply) => {
+  fastify.decorate('updateResource', async (request, reply) => {
+    const { resourceId } = request.params;
+    const resourceData = request.body;
     try {
-      const { roleId, resourceId } = request.params;
+      const updatedResource = await permService.updateResource(resourceId, resourceData);
+      reply.send({ message: 'Resource updated successfully', resource: updatedResource });
+    } catch (error) {
+      fastify.log.error('Error updating resource:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
+  
+
+  fastify.decorate('getPermissionByRoleAndResource', async (request, reply) => {
+    const { roleId, resourceId } = request.params;
+    try {
       const permission = await permService.getPermissionByRoleAndResource(roleId, resourceId);
       reply.send(permission);
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error getting permission:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('createPermission', async (request, reply) => {
+    const permissionData = request.body;
     try {
-      const permissionData = request.body;
       const newPermission = await permService.createPermission(permissionData);
-      reply.send(newPermission);
+      reply.send({ message: 'Permission created successfully', permission: newPermission });
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error creating permission:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('deletePermission', async (request, reply) => {
+    const { roleId, resourceId } = request.params;
     try {
-      const { roleId, resourceId } = request.params;
       await permService.deletePermission(roleId, resourceId);
       reply.status(204).send();
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error deleting permission:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
-  // Policy Routes
-  fastify.decorate('getPolicyById', async (request, reply) => {
+  fastify.decorate('updatePermission', async (request, reply) => {
+    const { roleId, resourceId } = request.params;
+    const permissionData = request.body;
     try {
-      const { policyId } = request.params;
+      const updatedPermission = await permService.updatePermission(roleId, resourceId, permissionData);
+      reply.send({ message: 'Permission updated successfully', permission: updatedPermission });
+    } catch (error) {
+      fastify.log.error('Error updating permission:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
+  
+
+  fastify.decorate('getPolicyById', async (request, reply) => {
+    const { policyId } = request.params;
+    try {
       const policy = await permService.getPolicyById(policyId);
       reply.send(policy);
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error getting policy:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('createPolicy', async (request, reply) => {
+    const policyData = request.body;
     try {
-      const policyData = request.body;
       const newPolicy = await permService.createPolicy(policyData);
-      reply.send(newPolicy);
+      reply.send({ message: 'Policy created successfully', policy: newPolicy });
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error creating policy:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
   fastify.decorate('deletePolicy', async (request, reply) => {
+    const { policyId } = request.params;
     try {
-      const { policyId } = request.params;
       await permService.deletePolicy(policyId);
       reply.status(204).send();
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error deleting policy:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
+
+  fastify.decorate('updatePolicy', async (request, reply) => {
+    const { policyId } = request.params;
+    const policyData = request.body;
+    try {
+      const updatedPolicy = await permService.updatePolicy(policyId, policyData);
+      reply.send({ message: 'Policy updated successfully', policy: updatedPolicy });
+    } catch (error) {
+      fastify.log.error('Error updating policy:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
+  
 
   fastify.decorate('getAllPolicies', async (request, reply) => {
     try {
       const policies = await permService.getAllPolicies();
       reply.send(policies);
     } catch (error) {
-      handleError(error, reply);
+      fastify.log.error('Error fetching all policies:', error);
+      reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
-}
+
+  fastify.addHook('onReady', async function () {
+    try {
+      // Check if the DI container is properly registered
+      if (!fastify.diContainer) {
+        fastify.log.error('DI Container is not available');
+        throw new Error('DI Container is not available');
+      }
+  
+      // Check if the 'userService' is registered in the DI container
+      const permServiceRegistered = fastify.diContainer.has('permService');
+      if (!permServiceRegistered) {
+        fastify.log.error('PermService is not registered in the DI container');
+        throw new Error('PermService is not registered');
+      }
+  
+      // Resolve userService from the DI container
+      permService = await fastify.diContainer.resolve('permService');
+      fastify.log.info('PermService resolved successfully:', permService);
+  
+      // You can now safely use userService in other hooks or routes
+    } catch (error) {
+      fastify.log.error('Error resolving PermService:', error);
+      throw new Error('Failed to resolve PermService. Ensure it is registered in the DI container.');
+    }
+  });
+
+};
 
 module.exports = fp(permController);

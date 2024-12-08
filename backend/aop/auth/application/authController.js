@@ -104,13 +104,31 @@ async function authController(fastify, options) {
 
   fastify.addHook('onReady', async function () {
     try {
-      userService = fastify.diContainer.resolve('userService');
-      fastify.log.info('UserService resolved successfully.');
+      // Check if the DI container is properly registered
+      if (!fastify.diContainer) {
+        fastify.log.error('DI Container is not available');
+        throw new Error('DI Container is not available');
+      }
+  
+      // Check if the 'userService' is registered in the DI container
+      const userServiceRegistered = fastify.diContainer.has('userService');
+      if (!userServiceRegistered) {
+        fastify.log.error('UserService is not registered in the DI container');
+        throw new Error('UserService is not registered');
+      }
+  
+      // Resolve userService from the DI container
+      userService = await fastify.diContainer.resolve('userService');
+      fastify.log.info('userService resolved successfully:', userService);
+  
+      // You can now safely use userService in other hooks or routes
     } catch (error) {
-      fastify.log.error('Error resolving UserService:', error);
-      throw new Error('Failed to resolve UserService. Ensure it is registered in the DI container.');
+      fastify.log.error('Error resolving userService:', error);
+      throw new Error('Failed to resolve userService. Ensure it is registered in the DI container.');
     }
   });
+  
+  
 }
 
 module.exports = fp(authController);

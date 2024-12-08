@@ -40,6 +40,8 @@ const SnapshotAdapter = require('./modules/video_module/infrastructure/youtube/s
 const Account = require('./aop/auth/domain/entities/account');
 const User = require('./aop/auth/domain/entities/user');
 const UserService = require('./aop/auth/application/services/userService');
+const PermService = require('./aop/permissions/application/services/permService');
+// const MonitorService = require('./aop/monitoring/application/services/monitorService')
 
 // revise
 const authInfraConfig = require('./aop/auth/infrastructure/authInfraConfig.json');
@@ -48,10 +50,8 @@ console.log("AuthPersistAdapter at app.js: ", AuthPersistAdapter);
 const AuthInMemStorageAdapter = require(`./aop/auth/infrastructure/in_memory_storage/${authInfraConfig.inMemStorageAdapter}`)
 console.log("AuthInMemStorageAdapter at app.js: ", AuthInMemStorageAdapter);
 
-const PermService = require('./aop/permissions/application/services/permService');
-require('dotenv').config();
-const MonitorService = require('./aop/monitoring/application/services/monitorService')
 
+require('dotenv').config();
 module.exports = async function (fastify, opts) {
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
@@ -94,7 +94,7 @@ module.exports = async function (fastify, opts) {
     disposeOnClose: true,
     disposeOnResponse: true,
     strictBooleanEnforced: true,
-    injectionMode: 'CLASSIC'
+    injectionMode: 'PROXY'
   });
 
   await diContainer.register({
@@ -118,11 +118,11 @@ module.exports = async function (fastify, opts) {
     userService: asClass(UserService),
     authPersistAdapter: asClass(AuthPersistAdapter),
     authInMemStorageAdapter: asClass(AuthInMemStorageAdapter),
-    // accountService: asClass(AccountService),
     permService: asClass(PermService),
-    monitorService: asClass(MonitorService)
+    // monitorService: asClass(MonitorService)
   });
 
+  console.log('Registered in diContainer 1: ', diContainer.registrations);
 
 
   // Define dependencies for logging
@@ -149,7 +149,7 @@ module.exports = async function (fastify, opts) {
     AuthPersistAdapter,
     AuthInMemStorageAdapter,
     PermService,
-    MonitorService
+    // MonitorService
   };
 
   // Logging to check which imports are undefined
@@ -159,7 +159,20 @@ module.exports = async function (fastify, opts) {
 
   // await fastify.register(auth);
 
+
+
   await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'aop'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 5,
+    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
+  });
+
+  console.log('Registered in diContainer 2: ', diContainer.registrations);
+
+
+    await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
     options: Object.assign({}, opts),
     encapsulate: false,
@@ -167,17 +180,9 @@ module.exports = async function (fastify, opts) {
   });
 
   await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'aop'),
-    options: Object.assign({}, opts),
-    encapsulate: true,
-    maxDepth: 5,
-    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
-  });
-  
-  await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
-    encapsulate: true,
+    encapsulate: false,
     maxDepth: 5,
     matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
   });
@@ -186,7 +191,7 @@ module.exports = async function (fastify, opts) {
     dir: path.join(__dirname, 'doc'),
     options: Object.assign({}, opts),
     encapsulate: false,
-    maxDepth: 3,
+    maxDepth: 4,
     matchFilter: (path) => path.includes('Plugin')
   });
 
