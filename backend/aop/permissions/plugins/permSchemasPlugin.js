@@ -10,6 +10,9 @@ module.exports = fp(async function permSchemasPlugin(fastify, opts) {
     { id: 'schema:perm:createResource', path: '../routes/schemas/createResource.json' },
     { id: 'schema:perm:createPermission', path: '../routes/schemas/createPermission.json' },
     { id: 'schema:perm:createPolicy', path: '../routes/schemas/createPolicy.json' },
+    { id: 'schema:perm:updateResource', path: '../routes/schemas/updateResource.json' },
+    { id: 'schema:perm:updatePolicy', path: '../routes/schemas/updatePolicy.json' },
+    { id: 'schema:perm:updatePermission', path: '../routes/schemas/updatePermission.json' }
   ];
 
   schemas.forEach(({ id, path }) => {

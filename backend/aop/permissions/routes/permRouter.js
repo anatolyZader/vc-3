@@ -58,6 +58,15 @@ module.exports = fp(async function permRouter(fastify, opts) {
   });
 
   fastify.route({
+    method: 'PUT',
+    url: '/resources/:resourceId',
+    schema: {
+      body: fastify.getSchema('schema:perm:updateResource'),
+    },
+    handler: fastify.updateResource,
+  });
+
+  fastify.route({
     method: 'DELETE',
     url: '/resources/:resourceId',
     handler: fastify.deleteResource,
@@ -80,6 +89,15 @@ module.exports = fp(async function permRouter(fastify, opts) {
   });
 
   fastify.route({
+    method: 'PUT',
+    url: '/permissions/:roleId/:resourceId',
+    schema: {
+      body: fastify.getSchema('schema:perm:updatePermission'),
+    },
+    handler: fastify.updatePermission,
+  });
+
+  fastify.route({
     method: 'DELETE',
     url: '/permissions/:roleId/:resourceId',
     handler: fastify.deletePermission,
@@ -99,6 +117,15 @@ module.exports = fp(async function permRouter(fastify, opts) {
       body: fastify.getSchema('schema:perm:createPolicy'),
     },
     handler: fastify.createPolicy,
+  });
+
+  fastify.route({
+    method: 'PUT',
+    url: '/policies/:policyId',
+    schema: {
+      body: fastify.getSchema('schema:perm:updatePolicy'),
+    },
+    handler: fastify.updatePolicy,
   });
 
   fastify.route({
