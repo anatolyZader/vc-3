@@ -1,22 +1,39 @@
-// // vc-3/index.js 
-// const autoload = require('@fastify/autoload');
-// const path = require('path');
+// modules/video/index.js 
+const autoload = require('@fastify/autoload');
+const path = require('path');
 
-// module.exports = async function authModuleIndex(fastify, opts) {
-//   fastify.register(autoload, {
-//     dir: path.join(__dirname, 'plugins'),
-//     options: {
-//       prefix: opts.prefix,
-//       encapsulate: false
-//     }
-//   });
+module.exports = async function authModuleIndex(fastify, opts) {
 
-//   fastify.register(autoload, {
-//     dir: path.join(__dirname, 'routes'),
-//     options: {
-//       prefix: opts.prefix,
-//       autoHooks: true, // Apply hooks from autohooks.js file(s) to plugins found in folder
-//       encapsulate: false
-//     }
-//   });
-  
+    fastify.register(autoload, {
+      dir: path.join(__dirname, 'plugins'),
+      options: {
+        prefix: opts.prefix
+      },
+      encapsulate: false,
+      maxDepth: 3,
+      matchFilter: (path) =>  path.includes('Plugin')    
+    });
+
+
+  fastify.register(autoload, {
+    dir: path.join(__dirname, 'application'),
+    options: {
+      prefix: opts.prefix
+    },
+    encapsulate: false,
+    maxDepth: 3,
+    matchFilter: (path) =>  path.includes('Controller')    
+  });
+
+fastify.register(autoload, {
+  dir: path.join(__dirname, 'routes'),
+  options: {
+    prefix: opts.prefix
+  },
+  encapsulate: false,
+  maxDepth: 3,
+  matchFilter: (path) =>  path.includes('Router')
+});
+
+console.log('diContainer.registrations at video/index.js:', fastify.diContainer.registrations);
+}

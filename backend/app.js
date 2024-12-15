@@ -9,8 +9,8 @@ const fastifySession = require('@fastify/session');
 const RedisStore = require('connect-redis').default;
 const redisClient = require('./redisClient');
 const redisStore = new RedisStore({ client: redisClient });  
-const { fastifyAwilixPlugin, diContainer } = require('@fastify/awilix');
-const { asClass, asValue } = require('awilix');
+const { fastifyAwilixPlugin, diContainer} = require('@fastify/awilix');
+const { asClass, asValue, Lifetime } = require('awilix');
 const logOptions = require('./aop/log/logPlugin');
 const loggingPlugin = require('./aop/log/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
@@ -44,8 +44,10 @@ const PermService = require('./aop/permissions/application/services/permService'
 // const MonitorService = require('./aop/monitoring/application/services/monitorService')
 
 // revise
+const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
+const AuthRedisAdapter = require('./aop/auth/infrastructure/in_memory_storage/authRedisAdapter');
 const authInfraConfig = require('./aop/auth/infrastructure/authInfraConfig.json');
-const AuthPersistAdapter = require(`./aop/auth/infrastructure/persistence/${authInfraConfig.persistanceAdapter}`);
+const AuthPersistAdapter = require(`./aop/auth/infrastructure/persistence/${authInfraConfig.persistenceAdapter}`);
 console.log("AuthPersistAdapter at app.js: ", AuthPersistAdapter);
 const AuthInMemStorageAdapter = require(`./aop/auth/infrastructure/in_memory_storage/${authInfraConfig.inMemStorageAdapter}`)
 console.log("AuthInMemStorageAdapter at app.js: ", AuthInMemStorageAdapter);
@@ -53,6 +55,9 @@ console.log("AuthInMemStorageAdapter at app.js: ", AuthInMemStorageAdapter);
 
 require('dotenv').config();
 module.exports = async function (fastify, opts) {
+
+  fastify.decorate('IS_ROOT', true);
+
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(config); 
@@ -94,8 +99,19 @@ module.exports = async function (fastify, opts) {
     disposeOnClose: true,
     disposeOnResponse: true,
     strictBooleanEnforced: true,
-    injectionMode: 'PROXY'
-  });
+    injectionMode: 'CLASSIC',
+    });
+
+  const adapters = {
+    authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
+    authRedisAdapter: asClass(AuthRedisAdapter).singleton(),
+  };
+
+  console.log('authInfraConfig:', authInfraConfig);
+  console.log('adapters:', adapters);
+  console.log('authPersistAdapter:', adapters[authInfraConfig.persistenceAdapter]);
+  console.log('authInMemStorageAdapter:', adapters[authInfraConfig.inMemStorageAdapter]);
+
 
   await diContainer.register({
     video: asClass(Video),
@@ -115,62 +131,62 @@ module.exports = async function (fastify, opts) {
     snapshotAdapter: asClass(SnapshotAdapter),
     account: asClass(Account),
     user: asClass(User),
-    userService: asClass(UserService),
-    authPersistAdapter: asClass(AuthPersistAdapter),
-    authInMemStorageAdapter: asClass(AuthInMemStorageAdapter),
+    userService: asClass(UserService, {
+      lifetime: Lifetime.SINGLETON,
+    }),
+    authPersistAdapter: adapters[authInfraConfig.persistenceAdapter],
+    authInMemStorageAdapter: adapters[authInfraConfig.inMemStorageAdapter],
     permService: asClass(PermService),
     // monitorService: asClass(MonitorService)
   });
 
-  console.log('Registered in diContainer 1: ', diContainer.registrations);
+  const authPersistAdapterrr = diContainer.resolve('authPersistAdapter');
+  console.log('authPersistAdapter resolved at app.js:', authPersistAdapterrr);
 
+  const authInMemStorageAdapterrr = diContainer.resolve('authInMemStorageAdapter');
+  console.log('authInMemStorageAdapter resolved at app.js:', authInMemStorageAdapterrr, { depth: 3 });
 
-  // Define dependencies for logging
-  const dependencies = {
-    Video,
-    CodeSnippet,
-    Snapshot,
-    TextSnippet,
-    Transcript,
-    VideoAppService,
-    videoController,
-    CodeSnippetService,
-    OcrService,
-    TextSnippetService,
-    VideoConstructService,
-    AIAdapter,
-    PostgresAdapter,
-    OcrAdapter,
-    SnapshotAdapter,
-    Account,
-    User,
-    // AccountService,
-    UserService,
-    AuthPersistAdapter,
-    AuthInMemStorageAdapter,
-    PermService,
-    // MonitorService
-  };
-
-  // Logging to check which imports are undefined
-  for (const [key, value] of Object.entries(dependencies)) {
-    console.log(`${key}:`, value !== undefined ? 'Defined' : 'Undefined');
+  const userrrService = diContainer.resolve('userService');
+  console.log('userService resolved at app.js: ', userrrService.toString())
+  if (userrrService instanceof UserService) {
+    console.log("Yes, 'userService' is a valid instance of UserService.");
+  } else {
+    console.log("No, it's not an instance of UserService.");
   }
 
+  // // Define dependencies for logging
+  // const dependencies = {
+  //   Video,
+  //   CodeSnippet,
+  //   Snapshot,
+  //   TextSnippet,
+  //   Transcript,
+  //   VideoAppService,
+  //   videoController,
+  //   CodeSnippetService,
+  //   OcrService,
+  //   TextSnippetService,
+  //   VideoConstructService,
+  //   AIAdapter,
+  //   PostgresAdapter,
+  //   OcrAdapter,
+  //   SnapshotAdapter,
+  //   Account,
+  //   User,
+  //   // AccountService,
+  //   UserService,
+  //   AuthPersistAdapter,
+  //   AuthInMemStorageAdapter,
+  //   PermService,
+  //   // MonitorService
+  // };
+
+  // // Logging to check which imports are undefined
+  // for (const [key, value] of Object.entries(dependencies)) {
+  //   console.log(`${key}:`, value !== undefined ? 'Defined' : 'Undefined');
+  // }
+
   // await fastify.register(auth);
-
-
-
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'aop'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 5,
-    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
-  });
-
-  console.log('Registered in diContainer 2: ', diContainer.registrations);
-
 
     await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
@@ -178,6 +194,22 @@ module.exports = async function (fastify, opts) {
     encapsulate: false,
     maxDepth: 1,
   });
+
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'aop'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 1,
+    // matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
+  });
+
+  // console.log('Registered in diContainer 2: ', diContainer.registrations);
+
+
+  // console.log('Registered in diContainer 1: ', diContainer.registrations);
+  const userServiccce = await diContainer.resolve('userService');
+  fastify.log.debug('userService resolved at app.js', userServiccce);
+
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),

@@ -1,18 +1,15 @@
 'use strict';
-
-const User = require('../../domain/entities/user');
+const user = require('../../domain/entities/user');
 
 class UserService {
-  constructor(authPersistAdapter, authInMemStorageAdapter) {
-    this.authPersistAdapter = authPersistAdapter;
-    this.authInMemStorageAdapter = authInMemStorageAdapter; 
-    console.log("authPersistAdapter at userService.js: ", this.authPersistAdapter);
-    console.log("authInMemStorageAdapter at userService.js: ", this.authInMemStorageAdapter);
+  constructor() {
+    console.log('UserService instantiated!');
+    this.user = user; 
   }
 
-  async readUsers() {
+  async readUsers(authPersistAdapter) {
     try {
-      const users = await this.authPersistAdapter.readAllUsers();
+      const users = await authPersistAdapter.readAllUsers();
       console.log('Users retrieved successfully:', users);
       return users;
     } catch (error) {
@@ -21,10 +18,9 @@ class UserService {
     }
   }
 
-  async register(username, email, password) {
+  async register(username, email, password, authPersistAdapter) {
     try {
-      const user = new User(username, email);
-      const newUser = await user.register(username, email, password, this.authPersistAdapter);
+      const newUser = await user.register(username, email, password, authPersistAdapter);
       console.log('User registered successfully:', newUser);
       return newUser;
     } catch (error) {
@@ -33,10 +29,9 @@ class UserService {
     }
   }
 
-  async readUser(email) {
+  async readUser(email, authPersistAdapter) {
     try {
-      const user = new User(); 
-      const userData = await user.readUser(email, this.authPersistAdapter);
+      const userData = await user.readUser(email, authPersistAdapter);
       console.log('User retrieved successfully:', userData);
       return userData;
     } catch (error) {
@@ -45,10 +40,9 @@ class UserService {
     }
   }
 
-  async removeUser(email, password) {
+  async removeUser(email, password, authPersistAdapter) {
     try {
-      const user = new User(); // No need for username during removal
-      await user.removeUser(email, password, this.authPersistAdapter);
+      await user.removeUser(email, password, authPersistAdapter);
       console.log('User removed successfully');
     } catch (error) {
       console.error('Error removing user:', error);
@@ -56,9 +50,9 @@ class UserService {
     }
   }
 
-  async storeSession(sessionId, user) {
+  async storeSession(sessionId, userData, authInMemStorageAdapter) {
     try {
-      await this.authInMemStorageAdapter.storeSession(sessionId, user);
+      await authInMemStorageAdapter.storeSession(sessionId, userData);
       console.log('Session stored successfully');
     } catch (error) {
       console.error('Error storing session:', error);
@@ -66,9 +60,9 @@ class UserService {
     }
   }
 
-  async getSession(sessionId) {
+  async getSession(sessionId, authInMemStorageAdapter) {
     try {
-      const session = await this.authInMemStorageAdapter.getSession(sessionId);
+      const session = await authInMemStorageAdapter.getSession(sessionId);
       if (!session) {
         throw new Error('Session not found');
       }
@@ -80,9 +74,9 @@ class UserService {
     }
   }
 
-  async deleteSession(sessionId) {
+  async deleteSession(sessionId, authInMemStorageAdapter) {
     try {
-      await this.authInMemStorageAdapter.deleteSession(sessionId);
+      await authInMemStorageAdapter.deleteSession(sessionId);
       console.log('Session deleted successfully');
     } catch (error) {
       console.error('Error deleting session:', error);

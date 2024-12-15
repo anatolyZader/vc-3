@@ -7,6 +7,9 @@ const { v4: uuidv4 } = require('uuid')
 
 // eslint-disable-next-line no-unused-vars
 module.exports = fp(async function authPlugin (fastify, opts) {
+  
+  console.log('authPlugin is loaded!');
+  
   const revokedTokens = new Map()  
 
   fastify.register(fastifyJwt, {  
