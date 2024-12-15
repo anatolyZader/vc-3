@@ -4,12 +4,9 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 
 class User {
-  constructor(username, email) {
+  constructor() {
     this.userId = uuidv4();
-    this.username = username;
-    this.email = email;
-    this.password = '';
-    this.roles = []; // Updated to manage multiple roles
+    this.roles = []; 
     this.accounts = [];
   }
 
