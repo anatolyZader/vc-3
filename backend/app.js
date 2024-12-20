@@ -113,7 +113,7 @@ module.exports = async function (fastify, opts) {
   console.log('authInMemStorageAdapter:', adapters[authInfraConfig.inMemStorageAdapter]);
 
 
-  await diContainer.register({
+  await fastify.diContainer.register({
     video: asClass(Video),
     codeSnippet: asClass(CodeSnippet),
     snapshot: asClass(Snapshot),
@@ -140,13 +140,13 @@ module.exports = async function (fastify, opts) {
     // monitorService: asClass(MonitorService)
   });
 
-  const authPersistAdapterrr = diContainer.resolve('authPersistAdapter');
+  const authPersistAdapterrr = fastify.diContainer.resolve('authPersistAdapter');
   console.log('authPersistAdapter resolved at app.js:', authPersistAdapterrr);
 
-  const authInMemStorageAdapterrr = diContainer.resolve('authInMemStorageAdapter');
+  const authInMemStorageAdapterrr = fastify.diContainer.resolve('authInMemStorageAdapter');
   console.log('authInMemStorageAdapter resolved at app.js:', authInMemStorageAdapterrr, { depth: 3 });
 
-  const userrrService = diContainer.resolve('userService');
+  const userrrService = fastify.diContainer.resolve('userService');
   console.log('userService resolved at app.js: ', userrrService.toString())
   if (userrrService instanceof UserService) {
     console.log("Yes, 'userService' is a valid instance of UserService.");
@@ -186,9 +186,15 @@ module.exports = async function (fastify, opts) {
   //   console.log(`${key}:`, value !== undefined ? 'Defined' : 'Undefined');
   // }
 
-  // await fastify.register(auth);
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'testDir'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 1
+  });
 
-    await fastify.register(AutoLoad, {
+
+  await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
     options: Object.assign({}, opts),
     encapsulate: false,
@@ -205,17 +211,11 @@ module.exports = async function (fastify, opts) {
 
   // console.log('Registered in diContainer 2: ', diContainer.registrations);
 
-
-  // console.log('Registered in diContainer 1: ', diContainer.registrations);
-  const userServiccce = await diContainer.resolve('userService');
-  fastify.log.debug('userService resolved at app.js', userServiccce);
-
-
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
     encapsulate: false,
-    maxDepth: 5,
+    maxDepth: 1,
     matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
   });
 

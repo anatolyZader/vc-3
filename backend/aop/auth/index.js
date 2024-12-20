@@ -10,7 +10,7 @@ module.exports = async function authModuleIndex(fastify, opts) {
         prefix: opts.prefix
       },
       encapsulate: false,
-      maxDepth: 3,
+      maxDepth: 1,
       matchFilter: (path) =>  path.includes('Plugin')    
     });
 
@@ -21,7 +21,7 @@ module.exports = async function authModuleIndex(fastify, opts) {
       prefix: opts.prefix
     },
     encapsulate: false,
-    maxDepth: 3,
+    maxDepth: 1,
     matchFilter: (path) =>  path.includes('Controller')    
   });
 
