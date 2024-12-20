@@ -10,6 +10,7 @@
     "test:watch": "jest --watchAll",
     "lint": "eslint .",
     "dev": "sudo /home/totoro/.nvm/versions/node/v22.9.0/bin/npx fastify start app.js -p 443 -a 0.0.0.0 --https",
+    "debug": "node --inspect-brk app.js",
     "start": "NODE_DEBUG=fastify,node-fastify,node node --trace-deprecation --trace-warnings --trace-tls --trace-uncaught $(which fastify) start app.js -l trace | pino-pretty --translateTime 'SYS:standard' --colorize"
   },
   "keywords": [],

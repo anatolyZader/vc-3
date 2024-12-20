@@ -11,12 +11,6 @@ async function authController(fastify, options) {
 
   console.log('authController is loaded!');
 
-  try {
-    const diRegistrations = await fastify.diContainer.registrations;
-    console.log('diRegistration at authController: ', diRegistrations);
-  } catch {
-    console.log('di registrations authController are unavailable');
-  }
 
   // --- Original DI resolution code removed from here and re-implemented in onReady. ---
   // try {
@@ -150,7 +144,7 @@ async function authController(fastify, options) {
 
     try {
       const diRegistrations = await fastify.diContainer.registrations;
-      console.log('diRegistration at authController: ', diRegistrations);
+      console.log('diRegistrations at authController: ', diRegistrations);
     } catch {
       console.log('di registrations authController are unavailable');
     }
@@ -170,12 +164,7 @@ async function authController(fastify, options) {
     }
 
     try {
-      const userServiceRegistered = await fastify.diContainer.has('userService');
-      if (!userServiceRegistered) {
-        fastify.log.error('UserService is not registered in the DI container');
-        throw new Error('UserService is not registered');
-      }
-      userService = await fastify.diContainer.resolve('userService');
+      const userService = await fastify.diContainer.resolve('userService');
       fastify.log.info('userService resolved successfully:', userService);
     } catch (error) {
       fastify.log.error('Error resolving userService:', error);
