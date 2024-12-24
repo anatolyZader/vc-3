@@ -1,8 +1,8 @@
 'use strict';
+// authPostgresAdapter.js 
 
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
-const bcrypt = require('bcrypt');
 const IAuthPersistPort = require('../../domain/ports/IAuthPersistPort');
 
 class AuthPostgresAdapter extends IAuthPersistPort {
@@ -18,6 +18,7 @@ class AuthPostgresAdapter extends IAuthPersistPort {
   }
 
   async readAllUsers() {
+    console.log('this.pool at authPostgresAdapter: ', this.pool);
     const client = await this.pool.connect();
     try {
       const { rows } = await client.query('SELECT * FROM users');
@@ -34,7 +35,6 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     const client = await this.pool.connect();
     try {
       const id = uuidv4();
-      const hashedPassword = await bcrypt.hash(password, 10);
 
       // Check for duplicate email
       const existingUser = await client.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -42,9 +42,10 @@ class AuthPostgresAdapter extends IAuthPersistPort {
         throw new Error('Email already exists');
       }
 
+      // Use plain-text password
       await client.query(
         'INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)',
-        [id, username, email, hashedPassword]
+        [id, username, email, password]
       );
       return { id, username, email };
     } catch (error) {
@@ -56,6 +57,7 @@ class AuthPostgresAdapter extends IAuthPersistPort {
   }
 
   async readUser(email) {
+    console.log('Querying user with email:', email);
     const client = await this.pool.connect();
     try {
       const { rows } = await client.query('SELECT * FROM users WHERE email=$1', [email]);
@@ -68,11 +70,28 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     }
   }
 
-  async removeUser(email) {
+  async removeUser(email, password) {
     const client = await this.pool.connect();
     try {
-      const result = await client.query('DELETE FROM users WHERE email=$1', [email]);
-      return result.rowCount > 0; // Returns true if a row was deleted
+      // Step 1: Retrieve the user by email
+      const { rows } = await client.query('SELECT password FROM users WHERE email=$1', [email]);
+      console.log("rows: ", rows)
+      if (rows.length === 0) {
+        console.log('No user found with the given email');
+        return false; // User not found
+      }
+  
+      // Step 2: Validate the provided password
+      const storedPassword = rows[0].password;
+      if (storedPassword !== password) {
+        console.log('Provided password does not match');
+        return false; // Password mismatch
+      }
+  
+      // Step 3: Delete the user if the password matches
+      const deleteResult = await client.query('DELETE FROM users WHERE email=$1', [email]);
+      console.log(`User deleted: ${deleteResult.rowCount > 0}`);
+      return deleteResult.rowCount > 0; // Return true if a row was deleted
     } catch (error) {
       console.error('Error removing user:', error);
       throw error;
@@ -80,6 +99,7 @@ class AuthPostgresAdapter extends IAuthPersistPort {
       client.release();
     }
   }
+  
 }
 
 module.exports = AuthPostgresAdapter;

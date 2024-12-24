@@ -1,77 +1,34 @@
-// app.js
 'use strict';
-// const fs = require('fs');
-const path = require('node:path');
 
+const path = require('node:path');
 const AutoLoad = require('@fastify/autoload');
 const fastifyCookie = require('@fastify/cookie');
 const fastifySession = require('@fastify/session');
 const RedisStore = require('connect-redis').default;
 const redisClient = require('./redisClient');
 const redisStore = new RedisStore({ client: redisClient });  
-const { fastifyAwilixPlugin, diContainer} = require('@fastify/awilix');
-const { asClass, asValue, Lifetime } = require('awilix');
 const logOptions = require('./aop/log/logPlugin');
 const loggingPlugin = require('./aop/log/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
-const config = require('./config');
-const fastifyRedis = require('@fastify/redis')
-// const auth = require('./shared-plugins/auth');
-
-// Imports required for dependency injection (video module)
-const Video = require("./modules/video_module/domain/aggregates/video");
-const CodeSnippet = require("./modules/video_module/domain/entities/codeSnippet");
-const Snapshot = require("./modules/video_module/domain/entities/snapshot");
-const TextSnippet = require("./modules/video_module/domain/entities/textSnippet");
-const Transcript = require("./modules/video_module/domain/entities/transcript");
-const videoController = require('./modules/video_module/application/videoController'); // plugin
-const VideoAppService = require('./modules/video_module/application/services/videoAppService');
-const CodeSnippetService = require('./modules/video_module/application/services/codeSnippetService');
-const OcrService = require('./modules/video_module/application/services/ocrService');
-const TextSnippetService = require('./modules/video_module/application/services/textSnippetService');
-const VideoConstructService = require('./modules/video_module/application/services/videoConstructService');
-const AIAdapter = require('./modules/video_module/infrastructure/ai/aiAdapter');
-const PostgresAdapter = require('./modules/video_module/infrastructure/persistence/videoPostgresAdapter');
-const OcrAdapter = require('./modules/video_module/infrastructure/ocr/ocrAdapter');
-const SnapshotAdapter = require('./modules/video_module/infrastructure/youtube/snapshotAdapter');
-
-
-// Imports required for dependency injection (aop)
-const Account = require('./aop/auth/domain/entities/account');
-const User = require('./aop/auth/domain/entities/user');
-const UserService = require('./aop/auth/application/services/userService');
-const PermService = require('./aop/permissions/application/services/permService');
-// const MonitorService = require('./aop/monitoring/application/services/monitorService')
-
-// revise
-const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
-const AuthRedisAdapter = require('./aop/auth/infrastructure/in_memory_storage/authRedisAdapter');
-const authInfraConfig = require('./aop/auth/infrastructure/authInfraConfig.json');
-const AuthPersistAdapter = require(`./aop/auth/infrastructure/persistence/${authInfraConfig.persistenceAdapter}`);
-console.log("AuthPersistAdapter at app.js: ", AuthPersistAdapter);
-const AuthInMemStorageAdapter = require(`./aop/auth/infrastructure/in_memory_storage/${authInfraConfig.inMemStorageAdapter}`)
-console.log("AuthInMemStorageAdapter at app.js: ", AuthInMemStorageAdapter);
-
+const envPlugin = require('./envPlugin');
+const fastifyRedis = require('@fastify/redis');
 
 require('dotenv').config();
+
 module.exports = async function (fastify, opts) {
-
-  fastify.decorate('IS_ROOT', true);
-
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
-  await fastify.register(config); 
+  await fastify.register(envPlugin);
 
   try {
     fastify.log.info('Attempting to register @fastify/redis plugin.');
     await fastify.register(fastifyRedis, { 
       client: redisClient 
-    });
-  
+    });  
     fastify.log.info('@fastify/redis plugin registered successfully.');
   } catch (err) {
     fastify.log.error(`Failed to register @fastify/redis plugin: ${err.message}`);
-    throw err; // Rethrow to ensure proper error handling upstream
+    throw err;
   }
 
   try {
@@ -88,117 +45,20 @@ module.exports = async function (fastify, opts) {
     secret: fastify.secrets.SESSION_SECRET, 
     cookie: { 
       secure: false,
-      maxAge: 86400000, // 1 day 
+      maxAge: 86400000,
     },
     store: redisStore,
     saveUninitialized: false,
   });
 
-  // Register Awilix plugin for dependency injection
-  await fastify.register(fastifyAwilixPlugin, {
-    disposeOnClose: true,
-    disposeOnResponse: true,
-    strictBooleanEnforced: true,
-    injectionMode: 'CLASSIC',
-    });
-
-  const adapters = {
-    authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
-    authRedisAdapter: asClass(AuthRedisAdapter).singleton(),
-  };
-
-  console.log('authInfraConfig:', authInfraConfig);
-  console.log('adapters:', adapters);
-  console.log('authPersistAdapter:', adapters[authInfraConfig.persistenceAdapter]);
-  console.log('authInMemStorageAdapter:', adapters[authInfraConfig.inMemStorageAdapter]);
-
-
-  await fastify.diContainer.register({
-    video: asClass(Video),
-    codeSnippet: asClass(CodeSnippet),
-    snapshot: asClass(Snapshot),
-    textSnippet: asClass(TextSnippet),
-    transcript: asClass(Transcript),
-    videoAppService: asClass(VideoAppService),
-    codeSnippetService: asClass(CodeSnippetService),
-    aiAdapter: asValue(AIAdapter),
-    postgresAdapter: asClass(PostgresAdapter),
-    ocrAdapter: asClass(OcrAdapter),
-    ocrService: asClass(OcrService),
-    videoController: asValue(videoController),
-    textSnippetService: asClass(TextSnippetService),
-    videoConstructService: asClass(VideoConstructService),
-    snapshotAdapter: asClass(SnapshotAdapter),
-    account: asClass(Account),
-    user: asClass(User),
-    userService: asClass(UserService, {
-      lifetime: Lifetime.SINGLETON,
-    }),
-    authPersistAdapter: adapters[authInfraConfig.persistenceAdapter],
-    authInMemStorageAdapter: adapters[authInfraConfig.inMemStorageAdapter],
-    permService: asClass(PermService),
-    // monitorService: asClass(MonitorService)
-  });
-
-  const authPersistAdapterrr = fastify.diContainer.resolve('authPersistAdapter');
-  console.log('authPersistAdapter resolved at app.js:', authPersistAdapterrr);
-
-  const authInMemStorageAdapterrr = fastify.diContainer.resolve('authInMemStorageAdapter');
-  console.log('authInMemStorageAdapter resolved at app.js:', authInMemStorageAdapterrr, { depth: 3 });
-
-  const userrrService = fastify.diContainer.resolve('userService');
-  console.log('userService resolved at app.js: ', userrrService.toString())
-  if (userrrService instanceof UserService) {
-    console.log("Yes, 'userService' is a valid instance of UserService.");
-  } else {
-    console.log("No, it's not an instance of UserService.");
-  }
-
-  // // Define dependencies for logging
-  // const dependencies = {
-  //   Video,
-  //   CodeSnippet,
-  //   Snapshot,
-  //   TextSnippet,
-  //   Transcript,
-  //   VideoAppService,
-  //   videoController,
-  //   CodeSnippetService,
-  //   OcrService,
-  //   TextSnippetService,
-  //   VideoConstructService,
-  //   AIAdapter,
-  //   PostgresAdapter,
-  //   OcrAdapter,
-  //   SnapshotAdapter,
-  //   Account,
-  //   User,
-  //   // AccountService,
-  //   UserService,
-  //   AuthPersistAdapter,
-  //   AuthInMemStorageAdapter,
-  //   PermService,
-  //   // MonitorService
-  // };
-
-  // // Logging to check which imports are undefined
-  // for (const [key, value] of Object.entries(dependencies)) {
-  //   console.log(`${key}:`, value !== undefined ? 'Defined' : 'Undefined');
-  // }
-
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'testDir'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 1
-  });
-
+  // await fastify.register(require('./shared-plugins/awilixPlugin'));
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
     options: Object.assign({}, opts),
     encapsulate: false,
     maxDepth: 1,
+    ignore: ['envPlugin.js'],
   });
 
   await fastify.register(AutoLoad, {
@@ -206,10 +66,7 @@ module.exports = async function (fastify, opts) {
     options: Object.assign({}, opts),
     encapsulate: false,
     maxDepth: 1,
-    // matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
   });
-
-  // console.log('Registered in diContainer 2: ', diContainer.registrations);
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
@@ -227,8 +84,6 @@ module.exports = async function (fastify, opts) {
     matchFilter: (path) => path.includes('Plugin')
   });
 
-
-  // Error and Not Found Handlers
   await fastify.setErrorHandler(async (err, request, reply) => {
     if (err.validation) {
       reply.code(403);
@@ -243,22 +98,6 @@ module.exports = async function (fastify, opts) {
     reply.code(404);
     return "I'm sorry, I couldn't find what you were looking for.";
   });
-
-  // HTTPS configuration
-//   fastify.after(async () => {
-//     const keyPath = fastify.secrets.SSL_KEY_PATH;
-//     const certPath = fastify.secrets.SSL_CERT_PATH;
-
-//     // if (keyPath && certPath) {
-//     //   opts.https = {
-//     //     key: fs.readFileSync(keyPath),
-//     //     cert: fs.readFileSync(certPath),
-//     //   };
-//     //   console.log('HTTPS options configured.');
-//     // } else {
-//     //   console.log('HTTPS options not provided in secrets. Starting in HTTP mode.');
-//     // }
-//   });
 };
 
 module.exports.appConfig = {

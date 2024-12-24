@@ -12,8 +12,7 @@ class User {
 
   async register(username, email, password, IAuthPersistencePort) {
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const newUserDTO = await IAuthPersistencePort.createUser(username, email, hashedPassword);
+      const newUserDTO = await IAuthPersistencePort.createUser(username, email, password);
       console.log(`New user registered successfully: ${newUserDTO}`);
       return newUserDTO;
     } catch (error) {

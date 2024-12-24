@@ -1,8 +1,8 @@
 'use strict';
 /* eslint-disable no-unused-vars */
+// authController.js
 
 const fp = require('fastify-plugin');
-const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 
 async function authController(fastify, options) {
@@ -11,43 +11,30 @@ async function authController(fastify, options) {
 
   console.log('authController is loaded!');
 
+  try {
+    userService = await fastify.diContainer.resolve('userService');
+    fastify.log.info('userService resolved at authController:', userService);
+  } catch (error) {
+    fastify.log.error('Error resolving userService:', error);
+    throw new Error('Failed to resolve userService. Ensure it is registered in the DI container.');
+  }
 
-  // --- Original DI resolution code removed from here and re-implemented in onReady. ---
-  // try {
-  //   authPersistAdapter = await fastify.diContainer.resolve('authPersistAdapter');
-  //   console.log('authPersistAdapter at authController:', authPersistAdapter);
-  // } catch (error) {
-  //   fastify.log.error('Error resolving authPersistAdapter at authController:', error);
-  // }
+  try {
+    authPersistAdapter = await fastify.diContainer.resolve('authPersistAdapter');
+  } catch (error) {
+    fastify.log.error('Error resolving authPersistAdapter at authController:', error);
+  }
 
-  // try {
-  //   authInMemStorageAdapter = await fastify.diContainer.resolve('authInMemStorageAdapter');
-  //   console.log('authInMemStorageAdapter at authController:', authInMemStorageAdapter);
-  // } catch (error) {
-  //   fastify.log.error('Error resolving authInMemStorageAdapter at authController:', error);
-  // }
+  try {
+    authInMemStorageAdapter = await fastify.diContainer.resolve('authInMemStorageAdapter');
+  } catch (error) {
+    fastify.log.error('Error resolving authInMemStorageAdapter at authController:', error);
+  }
 
-  // try {
-  //   const userServiceRegistered = await fastify.diContainer.has('userService');
-  //   if (!userServiceRegistered) {
-  //     fastify.log.error('UserService is not registered in the DI container');
-  //     throw new Error('UserService is not registered');
-  //   }
-  //   userService = await fastify.diContainer.resolve('userService');
-  //   fastify.log.info('userService resolved successfully:', userService);
-  // } catch (error) {
-  //   fastify.log.error('Error resolving userService:', error);
-  //   throw new Error('Failed to resolve userService. Ensure it is registered in the DI container.');
-  // }
-
-  console.log('authController is loaded');
-  console.log('authPersistAdapter at authController.js: ', authPersistAdapter);
-  console.log('authInMemStorageAdapter at authController.js: ', authInMemStorageAdapter);
-
+  // ok
   fastify.decorate('discoverUsers', async function (request, reply) {
     try {
       const users = await userService.readUsers(authPersistAdapter);
-      console.log('users at authController.discoverUsers: ', users);
       reply.send({ message: 'Users discovered!', users });
     } catch (error) {
       fastify.log.error('Error discovering users:', error);
@@ -55,10 +42,10 @@ async function authController(fastify, options) {
     }
   });
 
+  // ok
   fastify.decorate('registerUser', async function (request, reply) {
     const { username, email, password } = request.body;
     try {
-      // const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = await userService.register(username, email, password, authPersistAdapter);
       reply.send({ message: 'User registered successfully', user: newUser });
     } catch (error) {
@@ -67,27 +54,36 @@ async function authController(fastify, options) {
     }
   });
 
+  // ok? returns token if user in db 
   fastify.decorate('loginUser', async function (request, reply) {
     const { email, password } = request.body;
+    console.log('Login attempt with:', { email, password }); // Debug log
+  
+    if (!email || !password) {
+      return reply.badRequest('Email and password are required');
+    }
+  
     try {
       const user = await userService.readUser(email, authPersistAdapter);
-      if (!user || !(await bcrypt.compare(password, user.password))) {
+      if (!user || user.password !== password) {
         return reply.unauthorized('Invalid credentials');
       }
+  
       const sessionId = uuidv4();
       await userService.storeSession(sessionId, user, authInMemStorageAdapter);
-
+  
       const token = fastify.jwt.sign(
         { id: user.id, username: user.username },
         { jwtid: sessionId, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
       );
-
+  
       reply.send({ message: 'Authentication successful', token });
     } catch (error) {
       fastify.log.error('Error logging in user:', error);
       reply.code(500).send({ error: 'Internal Server Error' });
     }
   });
+  
 
   fastify.decorate('logoutUser', async function (request, reply) {
     try {
@@ -115,7 +111,6 @@ async function authController(fastify, options) {
     try {
       const sessionId = request.session.user.sessionId;
       const user = await userService.getSession(sessionId, authInMemStorageAdapter);
-
       const token = fastify.jwt.sign(
         { id: user.id, username: user.username },
         { jwtid: sessionId, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
@@ -131,7 +126,11 @@ async function authController(fastify, options) {
   fastify.decorate('removeUser', async function (request, reply) {
     const { email, password } = request.body;
     try {
-      await userService.removeUser(email, password, authPersistAdapter);
+      const user = await userService.readUser(email, authPersistAdapter);
+      if (!user || user.password !== password) { // Plain-text password check
+        return reply.unauthorized('Invalid credentials');
+      }
+      await userService.removeUser(email, authPersistAdapter);
       reply.code(204).send();
     } catch (error) {
       fastify.log.error('Error removing user:', error);
@@ -141,39 +140,6 @@ async function authController(fastify, options) {
 
   fastify.addHook('onReady', async function () {
     console.log('hello authController/onReady');
-
-    try {
-      const diRegistrations = await fastify.diContainer.registrations;
-      console.log('diRegistrations at authController: ', diRegistrations);
-    } catch {
-      console.log('di registrations authController are unavailable');
-    }
-
-    try {
-      authPersistAdapter = await fastify.diContainer.resolve('authPersistAdapter');
-      console.log('authPersistAdapter at authController:', authPersistAdapter);
-    } catch (error) {
-      fastify.log.error('Error resolving authPersistAdapter at authController:', error);
-    }
-
-    try {
-      authInMemStorageAdapter = await fastify.diContainer.resolve('authInMemStorageAdapter');
-      console.log('authInMemStorageAdapter at authController:', authInMemStorageAdapter);
-    } catch (error) {
-      fastify.log.error('Error resolving authInMemStorageAdapter at authController:', error);
-    }
-
-    try {
-      const userService = await fastify.diContainer.resolve('userService');
-      fastify.log.info('userService resolved successfully:', userService);
-    } catch (error) {
-      fastify.log.error('Error resolving userService:', error);
-      throw new Error('Failed to resolve userService. Ensure it is registered in the DI container.');
-    }
-
-    console.log('authController is loaded');
-    console.log('authPersistAdapter at authController.js: ', authPersistAdapter);
-    console.log('authInMemStorageAdapter at authController.js: ', authInMemStorageAdapter);
   });
 }
 

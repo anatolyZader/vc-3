@@ -1,14 +1,17 @@
 'use strict';
 /* eslint-disable no-unused-vars */
-
+// authRouter.js
 const fp = require('fastify-plugin');
 
 module.exports = fp(async function authRouter(fastify, opts) {
 
-  console.log('authRouter is loaded!')
-  await console.log('di registrations at authRouter.js: ', fastify.diContainer.registrations);
+  console.log('authRouter is loaded!');
 
-  
+  fastify.route({
+    method: 'GET',
+    url: '/disco',
+    handler: fastify.discoverUsers,
+  });  
 
   fastify.route({
     method: 'POST',
@@ -18,14 +21,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
     },
     handler: fastify.registerUser,
   });
-
-  
-  fastify.route({
-    method: 'GET',
-    url: '/disco',
-    handler: fastify.discoverUsers,
-  });
-
+ 
   fastify.route({
     method: 'POST',
     url: '/login',
