@@ -12,5 +12,5 @@ module.exports = async function videoModuleIndex(fastify, opts) {
     maxDepth: 3,
     matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
   });
-  console.log('diContainer.registrations at video/index.js:', fastify.diContainer.registrations);
+  // console.log('diContainer.registrations at video/index.js:', fastify.diContainer.registrations);
 }

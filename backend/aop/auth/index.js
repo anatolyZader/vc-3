@@ -1,4 +1,4 @@
-// modules/video/index.js 
+// modules/auth/index.js 
 const autoload = require('@fastify/autoload');
 const path = require('path');
 
@@ -34,6 +34,4 @@ fastify.register(autoload, {
   maxDepth: 3,
   matchFilter: (path) =>  path.includes('Router')
 });
-
-console.log('diContainer.registrations at video/index.js:', fastify.diContainer.registrations);
 }

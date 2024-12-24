@@ -1,10 +1,12 @@
 'use strict';
-const user = require('../../domain/entities/user');
+// userService.js
+
+const User = require('../../domain/entities/user');
 
 class UserService {
   constructor() {
     console.log('UserService instantiated!');
-    this.user = user; 
+    this.User = User; 
   }
 
   async readUsers(authPersistAdapter) {
@@ -20,7 +22,8 @@ class UserService {
 
   async register(username, email, password, authPersistAdapter) {
     try {
-      const newUser = await user.register(username, email, password, authPersistAdapter);
+      const userInstance = new this.User();
+      const newUser = await userInstance.register(username, email, password, authPersistAdapter);
       console.log('User registered successfully:', newUser);
       return newUser;
     } catch (error) {
@@ -31,7 +34,8 @@ class UserService {
 
   async readUser(email, authPersistAdapter) {
     try {
-      const userData = await user.readUser(email, authPersistAdapter);
+      const userInstance = new this.User();
+      const userData = await userInstance.readUser(email, authPersistAdapter);
       console.log('User retrieved successfully:', userData);
       return userData;
     } catch (error) {
@@ -42,7 +46,8 @@ class UserService {
 
   async removeUser(email, password, authPersistAdapter) {
     try {
-      await user.removeUser(email, password, authPersistAdapter);
+      const userInstance = new this.User();
+      await userInstance.removeUser(email, password, authPersistAdapter);
       console.log('User removed successfully');
     } catch (error) {
       console.error('Error removing user:', error);

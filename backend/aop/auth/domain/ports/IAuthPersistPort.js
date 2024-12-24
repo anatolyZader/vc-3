@@ -13,7 +13,7 @@ class IAuthPersistPort {
     }
   
     async createUser(username, email, password) {
-      throw new Error("Method 'createUser(username, email, passwordHash)' must be implemented.");
+      throw new Error("Method 'createUser(username, email, password)' must be implemented.");
     }
   
     async readUser(email) {
@@ -22,7 +22,7 @@ class IAuthPersistPort {
     }
   
     async removeUser(email, password) {
-      throw new Error("Method 'removeUser(username, passwordHash)' must be implemented.");
+      throw new Error("Method 'removeUser(username, password)' must be implemented.");
     }
   
     async findUserByUsername(username) {
@@ -30,7 +30,7 @@ class IAuthPersistPort {
     }
   
     async loginUser(email, password) {
-      throw new Error("Method 'loginUser(username, passwordHash)' must be implemented.");
+      throw new Error("Method 'loginUser(username, password)' must be implemented.");
     }
   
     async logoutUser(sessionId) {
