@@ -10,7 +10,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
   fastify.route({
     method: 'GET',
     url: '/disco',
-    handler: fastify.discoverUsers,
+    handler: fastify.readAllUsers,
   });  
 
   fastify.route({
@@ -21,7 +21,13 @@ module.exports = fp(async function authRouter(fastify, opts) {
     },
     handler: fastify.registerUser,
   });
- 
+
+  fastify.route({
+    method: 'POST',
+    url: '/remove',
+    handler: fastify.removeUser,
+  });
+
   fastify.route({
     method: 'POST',
     url: '/login',
@@ -34,13 +40,6 @@ module.exports = fp(async function authRouter(fastify, opts) {
   });
 
   fastify.route({
-    method: 'POST',
-    url: '/remove',
-    // preValidation: [fastify.verifyToken],
-    handler: fastify.removeUser,
-  });
-
-  fastify.route({
     method: 'GET',
     url: '/me',
     schema: {
@@ -49,14 +48,14 @@ module.exports = fp(async function authRouter(fastify, opts) {
         200: fastify.getSchema('schema:user'),
       },
     },
-    // preValidation: [fastify.verifyToken],
-    handler: fastify.getMe,
+    preValidation: [fastify.verifyToken],
+    handler: fastify.getUserInfo,
   });
 
   fastify.route({
     method: 'POST',
     url: '/logout',
-    // preValidation: [fastify.verifyToken],
+    preValidation: [fastify.verifyToken],
     handler: fastify.logoutUser,
   });
 
@@ -69,7 +68,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
         200: fastify.getSchema('schema:auth:token'),
       },
     },
-    // preValidation: [fastify.verifyToken],
+    preValidation: [fastify.verifyToken],
     handler: fastify.refreshToken,
   });
 });

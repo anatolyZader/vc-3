@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require('uuid')
 // eslint-disable-next-line no-unused-vars
 module.exports = fp(async function authPlugin (fastify, opts) {
   
-  console.log('authPlugin is loaded!');
+  console.log('authPlugin loaded!');
   
   const revokedTokens = new Map()  
 
@@ -18,7 +18,7 @@ module.exports = fp(async function authPlugin (fastify, opts) {
       expiresIn: fastify.secrets.JWT_EXPIRE_IN 
     },
     verify: {
-      requestProperty: 'jwtPayload', 
+      requestProperty: 'user', // Changed from 'jwtPayload' to 'user'
     },
     trusted: function isTrusted (request, decodedToken) {
       return !revokedTokens.has(decodedToken.jti)
@@ -35,21 +35,27 @@ module.exports = fp(async function authPlugin (fastify, opts) {
     }
   })
   
-  fastify.decorateRequest('revokeToken', function () {  
-    revokedTokens.set(this.jwtPayload.jti, true)
-    console.log('revoked token added to the list')
-  })
+  fastify.decorateRequest('revokeToken', function () {
+    console.log("this.user authPlugin: ", this.user);
+    if (!this.user || !this.user.jti) {
+      throw new Error('Missing jti in token');
+    }
+    revokedTokens.set(this.user.jti, true);
+    console.log('Revoked token with jti:', this.user.jti);
+  });
+  
+  
 
   fastify.decorateRequest('generateToken', async function () {  
     const token = await fastify.jwt.sign({
-      id: String(this.jwtPayload.id),
-      username: this.jwtPayload.username
+      id: String(this.user.id),
+      username: this.user.username
     }, {
       jwtid: uuidv4(),
       expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h'
     })
-
+  
     return token
-  })
+  });
 
 })

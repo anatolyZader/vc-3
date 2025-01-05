@@ -3,18 +3,18 @@
 const { v4: uuidv4 } = require('uuid');
 
 class Account {
-  constructor(userId, IAuthPersistencePort) {
+  constructor(userId, IAuthPersistPort) {
     this.accountId = uuidv4();
     this.userId = userId;
     this.createdAt = new Date();
-    this.IAuthPersistencePort = IAuthPersistencePort;
+    this.IAuthPersistPort = IAuthPersistPort;
     this.videos = [];
     this.accountType = 'standard'; // Default account type
   }
 
   async createAccount() {
     try {
-      await this.IAuthPersistencePort.saveAccount(this);
+      await this.IAuthPersistPort.saveAccount(this);
       console.log('Account created successfully.');
     } catch (error) {
       console.error('Error creating account:', error);
@@ -24,7 +24,7 @@ class Account {
 
   async fetchAccountDetails(accountId) {
     try {
-      const accountData = await this.IAuthPersistencePort.fetchAccountDetails(accountId);
+      const accountData = await this.IAuthPersistPort.fetchAccountDetails(accountId);
       Object.assign(this, accountData); // Update instance properties
       return accountData;
     } catch (error) {
@@ -35,7 +35,7 @@ class Account {
 
   async addVideo(videoYoutubeId) {
     try {
-      await this.IAuthPersistencePort.addVideoToAccount(this.accountId, videoYoutubeId);
+      await this.IAuthPersistPort.addVideoToAccount(this.accountId, videoYoutubeId);
       console.log('Video added successfully to account.');
     } catch (error) {
       console.error('Error adding video to account:', error);
@@ -45,7 +45,7 @@ class Account {
 
   async removeVideo(videoYoutubeId) {
     try {
-      await this.IAuthPersistencePort.removeVideo(this.accountId, videoYoutubeId);
+      await this.IAuthPersistPort.removeVideo(this.accountId, videoYoutubeId);
       console.log('Video removed successfully from account.');
     } catch (error) {
       console.error('Error removing video from account:', error);

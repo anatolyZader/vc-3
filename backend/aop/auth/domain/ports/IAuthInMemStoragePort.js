@@ -7,8 +7,8 @@ class IAuthInMemStoragePort {
       }
     }
   
-    async storeSession(sessionId, user) {
-      throw new Error('Method storeSession(sessionId, user) must be implemented.');
+    async setSessionInMem(sessionId, user) {
+      throw new Error('Method setSessionInMem(sessionId, user) must be implemented.');
     }
   
     async getSession(sessionId) {

@@ -5,11 +5,10 @@ const User = require('../../domain/entities/user');
 
 class UserService {
   constructor() {
-    console.log('UserService instantiated!');
     this.User = User; 
   }
 
-  async readUsers(authPersistAdapter) {
+  async readAllUsers(authPersistAdapter) {
     try {
       const users = await authPersistAdapter.readAllUsers();
       console.log('Users retrieved successfully:', users);
@@ -20,10 +19,10 @@ class UserService {
     }
   }
 
-  async register(username, email, password, authPersistAdapter) {
+  async registerUser(username, email, password, authPersistAdapter) {
     try {
       const userInstance = new this.User();
-      const newUser = await userInstance.register(username, email, password, authPersistAdapter);
+      const newUser = await userInstance.registerUser(username, email, password, authPersistAdapter);
       console.log('User registered successfully:', newUser);
       return newUser;
     } catch (error) {
@@ -32,22 +31,11 @@ class UserService {
     }
   }
 
-  async readUser(email, authPersistAdapter) {
+  async removeUser(email, authPersistAdapter) {
     try {
       const userInstance = new this.User();
-      const userData = await userInstance.readUser(email, authPersistAdapter);
-      console.log('User retrieved successfully:', userData);
-      return userData;
-    } catch (error) {
-      console.error('Error reading user:', error);
-      throw error;
-    }
-  }
-
-  async removeUser(email, password, authPersistAdapter) {
-    try {
-      const userInstance = new this.User();
-      await userInstance.removeUser(email, password, authPersistAdapter);
+      console.log('userInstance instantiated at userService removeUser method: ', userInstance);
+      await userInstance.removeUser(email, authPersistAdapter);
       console.log('User removed successfully');
     } catch (error) {
       console.error('Error removing user:', error);
@@ -55,36 +43,14 @@ class UserService {
     }
   }
 
-  async storeSession(sessionId, userData, authInMemStorageAdapter) {
+  async getUserInfo(email, authPersistAdapter) {
     try {
-      await authInMemStorageAdapter.storeSession(sessionId, userData);
-      console.log('Session stored successfully');
+      const userInstance = new this.User();
+      const userData = await userInstance.getUserInfo(email, authPersistAdapter);
+      console.log('User retrieved successfully:', userData);
+      return userData;
     } catch (error) {
-      console.error('Error storing session:', error);
-      throw error;
-    }
-  }
-
-  async getSession(sessionId, authInMemStorageAdapter) {
-    try {
-      const session = await authInMemStorageAdapter.getSession(sessionId);
-      if (!session) {
-        throw new Error('Session not found');
-      }
-      console.log('Session retrieved successfully:', session);
-      return session;
-    } catch (error) {
-      console.error('Error retrieving session:', error);
-      throw error;
-    }
-  }
-
-  async deleteSession(sessionId, authInMemStorageAdapter) {
-    try {
-      await authInMemStorageAdapter.deleteSession(sessionId);
-      console.log('Session deleted successfully');
-    } catch (error) {
-      console.error('Error deleting session:', error);
+      console.error('Error reading user:', error);
       throw error;
     }
   }

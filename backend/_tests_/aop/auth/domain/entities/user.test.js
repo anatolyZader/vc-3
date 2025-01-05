@@ -9,9 +9,9 @@ describe('User', () => {
   const username = 'test-user';
   const email = 'test@example.com';
   const password = 'password123';
-  const mockIAuthPersistencePort = {
+  const mockIAuthPersistPort = {
     createUser: jest.fn(),
-    readUser: jest.fn(),
+    getUserInfo: jest.fn(),
     removeUser: jest.fn(),
   };
 
@@ -35,58 +35,58 @@ describe('User', () => {
   describe('register', () => {
     it('should register a new user successfully', async () => {
       const mockUserDTO = { userId: 'test-user-id', username, email };
-      mockIAuthPersistencePort.createUser.mockResolvedValue(mockUserDTO);
+      mockIAuthPersistPort.createUser.mockResolvedValue(mockUserDTO);
 
-      const newUserDTO = await user.register(username, email, password, mockIAuthPersistencePort);
+      const newUserDTO = await user.register(username, email, password, mockIAuthPersistPort);
 
-      expect(mockIAuthPersistencePort.createUser).toHaveBeenCalledWith(username, email, password);
+      expect(mockIAuthPersistPort.createUser).toHaveBeenCalledWith(username, email, password);
       expect(newUserDTO).toEqual(mockUserDTO);
     });
 
     it('should handle errors during user registration', async () => {
-      mockIAuthPersistencePort.createUser.mockRejectedValue(new Error('Create user error'));
+      mockIAuthPersistPort.createUser.mockRejectedValue(new Error('Create user error'));
 
-      await expect(user.register(username, email, password, mockIAuthPersistencePort)).rejects.toThrow('Create user error');
+      await expect(user.register(username, email, password, mockIAuthPersistPort)).rejects.toThrow('Create user error');
 
-      expect(mockIAuthPersistencePort.createUser).toHaveBeenCalledWith(username, email, password);
+      expect(mockIAuthPersistPort.createUser).toHaveBeenCalledWith(username, email, password);
     });
   });
 
-  describe('readUser', () => {
+  describe('getUserInfo', () => {
     it('should read user details successfully', async () => {
       const mockUserDTO = { userId: 'test-user-id', username, email };
-      mockIAuthPersistencePort.readUser.mockResolvedValue(mockUserDTO);
+      mockIAuthPersistPort.getUserInfo.mockResolvedValue(mockUserDTO);
 
-      const userDTO = await user.readUser(username, mockIAuthPersistencePort);
+      const userDTO = await user.getUserInfo(username, mockIAuthPersistPort);
 
-      expect(mockIAuthPersistencePort.readUser).toHaveBeenCalledWith(username);
+      expect(mockIAuthPersistPort.getUserInfo).toHaveBeenCalledWith(username);
       expect(userDTO).toEqual(mockUserDTO);
     });
 
     it('should handle errors during user reading', async () => {
-      mockIAuthPersistencePort.readUser.mockRejectedValue(new Error('Read user error'));
+      mockIAuthPersistPort.getUserInfo.mockRejectedValue(new Error('Read user error'));
 
-      await expect(user.readUser(username, mockIAuthPersistencePort)).rejects.toThrow('Read user error');
+      await expect(user.getUserInfo(username, mockIAuthPersistPort)).rejects.toThrow('Read user error');
 
-      expect(mockIAuthPersistencePort.readUser).toHaveBeenCalledWith(username);
+      expect(mockIAuthPersistPort.getUserInfo).toHaveBeenCalledWith(username);
     });
   });
 
   describe('removeUser', () => {
     it('should remove a user successfully', async () => {
-      mockIAuthPersistencePort.removeUser.mockResolvedValue();
+      mockIAuthPersistPort.removeUser.mockResolvedValue();
 
-      await user.removeUser(username, password, mockIAuthPersistencePort);
+      await user.removeUser(username, password, mockIAuthPersistPort);
 
-      expect(mockIAuthPersistencePort.removeUser).toHaveBeenCalledWith(username, password);
+      expect(mockIAuthPersistPort.removeUser).toHaveBeenCalledWith(username, password);
     });
 
     it('should handle errors during user removal', async () => {
-      mockIAuthPersistencePort.removeUser.mockRejectedValue(new Error('Remove user error'));
+      mockIAuthPersistPort.removeUser.mockRejectedValue(new Error('Remove user error'));
 
-      await expect(user.removeUser(username, password, mockIAuthPersistencePort)).rejects.toThrow('Remove user error');
+      await expect(user.removeUser(username, password, mockIAuthPersistPort)).rejects.toThrow('Remove user error');
 
-      expect(mockIAuthPersistencePort.removeUser).toHaveBeenCalledWith(username, password);
+      expect(mockIAuthPersistPort.removeUser).toHaveBeenCalledWith(username, password);
     });
   });
 });

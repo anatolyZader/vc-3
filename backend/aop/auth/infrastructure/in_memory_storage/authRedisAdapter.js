@@ -4,7 +4,8 @@ const IAuthInMemStoragePort = require('../../domain/ports/IAuthInMemStoragePort'
 const redisClient = require('../../../../redisClient');
 
 class AuthRedisAdapter extends IAuthInMemStoragePort {
-  async storeSession(sessionId, user) {
+  
+  async setSessionInMem(sessionId, user) {
     try {
       await redisClient.set(`session:${sessionId}`, JSON.stringify(user), 'EX', process.env.SESSION_TTL || 3600);
     } catch (error) {

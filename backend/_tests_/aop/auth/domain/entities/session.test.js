@@ -7,13 +7,13 @@ jest.mock('uuid', () => ({ v4: jest.fn(() => 'mocked-uuid') }));
 describe('Session', () => {
   let session;
   const userId = 'test-user-id';
-  const mockIAuthPersistencePort = {
+  const mockIAuthPersistPort = {
     saveSession: jest.fn(),
     fetchSession: jest.fn(),
   };
 
   beforeEach(() => {
-    session = new Session(userId, mockIAuthPersistencePort);
+    session = new Session(userId, mockIAuthPersistPort);
   });
 
   afterEach(() => {
@@ -24,22 +24,22 @@ describe('Session', () => {
     expect(session.sessionId).toBe('mocked-uuid');
     expect(session.userId).toBe(userId);
     expect(session.createdAt).toBeInstanceOf(Date);
-    expect(session.databasePort).toBe(mockIAuthPersistencePort);
+    expect(session.databasePort).toBe(mockIAuthPersistPort);
   });
 
   describe('createSession', () => {
-    it('should save the session using IAuthPersistencePort', async () => {
+    it('should save the session using IAuthPersistPort', async () => {
       await session.createSession();
 
-      expect(mockIAuthPersistencePort.saveSession).toHaveBeenCalledWith(session);
+      expect(mockIAuthPersistPort.saveSession).toHaveBeenCalledWith(session);
     });
 
     it('should handle errors when creating a session', async () => {
-      mockIAuthPersistencePort.saveSession.mockRejectedValue(new Error('Save session error'));
+      mockIAuthPersistPort.saveSession.mockRejectedValue(new Error('Save session error'));
 
       await expect(session.createSession()).rejects.toThrow('Save session error');
 
-      expect(mockIAuthPersistencePort.saveSession).toHaveBeenCalledWith(session);
+      expect(mockIAuthPersistPort.saveSession).toHaveBeenCalledWith(session);
     });
   });
 
@@ -48,20 +48,20 @@ describe('Session', () => {
       const mockSessionData = {
         createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
       };
-      mockIAuthPersistencePort.fetchSession.mockResolvedValue(mockSessionData);
+      mockIAuthPersistPort.fetchSession.mockResolvedValue(mockSessionData);
 
       const isValid = await session.validateSession();
 
-      expect(mockIAuthPersistencePort.fetchSession).toHaveBeenCalledWith(session.sessionId);
+      expect(mockIAuthPersistPort.fetchSession).toHaveBeenCalledWith(session.sessionId);
       expect(isValid).toBe(true);
     });
 
     it('should invalidate the session if it does not exist', async () => {
-      mockIAuthPersistencePort.fetchSession.mockResolvedValue(null);
+      mockIAuthPersistPort.fetchSession.mockResolvedValue(null);
 
       const isValid = await session.validateSession();
 
-      expect(mockIAuthPersistencePort.fetchSession).toHaveBeenCalledWith(session.sessionId);
+      expect(mockIAuthPersistPort.fetchSession).toHaveBeenCalledWith(session.sessionId);
       expect(isValid).toBe(false);
     });
 
@@ -69,20 +69,20 @@ describe('Session', () => {
       const mockSessionData = {
         createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
       };
-      mockIAuthPersistencePort.fetchSession.mockResolvedValue(mockSessionData);
+      mockIAuthPersistPort.fetchSession.mockResolvedValue(mockSessionData);
 
       const isValid = await session.validateSession();
 
-      expect(mockIAuthPersistencePort.fetchSession).toHaveBeenCalledWith(session.sessionId);
+      expect(mockIAuthPersistPort.fetchSession).toHaveBeenCalledWith(session.sessionId);
       expect(isValid).toBe(false);
     });
 
     it('should handle errors when validating a session', async () => {
-      mockIAuthPersistencePort.fetchSession.mockRejectedValue(new Error('Fetch session error'));
+      mockIAuthPersistPort.fetchSession.mockRejectedValue(new Error('Fetch session error'));
 
       await expect(session.validateSession()).rejects.toThrow('Fetch session error');
 
-      expect(mockIAuthPersistencePort.fetchSession).toHaveBeenCalledWith(session.sessionId);
+      expect(mockIAuthPersistPort.fetchSession).toHaveBeenCalledWith(session.sessionId);
     });
   });
 

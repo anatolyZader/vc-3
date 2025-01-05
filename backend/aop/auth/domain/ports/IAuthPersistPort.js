@@ -11,17 +11,16 @@ class IAuthPersistPort {
     async readAllUsers() {
       throw new Error("Method 'readAllUsers()' must be implemented.");
     }
-  
-    async createUser(username, email, password) {
-      throw new Error("Method 'createUser(username, email, password)' must be implemented.");
+
+    async getUserInfo(email) {
+      throw new Error("Method 'getUserInfo(userId)' must be implemented.");    
+    } 
+     
+    async registerUser(username, email, password) {
+      throw new Error("Method 'registerUser(username, email, password)' must be implemented.");
     }
-  
-    async readUser(email) {
-      throw new Error("Method 'readUser(userId)' must be implemented.");
-      
-    }
-  
-    async removeUser(email, password) {
+   
+    async removeUser(email) {
       throw new Error("Method 'removeUser(username, password)' must be implemented.");
     }
   

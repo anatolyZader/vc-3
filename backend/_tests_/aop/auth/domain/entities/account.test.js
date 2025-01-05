@@ -8,7 +8,7 @@ describe('Account', () => {
   let account;
   const userId = 'test-user-id';
   const userName = 'test-user';
-  const mockIAuthPersistencePort = {
+  const mockIAuthPersistPort = {
     fetchAccountDetails: jest.fn(),
   };
   const mockDatabasePort = {
@@ -17,7 +17,7 @@ describe('Account', () => {
   };
 
   beforeEach(() => {
-    account = new Account(userId, userName, mockIAuthPersistencePort);
+    account = new Account(userId, userName, mockIAuthPersistPort);
   });
 
   afterEach(() => {
@@ -29,7 +29,7 @@ describe('Account', () => {
     expect(account.userId).toBe(userId);
     expect(account.createdAt).toBeInstanceOf(Date);
     expect(account.videos).toEqual([]);
-    expect(account.IAuthPersistencePort).toBe(mockIAuthPersistencePort);
+    expect(account.IAuthPersistPort).toBe(mockIAuthPersistPort);
   });
 
   describe('fetchAccountDetails', () => {
@@ -38,38 +38,38 @@ describe('Account', () => {
         accountType: 'premium',
         createdAt: new Date('2022-01-01T00:00:00.000Z'),
       };
-      mockIAuthPersistencePort.fetchAccountDetails.mockResolvedValue(mockAccountData);
+      mockIAuthPersistPort.fetchAccountDetails.mockResolvedValue(mockAccountData);
 
       const accountDetails = await account.fetchAccountDetails(
         'test-account-id',
-        mockIAuthPersistencePort
+        mockIAuthPersistPort
       );
 
-      expect(mockIAuthPersistencePort.fetchAccountDetails).toHaveBeenCalledWith('test-account-id');
+      expect(mockIAuthPersistPort.fetchAccountDetails).toHaveBeenCalledWith('test-account-id');
       expect(accountDetails).toEqual(mockAccountData);
       expect(account.accountType).toBe(mockAccountData.accountType);
       expect(account.createdAt).toEqual(mockAccountData.createdAt);
     });
 
     it('should handle errors when fetching account details', async () => {
-      mockIAuthPersistencePort.fetchAccountDetails.mockRejectedValue(
+      mockIAuthPersistPort.fetchAccountDetails.mockRejectedValue(
         new Error('Fetch account error')
       );
 
       await expect(
-        account.fetchAccountDetails('test-account-id', mockIAuthPersistencePort)
+        account.fetchAccountDetails('test-account-id', mockIAuthPersistPort)
       ).rejects.toThrow('Fetch account error');
     });
 
     it('should return null if account data is not found', async () => {
-      mockIAuthPersistencePort.fetchAccountDetails.mockResolvedValue(null);
+      mockIAuthPersistPort.fetchAccountDetails.mockResolvedValue(null);
 
       const accountDetails = await account.fetchAccountDetails(
         'test-account-id',
-        mockIAuthPersistencePort
+        mockIAuthPersistPort
       );
 
-      expect(mockIAuthPersistencePort.fetchAccountDetails).toHaveBeenCalledWith('test-account-id');
+      expect(mockIAuthPersistPort.fetchAccountDetails).toHaveBeenCalledWith('test-account-id');
       expect(accountDetails).toBeNull();
     });
   });

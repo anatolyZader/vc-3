@@ -1,7 +1,6 @@
 'use strict';
 
 const { v4: uuidv4 } = require('uuid');
-const bcrypt = require('bcrypt');
 
 class User {
   constructor() {
@@ -10,20 +9,9 @@ class User {
     this.accounts = [];
   }
 
-  async register(username, email, password, IAuthPersistencePort) {
+  async getUserInfo(email, IAuthPersistPort) {
     try {
-      const newUserDTO = await IAuthPersistencePort.createUser(username, email, password);
-      console.log(`New user registered successfully: ${newUserDTO}`);
-      return newUserDTO;
-    } catch (error) {
-      console.error('Error registering new user:', error);
-      throw error;
-    }
-  }
-
-  async readUser(email, IAuthPersistencePort) {
-    try {
-      const userDTO = await IAuthPersistencePort.readUser(email);
+      const userDTO = await IAuthPersistPort.getUserInfo(email);
       console.log('User read successfully:', userDTO);
       return userDTO;
     } catch (error) {
@@ -32,9 +20,20 @@ class User {
     }
   }
 
-  async removeUser(email, password, IAuthPersistencePort) {
+  async registerUser(username, email, password, IAuthPersistPort) {
     try {
-      await IAuthPersistencePort.removeUser(email, password);
+      const newUserDTO = await IAuthPersistPort.registerUser(username, email, password);
+      console.log(`New user registered successfully: ${newUserDTO}`);
+      return newUserDTO;
+    } catch (error) {
+      console.error('Error registering new user:', error);
+      throw error;
+    }
+  }
+
+  async removeUser(email, IAuthPersistPort) {
+    try {
+      await IAuthPersistPort.removeUser(email);
       console.log('User removed successfully');
     } catch (error) {
       console.error('Error removing user:', error);

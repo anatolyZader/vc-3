@@ -10,25 +10,20 @@ class Session {
     this.IAuthInMemStoragePort = IAuthInMemStoragePort;
   }
 
-  async createSession() {
+  async setSessionInMem() {
     try {
-      await this.IAuthInMemStoragePort.storeSession(this.sessionId, this);
-      console.log('Session created successfully!');
+      await this.IAuthInMemStoragePort.setSessionInMem(this.sessionId, this);
+      console.log('Session set successfully in-memory!');
     } catch (error) {
-      console.error('Error creating session:', error);
+      console.error('Error setting session in-memory:', error);
       throw error;
     }
   }
 
   async validateSession() {
-    try {
-      const sessionData = await this.IAuthInMemStoragePort.getSession(this.sessionId);
-      const isValid = sessionData && new Date() - new Date(sessionData.createdAt) < 3600000;
-      return isValid;
-    } catch (error) {
-      console.error('Error validating session:', error);
-      throw error;
-    }
+    const sessionData = await this.IAuthInMemStoragePort.getSession(this.sessionId);
+    const oneHour = 3600000;
+    return sessionData && (new Date() - new Date(sessionData.createdAt) < oneHour);
   }
 
   async logout() {
