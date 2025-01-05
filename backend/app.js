@@ -35,6 +35,11 @@ module.exports = async function (fastify, opts) {
     await fastify.register(fastifyCookie, {
       secret: fastify.secrets.COOKIE_SECRET,
       parseOptions: {},
+      cookie: {
+        secure: true, 
+        httpOnly: true,
+        sameSite: 'strict',
+      },
     });
     console.log('Cookie plugin successfully registered');
   } catch (error) {
@@ -44,14 +49,14 @@ module.exports = async function (fastify, opts) {
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET, 
     cookie: { 
-      secure: false,
+      secure: true,  
       maxAge: 86400000,
+      httpOnly: true,
+      sameSite: 'strict',
     },
     store: redisStore,
     saveUninitialized: false,
   });
-
-  // await fastify.register(require('./shared-plugins/awilixPlugin'));
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'shared-plugins'),
