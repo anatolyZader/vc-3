@@ -105,9 +105,3 @@ module.exports = async function (fastify, opts) {
   });
 };
 
-module.exports.appConfig = {
-  logger: logOptions,
-  disableRequestLogging: true,
-  requestIdLogLabel: false,
-  requestIdHeader: 'x-request-id',
-};
