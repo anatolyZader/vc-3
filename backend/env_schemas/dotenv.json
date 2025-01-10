@@ -8,7 +8,7 @@
     },
     "PORT": {
       "type": "integer",
-      "default": 3000
+      "default": 443
     },
     "PG_CONNECTION_STRING": {
       "type": "string"
