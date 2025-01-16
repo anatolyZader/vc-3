@@ -28,32 +28,6 @@ module.exports = async function (fastify, opts) {
     fastify.log.info('@fastify/redis plugin registered successfully.');
   } catch (err) {
     fastify.log.error(`Failed to register @fastify/redis plugin: ${err.message}`);
-    throw err;
-  }
-
-  try {
-    await fastify.register(fastifyCookie, {
-      secret: fastify.secrets.COOKIE_SECRET,
-      parseOptions: {},
-      cookie: {
-        secure: true, 
-        httpOnly: true,
-        sameSite: 'strict',
-      },
-    });
-    console.log('Cookie plugin successfully registered');
-  } catch (error) {
-    console.error('Error registering @fastify/cookie:', error);
-  }
-
-  try {
-    fastify.log.info('Attempting to register @fastify/redis plugin.');
-    await fastify.register(fastifyRedis, { 
-      client: redisClient 
-    });  
-    fastify.log.info('@fastify/redis plugin registered successfully.');
-  } catch (err) {
-    fastify.log.error(`Failed to register @fastify/redis plugin: ${err.message}`);
     throw fastify.httpErrors.internalServerError(
       'Failed to register @fastify/redis plugin',
       { cause: err }
@@ -125,17 +99,21 @@ module.exports = async function (fastify, opts) {
 
   await fastify.setErrorHandler(async (err, request, reply) => {
     if (err.validation) {
-      reply.code(403);
-      return err.message;
+      // Replaced reply code with @fastify/sensible equivalent
+      throw fastify.httpErrors.forbidden(err.message, { cause: err });
     }
     request.log.error({ err });
-    reply.code(err.statusCode || 500);
-    return "I'm sorry, there was an error processing your request.";
+    // Replaced generic reply with @fastify/sensible equivalent
+    throw fastify.httpErrors.internalServerError(
+      "I'm sorry, there was an error processing your request.",
+      { cause: err }
+    );
   });
 
   fastify.setNotFoundHandler(async (request, reply) => {
-    reply.code(404);
-    return "I'm sorry, I couldn't find what you were looking for.";
+    // Replaced reply code with @fastify/sensible equivalent
+    throw fastify.httpErrors.notFound(
+      "I'm sorry, I couldn't find what you were looking for."
+    );
   });
 };
-
