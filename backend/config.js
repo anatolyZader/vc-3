@@ -9,12 +9,8 @@ module.exports = {
   disableRequestLogging: true,
   requestIdLogLabel: false,
   requestIdHeader: 'x-request-id',
-  https: {
-    keyPath: '/etc/letsencrypt/live/eventstorm.me/privkey.pem',
-    certPath: '/etc/letsencrypt/live/eventstorm.me/fullchain.pem',
-  },
   server: {
-    port: 443,
+    port: 3000,
     host: '0.0.0.0',
   },
 };

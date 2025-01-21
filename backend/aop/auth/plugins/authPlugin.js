@@ -25,27 +25,25 @@ module.exports = fp(async function authPlugin (fastify, opts) {
     }
   });
   
-
   fastify.decorate('verifyToken', async function (request, reply) {
     try {
       console.log('verifying token at auth.js/verifyToken')
       await request.jwtVerify()
     } catch (err) {
-      reply.send(err)
+      fastify.log.error('Token verification error:', err) 
+      return reply.unauthorized(err.message, { cause: err }) 
     }
   })
   
   fastify.decorateRequest('revokeToken', function () {
     console.log("this.user authPlugin: ", this.user);
     if (!this.user || !this.user.jti) {
-      throw new Error('Missing jti in token');
+      throw this.httpErrors.unauthorized('Missing jti in token')
     }
     revokedTokens.set(this.user.jti, true);
     console.log('Revoked token with jti:', this.user.jti);
   });
   
-  
-
   fastify.decorateRequest('generateToken', async function () {  
     const token = await fastify.jwt.sign({
       id: String(this.user.id),

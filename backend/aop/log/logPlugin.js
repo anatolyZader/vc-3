@@ -4,9 +4,9 @@ const fp = require('fastify-plugin');
 async function logPlugin(fastify, opts) {
   fastify.log.info('Logging plugin registered');
 
-  console.log(opts) // remove later
+  console.log('logPlugin opts: ', opts); 
 
-  // Enrich logs with detailed information on request and response
+
   fastify.addHook('onResponse', async (request, reply) => {
     const enrichedLog = {
       reqId: request.id,
@@ -23,7 +23,6 @@ async function logPlugin(fastify, opts) {
     fastify.log.info(enrichedLog, 'Request completed');
   });
 
-  // Log errors with enriched information
   fastify.setErrorHandler((error, request, reply) => {
     const enrichedErrorLog = {
       reqId: request.id,
@@ -37,7 +36,7 @@ async function logPlugin(fastify, opts) {
       }
     };
     fastify.log.error(enrichedErrorLog, 'Error occurred during request');
-    reply.send(error);
+    return reply.internalServerError(error.message, { cause: error }); 
   });
 }
 

@@ -3,6 +3,8 @@
 
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
+
 const IAuthPersistPort = require('../../domain/ports/IAuthPersistPort');
 
 class AuthPostgresAdapter extends IAuthPersistPort {
@@ -55,11 +57,11 @@ class AuthPostgresAdapter extends IAuthPersistPort {
       if (existingUser.rows.length > 0) {
         throw new Error('Email already exists');
       }
-
+      const hashedPassword = await bcrypt.hash(password, 10);
       // Use plain-text password
       await client.query(
         'INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)',
-        [id, username, email, password]
+        [id, username, email, hashedPassword]
       );
       return { id, username, email };
     } catch (error) {

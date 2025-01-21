@@ -1,0 +1,280 @@
+# combined-deployment.yaml
+resources:
+  # ----------------------------------------------------------------------------
+  # 1) Define the static IP address resource
+  # ----------------------------------------------------------------------------
+  - name: eventstorm-static-ip
+    type: compute.v1.address
+    properties:
+      addressType: EXTERNAL
+      region: me-west1
+
+  # ----------------------------------------------------------------------------
+  # 2) Primary VM: eventstorm-1
+  # ----------------------------------------------------------------------------
+  - name: eventstorm-1
+    type: compute.v1.instance
+    properties:
+      zone: me-west1-c
+      machineType: projects/PROJECT_ID/zones/me-west1-c/machineTypes/n2-standard-2
+      tags:
+        items:
+          - allow-443
+          - allow-80
+          - allow-http-3000
+          - allow-http-5000
+          - allow-postgres-5432
+          - allow-redis-6379
+          - allow-ssh-22
+          - http-server
+          - https-server
+      disks:
+        - deviceName: eventstorm-1
+          type: PERSISTENT
+          boot: true
+          autoDelete: true
+          initializeParams:
+            diskSizeGb: 10
+            diskType: projects/PROJECT_ID/zones/me-west1-c/diskTypes/pd-balanced
+            sourceImage: projects/debian-cloud/global/images/debian-12-bookworm-v20241210
+      networkInterfaces:
+        - network: global/networks/default
+          subnetwork: projects/PROJECT_ID/regions/me-west1/subnetworks/default
+          accessConfigs:
+            - name: External NAT
+              type: ONE_TO_ONE_NAT
+              natIP: $(ref.eventstorm-static-ip.address)
+      serviceAccounts:
+        - email: 979848823566-compute@developer.gserviceaccount.com
+          scopes:
+            - https://www.googleapis.com/auth/cloud-platform
+      shieldedVmConfig:
+        enableSecureBoot: false
+        enableVtpm: true
+        enableIntegrityMonitoring: true
+      metadata:
+        items: []
+      labels: {}
+      deletionProtection: false
+
+  # ----------------------------------------------------------------------------
+  # 3) Firewall Rules
+  # ----------------------------------------------------------------------------
+  - name: allow-http-3000
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 1000
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "3000" ]
+      targetTags: [ "allow-http-3000" ]
+
+  - name: allow-http-5000
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 1000
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "5000" ]
+      targetTags: [ "allow-http-5000" ]
+
+  - name: allow-http-8080
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 1000
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "8080" ]
+      # Fixing typo: "allow-http-8080" instead of "alllow-http-8080"
+      targetTags: [ "allow-http-8080" ]
+
+  - name: allow-postgres-5432
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 1000
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "5432" ]
+      targetTags: [ "allow-postgres-5432" ]
+
+  - name: allow-redis-6379
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 1000
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "6379" ]
+      targetTags: [ "allow-redis-6379" ]
+
+  - name: default-allow-http
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 1000
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "80" ]
+      targetTags: [ "http-server" ]
+
+  - name: default-allow-https
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 1000
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "443" ]
+      targetTags: [ "https-server" ]
+
+  - name: default-allow-icmp
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 65534
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: icmp
+      # Typically no targetTags needed for ICMP.
+
+  - name: default-allow-internal
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 65534
+      sourceRanges: [ "10.128.0.0/9" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "0-65535" ]
+        - IPProtocol: udp
+          ports: [ "0-65535" ]
+        - IPProtocol: icmp
+
+  - name: default-allow-rdp
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 65534
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "3389" ]
+
+  - name: default-allow-ssh
+    type: compute.v1.firewall
+    properties:
+      network: global/networks/default
+      direction: INGRESS
+      priority: 65534
+      sourceRanges: [ "0.0.0.0/0" ]
+      allowed:
+        - IPProtocol: tcp
+          ports: [ "22" ]
+
+  # ----------------------------------------------------------------------------
+  # 4) Cloud SQL (PostgreSQL) Instance
+  # ----------------------------------------------------------------------------
+  - name: eventstorm-pg-instance
+    type: sqladmin.v1beta4.instance
+    properties:
+      region: me-west1
+      databaseVersion: POSTGRES_14
+      settings:
+        tier: db-n1-standard-1
+        dataDiskSizeGb: 20
+        dataDiskType: PD_SSD
+        availabilityType: ZONAL
+        ipConfiguration:
+          ipv4Enabled: true
+          authorizedNetworks:
+            - name: allow-vm-or-your-ip
+              value: "0.0.0.0/0"
+        backupConfiguration:
+          enabled: true
+          startTime: "03:00"
+      instanceName: eventstorm-pg-instance
+
+  # ----------------------------------------------------------------------------
+  # 5) Redis (Memorystore) Instance
+  # ----------------------------------------------------------------------------
+  - name: eventstorm-redis
+    type: gcp-types/redis-v1:projects.locations.instances
+    properties:
+      parent: projects/PROJECT_ID/locations/me-west1
+      instanceId: eventstorm-redis
+      displayName: eventstorm-redis
+      tier: BASIC
+      memorySizeGb: 2
+      locationId: me-west1-b
+      authorizedNetwork: projects/PROJECT_ID/global/networks/default
+      reservedIpRange: 10.143.157.32/29
+      redisVersion: REDIS_7_0
+      connectMode: DIRECT_PEERING
+      transitEncryptionMode: DISABLED
+      authEnabled: false
+
+  # ----------------------------------------------------------------------------
+  # 6) Additional VM: my-app-vm (Example with startup script)
+  # ----------------------------------------------------------------------------
+  - name: my-app-vm
+    type: compute.v1.instance
+    properties:
+      zone: me-west1-c
+      machineType: projects/PROJECT_ID/zones/me-west1-c/machineTypes/n2-standard-2
+      disks:
+        - deviceName: my-app-vm
+          type: PERSISTENT
+          boot: true
+          autoDelete: true
+          initializeParams:
+            diskSizeGb: 10
+            diskType: projects/PROJECT_ID/zones/me-west1-c/diskTypes/pd-balanced
+            sourceImage: projects/debian-cloud/global/images/debian-12-bookworm-v20241210
+      networkInterfaces:
+        - network: global/networks/default
+          subnetwork: projects/PROJECT_ID/regions/me-west1/subnetworks/default
+          accessConfigs:
+            - name: External NAT
+              type: ONE_TO_ONE_NAT
+      serviceAccounts:
+        - email: 979848823566-compute@developer.gserviceaccount.com
+          scopes:
+            - https://www.googleapis.com/auth/cloud-platform
+      metadata:
+        items:
+          - key: startup-script
+            value: |
+              #!/bin/bash
+              apt-get update
+              apt-get install -y git nodejs
+              git clone https://github.com/your-user/your-repo.git /opt/app
+              cd /opt/app
+              npm install
+              npm start
+      shieldedVmConfig:
+        enableSecureBoot: false
+        enableVtpm: true
+        enableIntegrityMonitoring: true
+      labels: {}
+      deletionProtection: false

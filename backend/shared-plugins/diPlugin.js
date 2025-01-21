@@ -28,13 +28,23 @@ const AuthPostgresAdapter = require('../aop/auth/infrastructure/persistence/auth
 const AuthRedisAdapter = require('../aop/auth/infrastructure/in_memory_storage/authRedisAdapter');
 const authInfraConfig = require('../aop/auth/infrastructure/authInfraConfig.json');
 
+
 module.exports = async function (fastify, opts) {
-  await fastify.register(fastifyAwilixPlugin, {
-    disposeOnClose: true,
-    disposeOnResponse: true,
-    strictBooleanEnforced: true,
-    injectionMode: 'CLASSIC',
-  });
+  try {
+    await fastify.register(fastifyAwilixPlugin, {
+      disposeOnClose: true,
+      disposeOnResponse: true,
+      strictBooleanEnforced: true,
+      injectionMode: 'CLASSIC',
+    });
+  } catch (error) {
+
+    fastify.log.error(`Failed to register fastifyAwilixPlugin: ${error.message}`); 
+    throw fastify.httpErrors.internalServerError(
+      'Failed to register fastifyAwilixPlugin',
+      { cause: error } 
+    );
+  }
 
   const adapters = {
     authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
