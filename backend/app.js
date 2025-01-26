@@ -3,6 +3,7 @@
 
 const path = require('node:path');
 const AutoLoad = require('@fastify/autoload');
+const fastifySensible = require('@fastify/sensible');
 const fastifyCookie = require('@fastify/cookie');
 const fastifySession = require('@fastify/session');
 const RedisStore = require('connect-redis').default;
@@ -20,6 +21,7 @@ module.exports = async function (fastify, opts) {
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
+  await fastify.register(fastifySensible);
 
   try {
     fastify.log.info('Attempting to register @fastify/redis plugin.');

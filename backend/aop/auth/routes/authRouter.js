@@ -71,4 +71,41 @@ module.exports = fp(async function authRouter(fastify, opts) {
     preValidation: [fastify.verifyToken],
     handler: fastify.refreshToken,
   });
+
+  /**
+   * [NEW] GET /auth/google (startRedirectPath)
+   * Handled automatically by @fastify/oauth2 - no explicit route needed.
+   * yet customizable...
+   */
+
+  fastify.route({
+    method: 'GET',
+    url: '/auth/google/callback',   
+    handler: fastify.googleCallback,
+  })
+
+  // Privacy Policy Route
+  fastify.get('/privacy', async (request, reply) => {
+    reply.type('text/html').send(`
+      <h1>Privacy Policy</h1>
+      <p>This page is under construction. We will publish our final policy soon.</p>
+    `);
+  });
+
+  // Terms of Service Route
+  fastify.get('/terms', async (request, reply) => {
+    reply.type('text/html').send(`
+      <h1>Terms of Service</h1>
+      <p>This page is under construction. We will publish our official terms soon.</p>
+    `);
+  });
+
+  // fastify.route({
+  //   method: 'GET',
+  //   url: '/sw.js',
+  //   handler: (request, reply) => {
+  //     reply.status(404).send({ message: 'Service worker not used in this application.' });
+  //   },
+  // });
+
 });

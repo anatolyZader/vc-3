@@ -27,7 +27,7 @@
     "@fastify/oauth2": "^8.1.0",
     "@fastify/postgres": "^5.2.2",
     "@fastify/redis": "^7.0.1",
-    "@fastify/sensible": "^5.0.0",
+    "@fastify/sensible": "^6.0.2",
     "@fastify/session": "latest",
     "@fastify/swagger": "^9.2.0",
     "@google-cloud/cloud-sql-connector": "^1.4.0",

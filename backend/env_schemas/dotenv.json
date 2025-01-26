@@ -55,8 +55,10 @@
     },
     "SESSION_SECRET": {
       "type": "string"
+    },
+    "APP_URL": {
+      "type": "string"
     }
-
 
   }
 }
