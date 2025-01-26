@@ -35,52 +35,37 @@ class Conversation {
     }
   }
 
-
-  start() {
-    this.status = 'active';
-    console.log(`Conversation ${this.conversationId} started.`);
+  async start(title, IChatPersistPort) {
+    const newConversation = {
+        conversationId: uuidv4(),
+        title: title,
+    //   status: conversation.status,  // active, archived, etc.
+        startDate: new Date(),
+    };
+    await IChatPersistPort.startConversation(this.userId, newConversation);
+    console.log(`Conversation ${newConversation.conversationId} started and added to history for user ${this.userId}.`);
   }
 
-
-  delete() {
-    this.status = 'deleted';
-    console.log(`Conversation ${this.conversationId} deleted.`);
-  }
-
-
-  share() {
-    this.status = 'shared';
+  async share(conversationId, IChatPersistPort) {
+    await IChatPersistPort.shareConversation(conversationId);
     console.log(`Conversation ${this.conversationId} shared.`);
   }
 
-
-  rename(newTitle) {
-    this.title = newTitle;
+  async rename(conversationId, newTitle, IChatPersistPort) {
+    await IChatPersistPort.renameConversation(conversationId, newTitle);
     console.log(`Conversation renamed to: ${this.title}`);
   }
 
-
-  editQuestion(questionID, newContent) {
-    const question = this.questions.find(q => q.questionId === questionID);
-    if (question) {
-      question.updateContent(newContent);
-      console.log(`Question ${questionID} updated.`);
-    }
+  
+  async sendQuestion(question, IChatPersistPort) {
+    await IChatPersistPort.saveQuestion(question);
+    console.log(`Question sent: ${question}`);
   }
 
 
-  sendQuestion(question) {
-    this.questions.push(question);
-    this.chatService.sendQuestionToAI(question);
-    console.log(`Question sent: ${question.content}`);
-  }
-
-
-  sendAnswer(answer) {
-    this.answers.push(answer);
-    this.chatService.saveAnswer(answer);
-    console.log(`Answer sent: ${answer.content}`);
-  }
+  //   async sendAnswer(answer) {
+  // ...
+  //   }
 }
 
 

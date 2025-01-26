@@ -22,28 +22,11 @@ class ConversationHistory {
   async fetchConversationsList (IChatPersistPort) {
     const conversations = await IChatPersistPort.fetchConversations(this.userId);
     return conversations;
-    }
-
-  async startConversation(conversation, IChatPersistPort ) {
-    const newConversation = {
-      conversationId: uuidv4(),
-      title: conversation.title,
-      status: conversation.status,  // active, archived, etc.
-      startDate: new Date(),
-    };
-    await IChatPersistPort.startConversation(this.userId, newConversation);
-    console.log(`Conversation ${newConversation.conversationId} started and added to history for user ${this.userId}.`);
   }
 
-  async removeConversation(conversationId, IChatPersistPort) {
-    await IChatPersistPort.removeConversation(conversationId);
+  async deleteConversation(conversationId, IChatPersistPort) {
+    await IChatPersistPort.deleteConversation(conversationId);
     console.log(`Conversation ${conversationId} removed from history for user ${this.userId}.`)   
-  }
-
-  // Renames an existing conversation in the user's history
-  async renameConversation(conversationId, newTitle, IChatPersistPort) {
-    await IChatPersistPort.renameConversation(conversationId, newTitle);
-      console.log(`Conversation ${conversationId} renamed to "${newTitle}".`);
   }
 
   // Searches for a conversation based on title or other properties

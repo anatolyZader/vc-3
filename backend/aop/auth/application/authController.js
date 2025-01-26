@@ -1,6 +1,6 @@
-'use strict';
 /* eslint-disable no-unused-vars */
 // authController.js
+'use strict';
 
 const fp = require('fastify-plugin');
 const { v4: uuidv4 } = require('uuid');

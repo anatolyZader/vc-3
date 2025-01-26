@@ -100,12 +100,5 @@ module.exports = fp(async function authRouter(fastify, opts) {
     `);
   });
 
-  // fastify.route({
-  //   method: 'GET',
-  //   url: '/sw.js',
-  //   handler: (request, reply) => {
-  //     reply.status(404).send({ message: 'Service worker not used in this application.' });
-  //   },
-  // });
 
 });
