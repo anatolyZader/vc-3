@@ -18,9 +18,6 @@ module.exports = fp(async function authPlugin (fastify, opts) {
   // ----------------------------
   const revokedTokens = new Map();
 
-  console.log('JWT_SECRET:', fastify.secrets.JWT_SECRET);
-  console.log('JWT_EXPIRE_IN:', fastify.secrets.JWT_EXPIRE_IN);
-
   fastify.register(fastifyJwt, {
     secret: fastify.secrets.JWT_SECRET,
     sign: {
@@ -64,7 +61,7 @@ module.exports = fp(async function authPlugin (fastify, opts) {
       jwtid: uuidv4(),
       expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h'
     });
-    console.log('Generated new JWT:', token);
+
     return token;
   });
 

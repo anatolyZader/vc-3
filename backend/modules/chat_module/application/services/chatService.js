@@ -1,12 +1,12 @@
 'use strict';
-
-const Conversation = require('../domain/conversation');
-const ConversationHistory = require('../domain/conversationsHistory');
-const Question = require('../domain/question');
+/* eslint-disable no-unused-vars */
+const Conversation = require('../../domain/aggregates/conversation');
+const ConversationHistory = require('../../domain/entities/conversationsHistory');
+const Question = require('../../domain/entities/question');
 
 class ChatService {
-  constructor(chatPersistPort) {
-    this.chatPersistPort = chatPersistPort;
+  constructor(chatPersistAdapter) {
+    this.chatPersistAdapter = chatPersistAdapter;
   }
 
   async startConversation(userId, title, chatPersistAdapter) {

@@ -2,71 +2,50 @@
 /* eslint-disable no-unused-vars */
 'use strict';
 
-
 const { v4: uuidv4 } = require('uuid');
-const Prompt = require('../entities/prompt');
-const Question = require('../entities/question');
-const Answer = require('../entities/answer');
-const IChatPersistPort = require('../ports/IChatPersistPort')
-
+const ConversationTitle = require('../value_objects/conversationTitle');
+const IChatPersistPort = require('../ports/IChatPersistPort');
 
 class Conversation {
-  constructor(
-    userId
-  ) {
+  constructor(userId, title = '') {
     this.userId = userId;
     this.conversationId = uuidv4();
-    this.title = '';
+    this.title = new ConversationTitle(title);
     this.status = 'active';  // active, archived, etc.
     this.history = [];
     this.questions = [];
     this.answers = [];
-    this.init();  
   }
 
-
-  async init() {
-    try {
-      const conversationHistoryData = await this.chatInitService.fetchConversationHistory(this.userId, this.conversationId);
-      this.history = conversationHistoryData;
-    } catch (error) {
-      console.error("Error initializing conversation history:", error);
-      throw error;
-    }
-  }
-
-  async start(title, IChatPersistPort) {
+  async start(IChatPersistPort) {
     const newConversation = {
-        conversationId: uuidv4(),
-        title: title,
-    //   status: conversation.status,  // active, archived, etc.
-        startDate: new Date(),
+      conversationId: this.conversationId,
+      title: this.title.toString(),
+      startDate: new Date(),
     };
     await IChatPersistPort.startConversation(this.userId, newConversation);
-    console.log(`Conversation ${newConversation.conversationId} started and added to history for user ${this.userId}.`);
+    console.log(`Conversation ${newConversation.conversationId} started for user ${this.userId}.`);
   }
 
-  async share(conversationId, IChatPersistPort) {
-    await IChatPersistPort.shareConversation(conversationId);
-    console.log(`Conversation ${this.conversationId} shared.`);
-  }
-
-  async rename(conversationId, newTitle, IChatPersistPort) {
-    await IChatPersistPort.renameConversation(conversationId, newTitle);
+  async rename(newTitle, IChatPersistPort) {
+    this.title = new ConversationTitle(newTitle);
+    await IChatPersistPort.renameConversation(this.conversationId, this.title.toString());
     console.log(`Conversation renamed to: ${this.title}`);
   }
 
-  
   async sendQuestion(question, IChatPersistPort) {
     await IChatPersistPort.saveQuestion(question);
-    console.log(`Question sent: ${question}`);
+    console.log(`Question sent: ${question.content}`);
   }
 
-
-  //   async sendAnswer(answer) {
-  // ...
-  //   }
+  equals(other) {
+    if (!(other instanceof Conversation)) return false;
+    return (
+      this.conversationId === other.conversationId &&
+      this.title.equals(other.title) &&
+      this.status === other.status
+    );
+  }
 }
-
 
 module.exports = Conversation;

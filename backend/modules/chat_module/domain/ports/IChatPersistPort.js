@@ -1,3 +1,5 @@
+// IChatPersistPort.js
+
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -12,7 +14,7 @@ class IChatPersistPort {
     throw new Error('Method not implemented.');
   }
 
-  async deleteConversation(conversationId) {
+  async deleteConversation(userId, conversationId) {
     throw new Error('Method not implemented.');
   }
 
@@ -20,7 +22,19 @@ class IChatPersistPort {
     throw new Error('Method not implemented.');
   }
 
-  async renameConversation(conversationId, newTitle) {
+  async renameConversation(userId, conversationId, newTitle) {
+    throw new Error('Method not implemented.');
+  }
+
+  async fetchConversationHistory(userId) {
+    throw new Error('Method not implemented.');
+  }
+
+  async fetchConversation(userId, conversationId) {
+    throw new Error('Method not implemented.');
+  }
+
+  async sendQuestion(userId, conversationId, question) {
     throw new Error('Method not implemented.');
   }
 
@@ -28,28 +42,9 @@ class IChatPersistPort {
     throw new Error('Method not implemented.');
   }
 
-  async sendQuestion(question, IChatPersistPort) {
-    throw new Error('Method not implemented.');
-  }
-
-  async fetchConversations(userId) {
-    throw new Error('Method not implemented.');
-  }
-
   async searchInConversations(userId, query) {
     throw new Error('Method not implemented.');
   }
-
 }
-
-
-
-
-
-
-
-
-
-
 
 module.exports = IChatPersistPort;

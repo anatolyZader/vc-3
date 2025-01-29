@@ -90,8 +90,8 @@ module.exports = async function (fastify, opts) {
     options: Object.assign({}, opts),
     encapsulate: false,
     maxDepth: 1,
-    matchFilter: (path) => path.includes('Controller') || path.includes('Plugin') || path.includes('Router')
-  });
+    ignorePattern: /video_module/
+    });
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'doc'),

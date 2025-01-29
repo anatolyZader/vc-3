@@ -28,6 +28,9 @@ const AuthPostgresAdapter = require('../aop/auth/infrastructure/persistence/auth
 const AuthRedisAdapter = require('../aop/auth/infrastructure/in_memory_storage/authRedisAdapter');
 const authInfraConfig = require('../aop/auth/infrastructure/authInfraConfig.json');
 
+const ChatService = require('../modules/chat_module/application/services/chatService');
+const ChatPostgresAdapter = require('../modules/chat_module/infrastructure/persistence/chatPostgresAdapter');
+const chatInfraConfig = require('../modules/chat_module/infrastructure/chatInfraConfig.json');
 
 module.exports = async function (fastify, opts) {
   try {
@@ -49,6 +52,7 @@ module.exports = async function (fastify, opts) {
   const adapters = {
     authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
     authRedisAdapter: asClass(AuthRedisAdapter).singleton(),
+    chatPostgresAdapter: asClass(ChatPostgresAdapter).singleton(),
   };
 
   await fastify.diContainer.register({
@@ -75,5 +79,7 @@ module.exports = async function (fastify, opts) {
     authPersistAdapter: adapters[authInfraConfig.persistenceAdapter],
     authInMemStorageAdapter: adapters[authInfraConfig.inMemStorageAdapter],
     permService: asClass(PermService),
+    chatService: asClass(ChatService),
+    chatPersistAdapter: adapters[chatInfraConfig.persistenceAdapter],
   });
 };
