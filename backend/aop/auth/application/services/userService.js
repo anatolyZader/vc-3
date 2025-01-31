@@ -2,10 +2,12 @@
 // userService.js
 
 const User = require('../../domain/entities/user');
+const IUserService = require('./interfaces/IUserService');
 
-class UserService {
+class UserService extends IUserService {
   constructor() {
-    this.User = User; 
+    super(); 
+    this.User = User;
   }
 
   async readAllUsers(authPersistAdapter) {

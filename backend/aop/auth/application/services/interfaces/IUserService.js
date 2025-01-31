@@ -6,6 +6,10 @@ class IUserService {
     }
   }
 
+  async readAllUsers(IAuthPersistPort) {
+    throw new Error('Method not implemented.');
+  }
+
   async getUserInfo(IAuthPersistPort) {
     throw new Error('Method not implemented.');
   }
