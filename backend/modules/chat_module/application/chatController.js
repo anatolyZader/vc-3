@@ -5,7 +5,7 @@
 const fp = require('fastify-plugin');
 
 async function chatController(fastify, options) {
-  let chatService, chatPersistAdapter;
+  let chatService;
 
   try {
     chatService = await fastify.diContainer.resolve('chatService');
@@ -17,22 +17,12 @@ async function chatController(fastify, options) {
     );
   }
 
-  try {
-    chatPersistAdapter = await fastify.diContainer.resolve('chatPersistAdapter');
-  } catch (error) {
-    fastify.log.error('Error resolving chatPersistAdapter at chatController:', error); 
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve chatPersistAdapter at chatController',
-      { cause: error } 
-    );
-  }
-
   // Start a new conversation
   fastify.decorate('startConversation', async function (request, reply) {
     const { userId, title } = request.body;
 
     try {
-      const conversationId = await chatService.startConversation(userId, title, chatPersistAdapter);
+      const conversationId = await chatService.startConversation(userId, title);
       return reply.status(201).send({ message: 'Conversation started successfully', conversationId });
     } catch (error) {
       fastify.log.error('Error starting conversation:', error);
@@ -45,7 +35,7 @@ async function chatController(fastify, options) {
     const { userId } = request.query;
 
     try {
-      const history = await chatService.fetchConversationHistory(userId, chatPersistAdapter);
+      const history = await chatService.fetchConversationHistory(userId);
       return reply.status(200).send(history);
     } catch (error) {
       fastify.log.error('Error fetching conversation history:', error);
@@ -59,7 +49,7 @@ async function chatController(fastify, options) {
     const { conversationId } = request.params;
 
     try {
-      const conversation = await chatService.fetchConversation(userId, conversationId, chatPersistAdapter);
+      const conversation = await chatService.fetchConversation(userId, conversationId);
       return reply.status(200).send(conversation);
     } catch (error) {
       fastify.log.error('Error fetching conversation:', error);
@@ -73,7 +63,7 @@ async function chatController(fastify, options) {
     const { newTitle, userId } = request.body;
 
     try {
-      await chatService.renameConversation(userId, conversationId, newTitle, chatPersistAdapter);
+      await chatService.renameConversation(userId, conversationId, newTitle);
       return reply.status(200).send({ message: 'Conversation renamed successfully' });
     } catch (error) {
       fastify.log.error('Error renaming conversation:', error);
@@ -86,7 +76,7 @@ async function chatController(fastify, options) {
     const { conversationId } = request.params;
     const { userId } = request.body;
     try {
-      await chatService.deleteConversation(userId, conversationId, chatPersistAdapter);
+      await chatService.deleteConversation(userId, conversationId);
       return reply.status(200).send({ message: 'Conversation deleted successfully' });
     } catch (error) {
       fastify.log.error('Error deleting conversation:', error);

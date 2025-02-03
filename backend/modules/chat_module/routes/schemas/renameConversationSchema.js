@@ -1,12 +1,20 @@
 'use strict';
 
 module.exports = {
-  $id: 'schema:chat:rename-conversation',
-  type: 'object',
-  required: ['userId', 'newTitle'],
-  properties: {
-    userId: { type: 'string', minLength: 1 },
-    conversationId: { type: 'string', format: 'uuid' },
-    newTitle: { type: 'string', minLength: 1, maxLength: 255 }
-  }
+  "$id": "schema:chat:rename-conversation",
+  body: {
+    type: 'object',
+    required: ['newTitle', 'userId'],
+    properties: {
+      newTitle: { type: 'string', minLength: 1 },
+      userId: { type: 'string' },
+    },
+  },
+  params: {
+    type: 'object',
+    required: ['conversationId'],
+    properties: {
+      conversationId: { type: 'string' },
+    },
+  },
 };

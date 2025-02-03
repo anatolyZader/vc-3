@@ -1,7 +1,7 @@
 'use strict';
 
 const { Pool } = require('pg');
-const IGitPersistPort = require('../ports/IGitPersistPort');
+const IGitPersistPort = require('../../domain/ports/IGitPersistPort');
 
 class GitPostgresAdapter extends IGitPersistPort {
   constructor() {

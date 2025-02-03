@@ -1,7 +1,7 @@
 'use strict';
 
 const { Pool } = require('pg');
-const ITargetCodePersistPort = require('../ports/ITargetCodePersistPort');
+const ITargetCodePersistPort = require('../../domain/ports/ITargetCodePersistPort');
 
 class TargetCodePostgresAdapter extends ITargetCodePersistPort {
   constructor() {

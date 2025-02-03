@@ -1,7 +1,7 @@
 'use strict';
 /* eslint-disable no-unused-vars */
 
-const TargetCode = require('../../domain/targetCode');
+const TargetCode = require('../../domain/entities/targetCode');
 
 class TargetCodeService {
   constructor(targetCodePersistAdapter) {

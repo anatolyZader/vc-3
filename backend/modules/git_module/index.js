@@ -1,13 +1,26 @@
-// modules/chat/index.js 
+// modules/git_module/index.js 
 /* eslint-disable no-unused-vars */
 const autoload = require('@fastify/autoload');
 const path = require('path');
 
-module.exports = async function chatModuleIndex(fastify, opts) {
+module.exports = async function gitModuleIndex(fastify, opts) {
+
+    fastify.register(autoload, {
+      dir: path.join(__dirname, 'plugins'),
+      options: {
+        // prefix: '/git'
+      },
+      encapsulate: false,
+      maxDepth: 1,
+      matchFilter: (path) =>  path.includes('Plugin')    
+    });
+
 
   fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),
-    // prefix: '/chat',
+    options: {
+      // prefix: '/git'
+    },
     encapsulate: false,
     maxDepth: 1,
     matchFilter: (path) =>  path.includes('Controller')    
@@ -16,7 +29,7 @@ module.exports = async function chatModuleIndex(fastify, opts) {
 fastify.register(autoload, {
   dir: path.join(__dirname, 'routes'),
   options: {
-    // prefix: '/chat'
+    // prefix: '/git'
   },
   encapsulate: false,
   maxDepth: 3,
@@ -25,5 +38,5 @@ fastify.register(autoload, {
 }
 
 module.exports.autoConfig = {
-  prefix: '/chat'
+  prefix: '/git'
 };

@@ -1,8 +1,8 @@
 'use strict';
 
-const fetchProjectSchema = {
-  "$id": "schema:git:fetch-project",
-  querystring: {
+const deleteProjectSchema = {
+  "$id": "schema:git:delete-project",
+  body: {
     type: 'object',
     required: ['userId'],
     properties: {
@@ -20,12 +20,11 @@ const fetchProjectSchema = {
     200: {
       type: 'object',
       properties: {
-        projectId: { type: 'string' },
-        title: { type: 'string' },
+        message: { type: 'string' },
       },
-      required: ['projectId', 'title'],
+      required: ['message'],
     },
   }
 };
 
-module.exports = fetchProjectSchema;
+module.exports = deleteProjectSchema;

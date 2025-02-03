@@ -9,7 +9,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
 
   fastify.route({
     method: 'GET',
-    url: '/disco',
+    url: '/auth/disco',
     handler: fastify.readAllUsers,
   });  
 

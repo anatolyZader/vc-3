@@ -1,5 +1,0 @@
-{
-    "persistenceAdapter": "authPostgresAdapter",
-    "inMemStorageAdapter": "authRedisAdapter"
-  }
-  

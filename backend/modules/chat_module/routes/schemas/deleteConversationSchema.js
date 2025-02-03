@@ -1,11 +1,19 @@
 'use strict';
 
 module.exports = {
-  $id: 'schema:chat:delete-conversation',
-  type: 'object',
-  required: ['userId'],
-  properties: {
-    userId: { type: 'string', minLength: 1 },
-    conversationId: { type: 'string', format: 'uuid' }
-  }
+  "$id": "schema:chat:delete-conversation",
+  body: {
+    type: 'object',
+    required: ['userId'],
+    properties: {
+      userId: { type: 'string' },
+    },
+  },
+  params: {
+    type: 'object',
+    required: ['conversationId'],
+    properties: {
+      conversationId: { type: 'string' },
+    },
+  },
 };

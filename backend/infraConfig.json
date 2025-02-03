@@ -1,0 +1,29 @@
+{
+    "aop": {
+      "auth": {
+        "authPersistAdapter": "authPostgresAdapter"
+      }
+    },
+
+
+
+    "modules": {
+      "chat_module": {
+        "chatPersistAdapter": "chatPostgresAdapter"
+      },
+      "git_module": {
+        "gitPersistAdapter": "gitPostgresAdapter"
+      },
+      "target_code_module": {
+        "targetCodePersistAdapter": "targetCodePostgresAdapter"
+      },
+      "checklist_module": {
+        "checklistPersistAdapter": "checklistPostgresAdapter"
+      },
+      "ai_assist_module": {
+        "aiAssistPersistAdapter": "aiAssistPostgresAdapter"
+      }
+
+
+  }
+}

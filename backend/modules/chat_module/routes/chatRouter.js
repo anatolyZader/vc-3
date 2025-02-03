@@ -11,6 +11,8 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     method: 'POST',
     url: '/start',
     handler: fastify.startConversation,
+    schema: fastify.getSchema('schema:chat:start-conversation'), 
+  
   });
 
   // Route to fetch conversation history
@@ -18,6 +20,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     method: 'GET',
     url: '/history',
     handler: fastify.fetchConversationHistory,
+    schema: fastify.getSchema('schema:chat:fetch-conversation-history')
   });
 
   // Route to fetch a specific conversation
@@ -25,6 +28,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     method: 'GET',
     url: '/:conversationId',
     handler: fastify.fetchConversation,
+    schema: fastify.getSchema('schema:chat:fetch-conversation')
   });
 
   // Route to rename a conversation
@@ -32,6 +36,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     method: 'PATCH',
     url: '/:conversationId/rename',
     handler: fastify.renameConversation,
+    schema: fastify.getSchema('schema:chat:rename-conversation')
   });
 
   // Route to delete a conversation
@@ -39,6 +44,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     method: 'DELETE',
     url: '/:conversationId',
     handler: fastify.deleteConversation,
+    schema: fastify.getSchema('schema:chat:delete-conversation')
   });
 
   // Route to send a question
@@ -46,5 +52,6 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     method: 'POST',
     url: '/:conversationId/question',
     handler: fastify.sendQuestion,
+    schema: fastify.getSchema('schema:chat:send-question')
   });
 });

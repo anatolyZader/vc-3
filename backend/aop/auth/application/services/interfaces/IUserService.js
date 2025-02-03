@@ -6,19 +6,19 @@ class IUserService {
     }
   }
 
-  async readAllUsers(IAuthPersistPort) {
+  async readAllUsers() {
     throw new Error('Method not implemented.');
   }
 
-  async getUserInfo(IAuthPersistPort) {
+  async getUserInfo() {
     throw new Error('Method not implemented.');
   }
 
-  async register(username, email, password, IAuthPersistPort) {
+  async register(username, email, password) {
     throw new Error('Method not implemented.');
   }
 
-  async removeUser(email, IAuthPersistPort) {
+  async removeUser(email) {
     throw new Error('Method not implemented.');
   }
 }

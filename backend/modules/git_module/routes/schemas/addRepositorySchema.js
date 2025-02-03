@@ -1,29 +1,31 @@
 'use strict';
 
 const addRepositorySchema = {
-  $id: 'schema:git:add-repository',
-  type: 'object',
+  "$id": "schema:git:add-repository",
+  body: {
+    type: 'object',
+    required: ['userId', 'repositoryUrl'],
+    properties: {
+      userId: { type: 'string' },
+      repositoryUrl: { type: 'string', format: 'uri' },
+    },
+  },
   params: {
     type: 'object',
     required: ['projectId'],
     properties: {
-      projectId: { type: 'string', format: 'uuid' }
-    }
-  },
-  body: {
-    type: 'object',
-    required: ['repositoryUrl'],
-    properties: {
-      repositoryUrl: { type: 'string', format: 'uri' }
-    }
+      projectId: { type: 'string' },
+    },
   },
   response: {
     201: {
       type: 'object',
       properties: {
-        message: { type: 'string' }
-      }
-    }
+        message: { type: 'string' },
+        repositoryId: { type: 'string' },
+      },
+      required: ['message', 'repositoryId'],
+    },
   }
 };
 

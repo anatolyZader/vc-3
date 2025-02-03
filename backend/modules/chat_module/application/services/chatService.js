@@ -9,36 +9,36 @@ class ChatService {
     this.chatPersistAdapter = chatPersistAdapter;
   }
 
-  async startConversation(userId, title, chatPersistAdapter) {
+  async startConversation(userId, title) {
     const conversation = new Conversation(userId);
-    await conversation.start(title, chatPersistAdapter);
+    await conversation.start(title, this.chatPersistAdapter);
     return conversation.conversationId;
   }
 
-  async fetchConversationHistory(userId, chatPersistAdapter) {
+  async fetchConversationHistory(userId) {
     const conversationHistory = new ConversationHistory(userId);
-    return await conversationHistory.fetchConversationsList(chatPersistAdapter);
+    return await conversationHistory.fetchConversationsList(this.chatPersistAdapter);
   }
 
-  async fetchConversation(userId, conversationId, chatPersistAdapter) {
+  async fetchConversation(userId, conversationId) {
     const conversationHistory = new ConversationHistory(userId);
-    return await conversationHistory.fetchConversation(chatPersistAdapter);
+    return await conversationHistory.fetchConversation(this.chatPersistAdapter);
   }
 
-  async renameConversation(userId, conversationId, newTitle, chatPersistAdapter) {
+  async renameConversation(userId, conversationId, newTitle) {
     const conversation = new Conversation(userId);
-    await conversation.rename(conversationId, newTitle, chatPersistAdapter);
+    await conversation.rename(conversationId, newTitle, this.chatPersistAdapter);
   }
 
-  async deleteConversation(userId, conversationId, chatPersistAdapter) {
+  async deleteConversation(userId, conversationId) {
     const conversationHistory = new ConversationHistory(userId);
-    await conversationHistory.deleteConversation(conversationId, chatPersistAdapter);
+    await conversationHistory.deleteConversation(conversationId, this.chatPersistAdapter);
   }
 
-  async sendQuestion(userId, conversationId,  prompt, chatPersistAdapter) {
+  async sendQuestion(userId, conversationId,  prompt) {
     const question = new Question(prompt);
     const conversation = new Conversation(userId);
-    await conversation.sendQuestion(question, chatPersistAdapter);
+    await conversation.sendQuestion(question, this.chatPersistAdapter);
     return question.questionId;
   }
 }

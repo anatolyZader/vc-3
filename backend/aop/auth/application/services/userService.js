@@ -1,18 +1,19 @@
-'use strict';
 // userService.js
-
+/* eslint-disable no-unused-vars */
+'use strict';
 const User = require('../../domain/entities/user');
 const IUserService = require('./interfaces/IUserService');
 
 class UserService extends IUserService {
-  constructor() {
+  constructor(authPersistAdapter) {
     super(); 
     this.User = User;
+    this.authPersistAdapter = authPersistAdapter;
   }
 
-  async readAllUsers(authPersistAdapter) {
+  async readAllUsers() {
     try {
-      const users = await authPersistAdapter.readAllUsers();
+      const users = await this.authPersistAdapter.readAllUsers();
       console.log('Users retrieved successfully:', users);
       return users;
     } catch (error) {
@@ -21,10 +22,10 @@ class UserService extends IUserService {
     }
   }
 
-  async registerUser(username, email, password, authPersistAdapter) {
+  async registerUser(username, email, password) {
     try {
       const userInstance = new this.User();
-      const newUser = await userInstance.registerUser(username, email, password, authPersistAdapter);
+      const newUser = await userInstance.registerUser(username, email, password, this.authPersistAdapter);
       console.log('User registered successfully:', newUser);
       return newUser;
     } catch (error) {
@@ -33,11 +34,11 @@ class UserService extends IUserService {
     }
   }
 
-  async removeUser(email, authPersistAdapter) {
+  async removeUser(email) {
     try {
       const userInstance = new this.User();
       console.log('userInstance instantiated at userService removeUser method: ', userInstance);
-      await userInstance.removeUser(email, authPersistAdapter);
+      await userInstance.removeUser(email, this.authPersistAdapter);
       console.log('User removed successfully');
     } catch (error) {
       console.error('Error removing user:', error);
@@ -45,10 +46,10 @@ class UserService extends IUserService {
     }
   }
 
-  async getUserInfo(email, authPersistAdapter) {
+  async getUserInfo(email) {
     try {
       const userInstance = new this.User();
-      const userData = await userInstance.getUserInfo(email, authPersistAdapter);
+      const userData = await userInstance.getUserInfo(email, this.authPersistAdapter);
       console.log('User retrieved successfully:', userData);
       return userData;
     } catch (error) {

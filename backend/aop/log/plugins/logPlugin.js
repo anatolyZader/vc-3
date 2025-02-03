@@ -22,21 +22,17 @@ async function logPlugin(fastify, opts) {
     };
     fastify.log.info(enrichedLog, 'Request completed');
   });
-
-  fastify.setErrorHandler((error, request, reply) => {
-    const enrichedErrorLog = {
-      reqId: request.id,
-      method: request.method,
-      url: request.raw.url,
-      routeUrl: request.routerPath,
-      user: request.user ? { id: request.user.id, role: request.user.role } : undefined,
-      error: {
-        message: error.message,
-        stack: error.stack,
-      }
-    };
-    fastify.log.error(enrichedErrorLog, 'Error occurred during request');
-    return reply.internalServerError(error.message, { cause: error }); 
+  fastify.setErrorHandler(async (err, request, reply) => {
+    if (err.statusCode === 404) {
+      // Keep original status
+      reply.status(404).send({
+        error: 'Not Found',
+        message: err.message
+      });
+      return;
+    }
+    // Otherwise, handle normally
+    throw fastify.httpErrors.internalServerError("Oops...", { cause: err });
   });
 }
 

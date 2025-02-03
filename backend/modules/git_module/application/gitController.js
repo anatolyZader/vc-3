@@ -4,7 +4,7 @@
 const fp = require('fastify-plugin');
 
 async function gitController(fastify, options) {
-  let gitService, gitPersistAdapter;
+  let gitService;
 
   // Resolve dependencies from the DI container
   try {
@@ -17,16 +17,6 @@ async function gitController(fastify, options) {
     );
   }
 
-  try {
-    gitPersistAdapter = await fastify.diContainer.resolve('gitPersistAdapter');
-  } catch (error) {
-    fastify.log.error('Error resolving gitPersistAdapter:', error);
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve gitPersistAdapter.',
-      { cause: error }
-    );
-  }
-
   /**
    * Create a new project
    * POST /project
@@ -34,7 +24,7 @@ async function gitController(fastify, options) {
   fastify.decorate('createProject', async function (request, reply) {
     const { userId, title } = request.body;
     try {
-      const projectId = await gitService.createProject(userId, title, gitPersistAdapter);
+      const projectId = await gitService.createProject(userId, title);
       return reply.status(201).send({
         message: 'Project created successfully',
         projectId
@@ -52,7 +42,7 @@ async function gitController(fastify, options) {
   fastify.decorate('fetchProjectList', async function (request, reply) {
     const { userId } = request.query;
     try {
-      const projectList = await gitService.fetchProjectList(userId, gitPersistAdapter);
+      const projectList = await gitService.fetchProjectList(userId);
       return reply.status(200).send(projectList);
     } catch (error) {
       fastify.log.error('Error fetching project list:', error);
@@ -68,7 +58,7 @@ async function gitController(fastify, options) {
     const { projectId } = request.params;
     const { userId } = request.query;
     try {
-      const project = await gitService.fetchProject(userId, projectId, gitPersistAdapter);
+      const project = await gitService.fetchProject(userId, projectId);
       return reply.status(200).send(project);
     } catch (error) {
       fastify.log.error('Error fetching project:', error);
@@ -84,7 +74,7 @@ async function gitController(fastify, options) {
     const { projectId } = request.params;
     const { userId, newTitle } = request.body;
     try {
-      await gitService.renameProject(userId, projectId, newTitle, gitPersistAdapter);
+      await gitService.renameProject(userId, projectId, newTitle);
       return reply.status(200).send({ message: 'Project renamed successfully' });
     } catch (error) {
       fastify.log.error('Error renaming project:', error);
@@ -100,7 +90,7 @@ async function gitController(fastify, options) {
     const { projectId } = request.params;
     const { userId } = request.body;
     try {
-      await gitService.deleteProject(userId, projectId, gitPersistAdapter);
+      await gitService.deleteProject(userId, projectId);
       return reply.status(200).send({ message: 'Project deleted successfully' });
     } catch (error) {
       fastify.log.error('Error deleting project:', error);
@@ -119,8 +109,7 @@ async function gitController(fastify, options) {
       const repositoryId = await gitService.addRepository(
         userId,
         projectId,
-        repositoryUrl,
-        gitPersistAdapter
+        repositoryUrl
       );
       return reply.status(201).send({
         message: 'Repository added successfully',
@@ -140,7 +129,7 @@ async function gitController(fastify, options) {
     const { projectId } = request.params;
     const { userId, repositoryId } = request.body;
     try {
-      await gitService.removeRepository(userId, projectId, repositoryId, gitPersistAdapter);
+      await gitService.removeRepository(userId, projectId, repositoryId);
       return reply.status(200).send({ message: 'Repository removed successfully' });
     } catch (error) {
       fastify.log.error('Error removing repository:', error);
@@ -156,7 +145,7 @@ async function gitController(fastify, options) {
     const { repositoryId } = request.params;
     const { userId } = request.query;
     try {
-      const repository = await gitService.fetchRepository(userId, repositoryId, gitPersistAdapter);
+      const repository = await gitService.fetchRepository(userId, repositoryId);
       return reply.status(200).send(repository);
     } catch (error) {
       fastify.log.error('Error fetching repository:', error);
@@ -172,7 +161,7 @@ async function gitController(fastify, options) {
     const { repositoryId } = request.params;
     const { userId } = request.body;
     try {
-      const analysis = await gitService.analyzeRepository(userId, repositoryId, gitPersistAdapter);
+      const analysis = await gitService.analyzeRepository(userId, repositoryId);
       return reply.status(200).send({
         message: 'Repository analyzed successfully',
         analysis
@@ -183,7 +172,6 @@ async function gitController(fastify, options) {
     }
   });
 
-  // NOTE: No targetModule route here.
 }
 
 module.exports = fp(gitController);

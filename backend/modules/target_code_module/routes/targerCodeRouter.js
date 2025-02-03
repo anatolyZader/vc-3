@@ -9,7 +9,8 @@ module.exports = fp(async function targetCodeRouter(fastify, opts) {
   // Route to fetch a target module
   fastify.route({
     method: 'GET',
-    url: '/target-module/:moduleId',
+    url: '/target-code/:moduleId',
     handler: fastify.fetchTargetCode,
+    schema: fastify.getSchema('schema:target-code:get')
   });
 });

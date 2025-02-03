@@ -1,13 +1,21 @@
 'use strict';
 
 module.exports = {
-  $id: 'schema:chat:send-question',
-  type: 'object',
-  required: ['userId', 'content', 'prompt'],
-  properties: {
-    userId: { type: 'string', minLength: 1 },
-    conversationId: { type: 'string', format: 'uuid' },
-    content: { type: 'string', minLength: 1 },
-    prompt: { type: 'string', minLength: 1 }
-  }
+  "$id": "schema:chat:send-question",
+  body: {
+    type: 'object',
+    required: ['userId', 'content', 'prompt'],
+    properties: {
+      userId: { type: 'string' },
+      content: { type: 'string' },
+      prompt: { type: 'string' },
+    },
+  },
+  params: {
+    type: 'object',
+    required: ['conversationId'],
+    properties: {
+      conversationId: { type: 'string' },
+    },
+  },
 };

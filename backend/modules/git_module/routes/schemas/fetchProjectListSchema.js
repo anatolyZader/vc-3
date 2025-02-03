@@ -1,28 +1,14 @@
 'use strict';
 
 const fetchProjectListSchema = {
-  $id: 'schema:git:fetch-project-list',
-  type: 'object',
+  "$id": "schema:git:fetch-project-list",
   querystring: {
     type: 'object',
-    required: ['ownerId'],
+    required: ['userId'],
     properties: {
-      ownerId: { type: 'string', format: 'uuid' }
-    }
+      userId: { type: 'string' },
+    },
   },
-  response: {
-    200: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          projectId: { type: 'string', format: 'uuid' },
-          name: { type: 'string' },
-          createdAt: { type: 'string', format: 'date-time' }
-        }
-      }
-    }
-  }
 };
 
 module.exports = fetchProjectListSchema;

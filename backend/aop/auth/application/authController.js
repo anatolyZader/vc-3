@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 
 async function authController(fastify, options) {
-  let userService, authPersistAdapter;
+  let userService;
 
   try {
     userService = await fastify.diContainer.resolve('userService');
@@ -19,22 +19,12 @@ async function authController(fastify, options) {
     );
   }
 
-  try {
-    authPersistAdapter = await fastify.diContainer.resolve('authPersistAdapter');
-  } catch (error) {
-    fastify.log.error('Error resolving authPersistAdapter at authController:', error); 
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve authPersistAdapter at authController',
-      { cause: error } 
-    );
-  }
-
   /**
    * GET /disco
    */
   fastify.decorate('readAllUsers', async function (request, reply) {
     try {
-      const users = await userService.readAllUsers(authPersistAdapter);
+      const users = await userService.readAllUsers();
       return reply.send({ message: 'Users discovered!', users });
     } catch (error) {
       fastify.log.error('Error discovering users:', error); 
@@ -48,7 +38,7 @@ async function authController(fastify, options) {
   fastify.decorate('registerUser', async function (request, reply) {
     const { username, email, password } = request.body;
     try {
-      const newUser = await userService.registerUser(username, email, password, authPersistAdapter);
+      const newUser = await userService.registerUser(username, email, password);
       return reply.send({ message: 'User registered successfully', user: newUser });
     } catch (error) {
       fastify.log.error('Error registering user:', error); 
@@ -62,11 +52,11 @@ async function authController(fastify, options) {
   fastify.decorate('removeUser', async function (request, reply) {
     const { email } = request.body;
     try {
-      const user = await userService.getUserInfo(email, authPersistAdapter);
+      const user = await userService.getUserInfo(email);
       if (!user) {
         return reply.unauthorized('Invalid credentials');
       }
-      await userService.removeUser(email, authPersistAdapter);
+      await userService.removeUser(email);
       return reply.code(204).send();
     } catch (error) {
       fastify.log.error('Error removing user:', error); 
@@ -86,7 +76,7 @@ async function authController(fastify, options) {
     }
 
     try {
-      const user = await userService.getUserInfo(email, authPersistAdapter);
+      const user = await userService.getUserInfo(email);
       if (!user || !(await bcrypt.compare(password, user.password))) { // *** special comment
         return reply.unauthorized('Invalid credentials');
       }

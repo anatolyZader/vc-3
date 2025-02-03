@@ -10,10 +10,11 @@ const RedisStore = require('connect-redis').default;
 const redisClient = require('./redisClient');
 const redisStore = new RedisStore({ client: redisClient });  
 // const logOptions = require('./aop/log/logPlugin');
-const loggingPlugin = require('./aop/log/logPlugin'); 
+const loggingPlugin = require('./aop/log/plugins/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const envPlugin = require('./envPlugin');
 const fastifyRedis = require('@fastify/redis');
+const { truncate } = require('node:fs');
 
 require('dotenv').config();
 
@@ -51,7 +52,7 @@ module.exports = async function (fastify, opts) {
   } catch (error) {
     console.error('Error registering @fastify/cookie:', error);
     // Replaced silent swallow with @fastify/sensible
-    throw fastify.httpErrors.internalServerEror(
+    throw fastify.httpErrors.internalServerError(
       'Error registering @fastify/cookie',
       { cause: error }
     );
@@ -80,26 +81,19 @@ module.exports = async function (fastify, opts) {
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop'),
     options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 1,
+    encapsulate: true,
+    maxDepth:1,
     dirNameRoutePrefix: false,
   });
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'modules'),
     options: Object.assign({}, opts),
-    encapsulate: false,
+    encapsulate: true,
     maxDepth: 1,
+    dirNameRoutePrefix: false,
     ignorePattern: /video_module/
     });
-
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'doc'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 4,
-    matchFilter: (path) => path.includes('Plugin')
-  });
 
   await fastify.setErrorHandler(async (err, request, reply) => {
     if (err.validation) {
