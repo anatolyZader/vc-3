@@ -9,7 +9,15 @@ module.exports = fp(async function authRouter(fastify, opts) {
 
   fastify.route({
     method: 'GET',
-    url: '/auth/disco',
+    url: '/',
+    handler: async (request, reply) => {
+      return 'hello eventstorm!';
+    }
+  });
+
+  fastify.route({
+    method: 'GET',
+    url: '/disco',
     handler: fastify.readAllUsers,
   });  
 

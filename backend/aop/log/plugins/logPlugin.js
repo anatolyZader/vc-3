@@ -1,4 +1,4 @@
-// loggingPlugin.js
+// aop/log/plugins/logPlugin.js
 const fp = require('fastify-plugin');
 
 async function logPlugin(fastify, opts) {
