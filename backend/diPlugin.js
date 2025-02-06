@@ -1,58 +1,59 @@
-// shared-plugins/awilixPlugin.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
+const fp = require('fastify-plugin');
 const { fastifyAwilixPlugin } = require('@fastify/awilix');
 const { asClass, asValue, Lifetime } = require('awilix');
 
-const infraConfig = require('../infraConfig.json');
+const infraConfig = require('./infraConfig.json');
 
-const Video = require("../modules/video_module/domain/aggregates/video");
-const CodeSnippet = require("../modules/video_module/domain/entities/codeSnippet");
-const Snapshot = require("../modules/video_module/domain/entities/snapshot");
-const TextSnippet = require("../modules/video_module/domain/entities/textSnippet");
-const Transcript = require("../modules/video_module/domain/entities/transcript");
-const VideoAppService = require('../modules/video_module/application/services/videoAppService');
-const CodeSnippetService = require('../modules/video_module/application/services/codeSnippetService');
-const OcrService = require('../modules/video_module/application/services/ocrService');
-const TextSnippetService = require('../modules/video_module/application/services/textSnippetService');
-const VideoConstructService = require('../modules/video_module/application/services/videoConstructService');
-const AIAdapter = require('../modules/video_module/infrastructure/ai/aiAdapter');
-const PostgresAdapter = require('../modules/video_module/infrastructure/persistence/videoPostgresAdapter');
-const OcrAdapter = require('../modules/video_module/infrastructure/ocr/ocrAdapter');
-const SnapshotAdapter = require('../modules/video_module/infrastructure/youtube/snapshotAdapter');
+const Video = require("./modules/video_module/domain/aggregates/video");
+const CodeSnippet = require("./modules/video_module/domain/entities/codeSnippet");
+const Snapshot = require("./modules/video_module/domain/entities/snapshot");
+const TextSnippet = require("./modules/video_module/domain/entities/textSnippet");
+const Transcript = require("./modules/video_module/domain/entities/transcript");
+const VideoAppService = require('./modules/video_module/application/services/videoAppService');
+const CodeSnippetService = require('./modules/video_module/application/services/codeSnippetService');
+const OcrService = require('./modules/video_module/application/services/ocrService');
+const TextSnippetService = require('./modules/video_module/application/services/textSnippetService');
+const VideoConstructService = require('./modules/video_module/application/services/videoConstructService');
+const AIAdapter = require('./modules/video_module/infrastructure/ai/aiAdapter');
+const PostgresAdapter = require('./modules/video_module/infrastructure/persistence/videoPostgresAdapter');
+const OcrAdapter = require('./modules/video_module/infrastructure/ocr/ocrAdapter');
+const SnapshotAdapter = require('./modules/video_module/infrastructure/youtube/snapshotAdapter');
 
-const Account = require('../aop/auth/domain/entities/account');
-const User = require('../aop/auth/domain/entities/user');
-const UserService = require('../aop/auth/application/services/userService');
-const PermService = require('../aop/permissions/application/services/permService');
-const AuthPostgresAdapter = require('../aop/auth/infrastructure/persistence/authPostgresAdapter');
-const AuthRedisAdapter = require('../aop/auth/infrastructure/in_memory_storage/authRedisAdapter');
+const Account = require('./aop/auth/domain/entities/account');
+const User = require('./aop/auth/domain/entities/user');
+const UserService = require('./aop/auth/application/services/userService');
+const PermService = require('./aop/permissions/application/services/permService');
+const AuthPostgresAdapter = require('./aop/auth/infrastructure/persistence/authPostgresAdapter');
+const AuthRedisAdapter = require('./aop/auth/infrastructure/in_memory_storage/authRedisAdapter');
 // const authInfraConfig = require('../aop/auth/infrastructure/authInfraConfig.json');
 
-const ChatService = require('../modules/chat_module/application/services/chatService');
-const ChatPostgresAdapter = require('../modules/chat_module/infrastructure/persistence/chatPostgresAdapter');
+const ChatService = require('./modules/chat_module/application/services/chatService');
+const ChatPostgresAdapter = require('./modules/chat_module/infrastructure/persistence/chatPostgresAdapter');
 // const chatInfraConfig = require('../modules/chat_module/infrastructure/chatInfraConfig.json');
 
-const GitService = require('../modules/git_module/application/services/gitService');
-const GitPostgresAdapter = require('../modules/git_module/infrastructure/persistence/gitPostgresAdapter');
+const GitService = require('./modules/git_module/application/services/gitService');
+const GitPostgresAdapter = require('./modules/git_module/infrastructure/persistence/gitPostgresAdapter');
 // const gitInfraConfig = require('../modules/git_module/infrastructure/gitInfraConfig.json');
 
-const TargetCodeService = require('../modules/target_code_module/application/services/targetCodeService');
-const TargetCodePostgresAdapter = require('../modules/target_code_module/infrastructure/persistence/targetCodePostgresAdapter');
+const TargetCodeService = require('./modules/target_code_module/application/services/targetCodeService');
+const TargetCodePostgresAdapter = require('./modules/target_code_module/infrastructure/persistence/targetCodePostgresAdapter');
 // const targetCodeInfraConfig = require('../modules/target_code_module/infrastructure/targetCodeInfraConfig.json');
 
-const ChecklistPostgresAdapter = require('../modules/checklist_module/infrastructure/persistence/checklistPostgresAdapter');
+const ChecklistPostgresAdapter = require('./modules/checklist_module/infrastructure/persistence/checklistPostgresAdapter');
 
-const AIAssistPostgresAdapter = require('../modules/ai_assist_module/infrastructure/persistence/aiAssistPostgresAdapter');
+const AIAssistPostgresAdapter = require('./modules/ai_assist_module/infrastructure/persistence/aiAssistPostgresAdapter');
 
-module.exports = async function (fastify, opts) {
+module.exports = fp(async function (fastify, opts) {
   try {
     await fastify.register(fastifyAwilixPlugin, {
       disposeOnClose: true,
       disposeOnResponse: true,
       strictBooleanEnforced: true,
       injectionMode: 'CLASSIC',
+      encapsulate: false,
     });
   } catch (error) {
 
@@ -71,10 +72,7 @@ module.exports = async function (fastify, opts) {
     targetCodePostgresAdapter: asClass(TargetCodePostgresAdapter).singleton(),
     checklistPostgresAdapter: asClass(ChecklistPostgresAdapter).singleton(),
     aiAssistPostgresAdapter: asClass(AIAssistPostgresAdapter).singleton(),
-
-
   };
-
 
   await fastify.diContainer.register({
     video: asClass(Video),
@@ -88,7 +86,7 @@ module.exports = async function (fastify, opts) {
     postgresAdapter: asClass(PostgresAdapter),
     ocrAdapter: asClass(OcrAdapter),
     ocrService: asClass(OcrService),
-    videoController: asValue(require('../modules/video_module/application/videoController')),
+    videoController: asValue(require('./modules/video_module/application/videoController')),
     textSnippetService: asClass(TextSnippetService),
     videoConstructService: asClass(VideoConstructService),
     snapshotAdapter: asClass(SnapshotAdapter),
@@ -113,6 +111,5 @@ module.exports = async function (fastify, opts) {
     targetCodePersistAdapter: adapters[infraConfig.modules.target_code_module.targetCodePersistAdapter],
     checklistPersistAdapter: adapters[infraConfig.modules.checklist_module.checklistPersistAdapter],
     aiAssistPersistAdapter: adapters[infraConfig.aiAssistPersistAdapter],
-
   });
-};
+});

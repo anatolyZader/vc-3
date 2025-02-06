@@ -46,6 +46,14 @@ async function logPlugin(fastify, opts) {
       message: 'Oops...'
     });
   });
+
+   // NotFound handler
+  fastify.setNotFoundHandler((request, reply) => {
+    reply.status(404).send({
+      error: 'Not Found',
+      message: "I'm sorry, I couldn't find what you were looking for.",
+    });
+  });
 }
 
 const logOptions = {
@@ -75,9 +83,9 @@ const logOptions = {
         version: request.headers?.['accept-version'],
         user: request.user?.id,
         headers: request.headers,
-        query: request.query, // Log query parameters
-        params: request.params, // Log route parameters
-        body: shouldLogBody ? request.body : undefined, // Log request body if allowed
+        query: request.query,  
+        params: request.params,  
+        body: shouldLogBody ? request.body : undefined, 
         hostname: request.hostname,
         remoteAddress: request.ip,
         remotePort: request.socket?.remotePort

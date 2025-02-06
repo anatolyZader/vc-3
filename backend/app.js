@@ -13,8 +13,9 @@ const redisStore = new RedisStore({ client: redisClient });
 const loggingPlugin = require('./aop/log/plugins/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const envPlugin = require('./envPlugin');
+const diPlugin = require('./diPlugin');
+const corsPlugin = require('./corsPlugin');
 const fastifyRedis = require('@fastify/redis');
-const { truncate } = require('node:fs');
 
 require('dotenv').config();
 
@@ -22,7 +23,9 @@ module.exports = async function (fastify, opts) {
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
+  await fastify.register(diPlugin);
   await fastify.register(fastifySensible);
+  await fastify.register(corsPlugin);
 
   try {
     fastify.log.info('Attempting to register @fastify/redis plugin.');
@@ -71,14 +74,6 @@ module.exports = async function (fastify, opts) {
   });
 
   await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'shared-plugins'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth: 1,
-    ignore: ['envPlugin.js'],
-  });
-
-  await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop'),
     options: Object.assign({}, opts),
     encapsulate: true,
@@ -95,24 +90,5 @@ module.exports = async function (fastify, opts) {
     ignorePattern: /video_module/
     });
 
-  // await fastify.setErrorHandler(async (err, request, reply) => {
-  //   if (err.validation) {
-  //     // Replaced reply code with @fastify/sensible equivalent
-  //     throw fastify.httpErrors.forbidden(err.message, { cause: err });
-  //   }
-  //   request.log.error({ err });
-  //   // Replaced generic reply with @fastify/sensible equivalent
-  //   throw fastify.httpErrors.internalServerError(
-  //     "I'm sorry, there was an error processing your request.",
-  //     { cause: err }
-  //   );
-  // });
-
-  fastify.setNotFoundHandler(async (request, reply) => {
-    // Replaced reply code with @fastify/sensible equivalent
-    throw fastify.httpErrors.notFound(
-      "I'm sorry, I couldn't find what you were looking for."
-    );
-  });
 };
 

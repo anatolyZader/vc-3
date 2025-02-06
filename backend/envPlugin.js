@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-//  backend/shared-plugins/envPlugin.js
+// envPlugin.js
 'use strict';
 
 const fp = require('fastify-plugin');
