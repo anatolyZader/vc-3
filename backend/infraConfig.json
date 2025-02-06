@@ -20,6 +20,9 @@
       "checklist_module": {
         "checklistPersistAdapter": "checklistPostgresAdapter"
       },
+      "project_wiki_module": {
+        "projectWikiPersistAdapter": "projectWikiPostgresAdapter"
+      },
       "ai_assist_module": {
         "aiAssistPersistAdapter": "aiAssistPostgresAdapter"
       }

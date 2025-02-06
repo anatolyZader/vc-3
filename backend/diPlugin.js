@@ -42,6 +42,9 @@ const TargetCodeService = require('./modules/target_code_module/application/serv
 const TargetCodePostgresAdapter = require('./modules/target_code_module/infrastructure/persistence/targetCodePostgresAdapter');
 // const targetCodeInfraConfig = require('../modules/target_code_module/infrastructure/targetCodeInfraConfig.json');
 
+const ProjectWikiService = require('./modules/project_wiki_module/application/services/projectWikiService');
+const ProjectWikiPostgresAdapter = require('./modules/project_wiki_module/infrastructure/persistence/projectWikiPostgresAdapter');
+
 const ChecklistPostgresAdapter = require('./modules/checklist_module/infrastructure/persistence/checklistPostgresAdapter');
 
 const AIAssistPostgresAdapter = require('./modules/ai_assist_module/infrastructure/persistence/aiAssistPostgresAdapter');
@@ -72,6 +75,7 @@ module.exports = fp(async function (fastify, opts) {
     targetCodePostgresAdapter: asClass(TargetCodePostgresAdapter).singleton(),
     checklistPostgresAdapter: asClass(ChecklistPostgresAdapter).singleton(),
     aiAssistPostgresAdapter: asClass(AIAssistPostgresAdapter).singleton(),
+    projectWikiPostgresAdapter: asClass(ProjectWikiPostgresAdapter).singleton(),
   };
 
   await fastify.diContainer.register({
@@ -104,6 +108,8 @@ module.exports = fp(async function (fastify, opts) {
     // gitPersistAdapter: adapters[gitInfraConfig.persistenceAdapter],
     targetCodeService: asClass(TargetCodeService),
     // targetCodePersistAdapter: adapters[targetCodeInfraConfig.persistenceAdapter],
+    projectWikiService: asClass(ProjectWikiService),
+    projectWikiPersistAdapter: adapters[infraConfig.modules.project_wiki_module.projectWikiPersistAdapter],
     authPersistAdapter: adapters[infraConfig.aop.auth.authPersistAdapter],
     authInMemStorageAdapter: adapters[infraConfig.aop.auth.authInMemStorageAdapter],
     chatPersistAdapter: adapters[infraConfig.modules.chat_module.chatPersistAdapter],

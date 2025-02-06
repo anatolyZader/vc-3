@@ -1,4 +1,4 @@
-// modules/chat/index.js 
+// modules/chat_module/index.js 
 /* eslint-disable no-unused-vars */
 const autoload = require('@fastify/autoload');
 const path = require('path');
