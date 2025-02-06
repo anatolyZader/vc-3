@@ -95,18 +95,18 @@ module.exports = async function (fastify, opts) {
     ignorePattern: /video_module/
     });
 
-  await fastify.setErrorHandler(async (err, request, reply) => {
-    if (err.validation) {
-      // Replaced reply code with @fastify/sensible equivalent
-      throw fastify.httpErrors.forbidden(err.message, { cause: err });
-    }
-    request.log.error({ err });
-    // Replaced generic reply with @fastify/sensible equivalent
-    throw fastify.httpErrors.internalServerError(
-      "I'm sorry, there was an error processing your request.",
-      { cause: err }
-    );
-  });
+  // await fastify.setErrorHandler(async (err, request, reply) => {
+  //   if (err.validation) {
+  //     // Replaced reply code with @fastify/sensible equivalent
+  //     throw fastify.httpErrors.forbidden(err.message, { cause: err });
+  //   }
+  //   request.log.error({ err });
+  //   // Replaced generic reply with @fastify/sensible equivalent
+  //   throw fastify.httpErrors.internalServerError(
+  //     "I'm sorry, there was an error processing your request.",
+  //     { cause: err }
+  //   );
+  // });
 
   fastify.setNotFoundHandler(async (request, reply) => {
     // Replaced reply code with @fastify/sensible equivalent

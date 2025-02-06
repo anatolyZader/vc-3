@@ -23,16 +23,28 @@ async function logPlugin(fastify, opts) {
     fastify.log.info(enrichedLog, 'Request completed');
   });
   fastify.setErrorHandler(async (err, request, reply) => {
+    // If this is a validation error
+    if (err.validation) {
+      return reply.status(403).send({
+        error: 'Forbidden',
+        message: err.message
+      });
+    }
+  
+    // If this is a 404 error
     if (err.statusCode === 404) {
-      // Keep original status
-      reply.status(404).send({
+      return reply.status(404).send({
         error: 'Not Found',
         message: err.message
       });
-      return;
     }
-    // Otherwise, handle normally
-    throw fastify.httpErrors.internalServerError("Oops...", { cause: err });
+  
+    // Otherwise, handle as 500
+    request.log.error(err);
+    return reply.status(500).send({
+      error: 'Internal Server Error',
+      message: 'Oops...'
+    });
   });
 }
 
