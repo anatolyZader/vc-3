@@ -47,7 +47,11 @@ const ProjectWikiPostgresAdapter = require('./modules/project_wiki_module/infras
 
 const ChecklistPostgresAdapter = require('./modules/checklist_module/infrastructure/persistence/checklistPostgresAdapter');
 
+const AIAssistService = require('./modules/ai_assist_module/application/services/aiAssistService');
 const AIAssistPostgresAdapter = require('./modules/ai_assist_module/infrastructure/persistence/aiAssistPostgresAdapter');
+const AIAssistLangchainAdapter = require('./modules/ai_assist_module/infrastructure/ai/aiAssistLangchainAdapter');
+
+
 
 module.exports = fp(async function (fastify, opts) {
   try {
@@ -75,6 +79,7 @@ module.exports = fp(async function (fastify, opts) {
     targetCodePostgresAdapter: asClass(TargetCodePostgresAdapter).singleton(),
     checklistPostgresAdapter: asClass(ChecklistPostgresAdapter).singleton(),
     aiAssistPostgresAdapter: asClass(AIAssistPostgresAdapter).singleton(),
+    aiAssistLangchainAdapter: asClass(AIAssistLangchainAdapter).singleton(),
     projectWikiPostgresAdapter: asClass(ProjectWikiPostgresAdapter).singleton(),
   };
 
@@ -116,6 +121,8 @@ module.exports = fp(async function (fastify, opts) {
     gitPersistAdapter: adapters[infraConfig.modules.git_module.gitPersistAdapter],
     targetCodePersistAdapter: adapters[infraConfig.modules.target_code_module.targetCodePersistAdapter],
     checklistPersistAdapter: adapters[infraConfig.modules.checklist_module.checklistPersistAdapter],
-    aiAssistPersistAdapter: adapters[infraConfig.aiAssistPersistAdapter],
+    aiAssistService: asClass(AIAssistService),
+    aiAssistAIAdapter: adapters[infraConfig.modules.ai_assist_module.aiAssistAIAdapter],
+    aiAssistPersistAdapter: adapters[infraConfig.modules.ai_assist_module.aiAssistPersistAdapter],
   });
 });

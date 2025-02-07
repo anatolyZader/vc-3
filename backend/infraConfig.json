@@ -24,7 +24,8 @@
         "projectWikiPersistAdapter": "projectWikiPostgresAdapter"
       },
       "ai_assist_module": {
-        "aiAssistPersistAdapter": "aiAssistPostgresAdapter"
+        "aiAssistPersistAdapter": "aiAssistPostgresAdapter",
+        "aiAssistAIAdapter": "aiAssistLangchainAdapter"
       }
 
 

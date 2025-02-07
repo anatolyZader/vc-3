@@ -1,12 +1,12 @@
-// aiAssistPostgresAdapter.js
-/* eslint-disable no-unused-vars */
+// infrastructure/persistence/aissistPostgresAdapter.js
 'use strict';
 
 const { Pool } = require('pg');
+const IAIAssistPersistPort = require('../../domain/ports/IAIAssistPersistPort');
 
-
-class aiAssistPostgresAdapter {
+class aiAssistPostgresAdapter extends IAIAssistPersistPort {
   constructor() {
+    super();
     this.pool = new Pool({
       user: process.env.PG_USER,
       password: process.env.PG_PASSWORD,
@@ -16,11 +16,22 @@ class aiAssistPostgresAdapter {
     });
   }
 
-  async hello() {
-    console.log('hello from chatPostgresAdapter hello() method');
+  async startConversation(userId, conversation) {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `INSERT INTO ai_conversations (id, user_id, start_date) VALUES ($1, $2, $3)`,
+        [conversation.conversationId, userId, new Date()]
+      );
+      console.log(`Started AI conversation ${conversation.conversationId} for user ${userId}`);
+    } catch (error) {
+      console.error('Error starting AI conversation:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
-  
 }
 
 module.exports = aiAssistPostgresAdapter;
