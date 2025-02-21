@@ -7,14 +7,11 @@ const IGitService = require('./interfaces/IGitService');
 const pubsubTopics = require('../../../messaging/pubsub/gitPubsubTopics');
 
 class GitService extends IGitService {
-  /**
-   * @param {object} gitPersistAdapter - Persistence adapter (e.g., for database access).
-   * @param {object} gitMessagingAdapter - Messaging adapter for Pub/Sub (e.g., GCP Pub/Sub).
-   */
-  constructor(gitPersistAdapter, gitMessagingAdapter) {
+
+  constructor(gitPersistAdapter, gitPubsubAdapter) {
     super();
     this.gitPersistAdapter = gitPersistAdapter;
-    this.gitMessagingAdapter = gitMessagingAdapter;
+    this.gitPubsubAdapter = gitPubsubAdapter;
   }
 
   // Fetch a list of projects
@@ -28,7 +25,7 @@ class GitService extends IGitService {
     await project.create(this.gitPersistAdapter);
 
     // Publish project created event.
-    await this.gitMessagingAdapter.publish(pubsubTopics.PROJECT_CREATED, {
+    await this.gitPubsubAdapter.publish(pubsubTopics.PROJECT_CREATED, {
       projectId: project.projectId,
       userId,
       title,
@@ -51,7 +48,7 @@ class GitService extends IGitService {
     await project.rename(newTitle, this.gitPersistAdapter);
 
     // Publish project renamed event.
-    await this.gitMessagingAdapter.publish(pubsubTopics.PROJECT_RENAMED, {
+    await this.gitPubsubAdapter.publish(pubsubTopics.PROJECT_RENAMED, {
       projectId,
       userId,
       newTitle,
@@ -65,7 +62,7 @@ class GitService extends IGitService {
     await project.delete(this.gitPersistAdapter);
 
     // Publish project deleted event.
-    await this.gitMessagingAdapter.publish(pubsubTopics.PROJECT_DELETED, {
+    await this.gitPubsubAdapter.publish(pubsubTopics.PROJECT_DELETED, {
       projectId,
       userId,
     });
@@ -79,7 +76,7 @@ class GitService extends IGitService {
     await project.addRepository(repository.repositoryId, this.gitPersistAdapter);
 
     // Publish repository added event.
-    await this.gitMessagingAdapter.publish(pubsubTopics.REPOSITORY_ADDED, {
+    await this.gitPubsubAdapter.publish(pubsubTopics.REPOSITORY_ADDED, {
       repositoryId: repository.repositoryId,
       projectId,
       userId,
@@ -96,7 +93,7 @@ class GitService extends IGitService {
     await project.removeRepository(repositoryId, this.gitPersistAdapter);
 
     // Publish repository removed event.
-    await this.gitMessagingAdapter.publish(pubsubTopics.REPOSITORY_REMOVED, {
+    await this.gitPubsubAdapter.publish(pubsubTopics.REPOSITORY_REMOVED, {
       repositoryId,
       projectId,
       userId,

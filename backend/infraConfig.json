@@ -9,24 +9,41 @@
 
     "modules": {
       "chat_module": {
-        "chatPersistAdapter": "chatPostgresAdapter"
+        "chatPersistAdapter": "chatPostgresAdapter",
+        "chatAIAssistAdapter": "chatLangchainAdapter",
+        "chatMessagingAdapter": "chatPubsubAdapter"
       },
       "git_module": {
-        "gitPersistAdapter": "gitPostgresAdapter"
+        "gitPersistAdapter": "gitPostgresAdapter",
+        "gitAIAssistAdapter": "gitLangchainAdapter",
+        "gitMessagingAdapter": "gitPubsubAdapter"
       },
       "target_code_module": {
-        "targetCodePersistAdapter": "targetCodePostgresAdapter"
+        "targetCodePersistAdapter": "targetCodePostgresAdapter",
+        "targetCodeAIAssistdapter": "targetCodeLangchainAdapter",
+        "targetCodeMessagingAdapter": "targetCodePubsubAdapter"
       },
       "checklist_module": {
-        "checklistPersistAdapter": "checklistPostgresAdapter"
+        "checklistPersistAdapter": "checklistPostgresAdapter",
+        "checklistAIAssistAdapter": "checklistLangchainAdapter",
+        "checklistMessagingAdapter": "checklistPubsubAdapter"
       },
       "project_wiki_module": {
-        "projectWikiPersistAdapter": "projectWikiPostgresAdapter"
+        "projectWikiPersistAdapter": "projectWikiPostgresAdapter",
+        "projectWikiAIAssistAdapter": "projectWikiLangchainAdapter",
+        "projectWikiMessagingAdapter": "projectWikiPubsubAdapter"
       },
       "ai_assist_module": {
         "aiAssistPersistAdapter": "aiAssistPostgresAdapter",
-        "aiAssistAIAdapter": "aiAssistLangchainAdapter"
+        "aiAssistAIAssistAdapter": "aiAssistLangchainAdapter",
+        "aiAssistMessagingAdapter": "aiAssistPubsubAdapter"
+      },
+      "messaging_module": {
+        "messagingPersistAdapter": "messagingPostgresAdapter",
+        "messagingAIAssistAdapter": "messagingLangchainAdapter",
+        "messagingMessagingAdapter": "messagingPubsubAdapter"
       }
+      
 
 
   }

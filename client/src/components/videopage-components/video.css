@@ -1,9 +1,0 @@
-.video{
-    height : 80%;
-    width: 90%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0);
-    border: 1px solid black;
-}

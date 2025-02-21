@@ -1,0 +1,9 @@
+// infrastructure/messagingpubsub/chatTopics.js
+'use strict';
+
+module.exports = {
+  CONVERSATION_STARTED: 'chat.conversation.started',
+  CONVERSATION_RENAMED: 'chat.conversation.renamed',
+  CONVERSATION_DELETED: 'chat.conversation.deleted',
+  QUESTION_SENT: 'chat.question.sent',
+};
