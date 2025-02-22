@@ -16,7 +16,8 @@ const envPlugin = require('./envPlugin');
 const diPlugin = require('./diPlugin');
 const corsPlugin = require('./corsPlugin');
 const fastifyRedis = require('@fastify/redis');
-const helmet = require('@fastify/helmet')
+const helmet = require('@fastify/helmet');
+const websocket = require('@fastify/websocket');
 
 
 require('dotenv').config();
@@ -29,6 +30,7 @@ module.exports = async function (fastify, opts) {
   await fastify.register(fastifySensible);
   await fastify.register(helmet, { global: true });
   await fastify.register(corsPlugin);
+  await fastify.register(websocket);
 
   try {
     fastify.log.info('Attempting to register @fastify/redis plugin.');

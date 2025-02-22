@@ -1,5 +1,3 @@
-// IChatPersistPort.js
-
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -43,6 +41,11 @@ class IChatPersistPort {
   }
 
   async searchInConversations(userId, query) {
+    throw new Error('Method not implemented.');
+  }
+
+  // [CHAT.JSX INTEGRATION] Added sendAnswer method to support answer persistence.
+  async sendAnswer(userId, conversationId, answer) {
     throw new Error('Method not implemented.');
   }
 }

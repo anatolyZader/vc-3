@@ -1,29 +1,32 @@
-// IChatService.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
 class IChatService {
-  async startConversation(userId, title, chatPersistAdapter) {
+  async startConversation(userId, title) {
     throw new Error("Method not implemented.");
   }
 
-  async fetchConversationHistory(userId, chatPersistAdapter) {
+  async fetchConversationHistory(userId) {
     throw new Error("Method not implemented.");
   }
 
-  async fetchConversation(userId, conversationId, chatPersistAdapter) {
+  async fetchConversation(userId, conversationId) {
     throw new Error("Method not implemented.");
   }
 
-  async renameConversation(userId, conversationId, newTitle, chatPersistAdapter) {
+  async renameConversation(userId, conversationId, newTitle) {
     throw new Error("Method not implemented.");
   }
 
-  async deleteConversation(userId, conversationId, chatPersistAdapter) {
+  async deleteConversation(userId, conversationId) {
     throw new Error("Method not implemented.");
   }
 
-  async sendQuestion(userId, conversationId, prompt, chatPersistAdapter) {
+  async sendQuestion(userId, conversationId, prompt) {
+    throw new Error("Method not implemented.");
+  }
+
+  async sendAnswer(userId, conversationId, content) {
     throw new Error("Method not implemented.");
   }
 }

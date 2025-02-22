@@ -43,7 +43,7 @@ async function chatController(fastify, options) {
     }
   });
 
-  // Fetch a specific conversation
+  // Fetch specific conversation
   fastify.decorate('fetchConversation', async function (request, reply) {
     const { userId } = request.query;
     const { conversationId } = request.params;
@@ -57,7 +57,7 @@ async function chatController(fastify, options) {
     }
   });
 
-  // Rename a conversation
+  // Rename conversation
   fastify.decorate('renameConversation', async function (request, reply) {
     const { conversationId } = request.params;
     const { newTitle, userId } = request.body;
@@ -71,7 +71,7 @@ async function chatController(fastify, options) {
     }
   });
 
-  // Delete a conversation
+  // Delete conversation
   fastify.decorate('deleteConversation', async function (request, reply) {
     const { conversationId } = request.params;
     const { userId } = request.body;
@@ -84,17 +84,31 @@ async function chatController(fastify, options) {
     }
   });
 
-  // Send a question
+  // send question
   fastify.decorate('sendQuestion', async function (request, reply) {
     const { conversationId } = request.params;
     const { userId, content, prompt } = request.body;
 
     try {
-      const questionId = await chatService.sendQuestion(userId, conversationId,  prompt);
+      const questionId = await chatService.sendQuestion(userId, conversationId, prompt);
       return reply.status(200).send({ message: 'Question sent successfully', questionId });
     } catch (error) {
       fastify.log.error('Error sending question:', error);
       return reply.internalServerError('Failed to send question', { cause: error });
+    }
+  });
+
+  // send answer
+  fastify.decorate('sendAnswer', async function (request, reply) {
+    const { conversationId } = request.params;
+    const { userId, content } = request.body;
+
+    try {
+      const answerId = await chatService.sendAnswer(userId, conversationId, content);
+      return reply.status(200).send({ message: 'Answer sent successfully', answerId });
+    } catch (error) {
+      fastify.log.error('Error sending answer:', error);
+      return reply.internalServerError('Failed to send answer', { cause: error });
     }
   });
 }

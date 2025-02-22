@@ -11,8 +11,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     method: 'POST',
     url: '/start',
     handler: fastify.startConversation,
-    schema: fastify.getSchema('schema:chat:start-conversation'), 
-  
+    schema: fastify.getSchema('schema:chat:start-conversation'),
   });
 
   // Route to fetch conversation history
@@ -53,5 +52,13 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     url: '/:conversationId/question',
     handler: fastify.sendQuestion,
     schema: fastify.getSchema('schema:chat:send-question')
+  });
+
+  // [CHAT.JSX INTEGRATION] Added endpoint to send an answer.
+  fastify.route({
+    method: 'POST',
+    url: '/:conversationId/answer',
+    handler: fastify.sendAnswer,
+    schema: fastify.getSchema('schema:chat:send-answer')
   });
 });

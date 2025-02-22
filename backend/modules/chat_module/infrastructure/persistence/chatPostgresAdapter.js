@@ -49,8 +49,30 @@ class ChatPostgresAdapter extends IChatPersistPort {
   }
 
   /**
-   * Fetch all conversations for a user, returning them
-   * as fully reconstructed domain objects (optional).
+   * OPTIONAL: Save conversation using a simplified method.
+   * Used by ChatService to ensure conversation is persisted.
+   */
+  async saveConversation(conversationId, userId, title) {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `INSERT INTO conversations (id, user_id, title, start_date)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (id) DO NOTHING`,
+        [conversationId, userId, title]
+      );
+      console.log(`Saved conversation ${conversationId} for user ${userId}`);
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Fetch all conversations for a user.
+   * Returns reconstructed domain objects (optional).
    */
   async fetchConversationHistory(userId) {
     const client = await this.pool.connect();
@@ -64,14 +86,10 @@ class ChatPostgresAdapter extends IChatPersistPort {
 
       console.log('Conversation history retrieved successfully for user:', userId);
 
-      // OPTIONAL: Reconstruct domain objects rather than returning rows
       const conversations = rows.map((row) => {
         const conv = new Conversation(row.user_id, row.title);
-        // Overwrite the auto-generated ID with the DB's ID
         conv.conversationId = row.id;
-        // If you decide to track startDate or other columns in your domain, set them here
         conv.startDate = row.start_date;
-        // ...any other fields
         return conv;
       });
 
@@ -86,7 +104,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
 
   /**
    * Fetch a single conversation by ID.
-   * Returns either a domain object or null if none found.
+   * Returns a domain object or null if not found.
    */
   async fetchConversation(userId, conversationId) {
     const client = await this.pool.connect();
@@ -106,7 +124,6 @@ class ChatPostgresAdapter extends IChatPersistPort {
       const conversation = new Conversation(row.user_id, row.title);
       conversation.conversationId = row.id;
       conversation.startDate = row.start_date;
-      // etc...
 
       console.log(`Fetched conversation with ID: ${conversationId} for user ${userId}`);
       return conversation;
@@ -120,7 +137,6 @@ class ChatPostgresAdapter extends IChatPersistPort {
 
   /**
    * Rename a conversation using a Value Object for the title.
-   * The domain layer calls: adapter.renameConversation(userId, conversationId, newTitleVO)
    */
   async renameConversation(userId, conversationId, newTitleVO) {
     const client = await this.pool.connect();
@@ -161,13 +177,13 @@ class ChatPostgresAdapter extends IChatPersistPort {
   }
 
   /**
-   * Send (persist) a new question in the DB.
+   * Persist a new question in the DB.
    * The Question domain object has a Value Object for its content.
    */
   async sendQuestion(userId, conversationId, question) {
     const client = await this.pool.connect();
     try {
-      const questionId = question.questionId; // domain question entity already has an ID
+      const questionId = question.questionId; // Domain question entity already has an ID
       const questionContent = question.content.toString(); // Value Object -> string
 
       await client.query(
@@ -179,6 +195,96 @@ class ChatPostgresAdapter extends IChatPersistPort {
       return { questionId };
     } catch (error) {
       console.error('Error sending question:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * [CHAT.JSX INTEGRATION] Edit a question's content.
+   */
+  async editQuestion(questionId, newContent) {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `UPDATE questions
+         SET prompt = $1, timestamp = NOW()
+         WHERE id = $2`,
+        [newContent.toString(), questionId]
+      );
+      console.log(`Edited question ${questionId} with new content: ${newContent.toString()}`);
+    } catch (error) {
+      console.error('Error editing question:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * [CHAT.JSX INTEGRATION] Search for conversations by title.
+   */
+  async searchInConversations(userId, query) {
+    const client = await this.pool.connect();
+    try {
+      const { rows } = await client.query(
+        `SELECT * FROM conversations
+         WHERE user_id = $1 AND title ILIKE $2
+         ORDER BY start_date DESC`,
+        [userId, `%${query}%`]
+      );
+      console.log(`Found ${rows.length} conversations for user ${userId} matching query "${query}"`);
+      return rows;
+    } catch (error) {
+      console.error('Error searching conversations:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * [CHAT.JSX INTEGRATION] Persist an answer for a conversation.
+   */
+  async sendAnswer(userId, conversationId, answer) {
+    const client = await this.pool.connect();
+    try {
+      const answerId = answer.answerId; // Domain answer entity already has an ID
+      const answerContent = answer.content.toString(); // Value Object -> string
+      const timestamp = answer.timestamp || new Date();
+
+      await client.query(
+        `INSERT INTO answers (id, user_id, conversation_id, content, timestamp)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [answerId, userId, conversationId, answerContent, timestamp]
+      );
+      console.log(`Answer sent with ID: ${answerId} for conversation ${conversationId}`);
+      return { answerId };
+    } catch (error) {
+      console.error('Error sending answer:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * [CHAT.JSX INTEGRATION] Mark a conversation as shared.
+   * Assumes a "shared" boolean column exists.
+   */
+  async shareConversation(conversationId) {
+    const client = await this.pool.connect();
+    try {
+      await client.query(
+        `UPDATE conversations
+         SET shared = TRUE
+         WHERE id = $1`,
+        [conversationId]
+      );
+      console.log(`Marked conversation ${conversationId} as shared.`);
+    } catch (error) {
+      console.error('Error sharing conversation:', error);
       throw error;
     } finally {
       client.release();

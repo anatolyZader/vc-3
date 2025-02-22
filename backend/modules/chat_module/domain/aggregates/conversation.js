@@ -5,6 +5,7 @@
 const { v4: uuidv4 } = require('uuid');
 const ConversationTitle = require('../value_objects/conversationTitle');
 const IChatPersistPort = require('../ports/IChatPersistPort');
+const IChatMessagingPort = require('../ports/IChatMessagingPort');
 
 class Conversation {
   constructor(userId, title = '') {
@@ -32,10 +33,16 @@ class Conversation {
     await IChatPersistPort.renameConversation(this.conversationId, this.title.toString());
     console.log(`Conversation renamed to: ${this.title}`);
   }
-
+//  is it right that we need langchain functionality only in sending questions here and the answers are just recorded?
   async sendQuestion(question, IChatPersistPort) {
     await IChatPersistPort.saveQuestion(question);
+    await IChatMessagingPort.sendQuestion(question);
     console.log(`Question sent: ${question.content}`);
+  }
+
+  async sendAnswer(answer, IChatPersistPort) {
+    await IChatPersistPort.saveAnswer(answer);
+    console.log(`Answer sent: ${answer.content}`);
   }
 
   equals(other) {
