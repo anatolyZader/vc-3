@@ -99,23 +99,23 @@ const Chat = () => {
 
       <ChatContainer className="chat-container">
         <ConversationHeader>
-          <Avatar src={stitch} name="aiAssistant" />
-          <ConversationHeader.Content userName="aiAssistant" />
+          <Avatar src={stitch} name="aiant" />
+          <ConversationHeader.Content userName="aiant" />
           <ConversationHeader.Actions>
             <SendButton border />
           </ConversationHeader.Actions>
         </ConversationHeader>
 
-        <MessageList typingIndicator={typing && <TypingIndicator content="aiAssistant is typing" />}>
+        <MessageList typingIndicator={typing && <TypingIndicator content="aiant is typing" />}>
           <MessageSeparator content="Saturday, 30 November 2019" />
           <Message model={{
             message: "Hello my friend",
             sentTime: "15 mins ago",
-            sender: "aiAssistant",
+            sender: "aiant",
             direction: "incoming",
             position: "single"
           }}>
-            <Avatar src={stitch} name="aiAssistant" />
+            <Avatar src={stitch} name="aiant" />
           </Message>
           {/* Additional messages */}
         </MessageList>
