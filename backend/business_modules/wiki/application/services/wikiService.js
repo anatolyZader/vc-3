@@ -1,4 +1,4 @@
-// projectWikiService.js
+// wikiService.js
 'use strict';
 
 const WikiPage = require('../../domain/entities/wikiPage');
@@ -7,7 +7,7 @@ class WikiService {
 
   constructor(wikiGitAdapter, wikiMessagingAdapter, wikiPersistAdapter) {
     this.wikiPersistAdapter = wikiPersistAdapter;
-    this.wikiPubsubAdapter = wikiMessagingAdapter;
+    this.wikiMessagingAdapter = wikiMessagingAdapter;
     this.wikiGitAdapter = wikiGitAdapter;
   }
 

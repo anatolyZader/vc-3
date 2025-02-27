@@ -137,26 +137,25 @@ async function gitController(fastify, options) {
   //   }
   // });
 
-  // /**
-  //  * Fetch a repository by ID
-  //  * GET /repository/:repositoryId?userId=...
-  //  */
-  // fastify.decorate('fetchRepository', async function (request, reply) {
-  //   const { repositoryId } = request.params;
-  //   const { userId } = request.query;
-  //   try {
-  //     const repository = await gitService.fetchRepository(userId, repositoryId);
-  //     return reply.status(200).send(repository);
-  //   } catch (error) {
-  //     fastify.log.error('Error fetching repository:', error);
-  //     return reply.internalServerError('Failed to fetch repository', { cause: error });
-  //   }
-  // });
 
-  /**
-   * Analyze a repository
-   * POST /repository/:repositoryId/analyze
-   */
+  //  * GET /repository/:repositoryId?userId=...
+
+  fastify.decorate('fetchRepository', async function (request, reply) {
+    const { repositoryId } = request.params;
+    const { userId } = request.query;
+    try {
+      const repository = await gitService.fetchRepository(userId, repositoryId);
+      return reply.status(200).send(repository);
+    } catch (error) {
+      fastify.log.error('Error fetching repository:', error);
+      return reply.internalServerError('Failed to fetch repository', { cause: error });
+    }
+  });
+
+
+
+  //  * POST /repository/:repositoryId/analyze
+
   fastify.decorate('analyzeRepository', async function (request, reply) {
     const { repositoryId } = request.params;
     const { userId } = request.body;

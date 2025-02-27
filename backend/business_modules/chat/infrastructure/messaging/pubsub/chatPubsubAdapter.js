@@ -1,7 +1,7 @@
 // infrastructure/messaging/pubsub/chatPubsubAdapter.js
 'use strict';
 
-const pubSubClient = require('../../../../../aop/messaging/pubsub/pubsubClient');
+const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
 const topic = 'chat';
 
 const publish = async (topic, prompt) => {

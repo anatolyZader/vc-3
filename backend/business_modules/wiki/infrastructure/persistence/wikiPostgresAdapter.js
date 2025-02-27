@@ -2,11 +2,11 @@
 'use strict';
 
 const { Pool } = require('pg');
-const IProjectWikiPersistPort = require('../../domain/ports/IProjectWikiPersistPort');
+const IWikiPersistPort = require('../../domain/ports/IWikiPersistPort');
 const WikiPage = require('../../domain/entities/wikiPage');
 const WikiPageTitle = require('../../domain/value_objects/wikiPageTitle');
 
-class WikiPostgresAdapter extends IProjectWikiPersistPort {
+class WikiPostgresAdapter extends IWikiPersistPort {
   constructor() {
     super();
     this.pool = new Pool({

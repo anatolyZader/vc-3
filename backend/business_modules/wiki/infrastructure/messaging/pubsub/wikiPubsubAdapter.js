@@ -1,9 +1,9 @@
-// infrastructure/messaging/pubsub/projectWikiPubsubAdapter.js
+// infrastructure/messaging/pubsub/wikiPubsubAdapter.js
 'use strict';
 
-const pubSubClient = require('../../../../../aop/messaging/pubsub/pubsubClient');
+const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
 
-class ProjectWikiPubsubAdapter {
+class wikiPubsubAdapter {
   async publish(topic, payload) {
     try {
 
@@ -19,4 +19,4 @@ class ProjectWikiPubsubAdapter {
   }
 }
 
-module.exports = ProjectWikiPubsubAdapter;
+module.exports = wikiPubsubAdapter;

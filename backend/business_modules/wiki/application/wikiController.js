@@ -4,14 +4,14 @@
 const fp = require('fastify-plugin');
 
 async function wikiController(fastify, options) {
-  let projectWikiService;
+  let wikiService;
 
   try {
-    projectWikiService = await fastify.diContainer.resolve('projectWikiService');
+    wikiService = await fastify.diContainer.resolve('wikiService');
   } catch (error) {
-    fastify.log.error('Error resolving projectWikiService:', error);
+    fastify.log.error('Error resolving wikiService:', error);
     throw fastify.httpErrors.internalServerError(
-      'Failed to resolve projectWikiService. Ensure it is registered in the DI container.',
+      'Failed to resolve wikiService. Ensure it is registered in the DI container.',
       { cause: error }
     );
   }
@@ -20,7 +20,7 @@ async function wikiController(fastify, options) {
   fastify.decorate('createPage', async function (request, reply) {
     const { userId, title, content } = request.body;
     try {
-      const pageId = await projectWikiService.createPage(userId, title, content);
+      const pageId = await wikiService.createPage(userId, title, content);
       return reply.status(201).send({ message: 'Wiki page created successfully', pageId });
     } catch (error) {
       fastify.log.error('Error creating wiki page:', error);
@@ -32,7 +32,7 @@ async function wikiController(fastify, options) {
   fastify.decorate('fetchPagesList', async function (request, reply) {
     const { userId } = request.query;
     try {
-      const pages = await projectWikiService.fetchPagesList(userId);
+      const pages = await wikiService.fetchPagesList(userId);
       return reply.status(200).send(pages);
     } catch (error) {
       fastify.log.error('Error fetching wiki pages list:', error);
@@ -45,7 +45,7 @@ async function wikiController(fastify, options) {
     const { userId } = request.query;
     const { pageId } = request.params;
     try {
-      const page = await projectWikiService.fetchPage(userId, pageId);
+      const page = await wikiService.fetchPage(userId, pageId);
       return reply.status(200).send(page);
     } catch (error) {
       fastify.log.error('Error fetching wiki page:', error);
@@ -58,7 +58,7 @@ async function wikiController(fastify, options) {
     const { pageId } = request.params;
     const { userId, newTitle } = request.body;
     try {
-      await projectWikiService.renamePage(userId, pageId, newTitle);
+      await wikiService.renamePage(userId, pageId, newTitle);
       return reply.status(200).send({ message: 'Wiki page renamed successfully' });
     } catch (error) {
       fastify.log.error('Error renaming wiki page:', error);
@@ -71,7 +71,7 @@ async function wikiController(fastify, options) {
     const { pageId } = request.params;
     const { userId } = request.body;
     try {
-      await projectWikiService.deletePage(userId, pageId);
+      await wikiService.deletePage(userId, pageId);
       return reply.status(200).send({ message: 'Wiki page deleted successfully' });
     } catch (error) {
       fastify.log.error('Error deleting wiki page:', error);
@@ -84,7 +84,7 @@ async function wikiController(fastify, options) {
     const { pageId } = request.params;
     const { userId, newContent } = request.body;
     try {
-      await projectWikiService.updatePageContent(userId, pageId, newContent);
+      await wikiService.updatePageContent(userId, pageId, newContent);
       return reply.status(200).send({ message: 'Wiki page content updated successfully' });
     } catch (error) {
       fastify.log.error('Error updating wiki page content:', error);

@@ -79,7 +79,7 @@ module.exports = async function (fastify, opts) {
   });
 
   await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'aop'),
+    dir: path.join(__dirname, 'aop_modules'),
     options: Object.assign({}, opts),
     encapsulate: true,
     maxDepth:1,
@@ -87,12 +87,11 @@ module.exports = async function (fastify, opts) {
   });
 
   await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'modules'),
+    dir: path.join(__dirname, 'business_modules'),
     options: Object.assign({}, opts),
     encapsulate: true,
     maxDepth: 1,
     dirNameRoutePrefix: false,
-    ignorePattern: /video_module/
     });
 
 };

@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 'use strict';
 
-class IGitWikiPersistPort {
+class IWikiPersistPort {
   constructor() {
-    if (new.target === IGitWikiPersistPort) {
+    if (new.target === IWikiPersistPort) {
       throw new Error('Cannot instantiate an abstract class.');
     }
   }
@@ -39,4 +39,4 @@ class IGitWikiPersistPort {
 
 }
 
-module.exports = IGitWikiPersistPort;
+module.exports = IWikiPersistPort;

@@ -3,7 +3,7 @@
 
 const fp = require('fastify-plugin');
 
-module.exports = fp(async function projectWikiRouter(fastify, opts) {
+module.exports = fp(async function wikiRouter(fastify, opts) {
   console.log('wikiRouter is loaded!');
 
   // Route to create a new wiki page

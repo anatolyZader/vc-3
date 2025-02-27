@@ -1,31 +1,31 @@
-// project_wiki_module/application/services/interfaces/IProjectWikiService.js
+// project_wiki_module/application/services/interfaces/IwikiService.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
-class IProjectWikiService {
-  async createPage(userId, title, content, projectwikiPersistAdapter) {
+class IwikiService {
+  async createPage(userId, title, content, wikiPersistAdapter) {
     throw new Error("Method not implemented.");
   }
 
-  async fetchPagesList(userId,projectWikiPersistAdapter) {
+  async fetchPagesList(userId,wikiPersistAdapter) {
     throw new Error("Method not implemented.");
   }
 
-  async fetchPage(userId, pageId,projectWikiPersistAdapter) {
+  async fetchPage(userId, pageId,wikiPersistAdapter) {
     throw new Error("Method not implemented.");
   }
 
-  async renamePage(userId, pageId, newTitle,projectWikiPersistAdapter) {
+  async renamePage(userId, pageId, newTitle,wikiPersistAdapter) {
     throw new Error("Method not implemented.");
   }
 
-  async deletePage(userId, pageId,projectWikiPersistAdapter) {
+  async deletePage(userId, pageId,wikiPersistAdapter) {
     throw new Error("Method not implemented.");
   }
 
-  async updatePageContent(userId, pageId, newContent,projectWikiPersistAdapter) {
+  async updatePageContent(userId, pageId, newContent,wikiPersistAdapter) {
     throw new Error("Method not implemented.");
   }
 }
 
-module.exports = IProjectWikiService;
+module.exports = IwikiService;

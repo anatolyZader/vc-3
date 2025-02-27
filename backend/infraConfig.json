@@ -1,51 +1,51 @@
 {
-  "aop": {
+  "aop_modules": {
     "auth": {
       "authPersistAdapter": "authPostgresAdapter"
     }
   },
 
 
-  "modules": {
-    "chat_module": {
+  "business_modules": {
+    "chat": {
       "chatPersistAdapter": "chatPostgresAdapter",
-      "chataiAdapter": "chatLangchainAdapter",
+      "chatAIAdapter": "chatLangchainAdapter",
       "chatMessagingAdapter": "chatPubsubAdapter"
     },
-    "git_module": {
+    "git": {
       "gitPersistAdapter": "gitPostgresAdapter",
-      "gitGitAdapter": "gitLangchainAdapter",
+      "gitGitAdapter": "gitGithubAdapter",
       "gitAIAdapter": "gitLangchainAdapter",
       "gitMessagingAdapter": "gitPubsubAdapter"
     },
-    "target_module": {
+    "target": {
       "targetPersistAdapter": "targetPostgresAdapter",
       "targetAIAdapter": "targetLangchainAdapter",
       "targetMessagingAdapter": "targetPubsubAdapter",
       "targetGitAdapter": "targetLangchainAdapter"
     },
-    "checklist_module": {
+    "checklist": {
       "checklistPersistAdapter": "checklistPostgresAdapter",
       "checklistaiAdapter": "checklistLangchainAdapter",
       "checklistMessagingAdapter": "checklistPubsubAdapter"
     },
-    "wiki_module": {
-      "wikiPersistAdapter": "projectWikiPostgresAdapter",
-      "wikIAIAdapter": "projectWikiLangchainAdapter",
-      "wikiMessagingAdapter": "projectWikiPubsubAdapter"
+    "wiki": {
+      "wikiPersistAdapter": "wikiPostgresAdapter",
+      "wikiAIAdapter": "wikiLangchainAdapter",
+      "wikiMessagingAdapter": "wikiPubsubAdapter",
+      "wikiGitAdapter": "wikiGithubAdapter"
     },
-    "ai_module": {
+    "ai": {
       "aiPersistAdapter": "aiPostgresAdapter",
       "aiAIAdapter": "aiLangchainAdapter",
-      "aiMessagingAdapter": "aiPubsubAdapter"
+      "aiMessagingAdapter": "aiPubsubAdapter",
+      "aiGitAdapter": "aiGithubAdapter"
     },
-    "messaging_module": {
+    "messaging": {
       "messagingPersistAdapter": "messagingPostgresAdapter",
       "messagingAIAdapter": "messagingLangchainAdapter",
       "messagingMessagingAdapter": "messagingPubsubAdapter"
     }
-      
-
 
   }
 }

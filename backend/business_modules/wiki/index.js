@@ -5,7 +5,7 @@
 const autoload = require('@fastify/autoload');
 const path = require('path');
 
-module.exports = async function projectWikiModuleIndex(fastify, opts) {
+module.exports = async function wikiModuleIndex(fastify, opts) {
 
   fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),

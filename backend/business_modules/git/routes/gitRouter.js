@@ -65,7 +65,7 @@ module.exports = fp(async function gitRouter(fastify, opts) {
   // Route to fetch a repository
   fastify.route({
     method: 'GET',
-    url: '/repository/:repositoryId',
+    url: '/repositories/:repositoryId',
     handler: fastify.fetchRepository,
     schema: fastify.getSchema('schema:git:fetch-repository')
   });
@@ -73,7 +73,7 @@ module.exports = fp(async function gitRouter(fastify, opts) {
   // Route to analyze a repository
   fastify.route({
     method: 'POST',
-    url: '/repository/:repositoryId/analyze',
+    url: '/repositories/:repositoryId/analyze',
     handler: fastify.analyzeRepository,
     schema: fastify.getSchema('schema:git:analyze-repository') 
   });
