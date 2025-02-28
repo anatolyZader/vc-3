@@ -10,7 +10,7 @@ class IGitAIPort {
   }
 
   // Fetches data for an existing repository.
-  async analyzeRepository(repositoryId) {
+  async analyzeRepository(userId, repositoryId) {
     throw new Error('Method not implemented.');
   }
 

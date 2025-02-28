@@ -16,33 +16,9 @@ async function wikiController(fastify, options) {
     );
   }
 
-  // Create a new wiki page
-  fastify.decorate('createPage', async function (request, reply) {
-    const { userId, title, content } = request.body;
-    try {
-      const pageId = await wikiService.createPage(userId, title, content);
-      return reply.status(201).send({ message: 'Wiki page created successfully', pageId });
-    } catch (error) {
-      fastify.log.error('Error creating wiki page:', error);
-      return reply.internalServerError('Failed to create wiki page', { cause: error });
-    }
-  });
-
-  // Fetch list of wiki pages
-  fastify.decorate('fetchPagesList', async function (request, reply) {
-    const { userId } = request.query;
-    try {
-      const pages = await wikiService.fetchPagesList(userId);
-      return reply.status(200).send(pages);
-    } catch (error) {
-      fastify.log.error('Error fetching wiki pages list:', error);
-      return reply.internalServerError('Failed to fetch wiki pages list', { cause: error });
-    }
-  });
-
   // Fetch a specific wiki page
   fastify.decorate('fetchPage', async function (request, reply) {
-    const { userId } = request.query;
+    const { id: userId } = request.user;
     const { pageId } = request.params;
     try {
       const page = await wikiService.fetchPage(userId, pageId);
@@ -52,45 +28,59 @@ async function wikiController(fastify, options) {
       return reply.internalServerError('Failed to fetch wiki page', { cause: error });
     }
   });
-
-  // Rename a wiki page
-  fastify.decorate('renamePage', async function (request, reply) {
-    const { pageId } = request.params;
-    const { userId, newTitle } = request.body;
+  
+  // Create a new wiki page
+  fastify.decorate('createPage', async function (request, reply) {
+    const { id: userId } = request.user;
+    const { title } = request.body;
     try {
-      await wikiService.renamePage(userId, pageId, newTitle);
-      return reply.status(200).send({ message: 'Wiki page renamed successfully' });
+      const pageId = await wikiService.createPage(userId, title);
+      return reply.status(201).send({ message: 'Wiki page created successfully', pageId });
     } catch (error) {
-      fastify.log.error('Error renaming wiki page:', error);
-      return reply.internalServerError('Failed to rename wiki page', { cause: error });
-    }
-  });
-
-  // Delete a wiki page
-  fastify.decorate('deletePage', async function (request, reply) {
-    const { pageId } = request.params;
-    const { userId } = request.body;
-    try {
-      await wikiService.deletePage(userId, pageId);
-      return reply.status(200).send({ message: 'Wiki page deleted successfully' });
-    } catch (error) {
-      fastify.log.error('Error deleting wiki page:', error);
-      return reply.internalServerError('Failed to delete wiki page', { cause: error });
+      fastify.log.error('Error creating wiki page:', error);
+      return reply.internalServerError('Failed to create wiki page', { cause: error });
     }
   });
 
   // Update wiki page content
-  fastify.decorate('updatePageContent', async function (request, reply) {
+  fastify.decorate('updatePage', async function (request, reply) {
+    const { id: userId } = request.user;
     const { pageId } = request.params;
-    const { userId, newContent } = request.body;
+    const { newContent } = request.body;
     try {
-      await wikiService.updatePageContent(userId, pageId, newContent);
+      await wikiService.updatePage(userId, pageId, newContent);
       return reply.status(200).send({ message: 'Wiki page content updated successfully' });
     } catch (error) {
       fastify.log.error('Error updating wiki page content:', error);
       return reply.internalServerError('Failed to update wiki page content', { cause: error });
     }
   });
+
+   // Analyze a wiki page
+   fastify.decorate('analyzePage', async function (request, reply) {
+    const { id: userId } = request.user;
+    const { pageId } = request.params;
+    try {
+      const analysisResult = await wikiService.analyzePage(userId, pageId);
+      return reply.status(200).send(analysisResult);
+    } catch (error) {
+      fastify.log.error('Error analyzing wiki page:', error);
+      return reply.internalServerError('Failed to analyze wiki page', { cause: error });
+    }
+  });
+
+    // Delete a wiki page
+    fastify.decorate('deletePage', async function (request, reply) {
+      const { id: userId } = request.user;
+      const { pageId } = request.params;
+      try {
+        await wikiService.deletePage(userId, pageId);
+        return reply.status(200).send({ message: 'Wiki page deleted successfully' });
+      } catch (error) {
+        fastify.log.error('Error deleting wiki page:', error);
+        return reply.internalServerError('Failed to delete wiki page', { cause: error });
+      }
+    });
 }
 
 module.exports = fp(wikiController);

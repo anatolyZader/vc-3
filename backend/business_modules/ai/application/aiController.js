@@ -17,21 +17,11 @@ async function aiController(fastify, options) {
     );
   }
 
-  fastify.decorate('startConversation', async (request, reply) => {
-    const { userId } = request.body;
-    try {
-      const conversationId = await aiService.startConversation(userId);
-      return reply.status(201).send({ message: 'AI conversation started', conversationId });
-    } catch (error) {
-      fastify.log.error('Error starting AI conversation:', error);
-      return reply.internalServerError('Failed to start AI conversation', { cause: error });
-    }
-  });
-
   fastify.decorate('respondToPrompt', async (request, reply) => {
-    const { userId, prompt } = request.body;
+    const { id: userId } = request.user;
+    const { conversationId, prompt } = request.body;
     try {
-      const response = await aiService.respondToPrompt(userId, prompt);
+      const response = await aiService.respondToPrompt(userId, conversationId, prompt);
       return reply.status(200).send({ response });
     } catch (error) {
       fastify.log.error('Error responding to prompt:', error);

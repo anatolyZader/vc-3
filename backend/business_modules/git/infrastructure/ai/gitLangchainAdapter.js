@@ -20,7 +20,7 @@ class GitLangchainAdapter {
 //   }
 
 
-  async analyzeRepository(repositoryId) {
+  async analyzeRepository(userId, repositoryId) {
 
     console.log(`analyzing repository with ID: ${repositoryId}`);
     // In a real scenario, you might fetch and prepare detailed repository data.

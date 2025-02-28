@@ -9,14 +9,8 @@ module.exports = fp(async function aiRouter(fastify, opts) {
 
   fastify.route({
     method: 'POST',
-    url: '/start',
-    handler: fastify.startConversation,
-    schema: fastify.getSchema('schema:ai-assist:start-conversation'),
-  });
-
-  fastify.route({
-    method: 'POST',
     url: '/respond',
+    preValidation: [fastify.verifyToken],
     handler: fastify.respondToPrompt,
     schema: fastify.getSchema('schema:ai-assist:respond-to-prompt')
   });

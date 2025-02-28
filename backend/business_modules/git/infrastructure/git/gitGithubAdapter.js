@@ -10,7 +10,7 @@ class GitGithubAdapter extends IGitGitPort {
     this.apiBaseUrl = 'https://api.github.com';
   }
 
-  async fetchRepository(repositoryId) {
+  async fetchRepository(userId, repositoryId) {
     const url = `${this.apiBaseUrl}/repos/${repositoryId}`;
     const headers = {
       'Accept': 'application/vnd.github.v3+json'

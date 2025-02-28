@@ -1,17 +1,18 @@
-// IAIAIPort.js
+// IWikiAIPort.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
-class IAIAIPort {
+class IWikiAIPort {
   constructor() {
-    if (new.target === IAIAIPort) {
+    if (new.target === IWikiAIPort) {
       throw new Error('Cannot instantiate an abstract class.');
     }
   }
 
-  async respondToPrompt(userId, conversationId, prompt) {
+  async analyzePage(pageId) {
     throw new Error('Method not implemented.');
   }
+
 }
 
-module.exports = IAIAIPort;
+module.exports = IWikiAIPort;

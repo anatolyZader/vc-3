@@ -19,7 +19,6 @@ const fastifyRedis = require('@fastify/redis');
 const helmet = require('@fastify/helmet');
 const websocket = require('@fastify/websocket');
 
-
 require('dotenv').config();
 
 module.exports = async function (fastify, opts) {
@@ -81,7 +80,7 @@ module.exports = async function (fastify, opts) {
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop_modules'),
     options: Object.assign({}, opts),
-    encapsulate: true,
+    encapsulate: false,
     maxDepth:1,
     dirNameRoutePrefix: false,
   });

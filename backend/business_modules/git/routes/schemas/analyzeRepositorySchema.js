@@ -1,31 +1,17 @@
+// analyzeRepositorySchema.js
 'use strict';
 
-const analyzeRepositorySchema = {
-  "$id": "schema:git:analyze-repository",
-  body: {
-    type: 'object',
-    required: ['userId'],
-    properties: {
-      userId: { type: 'string' },
-    },
-  },
+module.exports = {
+  $id: 'schema:git:analyze-repository',
   params: {
     type: 'object',
     required: ['repositoryId'],
     properties: {
-      repositoryId: { type: 'string' },
+      repositoryId: {
+        type: 'string',
+        format: 'uuid',
+      }
     },
-  },
-  response: {
-    200: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-        analysis: { type: 'object' },
-      },
-      required: ['message', 'analysis'],
-    },
+    additionalProperties: false
   }
 };
-
-module.exports = analyzeRepositorySchema;

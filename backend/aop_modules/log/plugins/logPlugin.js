@@ -47,13 +47,13 @@ async function logPlugin(fastify, opts) {
     });
   });
 
-   // NotFound handler
-  fastify.setNotFoundHandler((request, reply) => {
-    reply.status(404).send({
-      error: 'Not Found',
-      message: "I'm sorry, I couldn't find what you were looking for.",
-    });
-  });
+  //  // NotFound handler
+  // fastify.setNotFoundHandler((request, reply) => {
+  //   reply.status(404).send({
+  //     error: 'Not Found',
+  //     message: "I'm sorry, I couldn't find what you were looking for.",
+  //   });
+  // });
 }
 
 const logOptions = {

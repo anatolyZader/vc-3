@@ -2,33 +2,23 @@
 /* eslint-disable no-unused-vars */
 'use strict';
 
+const IAIService = require('./interfaces/IAIService');
 const AIResponse = require('../../domain/entities/aiResponse');
 
 // const pubsubTopics = require('../../../messaging/pubsub/aiPubsubTopics');
 
-class aiService {
+class aiService extends IAIService{
 
-  constructor(aiPersistAdapter, aiMessagingAdapter) {
+  constructor(aiAIAdapter, aiPersistAdapter, aiMessagingAdapter) {
+    super();
+    this.aiAIAdapter = aiAIAdapter;
     this.aiPersistAdapter = aiPersistAdapter;
     this.aiMessagingAdapter = aiMessagingAdapter;
   }
 
-  async startConversation(userId) {
+  async respondToPrompt(userId, conversationId, prompt) {
     const aiResponse = new AIResponse(userId);
-    await aiResponse.startConversation(this.aiPersistAdapter);
-
-    // // Publish the AI conversation started event.
-    // await this.aiMessagingAdapter.publish(pubsubTopics.AI_CONVERSATION_STARTED, {
-    //   conversationId: aiResponse.conversationId,
-    //   userId,
-    // });
-
-    return aiResponse.conversationId;
-  }
-
-  async respondToPrompt(userId, prompt) {
-    const aiResponse = new AIResponse(userId);
-    const response = await aiResponse.respondToPrompt(prompt, this.aiPersistAdapter);
+    const response = await aiResponse.respondToPrompt(conversationId, prompt, this.aiAIAdapter);
 
     // Publish the AI prompt responded event.
     // await this.aiMessagingAdapter.publish(pubsubTopics.AI_PROMPT_RESPONDED, {

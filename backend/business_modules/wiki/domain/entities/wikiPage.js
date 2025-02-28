@@ -6,42 +6,36 @@ const { v4: uuidv4 } = require('uuid');
 const WikiPageTitle = require('../value_objects/wikiPageTitle');
 
 class WikiPage {
-  constructor(userId, title = '', content = '') {
+  constructor(userId) {
     this.userId = userId;
-    this.pageId = uuidv4();
-    this.title = new WikiPageTitle(title);
-    this.content = content;
-    this.status = 'draft'; // draft, published, etc.
-    this.revisions = [];
   }
 
-    async fetchPage(IGitWikiPersistPort) { 
-    const page = await IGitWikiPersistPort.fetchPage(this.pageId); 
-    return page;
-    }
-
-  async create(IGitWikiPersistPort) {
-    const newPage = {
-      pageId: this.pageId,
-      title: this.title.toString(),
-      content: this.content,
-      createDate: new Date(),
-    };
-    await IGitWikiPersistPort.createPage(this.userId, newPage);
-    console.log(`Wiki page ${newPage.pageId} created for user ${this.userId}.`);
+  async fetchPage(pageId, IWikiGitPort) { 
+  const page = await IWikiGitPort.fetchPage(this.userId, pageId); 
+  return page;
   }
 
-  async updateContent(newContent, IGitWikiPersistPort) {
-    this.content = newContent;
-    await IGitWikiPersistPort.updatePageContent(this.pageId, newContent);
-    console.log(`Wiki page ${this.pageId} content updated.`);
+  async analyzePage(pageId, IWikiAIPort, IWikiGitPort) {
+    const pageData = await IWikiGitPort.fetchPage(pageId);
+    const analysisResult = await IWikiAIPort.analyzePage(pageData);
+    return analysisResult;
   }
 
-  async rename(newTitle, IGitWikiPersistPort) {
-    this.title = new WikiPageTitle(newTitle);
-    await IGitWikiPersistPort.renamePage(this.pageId, this.title.toString());
-    console.log(`Wiki page ${this.pageId} renamed to: ${this.title}`);
+  async createPage(pageTitle, IWikiGitPort) {
+    await IWikiGitPort.createPage(pageTitle);
+    console.log(`Wiki page ${pageTitle} created for user ${this.userId}.`);
   }
+
+  async updatePage(pageId, newContent, IWikiGitPort) {
+    await IWikiGitPort.updatePage(pageId, newContent);
+    console.log(`Wiki page ${pageId} content updated.`);
+  }
+
+  async deletePage(pageId, IWikiGitPort) {
+    await IWikiGitPort.deletePage(pageId);
+    console.log(`Wiki page ${pageId} deleted.`);
+  }
+
 
 }
 

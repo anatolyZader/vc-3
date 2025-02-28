@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  $id: 'schema:wiki:update-page-content',
+  $id: 'schema:wiki:update-page',
   params: {
     type: 'object',
     required: ['pageId'],

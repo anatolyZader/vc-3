@@ -1,12 +1,13 @@
-// fetchRepositorySchema.js
+// analyzePageSchema.js
 'use strict';
+
 module.exports = {
-  $id: 'schema:git:fetch-repository',
+  $id: 'schema:wiki:analyze-page',
   params: {
     type: 'object',
-    required: ['repositoryId'],
+    required: ['pageId'],
     properties: {
-      repositoryId: {
+      pageId: {
         type: 'string',
         format: 'uuid',
       }
@@ -14,5 +15,3 @@ module.exports = {
     additionalProperties: false
   }
 };
-
-

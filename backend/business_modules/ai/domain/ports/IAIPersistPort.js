@@ -9,13 +9,6 @@ class IAIPersistPort {
     }
   }
 
-  async startConversation(userId, newConversation) {
-    throw new Error('Method not implemented.');
-  }
-
-  async respondToPrompt(prompt) {
-    throw new Error('Method not implemented.');
-  }
 }
 
 module.exports = IAIPersistPort;

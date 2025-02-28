@@ -8,34 +8,6 @@ class IWikiPersistPort {
     }
   }
 
-  async createPage(userId, newPage) {
-    throw new Error('Method not implemented.');
-  }
-
-  async updatePageContent(pageId, newContent) {
-    throw new Error('Method not implemented.');
-  }
-
-  async renamePage(pageId, newTitle) {
-    throw new Error('Method not implemented.');
-  }
-
-  async fetchPage(userId, pageId) {
-    throw new Error('Method not implemented.');
-  }
-
-  async fetchPages(userId) {
-    throw new Error('Method not implemented.');
-  }
-
-  async deletePage(userId, pageId) {
-    throw new Error('Method not implemented.');
-  }
-
-  async searchInPages(userId, query) {
-    throw new Error('Method not implemented.');
-  }
-
 
 }
 

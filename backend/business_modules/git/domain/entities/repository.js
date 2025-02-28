@@ -1,24 +1,20 @@
 // repository.js
 'use strict';
 
-const { v4: uuidv4 } = require('uuid');
-// const IGitPersistPort = require('../ports/IGitPersistPort');
-
 class Repository {
-  constructor(url) {
-    this.repositoryId = uuidv4();
-    this.url = url;
+  constructor(userId) {
+    this.userId = userId;
   }
 
-  async fetchRepository(gitPersistPort) {
-    const data = await gitPersistPort.fetchRepository(this.repositoryId);
-    console.log(`Repository fetched: ${this.repositoryId}`);
+  async fetchRepository(repositoryId, IGitGitPort) {
+    const data = await IGitGitPort.fetchRepository(this.userId, repositoryId);
+    console.log(`Repository fetched: ${repositoryId}`);
     return data; 
   }
 
-  async analyzeRepository(gitPersistPort) {
-    const analysisResult = await gitPersistPort.analyzeRepository(this.repositoryId);
-    console.log(`Repository analyzed: ${this.repositoryId}`);
+  async analyzeRepository(repositoryId, IGitAIPort) {
+    const analysisResult = await IGitAIPort.analyzeRepository(this.userId, repositoryId);
+    console.log(`Repository analyzed: ${repositoryId}`);
     return analysisResult;
   }
 }
