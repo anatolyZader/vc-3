@@ -8,36 +8,37 @@ const IChatPersistPort = require('../ports/IChatPersistPort');
 const IChatMessagingPort = require('../ports/IChatMessagingPort');
 
 class Conversation {
-  constructor(userId, title = '') {
+  constructor(userId, conversationId = null) {
     this.userId = userId;
-    this.conversationId = uuidv4();
-    this.title = new ConversationTitle(title);
-    this.status = 'active';  // active, archived, etc.
-    this.history = [];
-    this.questions = [];
-    this.answers = [];
+    // Use the provided conversationId or generate a new one if absent
+    this.conversationId = conversationId || uuidv4();
   }
 
-  async start(IChatPersistPort) {
-    const newConversation = {
-      conversationId: this.conversationId,
-      title: this.title.toString(),
-      startDate: new Date(),
-    };
-    await IChatPersistPort.startConversation(this.userId, newConversation);
-    console.log(`Conversation ${newConversation.conversationId} started for user ${this.userId}.`);
+  async startConversation(title,vIChatPersistPort) {
+    await IChatPersistPort.startConversation(this.userId, title);
+    console.log(`Conversation  started for user ${this.userId}.`);
   }
 
-  async rename(newTitle, IChatPersistPort) {
+  async fetchConversation(conversationId, IChatPersistPort) {
+    const conversation = await IChatPersistPort.fetchConversation(this.userId, conversationId);
+    return conversation;
+  }
+
+  async renameConversation(newTitle, IChatPersistPort) {
     this.title = new ConversationTitle(newTitle);
     await IChatPersistPort.renameConversation(this.conversationId, this.title.toString());
     console.log(`Conversation renamed to: ${this.title}`);
   }
-//  is it right that we need langchain functionality only in sending questions here and the answers are just recorded?
-  async sendQuestion(question, IChatPersistPort) {
-    await IChatPersistPort.saveQuestion(question);
-    await IChatMessagingPort.sendQuestion(question);
-    console.log(`Question sent: ${question.content}`);
+
+  async deleteConversation(IChatPersistPort) {
+    await IChatPersistPort.deleteConversation(this.conversationId, IChatPersistPort);
+    console.log(`Conversation deleted: ${this.conversationId}`);
+  }
+
+  async sendQuestion(prompt, IChatPersistPort) {
+    await IChatPersistPort.saveQuestion(prompt);
+    await IChatMessagingPort.sendQuestion(prompt);
+    console.log(`Question sent: ${prompt}`);
   }
 
   async sendAnswer(answer, IChatPersistPort) {

@@ -8,7 +8,7 @@ class IChatPersistPort {
     }
   }
 
-  async startConversation(userId, newConversation) {
+  async startConversation(userId, title) {
     throw new Error('Method not implemented.');
   }
 
@@ -16,15 +16,11 @@ class IChatPersistPort {
     throw new Error('Method not implemented.');
   }
 
-  async shareConversation(conversationId) {
-    throw new Error('Method not implemented.');
-  }
-
   async renameConversation(userId, conversationId, newTitle) {
     throw new Error('Method not implemented.');
   }
 
-  async fetchConversationHistory(userId) {
+  async fetchConversationsHistory(userId) {
     throw new Error('Method not implemented.');
   }
 
@@ -32,11 +28,7 @@ class IChatPersistPort {
     throw new Error('Method not implemented.');
   }
 
-  async sendQuestion(userId, conversationId, question) {
-    throw new Error('Method not implemented.');
-  }
-
-  async editQuestion(questionId, newContent) {
+  async sendQuestion(userId, conversationId, prompt) {
     throw new Error('Method not implemented.');
   }
 
@@ -44,7 +36,6 @@ class IChatPersistPort {
     throw new Error('Method not implemented.');
   }
 
-  // [CHAT.JSX INTEGRATION] Added sendAnswer method to support answer persistence.
   async sendAnswer(userId, conversationId, answer) {
     throw new Error('Method not implemented.');
   }

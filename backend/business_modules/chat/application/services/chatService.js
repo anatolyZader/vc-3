@@ -1,59 +1,107 @@
 'use strict';
 /* eslint-disable no-unused-vars */
 const Conversation = require('../../domain/aggregates/conversation');
-const ConversationHistory = require('../../domain/entities/conversationsHistory');
-const Question = require('../../domain/entities/question');
-const Answer = require('../../domain/entities/answer');
+const ConversationsHistory = require('../../domain/entities/conversationsHistory');
+const IChatService = require('./interfaces/IChatService');
 
-class ChatService {
+class ChatService extends IChatService {
   constructor(chatPersistAdapter, chatMessagingAdapter) {
+    super();
     this.chatPersistAdapter = chatPersistAdapter;
     this.chatMessagingAdapter = chatMessagingAdapter;
+    this.topic = 'chat'; // dedicated topic for chat events
   }
 
   async startConversation(userId, title) {
     const conversation = new Conversation(userId);
-    await conversation.start(title, this.chatPersistAdapter);
-
-    await this.chatPersistAdapter.saveConversation(conversation.conversationId, userId, title);
-    await this.chatMessagingAdapter.startConversation(conversation.conversationId, userId, title);
+    await conversation.startConversation(title, this.chatPersistAdapter);
+    // Publish "conversationStarted" event
+    try {
+      await this.chatMessagingAdapter.publish(this.topic, {
+        event: 'conversationStarted',
+        userId,
+        conversationId: conversation.conversationId,
+        title
+      });
+    } catch (error) {
+      console.error('Error publishing conversationStarted event:', error);
+    }
     return conversation.conversationId;
   }
 
-  async fetchConversationHistory(userId) {
-    const conversationHistory = new ConversationHistory(userId);
-    return await conversationHistory.fetchConversationsList(this.chatPersistAdapter);
+  async fetchConversationsHistory(userId) {
+    const conversationsHistory = new ConversationsHistory(userId);
+    return await conversationsHistory.fetchConversationsList(this.chatPersistAdapter);
   }
 
   async fetchConversation(userId, conversationId) {
-    const conversationHistory = new ConversationHistory(userId);
-    
-    return await conversationHistory.fetchConversation(this.chatPersistAdapter);
+    const conversation = new Conversation(userId);
+    return await conversation.fetchConversation(conversationId, this.chatPersistAdapter);
   }
 
   async renameConversation(userId, conversationId, newTitle) {
     const conversation = new Conversation(userId);
     await conversation.rename(conversationId, newTitle, this.chatPersistAdapter);
+    // Publish "conversationRenamed" event
+    try {
+      await this.chatMessagingAdapter.publish(this.topic, {
+        event: 'conversationRenamed',
+        userId,
+        conversationId,
+        newTitle
+      });
+    } catch (error) {
+      console.error('Error publishing conversationRenamed event:', error);
+    }
   }
 
   async deleteConversation(userId, conversationId) {
-    const conversationHistory = new ConversationHistory(userId);
-    await conversationHistory.deleteConversation(conversationId, this.chatPersistAdapter);
+    const conversation = new Conversation(userId, conversationId);
+    await conversation.deleteConversation(this.chatPersistAdapter);
+    // Publish "conversationDeleted" event
+    try {
+      await this.chatMessagingAdapter.publish(this.topic, {
+        event: 'conversationDeleted',
+        userId,
+        conversationId
+      });
+    } catch (error) {
+      console.error('Error publishing conversationDeleted event:', error);
+    }
   }
 
   async sendQuestion(userId, conversationId, prompt) {
-    const question = new Question(prompt);
-    const conversation = new Conversation(conversationId);
-    await conversation.sendQuestion(question, this.chatPersistAdapter, this.chatMessagingAdapter);    
-    return question.questionId;
+    const conversation = new Conversation(userId, conversationId);
+    await conversation.sendQuestion(prompt, this.chatPersistAdapter, this.chatMessagingAdapter);
+    // Publish "questionSent" event
+    try {
+      await this.chatMessagingAdapter.publish(this.topic, {
+        event: 'questionSent',
+        userId,
+        conversationId,
+        prompt
+      });
+    } catch (error) {
+      console.error('Error publishing questionSent event:', error);
+    }
+    return prompt;
   }
 
-  async sendAnswer(userId, conversationId, content) {
-    const answer = new Answer(content);
-    const conversation = new Conversation(userId);
-    await conversation.sendAnswer(answer, this.chatPersistAdapter, this.chatMessagingAdapter);
-
-    return answer.answerId;
+  async sendAnswer(userId, conversationId, answer) {
+    const conversation = new Conversation(userId, conversationId);
+    await conversation.sendAnswer(answer, this.chatPersistAdapter);
+    // Publish "answerSent" event
+    try {
+      await this.chatMessagingAdapter.publish(this.topic, {
+        event: 'answerSent',
+        userId,
+        conversationId,
+        answer
+      });
+    } catch (error) {
+      console.error('Error publishing answerSent event:', error);
+    }
+    return answer;
   }
 }
 

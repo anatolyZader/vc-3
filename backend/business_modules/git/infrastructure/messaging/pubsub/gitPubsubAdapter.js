@@ -4,9 +4,10 @@
 const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
 const topic = 'git';
 
+
 const publish = async (topic, prompt) => {
   try {
-    // Get a reference to the topic. The topic name should match the one defined in GCP.
+    // Get a reference to the topic from GCP
     const topicRef = pubSubClient.topic(topic);
     const messageBuffer = Buffer.from(JSON.stringify(prompt));
     const messageId = await topicRef.publishMessage({ data: messageBuffer });
@@ -16,17 +17,29 @@ const publish = async (topic, prompt) => {
     console.error(`Error publishing to topic ${topic}:`, error);
     throw error;
   }
-}
+};
 
 class GitPubsubAdapter {
-    async sendQuestion(question) {
-        try {
-          publish(topic, question.prompt);
-        } catch (error) {
-          console.error(`Error publishing to topic ${topic}:`, error);
-          throw error;
-        }
-      }
+
+  async sendQuestion(prompt) {
+    try {
+      const messageId = await publish(topic, prompt);
+      return messageId;
+    } catch (error) {
+      console.error(`Error publishing to topic ${topic}:`, error);
+      throw error;
+    }
+  }
+
+  async analyzeRepository(prompt) {
+    try {
+      const messageId = await publish(topic, prompt);
+      return messageId;
+    } catch (error) {
+      console.error(`Error publishing analysis event to topic ${topic}:`, error);
+      throw error;
+    }
+  }
 
 }
 

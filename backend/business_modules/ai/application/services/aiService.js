@@ -20,14 +20,6 @@ class aiService extends IAIService{
     const aiResponse = new AIResponse(userId);
     const response = await aiResponse.respondToPrompt(conversationId, prompt, this.aiAIAdapter);
 
-    // Publish the AI prompt responded event.
-    // await this.aiMessagingAdapter.publish(pubsubTopics.AI_PROMPT_RESPONDED, {
-    //   conversationId: aiResponse.conversationId,
-    //   userId,
-    //   prompt,
-    //   response,
-    // });
-
     return response;
   }
 }

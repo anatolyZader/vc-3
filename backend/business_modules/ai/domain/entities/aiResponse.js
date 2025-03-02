@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 'use strict';
 
-const IAIRAIPort = require('../ports/IAIAIPort');
+const IAIAIPort = require('../ports/IAIAIPort');
 
 class AIResponse {
   constructor(userId) {

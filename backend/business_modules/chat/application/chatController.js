@@ -5,6 +5,7 @@
 const fp = require('fastify-plugin');
 
 async function chatController(fastify, options) {
+
   let chatService;
 
   try {
@@ -19,8 +20,8 @@ async function chatController(fastify, options) {
 
   // Start a new conversation
   fastify.decorate('startConversation', async function (request, reply) {
-    const { userId, title } = request.body;
-
+    const { id: userId } = request.user;
+    const { title } = request.body;
     try {
       const conversationId = await chatService.startConversation(userId, title);
       return reply.status(201).send({ message: 'Conversation started successfully', conversationId });
@@ -30,12 +31,11 @@ async function chatController(fastify, options) {
     }
   });
 
-  // Fetch conversation history
-  fastify.decorate('fetchConversationHistory', async function (request, reply) {
-    const { userId } = request.query;
-
+  // Fetch conversations history
+  fastify.decorate('fetchConversationsHistory', async function (request, reply) {
+    const { id: userId } = request.user;
     try {
-      const history = await chatService.fetchConversationHistory(userId);
+      const history = await chatService.fetchConversationsHistory(userId);
       return reply.status(200).send(history);
     } catch (error) {
       fastify.log.error('Error fetching conversation history:', error);
@@ -45,9 +45,8 @@ async function chatController(fastify, options) {
 
   // Fetch specific conversation
   fastify.decorate('fetchConversation', async function (request, reply) {
-    const { userId } = request.query;
+    const { id: userId } = request.user;
     const { conversationId } = request.params;
-
     try {
       const conversation = await chatService.fetchConversation(userId, conversationId);
       return reply.status(200).send(conversation);
@@ -59,8 +58,9 @@ async function chatController(fastify, options) {
 
   // Rename conversation
   fastify.decorate('renameConversation', async function (request, reply) {
+    const { id: userId } = request.user;
     const { conversationId } = request.params;
-    const { newTitle, userId } = request.body;
+    const { newTitle } = request.body;
 
     try {
       await chatService.renameConversation(userId, conversationId, newTitle);
@@ -73,8 +73,8 @@ async function chatController(fastify, options) {
 
   // Delete conversation
   fastify.decorate('deleteConversation', async function (request, reply) {
+    const { id: userId } = request.user;
     const { conversationId } = request.params;
-    const { userId } = request.body;
     try {
       await chatService.deleteConversation(userId, conversationId);
       return reply.status(200).send({ message: 'Conversation deleted successfully' });
@@ -86,8 +86,9 @@ async function chatController(fastify, options) {
 
   // send question
   fastify.decorate('sendQuestion', async function (request, reply) {
+    const { id: userId } = request.user;
     const { conversationId } = request.params;
-    const { userId, content, prompt } = request.body;
+    const { prompt } = request.body;
 
     try {
       const questionId = await chatService.sendQuestion(userId, conversationId, prompt);
@@ -100,11 +101,12 @@ async function chatController(fastify, options) {
 
   // send answer
   fastify.decorate('sendAnswer', async function (request, reply) {
+    const { id: userId } = request.user
     const { conversationId } = request.params;
-    const { userId, content } = request.body;
+    const { aiResponse } = request.body;
 
     try {
-      const answerId = await chatService.sendAnswer(userId, conversationId, content);
+      const answerId = await chatService.sendAnswer(userId, conversationId, aiResponse);
       return reply.status(200).send({ message: 'Answer sent successfully', answerId });
     } catch (error) {
       fastify.log.error('Error sending answer:', error);

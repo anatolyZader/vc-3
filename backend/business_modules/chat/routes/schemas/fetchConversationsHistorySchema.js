@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  "$id": "schema:chat:fetch-conversation-history",
+  "$id": "schema:chat:fetch-conversations-history",
   querystring: {
     type: 'object',
     required: ['userId'],

@@ -6,7 +6,7 @@ class IChatService {
     throw new Error("Method not implemented.");
   }
 
-  async fetchConversationHistory(userId) {
+  async fetchConversationsHistory(userId) {
     throw new Error("Method not implemented.");
   }
 

@@ -1,7 +1,7 @@
 // infrastructure/messaging/pubsub/aiPubsubAdapter.js
 'use strict';
 
-const pubSubClient = require('../../../../aop_modules/messaging/pubsub/pubsubClient');
+const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
 
 class aiPubsubAdapter {
   async publish(topic, payload) {

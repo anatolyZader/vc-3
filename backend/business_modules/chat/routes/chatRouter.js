@@ -6,7 +6,7 @@ const fp = require('fastify-plugin');
 module.exports = fp(async function chatRouter(fastify, opts) {
   console.log('chatRouter is loaded!');
 
-  // Route to start a new conversation
+  // start a new conversation
   fastify.route({
     method: 'POST',
     url: '/start',
@@ -14,15 +14,15 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     schema: fastify.getSchema('schema:chat:start-conversation'),
   });
 
-  // Route to fetch conversation history
+  // fetch conversations history
   fastify.route({
     method: 'GET',
     url: '/history',
-    handler: fastify.fetchConversationHistory,
-    schema: fastify.getSchema('schema:chat:fetch-conversation-history')
+    handler: fastify.fetchConversationsHistory,
+    schema: fastify.getSchema('schema:chat:fetch-conversations-history')
   });
 
-  // Route to fetch a specific conversation
+  // fetch a specific conversation
   fastify.route({
     method: 'GET',
     url: '/:conversationId',
@@ -30,7 +30,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     schema: fastify.getSchema('schema:chat:fetch-conversation')
   });
 
-  // Route to rename a conversation
+  // rename a conversation
   fastify.route({
     method: 'PATCH',
     url: '/:conversationId/rename',
@@ -38,7 +38,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     schema: fastify.getSchema('schema:chat:rename-conversation')
   });
 
-  // Route to delete a conversation
+  // delete a conversation
   fastify.route({
     method: 'DELETE',
     url: '/:conversationId',
@@ -46,7 +46,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     schema: fastify.getSchema('schema:chat:delete-conversation')
   });
 
-  // Route to send a question
+  // send a question
   fastify.route({
     method: 'POST',
     url: '/:conversationId/question',
@@ -54,7 +54,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     schema: fastify.getSchema('schema:chat:send-question')
   });
 
-  // [CHAT.JSX INTEGRATION] Added endpoint to send an answer.
+  // send an answer
   fastify.route({
     method: 'POST',
     url: '/:conversationId/answer',

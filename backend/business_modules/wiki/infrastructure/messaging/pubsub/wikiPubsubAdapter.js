@@ -1,12 +1,10 @@
-// infrastructure/messaging/pubsub/wikiPubsubAdapter.js
 'use strict';
 
 const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
 
-class wikiPubsubAdapter {
+class WikiPubsubAdapter {
   async publish(topic, payload) {
     try {
-
       const topicRef = pubSubClient.topic(topic);
       const messageBuffer = Buffer.from(JSON.stringify(payload));
       const messageId = await topicRef.publishMessage({ data: messageBuffer });
@@ -17,6 +15,11 @@ class wikiPubsubAdapter {
       throw error;
     }
   }
+
+  async analyzePage(payload) {
+    const topic = 'wiki'; // using the wiki topic for analysis events
+    return this.publish(topic, payload);
+  }
 }
 
-module.exports = wikiPubsubAdapter;
+module.exports = WikiPubsubAdapter;
