@@ -9,17 +9,20 @@ const AIResponse = require('../../domain/entities/aiResponse');
 
 class aiService extends IAIService{
 
-  constructor(aiAIAdapter, aiPersistAdapter, aiMessagingAdapter) {
+  constructor(aiAIAdapter, aiPersistAdapter, aiMessagingAdapter, aiGitAdapter, aiWikiAdapter) {
     super();
     this.aiAIAdapter = aiAIAdapter;
     this.aiPersistAdapter = aiPersistAdapter;
     this.aiMessagingAdapter = aiMessagingAdapter;
+    this.aiGitAdapter = aiGitAdapter;
+    this.aiWikiAdapter = aiWikiAdapter;
   }
 
-  async respondToPrompt(userId, conversationId, prompt) {
+  async respondToPrompt(userId, conversationId, prompt, repoId) {
+    const preFetchedRepo = await this.aiGitAdapter.fetchRepository(userId, repoId);
+    const preFetchedWiki = await this.aiWikiAdapter.fetchWiki(userId, repoId);
     const aiResponse = new AIResponse(userId);
-    const response = await aiResponse.respondToPrompt(conversationId, prompt, this.aiAIAdapter);
-
+    const response = await aiResponse.respondToPrompt(conversationId, prompt, userId, repoId, this.aiAIAdapter);
     return response;
   }
 }

@@ -1,30 +1,62 @@
 'use strict';
 
 const pubSubClient = require('../../../../aop_modules/messaging/pubsub/pubsubClient');
-const subscriptionName = 'ai-subscription'; // Ensure this subscription exists for the 'ai' topic in GCP
-const timeout = 60; // seconds
+const aiService = require('../../app/modules/ai_business_module/aiService');
+const subscriptionName = 'ai-subscription'; // Ensure this subscription exists in GCP
 
-// Event handler mapping for AI events.
 const eventHandlers = {
-  aiResponded: (payload) => {
-    console.log('Handling aiResponded event:', payload);
-    // Add custom processing logic for the AI response event here.
-  }
+  async questionSent(payload) {
+    console.log('Handling questionSent event:', payload);
+
+    const { userId, conversationId, prompt } = payload;
+
+    try {
+      await aiService.respondToPrompt(userId, conversationId, prompt, async (chunk) => {
+        const streamingPayload = {
+          event: 'aiStreamingChunk',
+          userId,
+          conversationId,
+          chunk,
+        };
+
+        await publishToPubSub('chat', streamingPayload);
+      });
+
+      // Notify when the response is fully processed
+      await publishToPubSub('chat', {
+        event: 'aiResponded',
+        userId,
+        conversationId,
+        complete: true,
+      });
+    } catch (error) {
+      console.error('Error handling AI response:', error);
+    }
+  },
 };
+
+async function publishToPubSub(topic, payload) {
+  try {
+    const topicRef = pubSubClient.topic(topic);
+    const messageBuffer = Buffer.from(JSON.stringify(payload));
+    await topicRef.publishMessage({ data: messageBuffer });
+    console.log(`Published streaming chunk to topic ${topic}`);
+  } catch (error) {
+    console.error(`Error publishing to topic ${topic}:`, error);
+  }
+}
 
 function listenForAiEvents() {
   const subscription = pubSubClient.subscription(subscriptionName);
 
-  const messageHandler = (message) => {
+  const messageHandler = async (message) => {
     console.log(`Received message ${message.id}`);
-    console.log(`Data: ${message.data}`);
-    console.log(`Attributes: ${JSON.stringify(message.attributes)}`);
     
     try {
       const payload = JSON.parse(message.data.toString());
       const handler = eventHandlers[payload.event];
       if (handler) {
-        handler(payload);
+        await handler(payload);
       } else {
         console.warn(`No handler for event: ${payload.event}`);
       }
@@ -37,13 +69,6 @@ function listenForAiEvents() {
 
   subscription.on('message', messageHandler);
   console.log(`Listening for messages on subscription: ${subscriptionName}...`);
-
-  // Optional: Stop listening after a timeout (for testing purposes).
-  setTimeout(() => {
-    subscription.removeListener('message', messageHandler);
-    console.log('Stopped listening for messages.');
-  }, timeout * 1000);
 }
 
-// Start listening for AI events.
 listenForAiEvents();

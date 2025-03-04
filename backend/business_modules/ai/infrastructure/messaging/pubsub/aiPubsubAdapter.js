@@ -6,7 +6,6 @@ const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsub
 class aiPubsubAdapter {
   async publish(topic, payload) {
     try {
-      // Get a reference to the topic. The topic name should match the one defined in GCP.
       const topicRef = pubSubClient.topic(topic);
       const messageBuffer = Buffer.from(JSON.stringify(payload));
       const messageId = await topicRef.publishMessage({ data: messageBuffer });
