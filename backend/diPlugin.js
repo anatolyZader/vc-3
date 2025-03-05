@@ -40,9 +40,9 @@ const ChecklistPostgresAdapter = require('./business_modules/checklist/infrastru
 const AIService = require('./business_modules/ai/application/services/aiService');
 const AIPostgresAdapter = require('./business_modules/ai/infrastructure/persistence/aiPostgresAdapter');
 const AILangchainAdapter = require('./business_modules/ai/infrastructure/ai/aiLangchainAdapter');
-const AIPubsubAdapter = require('./business_modules/ai/infrastructure/messaging/aiPubsubAdapter');
-
-
+const AIPubsubAdapter = require('./business_modules/ai/infrastructure/messaging/pubsub/aiPubsubAdapter');
+const AIGithubAdapter = require('./business_modules/ai/infrastructure/git/aiGithubAdapter');
+const AIGithubWikiAdapter = require('./business_modules/ai/infrastructure/wiki/aiGithubWikiAdapter');
 
 module.exports = fp(async function (fastify, opts) {
   try {
@@ -71,13 +71,18 @@ module.exports = fp(async function (fastify, opts) {
     gitGithubAdapter: asClass(GitGithubAdapter).scoped(),
     gitLangchainAdapter: asClass(GitLangchainAdapter).scoped(),
     gitPubsubAdapter: asClass(GitPubsubAdapter).scoped(),
+
     targetPostgresAdapter: asClass(TargetPostgresAdapter).scoped(),
     targetGithubAdapter: asClass(TargetGithubAdapter).scoped(),
     targetLangchainAdapter: asClass(TargetLangchainAdapter).scoped(),
     checklistPostgresAdapter: asClass(ChecklistPostgresAdapter).scoped(),
+
     aiPostgresAdapter: asClass(AIPostgresAdapter).scoped(),
     aiLangchainAdapter: asClass(AILangchainAdapter).scoped(),
     aiPubsubAdapter: asClass(AIPubsubAdapter).scoped(),
+    aiGithubAdapter: asClass(AIGithubAdapter).scoped(),
+    aiGithubWikiAdapter: asClass(AIGithubWikiAdapter).scoped(),
+
     // wikiPostgresAdapter: asClass(WikiPostgresAdapter).scoped(),
     wikiGithubAdapter: asClass(WikiGithubAdapter).scoped(),
     wikiLangchainAdapter: asClass(WikiLangchainAdapter).scoped(),
@@ -121,8 +126,11 @@ module.exports = fp(async function (fastify, opts) {
     targetGitAdapter: adapters[infraConfig.business_modules.target.targetGitAdapter],
     targetAIAdapter: adapters[infraConfig.business_modules.target.targetAIAdapter],
     checklistPersistAdapter: adapters[infraConfig.business_modules.checklist.checklistPersistAdapter],
+    
     aiAIAdapter: adapters[infraConfig.business_modules.ai.aiAIAdapter],
     aiPersistAdapter: adapters[infraConfig.business_modules.ai.aiPersistAdapter],
     aiMessagingAdapter: adapters[infraConfig.business_modules.ai.aiMessagingAdapter],
+    aiGitAdapter: adapters[infraConfig.business_modules.ai.aiGitAdapter],
+    aiWikiAdapter: adapters[infraConfig.business_modules.ai.aiWikiAdapter]
   });
 });

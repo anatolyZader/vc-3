@@ -3,7 +3,7 @@
 
 const IAIAIPort = require('../../domain/ports/IAIAIPort');
 const { OpenAIEmbeddings } = require('@langchain/openai');
-const { MemoryVectorStore } = require('langchain/vectorstores/memory');
+const { MemoryVectorStore } = require ("langchain/vectorstores/memory");
 const { RecursiveCharacterTextSplitter } = require('@langchain/textsplitters');
 const { ChatOpenAI } = require('@langchain/openai');
 // const { ChatPromptTemplate } = require('@langchain/core/prompts');

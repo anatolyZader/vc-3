@@ -39,7 +39,8 @@
       "aiPersistAdapter": "aiPostgresAdapter",
       "aiAIAdapter": "aiLangchainAdapter",
       "aiMessagingAdapter": "aiPubsubAdapter",
-      "aiGitAdapter": "aiGithubAdapter"
+      "aiGitAdapter": "aiGithubAdapter",
+      "aiWikiAdapter": "aiGithubWikiAdapter"
     },
     "messaging": {
       "messagingPersistAdapter": "messagingPostgresAdapter",

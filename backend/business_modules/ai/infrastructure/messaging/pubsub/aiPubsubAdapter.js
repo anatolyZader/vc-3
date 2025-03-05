@@ -3,7 +3,7 @@
 
 const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
 
-class aiPubsubAdapter {
+class AIPubsubAdapter {
   async publish(topic, payload) {
     try {
       const topicRef = pubSubClient.topic(topic);
@@ -18,4 +18,4 @@ class aiPubsubAdapter {
   }
 }
 
-module.exports = aiPubsubAdapter;
+module.exports = AIPubsubAdapter;

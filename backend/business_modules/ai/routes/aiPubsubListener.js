@@ -7,7 +7,7 @@ const subscriptionName = 'ai-sub'; // Ensure this subscription is set up in GCP
 const timeout = 60; // seconds
 
 // Import your service (or use dependency injection if available)
-const aiService = require('../../app/modules/ai_business_module/aiService');
+const aiService = require('../../s/business_modules/aiService');
 
 function listenForAiMessages() {
   const subscription = pubSubClient.subscription(subscriptionName);
