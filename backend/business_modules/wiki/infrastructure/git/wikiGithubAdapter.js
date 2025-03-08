@@ -1,6 +1,6 @@
+// WikiGithubAdapter.json
+/* eslint-disable no-unused-vars */
 'use strict';
-
-
 
 class WikiGithubAdapter {
   constructor(options = {}) {
@@ -18,7 +18,25 @@ class WikiGithubAdapter {
     };
   }
 
-  async fetchPage(pageId) {
+  async fetchWiki(userId, repoId) {
+    const path = `${this.wikiFolder}`;      
+    const url = `${this.apiBaseUrl}/repos/${this.owner}/${this.repo}/contents/${path}`;
+    const response = await fetch(url, { headers: this._getHeaders() });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch wiki: ${response.statusText}`);
+    }
+    const data = await response.json();
+    const pages = data.map(item => {
+      const pageId = item.name.replace('.md', '');      
+      return {
+        pageId,
+        title: item.name,
+      };
+    });
+    return pages;
+  }
+
+  async fetchPage(userId, repoId, pageId) {
     const path = `${this.wikiFolder}/${pageId}.md`;
     const url = `${this.apiBaseUrl}/repos/${this.owner}/${this.repo}/contents/${path}`;
     const response = await fetch(url, { headers: this._getHeaders() });

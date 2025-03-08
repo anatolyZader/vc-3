@@ -4,10 +4,10 @@ const removeRepositorySchema = {
   "$id": "schema:git:remove-repository",
   body: {
     type: 'object',
-    required: ['userId', 'repositoryId'],
+    required: ['userId', 'repoId'],
     properties: {
       userId: { type: 'string' },
-      repositoryId: { type: 'string' },
+      repoId: { type: 'string' },
     },
   },
   params: {

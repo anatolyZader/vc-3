@@ -21,7 +21,6 @@ const ChatPubsubAdapter = require('./business_modules/chat/infrastructure/messag
 const GitService = require('./business_modules/git/application/services/gitService');
 // const GitPostgresAdapter = require('./business_modules/git/infrastructure/persistence/gitPostgresAdapter');
 const GitGithubAdapter = require('./business_modules/git/infrastructure/git/gitGithubAdapter');
-const GitLangchainAdapter = require('./business_modules/git/infrastructure/ai/gitLangchainAdapter');
 const GitPubsubAdapter = require('./business_modules/git/infrastructure/messaging/pubsub/gitPubsubAdapter');
 
 const TargetService = require('./business_modules/target/application/services/targetService');
@@ -32,7 +31,6 @@ const TargetLangchainAdapter = require('./business_modules/target/infrastructure
 const WikiService = require('./business_modules/wiki/application/services/wikiService');
 // const WikiPostgresAdapter = require('./business_modules/wiki/infrastructure/persistence/wikiPostgresAdapter');
 const WikiGithubAdapter = require('./business_modules/wiki/infrastructure/git/wikiGithubAdapter');
-const WikiLangchainAdapter = require('./business_modules/wiki/infrastructure/ai/wikiLangchainAdapter');
 const WikiPubsubAdapter = require('./business_modules/wiki/infrastructure/messaging/pubsub/wikiPubsubAdapter');
 
 const ChecklistPostgresAdapter = require('./business_modules/checklist/infrastructure/persistence/checklistPostgresAdapter');
@@ -67,10 +65,10 @@ module.exports = fp(async function (fastify, opts) {
     authRedisAdapter: asClass(AuthRedisAdapter).singleton(),
     chatPostgresAdapter: asClass(ChatPostgresAdapter).scoped(),
     chatPubsubAdapter: asClass(ChatPubsubAdapter).scoped(),
-    // gitPostgresAdapter: asClass(GitPostgresAdapter).scoped(),
+
     gitGithubAdapter: asClass(GitGithubAdapter).scoped(),
-    gitLangchainAdapter: asClass(GitLangchainAdapter).scoped(),
     gitPubsubAdapter: asClass(GitPubsubAdapter).scoped(),
+
 
     targetPostgresAdapter: asClass(TargetPostgresAdapter).scoped(),
     targetGithubAdapter: asClass(TargetGithubAdapter).scoped(),
@@ -85,8 +83,7 @@ module.exports = fp(async function (fastify, opts) {
 
     // wikiPostgresAdapter: asClass(WikiPostgresAdapter).scoped(),
     wikiGithubAdapter: asClass(WikiGithubAdapter).scoped(),
-    wikiLangchainAdapter: asClass(WikiLangchainAdapter).scoped(),
-    wikiPubsubAdapter: asClass(WikiPubsubAdapter).scoped(),  
+    wikiPubsubAdapter: asClass(WikiPubsubAdapter).scoped()
   };
 
   await fastify.diContainer.register({
@@ -110,17 +107,17 @@ module.exports = fp(async function (fastify, opts) {
     }),
     userService: asClass(UserService),
     permService: asClass(PermService),
+
     // wikiPersistAdapter: adapters[infraConfig.business_modules.wiki.wikiPersistAdapter],
     wikiGitAdapter: adapters[infraConfig.business_modules.wiki.wikiGitAdapter],
-    wikiAIAdapter: adapters[infraConfig.business_modules.wiki.wikiAIAdapter],
     wikiMessagingAdapter: adapters[infraConfig.business_modules.wiki.wikiMessagingAdapter],
+
     authPersistAdapter: adapters[infraConfig.aop_modules.auth.authPersistAdapter],
     authInMemStorageAdapter: adapters[infraConfig.aop_modules.auth.authInMemStorageAdapter],
     chatPersistAdapter: adapters[infraConfig.business_modules.chat.chatPersistAdapter],
     chatMessagingAdapter: adapters[infraConfig.business_modules.chat.chatMessagingAdapter],
     // gitPersistAdapter: adapters[infraConfig.business_modules.git.gitPersistAdapter],
     gitGitAdapter: adapters[infraConfig.business_modules.git.gitGitAdapter],
-    gitAIAdapter: adapters[infraConfig.business_modules.git.gitAIAdapter],
     gitMessagingAdapter: adapters[infraConfig.business_modules.git.gitMessagingAdapter],
     targetPersistAdapter: adapters[infraConfig.business_modules.target.targetPersistAdapter],
     targetGitAdapter: adapters[infraConfig.business_modules.target.targetGitAdapter],

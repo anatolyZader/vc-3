@@ -15,7 +15,6 @@
     "git": {
       "gitPersistAdapter": "gitPostgresAdapter",
       "gitGitAdapter": "gitGithubAdapter",
-      "gitAIAdapter": "gitLangchainAdapter",
       "gitMessagingAdapter": "gitPubsubAdapter"
     },
     "target": {
@@ -30,8 +29,6 @@
       "checklistMessagingAdapter": "checklistPubsubAdapter"
     },
     "wiki": {
-      "wikiPersistAdapter": "wikiPostgresAdapter",
-      "wikiAIAdapter": "wikiLangchainAdapter",
       "wikiMessagingAdapter": "wikiPubsubAdapter",
       "wikiGitAdapter": "wikiGithubAdapter"
     },

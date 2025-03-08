@@ -4,6 +4,10 @@
 
 class IWikiService {
 
+  async fetchWiki(userId, repoId) {
+    throw new Error("Method not implemented.");
+  }
+
   async fetchPage(userId, pageId) {
     throw new Error("Method not implemented.");
   }

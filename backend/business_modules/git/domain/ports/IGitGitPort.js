@@ -10,7 +10,7 @@ class IGitGitPort {
   }
 
   // Fetches data for an existing repository.
-  async fetchRepository(userId, repositoryId) {
+  async fetchRepo(userId, repoId) {
     throw new Error('Method not implemented.');
   }
 

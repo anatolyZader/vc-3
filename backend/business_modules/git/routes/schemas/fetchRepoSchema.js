@@ -1,12 +1,12 @@
-// fetchRepositorySchema.js
+// fetchRepoSchema.js
 'use strict';
 module.exports = {
-  $id: 'schema:git:fetch-repository',
+  $id: 'schema:git:fetch-repo',
   params: {
     type: 'object',
-    required: ['repositoryId'],
+    required: ['repoId'],
     properties: {
-      repositoryId: {
+      repoId: {
         type: 'string',
         format: 'uuid',
       }

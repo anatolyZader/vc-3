@@ -16,6 +16,20 @@ async function wikiController(fastify, options) {
     );
   }
 
+  // Fetch the whole wiki
+  fastify.decorate('fetchWiki', async function (request, reply) {
+    const { id: userId } = request.user;
+    const {repo: repoId} = request.params;
+    try {
+      const wiki = await wikiService.fetchWiki(userId, repoId);
+      return reply.status(200).send(wiki);
+    } catch (error) {
+      fastify.log.error('Error fetching wiki:', error);
+      return reply.internalServerError('Failed to fetch wiki', { cause: error });
+    };
+  });
+    
+
   // Fetch a specific wiki page
   fastify.decorate('fetchPage', async function (request, reply) {
     const { id: userId } = request.user;

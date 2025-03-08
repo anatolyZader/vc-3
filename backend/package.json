@@ -11,7 +11,9 @@
     "lint": "eslint .",
     "dev": "sudo /home/totoro/.nvm/versions/node/v22.9.0/bin/npx fastify start app.js -p 443 -a 0.0.0.0 --https",
     "debug": "node --inspect-brk app.js",
-    "start": "NODE_DEBUG=fastify,node-fastify,node fastify start server.js -l trace | pino-pretty --translateTime 'SYS:standard' --colorize"
+    "start": "NODE_DEBUG=fastify,node-fastify node --watch ./node_modules/fastify-cli/cli.js start server.js -l trace | pino-pretty --translateTime 'SYS:standard' --colorize"
+
+
   },
   "keywords": [],
   "author": "",

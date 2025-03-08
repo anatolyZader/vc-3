@@ -16,8 +16,7 @@ module.exports = fp(async function gitSchemasPlugin(fastify, opts) {
     { id: 'schema:git:delete-project', path: '../routes/schemas/deleteProjectSchema.js' },
     { id: 'schema:git:add-repository', path: '../routes/schemas/addRepositorySchema.js' },
     { id: 'schema:git:remove-repository', path: '../routes/schemas/removeRepositorySchema.js' },
-    { id: 'schema:git:fetch-repository', path: '../routes/schemas/fetchRepositorySchema.js' },
-    { id: 'schema:git:analyze-repository', path: '../routes/schemas/analyzeRepositorySchema.js' },
+    { id: 'schema:git:fetch-repository', path: '../routes/schemas/fetchRepoSchema.js' },
   ];
 
   schemas.forEach(({ id, path }) => {

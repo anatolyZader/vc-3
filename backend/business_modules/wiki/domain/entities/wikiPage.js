@@ -10,15 +10,9 @@ class WikiPage {
     this.userId = userId;
   }
 
-  async fetchPage(pageId, IWikiGitPort) { 
-  const page = await IWikiGitPort.fetchPage(this.userId, pageId); 
+  async fetchPage(repoId, pageId, IWikiGitPort) { 
+  const page = await IWikiGitPort.fetchPage(this.userId, repoId, pageId); 
   return page;
-  }
-
-  async analyzePage(pageId, IWikiAIPort, IWikiGitPort) {
-    const pageData = await IWikiGitPort.fetchPage(pageId);
-    const analysisResult = await IWikiAIPort.analyzePage(pageData);
-    return analysisResult;
   }
 
   async createPage(pageTitle, IWikiGitPort) {

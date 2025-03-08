@@ -31,7 +31,7 @@ class GitPubsubAdapter {
     }
   }
 
-  async analyzeRepository(prompt) {
+  async analyzeRepo(prompt) {
     try {
       const messageId = await publish(topic, prompt);
       return messageId;

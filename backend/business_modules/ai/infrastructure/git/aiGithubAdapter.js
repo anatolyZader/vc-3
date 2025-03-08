@@ -17,7 +17,7 @@ class AIGithubAdapter {
     };
   }
 
-  async fetchRepository(repoId) {
+  async fetchRepo(userId, repoId) {
   console.log("fetching repo via git module");
   }
 

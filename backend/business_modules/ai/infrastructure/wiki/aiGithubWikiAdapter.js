@@ -6,7 +6,7 @@ class AIGithubWikiAdapter {
   constructor() {
   }
 
-  async fetchWiki() {
+  async fetchWiki(userId, repoId) {
   console.log("fetching wiki via wiki module");
   }
 

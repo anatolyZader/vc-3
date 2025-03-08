@@ -22,9 +22,9 @@ const addRepositorySchema = {
       type: 'object',
       properties: {
         message: { type: 'string' },
-        repositoryId: { type: 'string' },
+        repoId: { type: 'string' },
       },
-      required: ['message', 'repositoryId'],
+      required: ['message', 'repoId'],
     },
   }
 };

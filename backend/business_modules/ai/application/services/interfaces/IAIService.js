@@ -8,7 +8,7 @@ class IAIService {
     }
   }
 
-  async respondToPrompt(userId, conversationId, prompt, repoId) {
+  async respondToPrompt(userId, conversationId, repoId, prompt) {
     throw new Error('Method not implemented.');
   }
 }

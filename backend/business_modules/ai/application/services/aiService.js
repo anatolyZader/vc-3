@@ -18,11 +18,11 @@ class AIService extends IAIService{
     this.aiWikiAdapter = aiWikiAdapter;
   }
 
-  async respondToPrompt(userId, conversationId, prompt, repoId) {
-    const preFetchedRepo = await this.aiGitAdapter.fetchRepository(userId, repoId);
-    const preFetchedWiki = await this.aiWikiAdapter.fetchWiki();
+  async respondToPrompt(userId, conversationId,repoId, prompt) {
+    const preFetchedRepo = await this.aiGitAdapter.fetchRepo(userId, repoId);
+    const preFetchedWiki = await this.aiWikiAdapter.fetchWiki(userId, repoId);
     const aiResponse = new AIResponse(userId);
-    const response = await aiResponse.respondToPrompt(conversationId, prompt, userId, repoId, this.aiAIAdapter);
+    const response = await aiResponse.respondToPrompt(conversationId, prompt, preFetchedRepo, preFetchedWiki, this.aiAIAdapter);
     return response;
   }
 }

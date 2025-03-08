@@ -8,13 +8,10 @@ class IGitService {
     }
   }
 
-  async fetchRepository(repositoryId, IGitGitPort) {
+  async fetchRepo(userId, repoId) {
     throw new Error('Method not implemented.');
   }
 
-  async analyzeRepository(repositoryId, IGitAIPort) {
-    throw new Error('Method not implemented.');
-  }
 }
 
 module.exports = IGitService;

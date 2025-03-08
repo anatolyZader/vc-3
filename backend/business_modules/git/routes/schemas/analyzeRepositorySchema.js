@@ -1,13 +1,13 @@
-// analyzeRepositorySchema.js
+// analyzeRepoSchema.js
 'use strict';
 
 module.exports = {
   $id: 'schema:git:analyze-repository',
   params: {
     type: 'object',
-    required: ['repositoryId'],
+    required: ['repoId'],
     properties: {
-      repositoryId: {
+      repoId: {
         type: 'string',
         format: 'uuid',
       }

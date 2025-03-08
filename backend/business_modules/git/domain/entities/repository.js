@@ -6,17 +6,12 @@ class Repository {
     this.userId = userId;
   }
 
-  async fetchRepository(repositoryId, IGitGitPort) {
-    const data = await IGitGitPort.fetchRepository(this.userId, repositoryId);
-    console.log(`Repository fetched: ${repositoryId}`);
+  async fetchRepo(repoId, IGitGitPort) {
+    const data = await IGitGitPort.fetchRepo(this.userId, repoId);
+    console.log(`Repository fetched: ${repoId}`);
     return data; 
   }
 
-  async analyzeRepository(repositoryId, IGitAIPort) {
-    const analysisResult = await IGitAIPort.analyzeRepository(this.userId, repositoryId);
-    console.log(`Repository analyzed: ${repositoryId}`);
-    return analysisResult;
-  }
 }
 
 module.exports = Repository;

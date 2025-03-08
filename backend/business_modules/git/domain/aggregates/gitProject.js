@@ -27,20 +27,20 @@ class GitProject {
     console.log(`GitProject renamed to: ${this.title}`);
   }
 
-  async addRepository(repositoryId, gitPersistPort) {
+  async addRepository(repoId, gitPersistPort) {
     // Update in-memory
-    if (!this.repositories.includes(repositoryId)) {
-      this.repositories.push(repositoryId);
+    if (!this.repositories.includes(repoId)) {
+      this.repositories.push(repoId);
     }
     // Persist relationship
-    await gitPersistPort.addRepositoryToProject(this.projectId, repositoryId);
-    console.log(`Repository ${repositoryId} added to project ${this.projectId}`);
+    await gitPersistPort.addRepositoryToProject(this.projectId, repoId);
+    console.log(`Repository ${repoId} added to project ${this.projectId}`);
   }
 
-  async removeRepository(repositoryId, gitPersistPort) {
-    this.repositories = this.repositories.filter(id => id !== repositoryId);
-    await gitPersistPort.removeRepositoryFromProject(this.projectId, repositoryId);
-    console.log(`Repository ${repositoryId} removed from project ${this.projectId}`);
+  async removeRepository(repoId, gitPersistPort) {
+    this.repositories = this.repositories.filter(id => id !== repoId);
+    await gitPersistPort.removeRepositoryFromProject(this.projectId, repoId);
+    console.log(`Repository ${repoId} removed from project ${this.projectId}`);
   }
 }
 

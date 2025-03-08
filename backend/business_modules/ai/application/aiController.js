@@ -5,6 +5,7 @@
 const fp = require('fastify-plugin');
 
 async function aiController(fastify, options) {
+
   let aiService;
 
   try {
@@ -17,15 +18,13 @@ async function aiController(fastify, options) {
     );
   }
 
-  fastify.decorate('respondToPrompt', async (request, reply) => {
-    const { id: userId } = request.user;
-    const { conversationId, prompt } = request.body;
+  fastify.decorate('respondToPrompt', async (userId, conversationId, repoId, prompt) => {
     try {
-      const response = await aiService.respondToPrompt(userId, conversationId, prompt);
-      return reply.status(200).send({ response });
+      const response = await aiService.respondToPrompt(userId, conversationId,repoId, prompt);
+      return response;
     } catch (error) {
       fastify.log.error('Error responding to prompt:', error);
-      return reply.internalServerError('Failed to respond to prompt', { cause: error });
+      throw fastify.httpErrors.internalServerError('Failed to respond to prompt', { cause: error });
     }
   });
 }

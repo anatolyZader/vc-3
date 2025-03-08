@@ -15,11 +15,11 @@ async function gitController(fastify, options) {
     );
   }
 
-  fastify.decorate('fetchRepository', async function (request, reply) {
+  fastify.decorate('fetchRepo', async function (request, reply) {
     const { id: userId } = request.user;
-    const { repositoryId } = request.params;
+    const { repoId } = request.params;
     try {
-      const repository = await gitService.fetchRepository(userId, repositoryId);
+      const repository = await gitService.fetchRepo(userId, repoId);
       return reply.status(200).send(repository);
     } catch (error) {
       fastify.log.error('Error fetching repository:', error);
@@ -27,20 +27,6 @@ async function gitController(fastify, options) {
     }
   });
 
-  fastify.decorate('analyzeRepository', async function (request, reply) {
-    const { id: userId } = request.user;
-    const { repositoryId } = request.params;
-    try {
-      const analysis = await gitService.analyzeRepository(userId, repositoryId);
-      return reply.status(200).send({
-        message: 'Repository analyzed successfully',
-        analysis
-      });
-    } catch (error) {
-      fastify.log.error('Error analyzing repository:', error);
-      return reply.internalServerError('Failed to analyze repository', { cause: error });
-    }
-  });
 
 }
 

@@ -10,8 +10,8 @@ class GitGithubAdapter extends IGitGitPort {
     this.apiBaseUrl = 'https://api.github.com';
   }
 
-  async fetchRepository(userId, repositoryId) {
-    const url = `${this.apiBaseUrl}/repos/${repositoryId}`;
+  async fetchRepo(userId, repoId) {
+    const url = `${this.apiBaseUrl}/repos/${repoId}`;
     const headers = {
       'Accept': 'application/vnd.github.v3+json'
     };
@@ -27,10 +27,10 @@ class GitGithubAdapter extends IGitGitPort {
         throw new Error(`HTTP ${response.status} - ${errorMessage}`);
       }
       const data = await response.json();
-      console.log(`Repository fetched: ${repositoryId}`);
+      console.log(`Repository fetched: ${repoId}`);
       return data;
     } catch (error) {
-      console.error(`Error fetching repository ${repositoryId}:`, error.message);
+      console.error(`Error fetching repository ${repoId}:`, error.message);
       throw error;
     }
   }
