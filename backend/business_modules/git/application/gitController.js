@@ -15,19 +15,15 @@ async function gitController(fastify, options) {
     );
   }
 
-  fastify.decorate('fetchRepo', async function (request, reply) {
-    const { id: userId } = request.user;
-    const { repoId } = request.params;
+  fastify.decorate('fetchRepo', async (userId, repoId) => {
     try {
       const repository = await gitService.fetchRepo(userId, repoId);
-      return reply.status(200).send(repository);
+      return repository;
     } catch (error) {
       fastify.log.error('Error fetching repository:', error);
-      return reply.internalServerError('Failed to fetch repository', { cause: error });
+      throw fastify.httpErrors.internalServerError('Failed to fetch repository', { cause: error });
     }
   });
-
-
 }
 
 module.exports = fp(gitController);

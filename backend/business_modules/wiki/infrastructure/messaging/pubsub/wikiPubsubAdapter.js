@@ -1,24 +1,31 @@
 'use strict';
 
-const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
+const pubSubClient = require('../../../aop_modules/messaging/pubsub/pubsubClient');
 
 class WikiPubsubAdapter {
-  async publish(topic, payload) {
-    try {
-      const topicRef = pubSubClient.topic(topic);
-      const messageBuffer = Buffer.from(JSON.stringify(payload));
-      const messageId = await topicRef.publishMessage({ data: messageBuffer });
-      console.log(`Message ${messageId} published to topic ${topic}`);
-      return messageId;
-    } catch (error) {
-      console.error(`Error publishing to topic ${topic}:`, error);
-      throw error;
-    }
+  constructor() {
+    this.topicName = 'wiki-topic'; // dedicated topic for wiki events
   }
 
-  async analyzePage(payload) {
-    const topic = 'wiki'; // using the wiki topic for analysis events
-    return this.publish(topic, payload);
+  async publishEvent(eventPayload) {
+    // Build event object including an event name.
+    const event = {
+      event: 'wikiEvent',
+      ...eventPayload
+    };
+    const dataBuffer = Buffer.from(JSON.stringify(event));
+    try {
+      const topic = pubSubClient.topic(this.topicName);
+      // Use the new publishMessage signature
+      const messageId = await topic.publishMessage({
+        data: dataBuffer
+      });
+      console.log(`Published wiki event with message ID: ${messageId}`);
+      return messageId;
+    } catch (error) {
+      console.error('Error publishing wiki event:', error);
+      throw error;
+    }
   }
 }
 

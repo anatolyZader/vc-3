@@ -8,7 +8,6 @@ const { ChatOpenAI } = require('@langchain/openai');
 const { StateGraph, Annotation } = require('@langchain/langgraph');
 const { pull } = require('langchain/hub');
 const fs = require('fs').promises;
-const wsPlugin = require('../../../../aop_modules/ws/wsPlugin');
 
 class AILangchainAdapter extends IAIAIPort {
   constructor() {
@@ -16,19 +15,6 @@ class AILangchainAdapter extends IAIAIPort {
     this.embeddings = new OpenAIEmbeddings({ model: 'text-embedding-3-large' });
     this.vectorStore = new MemoryVectorStore(this.embeddings);
     this.llm = new ChatOpenAI({ modelName: 'gpt-4', temperature: 0 });
-
-    // Initialize the WebSocket server and register the AI message handler.
-    wsPlugin.createWSServer(8080);
-    wsPlugin.registerHandler(async (message, ws) => {
-      try {
-        const { userId, conversationId, prompt, repoFilePath, wikiFilePath } = JSON.parse(message);
-        const response = await this.respondToPrompt(userId, conversationId, prompt, repoFilePath, wikiFilePath);
-        ws.send(JSON.stringify({ conversationId, response }));
-      } catch (error) {
-        console.error('WebSocket error:', error);
-        ws.send(JSON.stringify({ error: 'Failed to process message' }));
-      }
-    });
   }
 
   async respondToPrompt(userId, conversationId, prompt, preFetchedRepo, preFetchedWiki) {

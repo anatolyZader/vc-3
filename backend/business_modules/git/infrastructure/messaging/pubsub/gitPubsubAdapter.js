@@ -1,46 +1,28 @@
-// gitPubsubAdapter.js
 'use strict';
 
 const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
-const topic = 'git';
-
-
-const publish = async (topic, prompt) => {
-  try {
-    // Get a reference to the topic from GCP
-    const topicRef = pubSubClient.topic(topic);
-    const messageBuffer = Buffer.from(JSON.stringify(prompt));
-    const messageId = await topicRef.publishMessage({ data: messageBuffer });
-    console.log(`Message ${messageId} published to topic ${topic}`);
-    return messageId;
-  } catch (error) {
-    console.error(`Error publishing to topic ${topic}:`, error);
-    throw error;
-  }
-};
 
 class GitPubsubAdapter {
+  constructor() {
+    this.topicName = 'git-topic'; 
+  }
 
-  async addQuestion(prompt) {
+  async publishEvent(eventPayload) {
+    const event = {
+      event: 'repositoryFetched',
+      ...eventPayload
+    };
+    const dataBuffer = Buffer.from(JSON.stringify(event));
     try {
-      const messageId = await publish(topic, prompt);
+      const topic = pubSubClient.topic(this.topicName);
+      const messageId = await topic.publishMessage({ data: dataBuffer });
+      console.log(`Published git event with message ID: ${messageId}`);
       return messageId;
     } catch (error) {
-      console.error(`Error publishing to topic ${topic}:`, error);
+      console.error('Error publishing git event:', error);
       throw error;
     }
   }
-
-  async analyzeRepo(prompt) {
-    try {
-      const messageId = await publish(topic, prompt);
-      return messageId;
-    } catch (error) {
-      console.error(`Error publishing analysis event to topic ${topic}:`, error);
-      throw error;
-    }
-  }
-
 }
 
 module.exports = GitPubsubAdapter;
