@@ -8,7 +8,7 @@ class IChatPersistPort {
     }
   }
 
-  async startConversation(userId, title) {
+  async startConversation(userId) {
     throw new Error('Method not implemented.');
   }
 
@@ -28,7 +28,7 @@ class IChatPersistPort {
     throw new Error('Method not implemented.');
   }
 
-  async sendQuestion(userId, conversationId, prompt) {
+  async addQuestion(userId, conversationId, prompt) {
     throw new Error('Method not implemented.');
   }
 
@@ -36,7 +36,7 @@ class IChatPersistPort {
     throw new Error('Method not implemented.');
   }
 
-  async sendAnswer(userId, conversationId, answer) {
+  async addAnswer(userId, conversationId, answer) {
     throw new Error('Method not implemented.');
   }
 }

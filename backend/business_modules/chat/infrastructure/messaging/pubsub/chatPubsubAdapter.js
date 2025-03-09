@@ -47,7 +47,7 @@ class ChatPubsubAdapter {
     }
   }
 
-  async sendQuestion(payload) {
+  async addQuestion(payload) {
     try {
       return await publish(topic, payload);
     } catch (error) {
@@ -56,7 +56,7 @@ class ChatPubsubAdapter {
     }
   }
 
-  async sendAnswer(payload) {
+  async addAnswer(payload) {
     try {
       return await publish(topic, payload);
     } catch (error) {

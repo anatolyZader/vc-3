@@ -1,3 +1,4 @@
+// promptContent.js
 'use strict';
 
 class PromptContent {

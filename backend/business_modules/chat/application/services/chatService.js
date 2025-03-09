@@ -1,3 +1,4 @@
+// chatService.js
 'use strict';
 /* eslint-disable no-unused-vars */
 const Conversation = require('../../domain/aggregates/conversation');
@@ -12,26 +13,15 @@ class ChatService extends IChatService {
     this.topic = 'chat'; // dedicated topic for chat events
   }
 
-  async startConversation(userId, title) {
+  async startConversation(userId) {
     const conversation = new Conversation(userId);
-    await conversation.startConversation(title, this.chatPersistAdapter);
-    // Publish "conversationStarted" event
-    try {
-      await this.chatMessagingAdapter.publish(this.topic, {
-        event: 'conversationStarted',
-        userId,
-        conversationId: conversation.conversationId,
-        title
-      });
-    } catch (error) {
-      console.error('Error publishing conversationStarted event:', error);
-    }
+    await conversation.startConversation( this.chatPersistAdapter);
     return conversation.conversationId;
   }
 
   async fetchConversationsHistory(userId) {
     const conversationsHistory = new ConversationsHistory(userId);
-    return await conversationsHistory.fetchConversationsList(this.chatPersistAdapter);
+    return await conversationsHistory.fetchConversationsHistory(this.chatPersistAdapter);
   }
 
   async fetchConversation(userId, conversationId) {
@@ -41,66 +31,23 @@ class ChatService extends IChatService {
 
   async renameConversation(userId, conversationId, newTitle) {
     const conversation = new Conversation(userId);
-    await conversation.rename(conversationId, newTitle, this.chatPersistAdapter);
-    // Publish "conversationRenamed" event
-    try {
-      await this.chatMessagingAdapter.publish(this.topic, {
-        event: 'conversationRenamed',
-        userId,
-        conversationId,
-        newTitle
-      });
-    } catch (error) {
-      console.error('Error publishing conversationRenamed event:', error);
-    }
-  }
+    await conversation.renameConversation(conversationId, newTitle, this.chatPersistAdapter);
+  };
 
   async deleteConversation(userId, conversationId) {
-    const conversation = new Conversation(userId, conversationId);
-    await conversation.deleteConversation(this.chatPersistAdapter);
-    // Publish "conversationDeleted" event
-    try {
-      await this.chatMessagingAdapter.publish(this.topic, {
-        event: 'conversationDeleted',
-        userId,
-        conversationId
-      });
-    } catch (error) {
-      console.error('Error publishing conversationDeleted event:', error);
-    }
+    const conversation = new Conversation(userId);
+    await conversation.deleteConversation(conversationId, this.chatPersistAdapter);
   }
 
-  async sendQuestion(userId, conversationId, prompt) {
-    const conversation = new Conversation(userId, conversationId);
-    await conversation.sendQuestion(prompt, this.chatPersistAdapter, this.chatMessagingAdapter);
-    // Publish "questionSent" event
-    try {
-      await this.chatMessagingAdapter.publish(this.topic, {
-        event: 'questionSent',
-        userId,
-        conversationId,
-        prompt
-      });
-    } catch (error) {
-      console.error('Error publishing questionSent event:', error);
-    }
+  async addQuestion(userId, conversationId, prompt) {
+    const conversation = new Conversation(userId);
+    await conversation.addQuestion(conversationId, prompt, this.chatPersistAdapter);
     return prompt;
   }
 
-  async sendAnswer(userId, conversationId, answer) {
+  async addAnswer(userId, conversationId, answer) {
     const conversation = new Conversation(userId, conversationId);
-    await conversation.sendAnswer(answer, this.chatPersistAdapter);
-    // Publish "answerSent" event
-    try {
-      await this.chatMessagingAdapter.publish(this.topic, {
-        event: 'answerSent',
-        userId,
-        conversationId,
-        answer
-      });
-    } catch (error) {
-      console.error('Error publishing answerSent event:', error);
-    }
+    await conversation.addAnswer(conversationId, answer, this.chatPersistAdapter);
     return answer;
   }
 }

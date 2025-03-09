@@ -19,7 +19,7 @@ class GitService extends IGitService {
 
     // // Publish a "repositoryFetched" event
     // try {
-    //   await this.gitMessagingAdapter.sendQuestion({
+    //   await this.gitMessagingAdapter.addQuestion({
     //     prompt: {
     //       event: 'repositoryFetched',
     //       userId,

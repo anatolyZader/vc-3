@@ -9,7 +9,7 @@ class IChatMessagingPort {
     }
   }
   
-  async sendQuestion(question) {
+  async addQuestion(question) {
     throw new Error('Method not implemented.');
   }
 }

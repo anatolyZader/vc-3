@@ -23,7 +23,7 @@ async function chatController(fastify, options) {
     const { id: userId } = request.user;
     const { title } = request.body;
     try {
-      const conversationId = await chatService.startConversation(userId, title);
+      const conversationId = await chatService.startConversation(userId);
       return reply.status(201).send({ message: 'Conversation started successfully', conversationId });
     } catch (error) {
       fastify.log.error('Error starting conversation:', error);
@@ -85,13 +85,13 @@ async function chatController(fastify, options) {
   });
 
   // send question
-  fastify.decorate('sendQuestion', async function (request, reply) {
+  fastify.decorate('addQuestion', async function (request, reply) {
     const { id: userId } = request.user;
     const { conversationId } = request.params;
     const { prompt } = request.body;
 
     try {
-      const questionId = await chatService.sendQuestion(userId, conversationId, prompt);
+      const questionId = await chatService.addQuestion(userId, conversationId, prompt);
       return reply.status(200).send({ message: 'Question sent successfully', questionId });
     } catch (error) {
       fastify.log.error('Error sending question:', error);
@@ -100,13 +100,13 @@ async function chatController(fastify, options) {
   });
 
   // send answer
-  fastify.decorate('sendAnswer', async function (request, reply) {
+  fastify.decorate('addAnswer', async function (request, reply) {
     const { id: userId } = request.user
     const { conversationId } = request.params;
     const { aiResponse } = request.body;
 
     try {
-      const answerId = await chatService.sendAnswer(userId, conversationId, aiResponse);
+      const answerId = await chatService.addAnswer(userId, conversationId, aiResponse);
       return reply.status(200).send({ message: 'Answer sent successfully', answerId });
     } catch (error) {
       fastify.log.error('Error sending answer:', error);

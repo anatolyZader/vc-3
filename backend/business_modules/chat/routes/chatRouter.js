@@ -1,3 +1,4 @@
+// chatRouter.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -22,7 +23,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     schema: fastify.getSchema('schema:chat:fetch-conversations-history')
   });
 
-  // fetch a specific conversation
+  // fetch specific conversation
   fastify.route({
     method: 'GET',
     url: '/:conversationId',
@@ -50,7 +51,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'POST',
     url: '/:conversationId/question',
-    handler: fastify.sendQuestion,
+    handler: fastify.addQuestion,
     schema: fastify.getSchema('schema:chat:send-question')
   });
 
@@ -58,7 +59,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'POST',
     url: '/:conversationId/answer',
-    handler: fastify.sendAnswer,
+    handler: fastify.addAnswer,
     schema: fastify.getSchema('schema:chat:send-answer')
   });
 });

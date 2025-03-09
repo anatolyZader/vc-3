@@ -17,29 +17,12 @@ class ChatPostgresAdapter extends IChatPersistPort {
     });
   }
 
-  async startConversation(userId, title) {
+  async startConversation(userId) {
     const client = await this.pool.connect();
  
       console.log(`Starting conversation`);
     }
 
-  async saveConversation(conversationId, userId, title) {
-    const client = await this.pool.connect();
-    try {
-      await client.query(
-        `INSERT INTO conversations (id, user_id, title, start_date)
-         VALUES ($1, $2, $3, NOW())
-         ON CONFLICT (id) DO NOTHING`,
-        [conversationId, userId, title]
-      );
-      console.log(`Saved conversation ${conversationId} for user ${userId}`);
-    } catch (error) {
-      console.error('Error saving conversation:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
 
   async fetchConversationsHistory(userId) {
     const client = await this.pool.connect();
@@ -91,27 +74,9 @@ class ChatPostgresAdapter extends IChatPersistPort {
     }
   }
 
-  async sendQuestion(userId, conversationId, prompt) {
+  async addQuestion(userId, conversationId, prompt) {
     const client = await this.pool.connect();
     console.log(`Sending question`);
-  }
-
-  async editQuestion(questionId, newContent) {
-    const client = await this.pool.connect();
-    try {
-      await client.query(
-        `UPDATE questions
-         SET prompt = $1, timestamp = NOW()
-         WHERE id = $2`,
-        [newContent.toString(), questionId]
-      );
-      console.log(`Edited question ${questionId} with new content: ${newContent.toString()}`);
-    } catch (error) {
-      console.error('Error editing question:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
   }
 
   async searchInConversations(userId, query) {
@@ -134,7 +99,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
   }
 
 
-  async sendAnswer(userId, conversationId, answer) {
+  async addAnswer(userId, conversationId, answer) {
     const client = await this.pool.connect();
     try {
       const answerId = answer.answerId; // Domain answer entity already has an ID
@@ -156,23 +121,23 @@ class ChatPostgresAdapter extends IChatPersistPort {
     }
   }
 
-  async shareConversation(conversationId) {
-    const client = await this.pool.connect();
-    try {
-      await client.query(
-        `UPDATE conversations
-         SET shared = TRUE
-         WHERE id = $1`,
-        [conversationId]
-      );
-      console.log(`Marked conversation ${conversationId} as shared.`);
-    } catch (error) {
-      console.error('Error sharing conversation:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
+  // async shareConversation(conversationId) {
+  //   const client = await this.pool.connect();
+  //   try {
+  //     await client.query(
+  //       `UPDATE conversations
+  //        SET shared = TRUE
+  //        WHERE id = $1`,
+  //       [conversationId]
+  //     );
+  //     console.log(`Marked conversation ${conversationId} as shared.`);
+  //   } catch (error) {
+  //     console.error('Error sharing conversation:', error);
+  //     throw error;
+  //   } finally {
+  //     client.release();
+  //   }
+  // }
 }
 
 module.exports = ChatPostgresAdapter;

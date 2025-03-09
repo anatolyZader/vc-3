@@ -14,8 +14,8 @@ class Conversation {
     this.conversationId = conversationId || uuidv4();
   }
 
-  async startConversation(title,vIChatPersistPort) {
-    await IChatPersistPort.startConversation(this.userId, title);
+  async startConversation(IChatPersistPort) {
+    await IChatPersistPort.startConversation(this.userId);
     console.log(`Conversation  started for user ${this.userId}.`);
   }
 
@@ -24,25 +24,25 @@ class Conversation {
     return conversation;
   }
 
-  async renameConversation(newTitle, IChatPersistPort) {
+  async renameConversation(conversationId,newTitle, IChatPersistPort) {
     this.title = new ConversationTitle(newTitle);
-    await IChatPersistPort.renameConversation(this.conversationId, this.title.toString());
+    await IChatPersistPort.renameConversation(this.userId, conversationId ,newTitle);
     console.log(`Conversation renamed to: ${this.title}`);
   }
 
-  async deleteConversation(IChatPersistPort) {
-    await IChatPersistPort.deleteConversation(this.conversationId, IChatPersistPort);
+  async deleteConversation(conversationId, IChatPersistPort) {
+    await IChatPersistPort.deleteConversation(this.userId, conversationId);
     console.log(`Conversation deleted: ${this.conversationId}`);
   }
 
-  async sendQuestion(prompt, IChatPersistPort) {
-    await IChatPersistPort.saveQuestion(prompt);
-    await IChatMessagingPort.sendQuestion(prompt);
+  async addQuestion(conversationId, prompt, IChatPersistPort) {
+    await IChatPersistPort.addQuestion(this.userId, conversationId, prompt);
+    // await IChatMessagingPort.addQuestion(prompt);
     console.log(`Question sent: ${prompt}`);
   }
 
-  async sendAnswer(answer, IChatPersistPort) {
-    await IChatPersistPort.saveAnswer(answer);
+  async addAnswer(conversationId, answer, IChatPersistPort) {
+    await IChatPersistPort.addAnswer(answer);
     console.log(`Answer sent: ${answer.content}`);
   }
 

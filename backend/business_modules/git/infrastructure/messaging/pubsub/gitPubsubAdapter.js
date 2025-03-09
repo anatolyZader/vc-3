@@ -21,7 +21,7 @@ const publish = async (topic, prompt) => {
 
 class GitPubsubAdapter {
 
-  async sendQuestion(prompt) {
+  async addQuestion(prompt) {
     try {
       const messageId = await publish(topic, prompt);
       return messageId;
