@@ -42,6 +42,7 @@ class ChatService extends IChatService {
   async addQuestion(userId, conversationId, prompt) {
     const conversation = new Conversation(userId);
     await conversation.addQuestion(conversationId, prompt, this.chatPersistAdapter);
+    await this.chatMessagingAdapter.publish( { action: 'addQuestion', payload: { userId, conversationId, prompt } });
     return prompt;
   }
 

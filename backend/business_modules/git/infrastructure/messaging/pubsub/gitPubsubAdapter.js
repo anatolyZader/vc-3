@@ -1,3 +1,4 @@
+// gitPubsubAdapter.js
 'use strict';
 
 const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
@@ -7,10 +8,10 @@ class GitPubsubAdapter {
     this.topicName = 'git-topic'; 
   }
 
-  async publishEvent(eventPayload) {
+  async publishRepoFetchedEvent(result) {
     const event = {
       event: 'repositoryFetched',
-      ...eventPayload
+      ...result
     };
     const dataBuffer = Buffer.from(JSON.stringify(event));
     try {

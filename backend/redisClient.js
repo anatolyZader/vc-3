@@ -2,7 +2,7 @@
 const Redis = require('ioredis');
 
 const redisClient = new Redis({
-  host: '10.246.180.163', // primary endpoint
+  host: '10.138.16.3', // primary endpoint
   port: 6379,
   connectionTimeout: 1000 
 });

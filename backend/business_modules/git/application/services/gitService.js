@@ -15,18 +15,9 @@ class GitService extends IGitService {
   async fetchRepo(userId, repoId) {
     const repository = new Repository(userId);
     const result = await repository.fetchRepo(repoId, this.gitGitAdapter);
-
-    // Publish a "repositoryFetched" event via the pubsub adapter.
-    try {
-      await this.gitMessagingAdapter.publishEvent({
-        userId,
-        repoId,
-        data: result
-      });
-    } catch (error) {
-      console.error('Error publishing repository fetched event:', error);
-    }
+    await this.gitMessagingAdapter.publishRepoFetchedEvent(result);
     return result;
+
   }
 }
 
