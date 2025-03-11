@@ -19,6 +19,7 @@ const corsPlugin = require('./corsPlugin');
 const fastifyRedis = require('@fastify/redis');
 const helmet = require('@fastify/helmet');
 const websocket = require('@fastify/websocket');
+const { createWSServer, registerChatHandler } = require('./aop_modules/ws/wsPlugin');
 
 require('dotenv').config();
 
@@ -93,6 +94,9 @@ module.exports = async function (fastify, opts) {
     maxDepth: 1,
     dirNameRoutePrefix: false,
     });
+
+  const wsServer = createWSServer(8080);
+  registerChatHandler();
 
 };
 

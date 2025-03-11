@@ -1,5 +1,3 @@
-// aiService.js
-//* eslint-disable no-unused-vars */
 'use strict';
 
 const IAIService = require('./interfaces/IAIService');
@@ -10,7 +8,7 @@ class AIService extends IAIService {
   constructor(aiAIAdapter, aiPersistAdapter, aiMessagingAdapter) {
     super();
     this.aiAIAdapter = aiAIAdapter;
-    this.aiPersistAdapter = aiPersistAdapter;
+    this.aiPersistAdapter = aiPersistAdapter 
     this.aiMessagingAdapter = aiMessagingAdapter;
 
     // In-memory store to track responses
@@ -36,11 +34,28 @@ class AIService extends IAIService {
     await this.aiMessagingAdapter.requestWikiData(userId, repoId, correlationId);
 
     return new Promise((resolve, reject) => {
-      const checkResponses = () => {
+      const checkResponses = async () => {
         const pending = this.pendingRequests.get(correlationId);
         if (pending && pending.repoData && pending.wikiData && !pending.resolved) {
           pending.resolved = true;
           this.pendingRequests.delete(correlationId);
+
+          // Persist Git and Wiki data before AI processing
+          try {
+            await this.aiPersistAdapter.saveGitData(userId, repoId, pending.repoData);
+            console.log(`Persisted Git data for repo ${repoId}`);
+          } catch (error) {
+            console.error('Error persisting Git data:', error);
+          }
+
+          try {
+            await this.aiPersistAdapter.saveWikiData(userId, repoId, pending.wikiData);
+            console.log(`Persisted Wiki data for repo ${repoId}`);
+          } catch (error) {
+            console.error('Error persisting Wiki data:', error);
+          }
+
+          // Generate AI response
           const aiResponse = new AIResponse(userId);
           const response = aiResponse.respondToPrompt(
             conversationId,
@@ -51,7 +66,18 @@ class AIService extends IAIService {
           );
 
           // Persist AI response
-          this.aiPersistAdapter.saveAiResponse(response);
+          try {
+            await this.aiPersistAdapter.saveAiResponse({
+              userId,
+              conversationId,
+              repoId,
+              prompt,
+              response,
+            });
+            console.log(`AI response persisted for conversation ${conversationId}`);
+          } catch (error) {
+            console.error('Error persisting AI response:', error);
+          }
 
           // Publish the AI response
           this.aiMessagingAdapter.publishAiResponse(response);
@@ -82,14 +108,31 @@ class AIService extends IAIService {
   // Handles incoming repositoryFetched events from Git Module
   async handleRepoResponse(repoData, correlationId) {
     if (this.pendingRequests.has(correlationId)) {
-      this.pendingRequests.get(correlationId).repoData = repoData;
+      const pendingRequest = this.pendingRequests.get(correlationId);
+      pendingRequest.repoData = repoData;
+
+      // Persist Git data before proceeding
+      try {
+        await this.aiPersistAdapter.saveGitData(pendingRequest.userId, pendingRequest.repoId, repoData);
+        console.log(`Persisted Git data for repo ${pendingRequest.repoId}`);
+      } catch (error) {
+        console.error('Error persisting Git data:', error);
+      }
     }
   }
-
-  // Handles incoming wikiFetched events from Wiki Module
+  
   async handleWikiResponse(wikiData, correlationId) {
     if (this.pendingRequests.has(correlationId)) {
-      this.pendingRequests.get(correlationId).wikiData = wikiData;
+      const pendingRequest = this.pendingRequests.get(correlationId);
+      pendingRequest.wikiData = wikiData;
+
+      // Persist Wiki data before proceeding
+      try {
+        await this.aiPersistAdapter.saveWikiData(pendingRequest.userId, pendingRequest.repoId, wikiData);
+        console.log(`Persisted Wiki data for repo ${pendingRequest.repoId}`);
+      } catch (error) {
+        console.error('Error persisting Wiki data:', error);
+      }
     }
   }
 }

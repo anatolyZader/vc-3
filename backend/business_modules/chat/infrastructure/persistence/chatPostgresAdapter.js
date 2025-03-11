@@ -3,6 +3,7 @@
 'use strict';
 
 const { Pool } = require('pg');
+const { v4: uuidv4 } = require('uuid');
 const IChatPersistPort = require('../../domain/ports/IChatPersistPort');
 
 class ChatPostgresAdapter extends IChatPersistPort {
@@ -17,38 +18,68 @@ class ChatPostgresAdapter extends IChatPersistPort {
     });
   }
 
+  // ✅ Start a new conversation
   async startConversation(userId) {
     const client = await this.pool.connect();
- 
-      console.log(`Starting conversation`);
+    try {
+      const conversationId = uuidv4();
+      await client.query(
+        `INSERT INTO conversations (id, user_id) VALUES ($1, $2)`,
+        [conversationId, userId]
+      );
+      console.log(`Started new conversation ${conversationId} for user ${userId}`);
+      return conversationId;
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      throw error;
+    } finally {
+      client.release();
     }
+  }
 
-
+  // ✅ Fetch all conversations for a user
   async fetchConversationsHistory(userId) {
     const client = await this.pool.connect();
-
-      console.log('Conversations history retrieved successfully for user:', userId);
-
+    try {
+      const { rows } = await client.query(
+        `SELECT id, title, created_at FROM conversations WHERE user_id = $1 ORDER BY created_at DESC`,
+        [userId]
+      );
+      return rows;
+    } catch (error) {
+      console.error('Error retrieving conversations history:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
+  // ✅ Fetch a full conversation (messages)
   async fetchConversation(userId, conversationId) {
     const client = await this.pool.connect();
-
-
-      console.log(`Fetched conversation with ID: ${conversationId} for user ${userId}`);
-
+    try {
+      const { rows } = await client.query(
+        `SELECT * FROM chat_messages WHERE user_id = $1 AND conversation_id = $2 ORDER BY created_at ASC`,
+        [userId, conversationId]
+      );
+      return rows;
+    } catch (error) {
+      console.error('Error fetching conversation:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
+  // ✅ Rename a conversation
   async renameConversation(userId, conversationId, newTitle) {
     const client = await this.pool.connect();
     try {
       await client.query(
-        `UPDATE conversations
-         SET title = $1
-         WHERE user_id = $2 AND id = $3`,
-        [newTitle.toString(), userId, conversationId]
+        `UPDATE conversations SET title = $1 WHERE user_id = $2 AND id = $3`,
+        [newTitle, userId, conversationId]
       );
-      console.log(`Renamed conversation ${conversationId} to ${newTitle.toString()} for user ${userId}`);
+      console.log(`Renamed conversation ${conversationId} to ${newTitle}`);
     } catch (error) {
       console.error('Error renaming conversation:', error);
       throw error;
@@ -57,12 +88,12 @@ class ChatPostgresAdapter extends IChatPersistPort {
     }
   }
 
+  // ✅ Delete a conversation
   async deleteConversation(userId, conversationId) {
     const client = await this.pool.connect();
     try {
       await client.query(
-        `DELETE FROM conversations
-         WHERE user_id = $1 AND id = $2`,
+        `DELETE FROM conversations WHERE user_id = $1 AND id = $2`,
         [userId, conversationId]
       );
       console.log(`Deleted conversation ${conversationId} for user ${userId}`);
@@ -74,70 +105,43 @@ class ChatPostgresAdapter extends IChatPersistPort {
     }
   }
 
+  // ✅ Add a user question to the conversation
   async addQuestion(userId, conversationId, prompt) {
     const client = await this.pool.connect();
-    console.log(`Sending question`);
-  }
-
-  async searchInConversations(userId, query) {
-    const client = await this.pool.connect();
     try {
-      const { rows } = await client.query(
-        `SELECT * FROM conversations
-         WHERE user_id = $1 AND title ILIKE $2
-         ORDER BY start_date DESC`,
-        [userId, `%${query}%`]
+      const messageId = uuidv4();
+      await client.query(
+        `INSERT INTO chat_messages (id, conversation_id, user_id, role, content) VALUES ($1, $2, $3, 'user', $4)`,
+        [messageId, conversationId, userId, prompt]
       );
-      console.log(`Found ${rows.length} conversations for user ${userId} matching query "${query}"`);
-      return rows;
+      console.log(`Stored user question with ID ${messageId}`);
+      return messageId;
     } catch (error) {
-      console.error('Error searching conversations:', error);
+      console.error('Error storing question:', error);
       throw error;
     } finally {
       client.release();
     }
   }
 
-
+  // ✅ Add an AI response to the conversation
   async addAnswer(userId, conversationId, answer) {
     const client = await this.pool.connect();
     try {
-      const answerId = answer.answerId; // Domain answer entity already has an ID
-      const answerContent = answer.content.toString(); // Value Object -> string
-      const timestamp = answer.timestamp || new Date();
-
+      const messageId = uuidv4();
       await client.query(
-        `INSERT INTO answers (id, user_id, conversation_id, content, timestamp)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [answerId, userId, conversationId, answerContent, timestamp]
+        `INSERT INTO chat_messages (id, conversation_id, user_id, role, content) VALUES ($1, $2, $3, 'ai', $4)`,
+        [messageId, conversationId, userId, answer]
       );
-      console.log(`Answer sent with ID: ${answerId} for conversation ${conversationId}`);
-      return { answerId };
+      console.log(`Stored AI response with ID ${messageId}`);
+      return messageId;
     } catch (error) {
-      console.error('Error sending answer:', error);
+      console.error('Error storing AI response:', error);
       throw error;
     } finally {
       client.release();
     }
   }
-
-  // async shareConversation(conversationId) {
-  //   const client = await this.pool.connect();
-  //   try {
-  //     await client.query(
-  //       `UPDATE conversations
-  //        SET shared = TRUE
-  //        WHERE id = $1`,
-  //       [conversationId]
-  //     );
-  //     console.log(`Marked conversation ${conversationId} as shared.`);
-  //   } catch (error) {
-  //     console.error('Error sharing conversation:', error);
-  //     throw error;
-  //   } finally {
-  //     client.release();
-  //   }
-  // }
 }
 
 module.exports = ChatPostgresAdapter;
