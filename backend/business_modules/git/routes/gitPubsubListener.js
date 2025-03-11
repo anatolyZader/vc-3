@@ -6,37 +6,45 @@ const pubSubClient = require('../../../aop_modules/messaging/pubsub/pubsubClient
 
 async function gitPubsubListener(fastify, options) {
   const subscriptionName = 'git-sub';
-  const timeout = 60; // seconds
-
   const subscription = pubSubClient.subscription(subscriptionName);
-  const messageHandler = async (message) => {
-    fastify.log.info(`Received git message ${message.id}`);
+
+  async function pullMessages() {
     try {
-      const data = JSON.parse(message.data.toString());
-      if (data.action === 'fetchRepo') {
-        const { userId, repoId } = data.payload;
-        fastify.log.info(`Processing fetchRepo for user: ${userId}, repo: ${repoId}`);
-        const repository = await fastify.fetchRepo(userId, repoId);
-        fastify.log.info(`Repository fetched: ${JSON.stringify(repository)}`);
-      } else {
-        fastify.log.warn(`Unknown action: ${data.action}`);
+      const [messages] = await subscription.pull({ maxMessages: 10 });
+
+      for (const message of messages) {
+        fastify.log.info(`Received git message ${message.id}`);
+
+        try {
+          const data = JSON.parse(message.data.toString());
+
+          if (data.action === 'fetchRepo') {
+            const { userId, repoId, correlationId } = data.payload;
+            fastify.log.info(`Processing fetchRepo for user: ${userId}, repo: ${repoId}`);
+
+            const repository = await fastify.fetchRepo(userId, repoId);
+            fastify.log.info(`Repository fetched: ${JSON.stringify(repository)}`);
+
+            const pubsubAdapter = fastify.diContainer.resolve('gitPubsubAdapter');
+            await pubsubAdapter.publishRepoFetchedEvent(repository, correlationId);
+          } else {
+            fastify.log.warn(`Unknown action: ${data.action}`);
+          }
+
+          message.ack();
+        } catch (error) {
+          fastify.log.error('Error processing git message:', error);
+          message.nack();
+        }
       }
-      message.ack();
     } catch (error) {
-      fastify.log.error('Error processing git message:', error);
-      message.nack();
+      fastify.log.error('Error pulling git messages:', error);
     }
-  };
-
-  subscription.on('message', messageHandler);
-  fastify.log.info(`Listening for git messages on subscription: ${subscriptionName}...`);
-
-  if (timeout) {
-    setTimeout(() => {
-      subscription.removeListener('message', messageHandler);
-      fastify.log.info('Stopped listening for git messages.');
-    }, timeout * 1000);
   }
+
+  // Pull messages every 5 seconds
+  setInterval(pullMessages, 5000);
+  fastify.log.info(`Pulling Git messages from subscription: ${subscriptionName}...`);
 }
 
 module.exports = fp(gitPubsubListener, { name: 'git-pubsub-listener' });
