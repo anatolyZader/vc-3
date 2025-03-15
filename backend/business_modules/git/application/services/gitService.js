@@ -1,3 +1,4 @@
+// gitService.js
 'use strict';
 /* eslint-disable no-unused-vars */
 
@@ -7,7 +8,7 @@ const IGitService = require('./interfaces/IGitService');
 class GitService extends IGitService {
   constructor(gitMessagingAdapter, gitGitAdapter) {
     super();
-    this.gitMessagingAdapter = gitMessagingAdapter; // now used for pubsub events
+    this.gitMessagingAdapter = gitMessagingAdapter; // used for pubsub events
     this.gitGitAdapter = gitGitAdapter;
   }
 
@@ -17,7 +18,14 @@ class GitService extends IGitService {
     const result = await repository.fetchRepo(repoId, this.gitGitAdapter);
     await this.gitMessagingAdapter.publishRepoFetchedEvent(result);
     return result;
+  }
 
+  // Fetch a repository's wiki and publish an event
+  async fetchWiki(userId, repoId) {
+    const repository = new Repository(userId);
+    const result = await repository.fetchWiki(repoId, this.gitGitAdapter);
+    await this.gitMessagingAdapter.publishWikiFetchedEvent(result);
+    return result;
   }
 }
 

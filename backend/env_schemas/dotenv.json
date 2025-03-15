@@ -26,6 +26,9 @@
     "GCP_OAUTH2_CLIENT_ID": {
       "type": "string"
     },
+    "GITHUB_TOKEN": {
+      "type": "string"
+    },
     "CLOUD_SQL_CONNECTION_NAME": {
       "type": "string"
     },

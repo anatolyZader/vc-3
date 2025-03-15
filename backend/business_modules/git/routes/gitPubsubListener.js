@@ -1,5 +1,6 @@
 // gitPubsubListener.js
 /* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
 'use strict';
 const fp = require('fastify-plugin');
 const pubSubClient = require('../../../aop_modules/messaging/pubsub/pubsubClient');
@@ -27,6 +28,15 @@ async function gitPubsubListener(fastify, options) {
 
             const pubsubAdapter = fastify.diContainer.resolve('gitPubsubAdapter');
             await pubsubAdapter.publishRepoFetchedEvent(repository, correlationId);
+          } else if (data.action === 'fetchWiki') {
+            const { userId, repoId, correlationId } = data.payload;
+            fastify.log.info(`Processing fetchWiki for user: ${userId}, repo: ${repoId}`);
+
+            const wiki = await fastify.fetchWiki(userId, repoId);
+            fastify.log.info(`Wiki fetched: ${JSON.stringify(wiki)}`);
+
+            const pubsubAdapter = fastify.diContainer.resolve('gitPubsubAdapter');
+            await pubsubAdapter.publishWikiFetchedEvent(wiki, correlationId);
           } else {
             fastify.log.warn(`Unknown action: ${data.action}`);
           }

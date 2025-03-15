@@ -4,8 +4,7 @@ const { Pool } = require('pg');
 
 const pool = new Pool({
   user: process.env.DB_USER,
-  host: process.env.DB_HOST, // Public IP or Cloud SQL Proxy
-  database: 'eventstorm_ai',
+  host: process.env.DB_HOST, 
   password: process.env.DB_PASSWORD,
   port: 5432,
 });
