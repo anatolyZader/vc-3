@@ -29,6 +29,19 @@ class ChatService extends IChatService {
     return await conversation.fetchConversation(conversationId, this.chatPersistAdapter);
   }
 
+  async addQuestion(userId, conversationId, prompt) {
+    const conversation = new Conversation(userId);
+    await conversation.addQuestion(conversationId, prompt, this.chatPersistAdapter);
+    await this.chatMessagingAdapter.addQuestion(userId, conversationId, prompt);
+    return prompt;
+  }
+
+  async addAnswer(userId, conversationId, answer) {
+    const conversation = new Conversation(userId, conversationId);
+    await conversation.addAnswer(conversationId, answer, this.chatPersistAdapter);
+    return answer;
+  }
+
   async renameConversation(userId, conversationId, newTitle) {
     const conversation = new Conversation(userId);
     await conversation.renameConversation(conversationId, newTitle, this.chatPersistAdapter);
@@ -39,18 +52,6 @@ class ChatService extends IChatService {
     await conversation.deleteConversation(conversationId, this.chatPersistAdapter);
   }
 
-  async addQuestion(userId, conversationId, prompt) {
-    const conversation = new Conversation(userId);
-    await conversation.addQuestion(conversationId, prompt, this.chatPersistAdapter);
-    await this.chatMessagingAdapter.publish( { action: 'addQuestion', payload: { userId, conversationId, prompt } });
-    return prompt;
-  }
-
-  async addAnswer(userId, conversationId, answer) {
-    const conversation = new Conversation(userId, conversationId);
-    await conversation.addAnswer(conversationId, answer, this.chatPersistAdapter);
-    return answer;
-  }
 }
 
 module.exports = ChatService;

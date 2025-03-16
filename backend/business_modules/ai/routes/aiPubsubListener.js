@@ -1,6 +1,7 @@
 // aiPubsubListener.js
 /* eslint-disable no-unused-vars */
 'use strict';
+
 const fp = require('fastify-plugin');
 const pubSubClient = require('../../../aop_modules/messaging/pubsub/pubsubClient');
 
@@ -18,12 +19,15 @@ async function aiPubsubListener(fastify, options) {
         try {
           const data = JSON.parse(message.data.toString());
 
-          if (data.action === 'respondToPrompt') {
+          if (data.event === 'questionSent') {
             const { userId, conversationId, repoId, prompt } = data.payload;
-            const response = await fastify.respondToPrompt(userId, conversationId, repoId, prompt);
-            fastify.log.info(`AI response: ${response}`);
+            fastify.log.info(`Processing AI response for user: ${userId}, prompt: ${prompt}`);
+
+            await fastify.respondToPrompt(userId, conversationId, repoId, prompt);
+
+            fastify.log.info(`AI response handled by controller`);
           } else {
-            fastify.log.warn(`Unknown action: ${data.action}`);
+            fastify.log.warn(`Unknown event: ${data.event}`);
           }
 
           message.ack();
@@ -37,9 +41,8 @@ async function aiPubsubListener(fastify, options) {
     }
   }
 
-  // Pull messages every 5 seconds
   setInterval(pullMessages, 5000);
   fastify.log.info(`Pulling AI messages from subscription: ${subscriptionName}...`);
 }
 
-module.exports = fp(aiPubsubListener, { name: 'ai-pubsub-listener' });
+module.exports = fp(aiPubsubListener);

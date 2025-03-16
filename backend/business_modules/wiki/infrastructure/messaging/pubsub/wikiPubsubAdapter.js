@@ -1,31 +1,43 @@
+// wikiPubsubAdapter.js
 'use strict';
 
 const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
+const IWikiMessagingPort = require('./../../../domain/ports/IWikiMessagingPort');
 
-class WikiPubsubAdapter {
+class WikiPubsubAdapter extends IWikiMessagingPort {
   constructor() {
-    this.topicName = 'wiki-topic'; // dedicated topic for wiki events
+    super();
+    this.topicName = 'wiki'; 
   }
 
-  async publishEvent(eventPayload) {
-    // Build event object including an event name.
-    const event = {
-      event: 'wikiEvent',
-      ...eventPayload
-    };
+  async publishEvent(eventName, payload) {
+    const event = { event: eventName, ...payload };
     const dataBuffer = Buffer.from(JSON.stringify(event));
     try {
       const topic = pubSubClient.topic(this.topicName);
-      // Use the new publishMessage signature
-      const messageId = await topic.publishMessage({
-        data: dataBuffer
-      });
-      console.log(`Published wiki event with message ID: ${messageId}`);
+      const messageId = await topic.publishMessage({ data: dataBuffer });
+      console.log(`Published ${eventName} event with message ID: ${messageId}`);
       return messageId;
     } catch (error) {
-      console.error('Error publishing wiki event:', error);
+      console.error(`Error publishing ${eventName} event:`, error);
       throw error;
     }
+  }
+
+  async fetchPage(pageId) {
+    return this.publishEvent('fetchWikiPage', { pageId });
+  }
+
+  async createPage(pageTitle) {
+    return this.publishEvent('createWikiPage', { title: pageTitle });
+  }
+
+  async updatePage(pageId, newContent) {
+    return this.publishEvent('updateWikiPage', { pageId, content: newContent });
+  }
+
+  async deletePage(pageId) {
+    return this.publishEvent('deleteWikiPage', { pageId });
   }
 }
 

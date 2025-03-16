@@ -1,68 +1,45 @@
 // infrastructure/messaging/pubsub/chatPubsubAdapter.js
-
 'use strict';
 
 const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
-const topic = 'chat';
-
-const publish = async (topic, payload) => {
-  try {
-    // Get a reference to the topic. The topic name should match the one defined in GCP.
-    const topicRef = pubSubClient.topic(topic);
-    const messageBuffer = Buffer.from(JSON.stringify(payload));
-    const messageId = await topicRef.publishMessage({ data: messageBuffer });
-    console.log(`Message ${messageId} published to topic ${topic}`);
-    return messageId;
-  } catch (error) {
-    console.error(`Error publishing to topic ${topic}:`, error);
-    throw error;
-  }
-};
 
 class ChatPubsubAdapter {
-  async conversationStarted(payload) {
+  constructor() {
+    this.topicName = 'chat'; // Dedicated topic for chat events
+  }
+
+  async publishEvent(eventName, payload) {
+    const event = { event: eventName, ...payload };
+    const dataBuffer = Buffer.from(JSON.stringify(event));
     try {
-      return await publish(topic, payload);
+      const topic = pubSubClient.topic(this.topicName);
+      const messageId = await topic.publishMessage({ data: dataBuffer });
+      console.log(`Published ${eventName} event with message ID: ${messageId}`);
+      return messageId;
     } catch (error) {
-      console.error(`Error publishing conversationStarted event to topic ${topic}:`, error);
+      console.error(`Error publishing ${eventName} event:`, error);
       throw error;
     }
   }
 
-  async conversationRenamed(payload) {
-    try {
-      return await publish(topic, payload);
-    } catch (error) {
-      console.error(`Error publishing conversationRenamed event to topic ${topic}:`, error);
-      throw error;
-    }
-  }
-
-  async conversationDeleted(payload) {
-    try {
-      return await publish(topic, payload);
-    } catch (error) {
-      console.error(`Error publishing conversationDeleted event to topic ${topic}:`, error);
-      throw error;
-    }
+  async startConversation(payload) {
+    return this.publishEvent('conversationStarted', payload);
   }
 
   async addQuestion(payload) {
-    try {
-      return await publish(topic, payload);
-    } catch (error) {
-      console.error(`Error publishing questionSent event to topic ${topic}:`, error);
-      throw error;
-    }
+    return this.publishEvent('questionSent', payload);
   }
 
   async addAnswer(payload) {
-    try {
-      return await publish(topic, payload);
-    } catch (error) {
-      console.error(`Error publishing answerSent event to topic ${topic}:`, error);
-      throw error;
-    }
+    return this.publishEvent('answerSent', payload);
+  }
+
+  async renameConversation(payload) {
+    return this.publishEvent('conversationRenamed', payload);
+  }
+
+  async deleteConversation(payload) {
+    return this.publishEvent('conversationDeleted', payload);
   }
 }
 

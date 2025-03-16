@@ -30,7 +30,6 @@ const TargetLangchainAdapter = require('./business_modules/target/infrastructure
 
 const WikiService = require('./business_modules/wiki/application/services/wikiService');
 // const WikiPostgresAdapter = require('./business_modules/wiki/infrastructure/persistence/wikiPostgresAdapter');
-const WikiGithubAdapter = require('./business_modules/wiki/infrastructure/git/wikiGithubAdapter');
 const WikiPubsubAdapter = require('./business_modules/wiki/infrastructure/messaging/pubsub/wikiPubsubAdapter');
 
 const ChecklistPostgresAdapter = require('./business_modules/checklist/infrastructure/persistence/checklistPostgresAdapter');
@@ -81,8 +80,6 @@ module.exports = fp(async function (fastify, opts) {
     aiGithubAdapter: asClass(AIGithubAdapter).scoped(),
     aiGithubWikiAdapter: asClass(AIGithubWikiAdapter).scoped(),
 
-    // wikiPostgresAdapter: asClass(WikiPostgresAdapter).scoped(),
-    wikiGithubAdapter: asClass(WikiGithubAdapter).scoped(),
     wikiPubsubAdapter: asClass(WikiPubsubAdapter).scoped()
   };
 
@@ -108,20 +105,22 @@ module.exports = fp(async function (fastify, opts) {
     userService: asClass(UserService),
     permService: asClass(PermService),
 
-    // wikiPersistAdapter: adapters[infraConfig.business_modules.wiki.wikiPersistAdapter],
-    wikiGitAdapter: adapters[infraConfig.business_modules.wiki.wikiGitAdapter],
     wikiMessagingAdapter: adapters[infraConfig.business_modules.wiki.wikiMessagingAdapter],
 
     authPersistAdapter: adapters[infraConfig.aop_modules.auth.authPersistAdapter],
     authInMemStorageAdapter: adapters[infraConfig.aop_modules.auth.authInMemStorageAdapter],
+
     chatPersistAdapter: adapters[infraConfig.business_modules.chat.chatPersistAdapter],
     chatMessagingAdapter: adapters[infraConfig.business_modules.chat.chatMessagingAdapter],
+
     // gitPersistAdapter: adapters[infraConfig.business_modules.git.gitPersistAdapter],
     gitGitAdapter: adapters[infraConfig.business_modules.git.gitGitAdapter],
     gitMessagingAdapter: adapters[infraConfig.business_modules.git.gitMessagingAdapter],
+
     targetPersistAdapter: adapters[infraConfig.business_modules.target.targetPersistAdapter],
     targetGitAdapter: adapters[infraConfig.business_modules.target.targetGitAdapter],
     targetAIAdapter: adapters[infraConfig.business_modules.target.targetAIAdapter],
+    
     checklistPersistAdapter: adapters[infraConfig.business_modules.checklist.checklistPersistAdapter],
     
     aiAIAdapter: adapters[infraConfig.business_modules.ai.aiAIAdapter],

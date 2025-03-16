@@ -1,4 +1,4 @@
-// project_wiki_module/wikiPage.js
+// wikiPage.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -10,23 +10,23 @@ class WikiPage {
     this.userId = userId;
   }
 
-  async fetchPage(repoId, pageId, IWikiGitPort) { 
-  const page = await IWikiGitPort.fetchPage(this.userId, repoId, pageId); 
+  async fetchPage(repoId, pageId, IWikiMessagingPort) { 
+  const page = await IWikiMessagingPort.fetchPage(this.userId, repoId, pageId); 
   return page;
   }
 
-  async createPage(pageTitle, IWikiGitPort) {
-    await IWikiGitPort.createPage(pageTitle);
+  async createPage(pageTitle, IWikiMessagingPort) {
+    await IWikiMessagingPort.createPage(pageTitle);
     console.log(`Wiki page ${pageTitle} created for user ${this.userId}.`);
   }
 
-  async updatePage(pageId, newContent, IWikiGitPort) {
-    await IWikiGitPort.updatePage(pageId, newContent);
+  async updatePage(pageId, newContent, IWikiMessagingPort) {
+    await IWikiMessagingPort.updatePage(pageId, newContent);
     console.log(`Wiki page ${pageId} content updated.`);
   }
 
-  async deletePage(pageId, IWikiGitPort) {
-    await IWikiGitPort.deletePage(pageId);
+  async deletePage(pageId, IWikiMessagingPort) {
+    await IWikiMessagingPort.deletePage(pageId);
     console.log(`Wiki page ${pageId} deleted.`);
   }
 

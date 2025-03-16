@@ -29,8 +29,7 @@
       "checklistMessagingAdapter": "checklistPubsubAdapter"
     },
     "wiki": {
-      "wikiMessagingAdapter": "wikiPubsubAdapter",
-      "wikiGitAdapter": "wikiGithubAdapter"
+      "wikiMessagingAdapter": "wikiPubsubAdapter"
     },
     "ai": {
       "aiPersistAdapter": "aiPostgresAdapter",

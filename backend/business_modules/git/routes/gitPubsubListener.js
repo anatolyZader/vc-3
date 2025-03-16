@@ -1,7 +1,7 @@
 // gitPubsubListener.js
 /* eslint-disable no-unused-vars */
-/* eslint-disable no-unused-vars */
 'use strict';
+
 const fp = require('fastify-plugin');
 const pubSubClient = require('../../../aop_modules/messaging/pubsub/pubsubClient');
 
@@ -18,27 +18,38 @@ async function gitPubsubListener(fastify, options) {
 
         try {
           const data = JSON.parse(message.data.toString());
+          const { userId, pageId, title, newContent, correlationId } = data.payload;
 
-          if (data.action === 'fetchRepo') {
-            const { userId, repoId, correlationId } = data.payload;
-            fastify.log.info(`Processing fetchRepo for user: ${userId}, repo: ${repoId}`);
+          // Define a mapping of event names to their corresponding handler functions
+          const eventHandlers = {
+            fetchWikiPage: async () => {
+              fastify.log.info(`Processing fetchWikiPage for user: ${userId}, page: ${pageId}`);
+              const wikiPage = await fastify.fetchWikiPage(userId, pageId);
+              fastify.log.info(`Wiki Page fetched: ${JSON.stringify(wikiPage)}`);
+              await fastify.diContainer.resolve('gitPubsubAdapter').publishWikiPageFetchedEvent(wikiPage, correlationId);
+            },
+            createWikiPage: async () => {
+              fastify.log.info(`Processing createWikiPage for user: ${userId}, title: ${title}`);
+              await fastify.createWikiPage(userId, title);
+              fastify.log.info(`Wiki Page created successfully`);
+            },
+            updateWikiPage: async () => {
+              fastify.log.info(`Processing updateWikiPage for user: ${userId}, page: ${pageId}`);
+              await fastify.updateWikiPage(userId, pageId, newContent);
+              fastify.log.info(`Wiki Page updated successfully`);
+            },
+            deleteWikiPage: async () => {
+              fastify.log.info(`Processing deleteWikiPage for user: ${userId}, page: ${pageId}`);
+              await fastify.deleteWikiPage(userId, pageId);
+              fastify.log.info(`Wiki Page deleted successfully`);
+            },
+          };
 
-            const repository = await fastify.fetchRepo(userId, repoId);
-            fastify.log.info(`Repository fetched: ${JSON.stringify(repository)}`);
-
-            const pubsubAdapter = fastify.diContainer.resolve('gitPubsubAdapter');
-            await pubsubAdapter.publishRepoFetchedEvent(repository, correlationId);
-          } else if (data.action === 'fetchWiki') {
-            const { userId, repoId, correlationId } = data.payload;
-            fastify.log.info(`Processing fetchWiki for user: ${userId}, repo: ${repoId}`);
-
-            const wiki = await fastify.fetchWiki(userId, repoId);
-            fastify.log.info(`Wiki fetched: ${JSON.stringify(wiki)}`);
-
-            const pubsubAdapter = fastify.diContainer.resolve('gitPubsubAdapter');
-            await pubsubAdapter.publishWikiFetchedEvent(wiki, correlationId);
+          // Check if the event exists in our handler map
+          if (eventHandlers[data.event]) {
+            await eventHandlers[data.event]();
           } else {
-            fastify.log.warn(`Unknown action: ${data.action}`);
+            fastify.log.warn(`Unknown event: ${data.event}`);
           }
 
           message.ack();

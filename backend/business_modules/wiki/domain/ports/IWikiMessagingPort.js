@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 'use strict';
 
-class IWikiGitPort {
+class IWikiMessagingPort {
   constructor() {
-    if (new.target === IWikiGitPort) {
+    if (new.target === IWikiMessagingPort) {
       throw new Error('Cannot instantiate an abstract class.');
     }
   }
@@ -21,11 +21,10 @@ class IWikiGitPort {
   }
 
 
-
   async deletePage(pageId) {
     throw new Error('Method not implemented.');
   }
 
 }
 
-module.exports = IWikiGitPort;
+module.exports = IWikiMessagingPort;

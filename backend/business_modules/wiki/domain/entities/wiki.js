@@ -1,4 +1,4 @@
-// project_wiki_module/wikiPage.js
+// wiki.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -9,8 +9,8 @@ class Wiki {
         this.userId = userId;
     }
 
-    async fetchWiki(repoId, IWikiGitPort) { 
-    const wiki = await IWikiGitPort.fetchWiki(this.userId, repoId); 
+    async fetchWiki(repoId, IWikiMessagingPort) { 
+    const wiki = await IWikiMessagingPort.fetchWiki(this.userId, repoId); 
     return wiki;
   }
 

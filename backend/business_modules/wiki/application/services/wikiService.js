@@ -6,37 +6,36 @@ const IWikiService = require('./interfaces/IWikiService');
 
 class WikiService extends IWikiService {
 
-  constructor(wikiGitAdapter, wikiMessagingAdapter) {
+  constructor(wikiMessagingAdapter) {
     super();
     this.wikiMessagingAdapter = wikiMessagingAdapter;
-    this.wikiGitAdapter = wikiGitAdapter;
   }
 
   async fetchWiki(userId, repoId) {
     const wiki = new Wiki(userId);    
-    const fetchedWiki = await wiki.fetchWiki(repoId, this.wikiGitAdapter);     
+    const fetchedWiki = await wiki.fetchWiki(repoId, this.wikiMessagingAdapter);     
     return fetchedWiki;
   }
 
   async fetchPage(userId, pageId) {
     const wikiPage = new WikiPage(userId);
-    const page = await wikiPage.fetchPage(pageId, this.wikiGitAdapter);
+    const page = await wikiPage.fetchPage(pageId, this.wikiMessagingAdapter);
     return page;
   };
 
   async createPage(userId, title) {
     const wikiPage = new WikiPage(userId);
-    await wikiPage.createPage(title, this.wikiGitAdapter);
+    await wikiPage.createPage(title, this.wikiMessagingAdapter);
     }
   
   async updatePage(userId, pageId, newContent) {
     const wikiPage = new WikiPage(userId);
-    await wikiPage.updatePage(pageId, newContent, this.wikiGitAdapter);
+    await wikiPage.updatePage(pageId, newContent, this.wikiMessagingAdapter);
   }
 
   async deletePage(userId, pageId) {
     const wikiPage = new WikiPage(userId);
-    await wikiPage.deletePage(pageId, this.wikiGitAdapter);
+    await wikiPage.deletePage(pageId, this.wikiMessagingAdapter);
   }
 }
 
