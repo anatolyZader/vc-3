@@ -1,42 +1,33 @@
-// modules/git_module/index.js 
+// target_module/index.js
+'use strict';
 /* eslint-disable no-unused-vars */
+
+const fp = require('fastify-plugin');
 const autoload = require('@fastify/autoload');
 const path = require('path');
 
-module.exports = async function targetModuleIndex(fastify, opts) {
-
-    fastify.register(autoload, {
-    dir: path.join(__dirname, 'plugins'),
-    options: {
-        // prefix: '/target-code'
-    },
-    encapsulate: false,
-    maxDepth: 1,
-    matchFilter: (path) =>  path.includes('Plugin')    
-    });
-
+async function targetModuleIndex(fastify, opts) {
+  fastify.log.info('✅ target/index.js was registered');
 
   fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),
-    options: {
-      // prefix: '/target-code'
-    },
     encapsulate: false,
     maxDepth: 1,
-    matchFilter: (path) =>  path.includes('Controller')    
+    matchFilter: (filepath) => filepath.includes('Controller'),
   });
 
-fastify.register(autoload, {
-  dir: path.join(__dirname, 'routes'),
-  options: {
-    // prefix: '/target-code'
-  },
-  encapsulate: false,
-  maxDepth: 3,
-  matchFilter: (path) =>  path.includes('Router')
-});
+  fastify.register(autoload, {
+    dir: path.join(__dirname, 'routes'),
+    encapsulate: false,
+    maxDepth: 3,
+    matchFilter: (filepath) => filepath.includes('Router'),
+    dirNameRoutePrefix: false,
+  });
 }
 
-module.exports.autoConfig = {
-  prefix: '/target-code'
+const plugin = fp(targetModuleIndex);
+plugin.autoConfig = {
+  prefix: '/target',
 };
+
+module.exports = plugin;

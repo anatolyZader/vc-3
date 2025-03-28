@@ -1,3 +1,6 @@
+// authPlugin.js
+/* eslint-disable no-unused-vars */
+
 'use strict'
 
 const fs = require('fs');
@@ -32,12 +35,28 @@ module.exports = fp(async function authPlugin (fastify, opts) {
   });
 
   fastify.decorate('verifyToken', async function (request, reply) {
-    console.log('>>> Verifying token at authPlugin.verifyToken');
+    // Try to get token from cookies
+    let token = request.cookies && request.cookies.authToken;
+
+    // If not found in cookies, check the Authorization header
+    if (!token && request.headers.authorization) {
+      const parts = request.headers.authorization.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        token = parts[1];
+      }
+    }
+
+    if (!token) {
+      // Throwing stops the request immediately
+      throw fastify.httpErrors.unauthorized('Missing token');
+    }
+
     try {
-      await request.jwtVerify();
+      const decoded = await fastify.jwt.verify(token); // Validate the JWT
+      request.user = decoded; // Attach decoded payload to request.user
     } catch (err) {
       fastify.log.error('Token verification error:', err);
-      return reply.unauthorized(err.message, { cause: err });
+      throw fastify.httpErrors.unauthorized(err.message);
     }
   });
 
@@ -99,10 +118,14 @@ module.exports = fp(async function authPlugin (fastify, opts) {
   fastify.register(fastifyOAuth2, {
     name: 'googleOAuth2',
     scope: ['profile', 'email'],
+    cookie: {
+      secure: true,
+      sameSite: 'none',
+    },
     credentials: {
       client: {
         id: clientId,
-        secret: clientSecret
+        secret: clientSecret,
       },
       auth: fastifyOAuth2.GOOGLE_CONFIGURATION,
     },

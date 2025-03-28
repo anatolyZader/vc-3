@@ -79,24 +79,29 @@ module.exports = async function (fastify, opts) {
     saveUninitialized: false,
   });
 
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'aop_modules'),
-    options: Object.assign({}, opts),
-    encapsulate: false,
-    maxDepth:1,
-    dirNameRoutePrefix: false,
-  });
+  await fastify.register(async function apiScopedRoutes(fastify, opts) {
 
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'business_modules'),
-    options: Object.assign({}, opts),
-    encapsulate: true,
-    maxDepth: 1,
-    dirNameRoutePrefix: false,
+    await fastify.register(AutoLoad, {
+      dir: path.join(__dirname, 'aop_modules'),
+      options: Object.assign({}, opts),
+      encapsulate: false,
+      maxDepth: 1,
+      dirNameRoutePrefix: false,
     });
 
+    await fastify.register(AutoLoad, {
+      dir: path.join(__dirname, 'business_modules'),
+      options: Object.assign({}, opts),
+      encapsulate: true,
+      maxDepth: 1,
+      dirNameRoutePrefix: false,
+    });
+  }
+  // , { prefix: 'v1' } 
+  );
+  
   const wsServer = createWSServer(8080);
-  registerChatHandler();
+
 
 };
 

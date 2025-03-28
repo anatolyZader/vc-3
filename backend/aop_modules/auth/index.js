@@ -28,15 +28,11 @@ module.exports = async function authModuleIndex(fastify, opts) {
 
 fastify.register(autoload, {
   dir: path.join(__dirname, 'routes'),
-  options: {
-    // prefix: '/auth'
-  },
-  encapsulate: false,
-  maxDepth: 3,
-  matchFilter: (path) =>  path.includes('Router')
+  encapsulate: true,
+  maxDepth: 1,
+  matchFilter: (path) =>  path.includes('Router'),
+  dirNameRoutePrefix: false
 });
 }
 
-module.exports.autoConfig = {
-  prefix: '/auth'
-};
+module.exports.autoPrefix = '/auth';

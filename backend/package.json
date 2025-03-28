@@ -1,6 +1,6 @@
 {
   "name": "vc-3",
-  "version": "1.0.0",
+  "version": "0.x.y",
   "description": "bootstrapped with Fastify-CLI",
   "main": "app.js",
   "type": "commonjs",

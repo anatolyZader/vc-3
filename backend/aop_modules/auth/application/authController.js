@@ -19,9 +19,43 @@ async function authController(fastify, options) {
     );
   }
 
-  /**
-   * GET /disco
-   */
+  fastify.decorate('googleLoginUser', async function (request, reply) {
+    try {
+      const { token } = request.body;
+      if (!token) {
+        return reply.badRequest('Missing Google access token');
+      }
+
+      // 1) Server-side Google verification & user resolution
+      //    We delegate this to userService.
+      const googleUser = await userService.loginWithGoogle(token);
+      if (!googleUser) {
+        return reply.unauthorized('Google login failed: could not verify user.');
+      }
+
+      // 2) Generate a local JWT (similar to how you do in loginUser)
+      const jti = uuidv4();
+      const localToken = fastify.jwt.sign(
+        { id: googleUser.id, username: googleUser.username, jti },
+        { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
+      );
+
+      // 3) Return the token + user
+      return reply.send({
+        token: localToken,
+        user: {
+          id: googleUser.id,
+          email: googleUser.email,
+          username: googleUser.username,
+          picture: googleUser.picture || null,
+        },
+      });
+    } catch (error) {
+      fastify.log.error('Error in googleLoginUser:', error);
+      return reply.internalServerError('Failed to process Google login', { cause: error });
+    }
+  });
+
   fastify.decorate('readAllUsers', async function (request, reply) {
     try {
       const users = await userService.readAllUsers();
@@ -86,7 +120,15 @@ async function authController(fastify, options) {
         { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
       );
 
+      reply.setCookie('authToken', token, {
+        path: '/',
+        httpOnly: true,  // Prevent JavaScript access to the cookie
+        sameSite: 'Strict', // Adjust based on your app's needs
+        maxAge: 60 * 60 * 24, // 1 day
+      });
+
       return reply.send({ message: 'Authentication successful', token });
+
     } catch (error) {
       fastify.log.error('Error logging in user:', error); 
       return reply.internalServerError('Internal Server Error', { cause: error }); 
@@ -97,27 +139,19 @@ async function authController(fastify, options) {
    * POST /logout
    */
   fastify.decorate('logoutUser', async function (request, reply) {
-    try {
-      request.revokeToken();
-      return reply.code(204).send();
-    } catch (error) {
-      fastify.log.error('Error during logout:', error); 
-      return reply.internalServerError(error.message || 'Internal Server Error', { cause: error }); 
-    }
+    reply.clearCookie('authToken', { path: '/' }); // Clear the cookie
+    return reply.code(204).send();
   });
+
 
   /**
    * GET /me
    */
   fastify.decorate('getUserInfo', async function (request, reply) {
-    try {
-      // using verifyToken -  request.user is set by jwtVerify()
-      const user = request.user || {};
-      return reply.send(user);
-    } catch (error) {
-      fastify.log.error('Error fetching user info:', error); 
-      return reply.internalServerError('Internal Server Error', { cause: error }); 
+    if (!request.user || !request.user.username) {
+      throw fastify.httpErrors.unauthorized('User not authenticated');
     }
+    return reply.send(request.user);
   });
 
   /**
@@ -132,6 +166,12 @@ async function authController(fastify, options) {
           expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h',
         }
       );
+      reply.setCookie('authToken', newToken, {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'Strict',
+        maxAge: 60 * 60 * 24, // 1 day
+      });
       return reply.send({ token: newToken });
     } catch (error) {
       fastify.log.error('Error refreshing token:', error); 

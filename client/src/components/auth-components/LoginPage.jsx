@@ -1,43 +1,41 @@
+// LoginPage.jsx
+'use strict';
+
 import { useContext, useState } from 'react';
 import { AuthContext } from './AuthContext';
 import { TextField, Button, Typography, Box, Alert } from '@mui/material';
 
 const LoginPage = () => {
-  const { login, googleLogin, logout, userProfile, isAuthenticated } = useContext(AuthContext);
+  const { verifyCookie, googleLogin, logout, userProfile, isAuthenticated } = useContext(AuthContext);
 
   // State for manual login form
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(null);
 
-  // Handle manual login form submission
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch('/api/authenticate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+// Handle manual login form submission
+const handleManualLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const response = await fetch('/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+      credentials: 'include', // Ensure cookies are sent with the request
+    });
 
-      const data = await response.json();
-      if (response.ok) {
-        const { token } = data;
-        localStorage.setItem('authToken', token);
-        login();
-        setLoginError(null);
-      } else {
-        setLoginError('Invalid credentials. Please try again.');
-      }
-    } catch (error) {
-      setLoginError('An error occurred during login. Please try again later.');
+    if (response.ok) {
+      // If login is successful, check the cookie for authentication status
+      verifyCookie(); // This function could check if the cookie exists or is valid
+    } else {
+      setLoginError('Invalid credentials. Please try again.');
     }
-  };
+  } catch (error) {
+    setLoginError('An error occurred during login. Please try again later.');
+  }
+};
 
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', p: 3 }}>
@@ -57,7 +55,7 @@ const LoginPage = () => {
             Sign in with Google 🚀
           </Button>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleManualLogin}>
             <Box sx={{ mb: 2 }}>
               <TextField
                 label="Email"

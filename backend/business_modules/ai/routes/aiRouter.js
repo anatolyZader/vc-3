@@ -15,3 +15,4 @@ module.exports = fp(async function aiRouter(fastify, opts) {
     schema: fastify.getSchema('schema:ai-assist:respond-to-prompt')
   });
 });
+

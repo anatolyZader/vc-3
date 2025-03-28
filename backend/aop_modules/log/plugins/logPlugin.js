@@ -1,11 +1,10 @@
 // aop/log/plugins/logPlugin.js
+'use strict';
 const fp = require('fastify-plugin');
 
 async function logPlugin(fastify, opts) {
   fastify.log.info('Logging plugin registered');
-
   console.log('logPlugin opts: ', opts); 
-
 
   fastify.addHook('onResponse', async (request, reply) => {
     const enrichedLog = {
@@ -16,14 +15,14 @@ async function logPlugin(fastify, opts) {
       query: request.query,
       params: request.params,
       statusCode: reply.statusCode,
-      // responseTime: reply.getResponseTime(),
       user: request.user ? { id: request.user.id, role: request.user.role } : undefined,
       headers: reply.getHeaders(),
     };
     fastify.log.info(enrichedLog, 'Request completed');
   });
+
   fastify.setErrorHandler(async (err, request, reply) => {
-    // If this is a validation error
+    // If this is a validation error, handle as 403
     if (err.validation) {
       return reply.status(403).send({
         error: 'Forbidden',
@@ -31,7 +30,7 @@ async function logPlugin(fastify, opts) {
       });
     }
   
-    // If this is a 404 error
+    // If this is a 404 error, handle as 404
     if (err.statusCode === 404) {
       return reply.status(404).send({
         error: 'Not Found',
@@ -39,21 +38,16 @@ async function logPlugin(fastify, opts) {
       });
     }
   
-    // Otherwise, handle as 500
+    // For all other errors, use the error's statusCode if set, else default to 500
+    const statusCode = err.statusCode || 500;
+    reply.code(statusCode);
+  
     request.log.error(err);
-    return reply.status(500).send({
-      error: 'Internal Server Error',
-      message: 'Oops...'
+    return reply.send({
+      error: statusCode >= 500 ? 'Internal Server Error' : err.error || 'Error',
+      message: err.message
     });
   });
-
-  //  // NotFound handler
-  // fastify.setNotFoundHandler((request, reply) => {
-  //   reply.status(404).send({
-  //     error: 'Not Found',
-  //     message: "I'm sorry, I couldn't find what you were looking for.",
-  //   });
-  // });
 }
 
 const logOptions = {

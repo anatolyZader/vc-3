@@ -8,6 +8,13 @@ module.exports = fp(async function authRouter(fastify, opts) {
   console.log('authRouter is loaded!');
 
   fastify.route({
+    method: 'POST',
+    url: '/auth/google-login',
+    handler: fastify.googleLoginUser, // We'll define this in authController
+  });
+
+  // 1
+  fastify.route({
     method: 'GET',
     url: '/',
     handler: async (request, reply) => {
@@ -15,30 +22,34 @@ module.exports = fp(async function authRouter(fastify, opts) {
     }
   });
 
+  // 1
   fastify.route({
     method: 'GET',
-    url: '/disco',
+    url: '/auth/disco',
     handler: fastify.readAllUsers,
   });  
 
+  // 1
   fastify.route({
     method: 'POST',
-    url: '/register',
+    url: '/auth/register',
     schema: {
       body: fastify.getSchema('schema:auth:register'), 
     },
     handler: fastify.registerUser,
   });
 
+  // 1
   fastify.route({
     method: 'POST',
-    url: '/remove',
+    url: '/auth/remove',
     handler: fastify.removeUser,
   });
 
+  // 1
   fastify.route({
     method: 'POST',
-    url: '/login',
+    url: '/auth/login',
     schema: {
       response: {
         200: fastify.getSchema('schema:auth:token'),
@@ -47,9 +58,11 @@ module.exports = fp(async function authRouter(fastify, opts) {
     handler: fastify.loginUser,
   });
 
+
+  // 1
   fastify.route({
     method: 'GET',
-    url: '/me',
+    url: '/auth/me',
     schema: {
       headers: fastify.getSchema('schema:auth:token-header'),
       response: {
@@ -60,16 +73,18 @@ module.exports = fp(async function authRouter(fastify, opts) {
     handler: fastify.getUserInfo,
   });
 
+  // 1
   fastify.route({
     method: 'POST',
-    url: '/logout',
+    url: '/auth/logout',
     preValidation: [fastify.verifyToken],
     handler: fastify.logoutUser,
   });
 
+ // 1 
   fastify.route({
     method: 'POST',
-    url: '/refresh',
+    url: '/auth/refresh',
     schema: {
       headers: fastify.getSchema('schema:auth:token-header'),
       response: {
