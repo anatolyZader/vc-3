@@ -1,3 +1,4 @@
+// main.jsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
@@ -11,7 +12,7 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <GoogleOAuthProvider clientId="1083906309309-p1i7rnko4u3gobsfl3vkdjqd4m8rp315.apps.googleusercontent.com">
+  <GoogleOAuthProvider clientId="979848823566-jrtu8qq3dp2rpi0tk46renofrbii2re9.apps.googleusercontent.com">
     <React.StrictMode>
       <App />
     </React.StrictMode>

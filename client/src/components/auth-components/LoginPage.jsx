@@ -2,47 +2,44 @@
 'use strict';
 
 import { useContext, useState } from 'react';
-import { AuthContext } from './AuthContext';
+
+
+
+import { AuthContext } from './AuthContext'; // AuthContext object created in another module, enabling access to authentication state and functions.
 import { TextField, Button, Typography, Box, Alert } from '@mui/material';
 
 const LoginPage = () => {
-  const { verifyCookie, googleLogin, logout, userProfile, isAuthenticated } = useContext(AuthContext);
+  const { verifyCookieUpdateState, googleLogin, logout, userProfile, isAuthenticated } = useContext(AuthContext); // Consuming context
 
-  // State for manual login form
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(null);
 
-// Handle manual login form submission
-const handleManualLogin = async (e) => {
-  e.preventDefault();
-  try {
-    const response = await fetch('/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-      credentials: 'include', // Ensure cookies are sent with the request
-    });
-
-    if (response.ok) {
-      // If login is successful, check the cookie for authentication status
-      verifyCookie(); // This function could check if the cookie exists or is valid
-    } else {
-      setLoginError('Invalid credentials. Please try again.');
+  // Handle manual login form submission; the backend will set the auth cookie
+  const handleManualLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include', // include cookies
+      });
+      if (response.ok) {
+        await verifyCookieUpdateState();
+      } else {
+        setLoginError('Invalid credentials. Please try again.');
+      }
+    } catch (error) {
+      setLoginError('An error occurred during login. Please try again later.');
     }
-  } catch (error) {
-    setLoginError('An error occurred during login. Please try again later.');
-  }
-};
+  };
 
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Login Panel
       </Typography>
-
       {!isAuthenticated ? (
         <Box>
           <Button
@@ -54,7 +51,6 @@ const handleManualLogin = async (e) => {
           >
             Sign in with Google 🚀
           </Button>
-
           <form onSubmit={handleManualLogin}>
             <Box sx={{ mb: 2 }}>
               <TextField
@@ -78,13 +74,7 @@ const handleManualLogin = async (e) => {
               />
             </Box>
             {loginError && <Alert severity="error">{loginError}</Alert>}
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ mt: 2 }}
-            >
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
               Manual Login
             </Button>
           </form>
@@ -105,13 +95,7 @@ const handleManualLogin = async (e) => {
               <Typography>Email: {userProfile.email}</Typography>
             </Box>
           )}
-          <Button
-            variant="outlined"
-            color="secondary"
-            fullWidth
-            onClick={logout}
-            sx={{ mt: 2 }}
-          >
+          <Button variant="outlined" color="secondary" fullWidth onClick={logout} sx={{ mt: 2 }}>
             Logout
           </Button>
         </Box>

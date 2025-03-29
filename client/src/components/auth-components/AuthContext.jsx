@@ -1,5 +1,6 @@
 // AuthContext.jsx
 'use strict';
+
 import PropTypes from 'prop-types';
 import { createContext, useState, useEffect } from 'react';
 import { useGoogleLogin, googleLogout } from '@react-oauth/google';
@@ -10,40 +11,42 @@ const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
 
-  // Manual login logic
-  const verifyCookie = () => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      setIsAuthenticated(true);
+  // Verify session by calling a protected endpoint that returns user info
+  const verifyCookieUpdateState = async () => {
+    try {
+      const response = await fetch('/auth/me', {
+        method: 'GET',
+        credentials: 'include', // include cookies
+      });
+      if (response.ok) {
+        const user = await response.json();
+        setIsAuthenticated(true);
+        setUserProfile(user);
+      } else {
+        setIsAuthenticated(false);
+        setUserProfile(null);
+      }
+    } catch (error) {
+      setIsAuthenticated(false);
+      setUserProfile(null);
     }
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUserProfile(null);
-    localStorage.removeItem('authToken');
-    googleLogout(); // Log out of Google as well
-  };
-
-  // Google login logic
+  // Google login using the access token returned from the SDK
   const googleLogin = useGoogleLogin({
     onSuccess: async (response) => {
       try {
         const tokenFromGoogle = response.access_token;
+        // Send token to backend for verification and local JWT issuance
         const serverResponse = await fetch('/auth/google-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: tokenFromGoogle }),
-          credentials: 'include', // Important to include cookies in the request
+          credentials: 'include', // ensure cookies are included
         });
-  
-        const data = await serverResponse.json();
-        if (data.token) {
-          setIsAuthenticated(true);
-        }
-  
-        if (data.user) {
-          setUserProfile(data.user);
+        if (serverResponse.ok) {
+          // After backend sets cookie, update the app state
+          await verifyCookieUpdateState();
         }
       } catch (error) {
         console.log('Google login failed:', error);
@@ -52,19 +55,30 @@ const AuthProvider = ({ children }) => {
     onError: (error) => console.log('Google login failed:', error),
   });
 
-  // Check for an existing manual login token on mount
-  useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      setIsAuthenticated(true);
+  // Logout by calling backend logout endpoint and updating state
+  const logout = async () => {
+    try {
+      await fetch('/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
     }
+    setIsAuthenticated(false);
+    setUserProfile(null);
+    googleLogout();
+  };
+
+  useEffect(() => {
+    verifyCookieUpdateState();
   }, []);
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
-        verifyCookie,
+        verifyCookieUpdateState,
         logout,
         googleLogin,
         userProfile,
@@ -75,7 +89,6 @@ const AuthProvider = ({ children }) => {
   );
 };
 
-// Add propTypes validation
 AuthProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };

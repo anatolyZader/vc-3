@@ -1,3 +1,5 @@
+// App.jsx
+
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useContext } from 'react';
 import LoginPage from './components/auth-components/LoginPage';

@@ -29,7 +29,10 @@ module.exports = async function (fastify, opts) {
   await fastify.register(envPlugin);
   await fastify.register(diPlugin);
   await fastify.register(fastifySensible);
-  await fastify.register(helmet, { global: true });
+  await fastify.register(require('@fastify/helmet'), {
+    global: true,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
+  }); 
   await fastify.register(corsPlugin);
   await fastify.register(websocket);
 
