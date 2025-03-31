@@ -2,7 +2,7 @@
 const Redis = require('ioredis');
 
 const redisClient = new Redis({
-  host: '10.219.18.203', 
+  host: '10.95.193.107', 
   port: 6379,
   connectionTimeout: 1000 
 });

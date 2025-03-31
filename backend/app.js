@@ -10,7 +10,6 @@ const fastifySession = require('@fastify/session');
 const RedisStore = require('connect-redis').default;
 const redisClient = require('./redisClient');
 const redisStore = new RedisStore({ client: redisClient });  
-// const logOptions = require('./aop/log/logPlugin');
 const loggingPlugin = require('./aop_modules/log/plugins/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const envPlugin = require('./envPlugin');

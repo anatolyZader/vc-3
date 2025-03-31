@@ -10,7 +10,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
   fastify.route({
     method: 'POST',
     url: '/auth/google-login',
-    handler: fastify.googleLoginUser, // We'll define this in authController
+    handler: fastify.loginWithGoogle, 
   });
 
   // 1

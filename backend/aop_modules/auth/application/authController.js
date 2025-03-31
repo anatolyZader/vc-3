@@ -29,43 +29,142 @@ async function authController(fastify, options) {
     });
   };
 
-  fastify.decorate('googleLoginUser', async function (request, reply) {
+  // works alongside the OAuth2 plugin's automatic configuration to handle a popup-based flow. Here's how they interact:
+
+  // Client-Side Popup Flow:
+  // When the user signs in via Google from your React app, the useGoogleLogin hook opens a popup where Google handles authentication. Once the user completes authentication, the popup returns an authorization code to the client.
+
+  // POST to /auth/google-login:
+  // Instead of redirecting the entire browser to the OAuth2 startRedirectPath (/auth/google), your client sends the authorization code via a POST request to /auth/google-login. This allows the Single Page Application to stay on its main route while handling authentication in the background.
+  fastify.decorate('loginWithGoogle', async function (request, reply) {
     try {
-      const { token: googleToken } = request.body;
-      if (!googleToken) {
-        return reply.badRequest('Missing Google access token');
+      const { code } = request.body; // one-time code issued by Google's authorization server once a user grants your application permission (typically to a designated redirect URI). This code is temporary and can only be used once. backend server then takes this code and sends it to Google's token endpoint. In exchange, Google returns tokens (such as an access token and an ID token) that allow your application to access the user's data securely.
+
+
+      if (!code) {
+        return reply.badRequest('Missing Google authorization code');
+      }
+  
+      // Copy the code from the body to the query so the oauth2 plugin can pick it up.
+      request.query = { code };
+  
+      const tokenResponse = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(
+        request,
+        { redirect_uri: 'postmessage' } // Redirect URI Context:
+        // In a standard OAuth2 flow, after a user authenticates with the provider (Google), the provider redirects the user back to a specific URL (the redirect URI) that you registered in your Google Cloud Console. This URI is where the authorization code is sent.
+        
+        // Popup Flow Adaptation:
+        // In your setup, you're using a popup-based flow via the useGoogleLogin hook. In this case, the entire OAuth process occurs in a popup window, and you don't want to redirect the main browser window. Instead, the code is returned to the popup, which then communicates back to your main app.
+      );
+  
+
+      const { id_token: googleIdToken } = tokenResponse.token; // This token contains information about the user (like email, name, and whether the email is verified). You use it immediately to verify the user’s identity by checking its signature and payload via your fastify.verifyGoogleIdToken function.
+      // Lifespan:
+      // It’s short-lived and used only during the authentication handshake. You don’t persist or use it for subsequent authorization in your own application.
+      // { id_token: googleIdToken } - object destructuring with aliasing. It extracts the property id_token from tokenResponse.token and assigns its value to a new constant named googleIdToken
+      if (!googleIdToken) {
+        return reply.internalServerError('Missing ID token from Google OAuth');
+      }
+  
+      // Verify the Google ID token
+      const payload = await fastify.verifyGoogleIdToken(googleIdToken);
+      if (!payload || !payload.email_verified) {
+        return reply.unauthorized('Google account not verified.');
+      }
+  
+      const email = payload.email;
+      let user = await userService.getUserInfo(email);
+      if (!user) {
+        const username = payload.name || payload.email.split('@')[0];
+        user = await userService.registerUser(
+          username,
+          email,
+          'placeholder-password'
+        );
+      }
+  
+      const jti = uuidv4();
+      const localToken = fastify.jwt.sign(
+        { id: user.id, username: user.username, jti },
+        { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
+      );
+  
+      // Set the auth cookie and return success response
+      setAuthCookies(reply, localToken);
+      return reply.send({
+        message: 'Google login successful',
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          picture: user.picture || null,
+        },
+      });
+    } catch (error) {
+      fastify.log.error('Error in loginWithUser:', error);
+      return reply.internalServerError('Failed to process Google login', { cause: error });
+    }
+  });
+// Google requires that you register a callback (redirect) URI in your GCP settings as a security measure. Even if you're primarily using a popup-based flow, under the hood the OAuth2 protocol still relies on a redirect URI to complete the token exchange. Here's why:
+
+// Security and Trust:
+// Google verifies that the authorization code is only sent to a pre-approved callback URI. This prevents malicious redirection of the token to unauthorized endpoints.
+
+// Protocol Requirements:
+// The OAuth2 standard is built around redirecting the user back to your application with an authorization code. Even if the user experience is handled via a popup, the underlying flow must have a valid callback URI.
+
+// Fallback & Consistency:
+// Having the callback route registered ensures that your application can handle both full-page redirects and popup-based flows consistently. If a full-page redirect ever occurs (or as a fallback), Google will only send the code to a registered URI.
+  fastify.decorate('googleCallback', async function (request, reply) {
+    try {
+      console.log('>>> /auth/google/callback called with query:', request.query);
+
+      // Exchange the authorization code for tokens.
+      // **Key change:** Pass { redirect_uri: "postmessage" } to align with the popup flow.
+      const tokenResponse = await this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(
+        request,
+        { redirect_uri: 'postmessage' }
+      );
+
+      const { id_token: googleIdToken } = tokenResponse.token;
+      if (!googleIdToken) {
+        return reply.internalServerError('Missing ID token from Google OAuth');
       }
 
-      // Verify Google token and resolve user via userService
-      const googleUser = await userService.loginWithGoogle(googleToken);
-      if (!googleUser) {
-        return reply.unauthorized('Google login failed: could not verify user.');
+      // Verify the Google ID token
+      const payload = await fastify.verifyGoogleIdToken(googleIdToken);
+      if (!payload || !payload.email_verified) {
+        return reply.unauthorized('Google account not verified.');
+      }
+
+      const email = payload.email;
+      let user = await userService.getUserInfo(email);
+      if (!user) {
+        const username = payload.name || payload.email.split('@')[0];
+        user = await userService.registerUser( 
+          username,
+          email,
+          'placeholder-password'
+        );
       }
 
       const jti = uuidv4();
       const localToken = fastify.jwt.sign(
-        { id: googleUser.id, username: googleUser.username, jti },
+        { id: user.id, username: user.username, jti },
         { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
       );
 
-      // Set the auth cookie
+      // Set auth cookie and redirect to the dashboard
       setAuthCookies(reply, localToken);
-
-      return reply.send({
-        message: 'Google login successful',
-        user: {
-          id: googleUser.id,
-          email: googleUser.email,
-          username: googleUser.username,
-          picture: googleUser.picture || null,
-        },
-      });
-    } catch (error) {
-      fastify.log.error('Error in googleLoginUser:', error);
-      return reply.internalServerError('Failed to process Google login', { cause: error });
+      return reply.redirect(`${fastify.secrets.APP_URL}/dashboard`);
+    } catch (err) {
+      console.error('>>> Google OAuth callback error:', err);
+      return reply.internalServerError('Google OAuth failed', { cause: err });
     }
   });
 
+  // -------------------------------------------------------------------------
+  
   fastify.decorate('readAllUsers', async function (request, reply) {
     try {
       const users = await userService.readAllUsers();
@@ -171,46 +270,7 @@ async function authController(fastify, options) {
       fastify.log.error('Error refreshing token:', error);
       return reply.internalServerError('Internal Server Error', { cause: error });
     }
-  });
-  
-  fastify.decorate('googleCallback', async function (request, reply) {
-    try {
-      console.log('>>> /auth/google/callback called with query:', request.query);
-  
-      // Exchange the authorization code for tokens using fastify-oauth2
-      const tokenResponse = await this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(request);
-      const { id_token: googleCallbackToken } = tokenResponse.token;
-      if (!googleCallbackToken) {
-        return reply.internalServerError('Missing ID token from Google OAuth');
-      }
-  
-      const payload = await fastify.verifyGoogleIdToken(googleCallbackToken);
-      if (!payload || !payload.email_verified) {
-        return reply.unauthorized('Google account not verified.');
-      }
-  
-      const userEmail = payload.email;
-      let user = await userService.getUserInfo(userEmail, fastify.authPersistAdapter);
-      if (!user) {
-        const username = payload.name || payload.email.split('@')[0];
-        user = await userService.registerUser(username, userEmail, 'some-random-placeholder-password', fastify.authPersistAdapter);
-      }
-  
-      const jti = uuidv4();
-      const localToken = fastify.jwt.sign(
-        { id: user.id, username: user.username, jti },
-        { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-      );
-  
-      // Set auth cookie and redirect to frontend dashboard
-      setAuthCookies(reply, localToken);
-      return reply.redirect(`${fastify.secrets.APP_URL}/dashboard`);
-    } catch (err) {
-      console.error('>>> Google OAuth callback error:', err);
-      return reply.internalServerError('Google OAuth failed', { cause: err });
-    }
-  });
-  
+  }); 
 }
 
 module.exports = fp(authController);
