@@ -41,8 +41,8 @@ const AuthProvider = ({ children }) => {
         // Extract the authorization code from the response
         const codeFromGoogle = response.code;
         // Send the code to the backend for token exchange
-       // const serverResponse = await fetch('http://localhost:3000/auth/google-login', {
-        const serverResponse = await fetch('/auth/google-login', {
+       const serverResponse = await fetch('http://localhost:3000/auth/google-login', {
+        // const serverResponse = await fetch('/auth/google-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: codeFromGoogle }),

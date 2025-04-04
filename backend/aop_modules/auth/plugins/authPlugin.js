@@ -87,21 +87,29 @@ module.exports = fp(async function authPlugin(fastify, opts) {
 
   const clientId = googleCreds.web.client_id;
   const clientSecret = googleCreds.web.client_secret;
+  console.log('googleCreds:', googleCreds);
 
   fastify.register(fastifyOAuth2, {
     name: 'googleOAuth2',
-    scope: ['profile', 'email'], // After the user authenticates, you can inspect the token response (or decoded ID token payload) to ensure that the scopes you requested were granted.
-    cookie: { secure: true, sameSite: 'none' },
+    scope: ['profile', 'email', 'openid'], // After the user authenticates, you can inspect the token response (or decoded ID token payload) to ensure that the scopes you requested were granted.
+    cookie: { 
+      // TODO - set secure to true when using HTTPS !!!!!!
+      secure: false,
+      sameSite: 'none' },
     credentials: {
       client: { id: clientId, secret: clientSecret },
       auth: fastifyOAuth2.GOOGLE_CONFIGURATION,
     },
     startRedirectPath: '/auth/google',
-    callbackUri: `${fastify.secrets.APP_URL}/auth/google/callback`,
+    callbackUri: 'http://localhost:3000/auth/google/callback',
   });  // When a “Sign in with Google” at LoginPage is clicked, your AuthContext calls the useGoogleLogin hook. This hook uses a popup-based flow (configured with flow: 'auth-code'), which opens a separate window for Google authentication. Once the user completes authentication in the popup, the hook returns an authorization code that your client then sends to a backend endpoint (e.g., /auth/google-login).
 
   const googleClient = new OAuth2Client(clientId);
   fastify.decorate('verifyGoogleIdToken', async function (googleIdToken) {
+    console.lohg('Verifying Google ID token:', googleIdToken);
+    if (!googleIdToken) {
+      throw new Error('Google ID token is required');
+    }
     const ticket = await googleClient.verifyIdToken({
       idToken: googleIdToken,
       audience: clientId,

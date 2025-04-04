@@ -1,4 +1,4 @@
-// aop/auth/index.js
+// aop_modules/auth/index.js
 /* eslint-disable no-unused-vars */ 
 const autoload = require('@fastify/autoload');
 const path = require('path');

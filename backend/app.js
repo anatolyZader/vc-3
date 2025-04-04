@@ -17,8 +17,6 @@ const diPlugin = require('./diPlugin');
 const corsPlugin = require('./corsPlugin');
 const fastifyRedis = require('@fastify/redis');
 const helmet = require('@fastify/helmet');
-const websocket = require('@fastify/websocket');
-const { createWSServer, registerChatHandler } = require('./aop_modules/ws/wsPlugin');
 
 require('dotenv').config();
 
@@ -30,10 +28,17 @@ module.exports = async function (fastify, opts) {
   await fastify.register(fastifySensible);
   await fastify.register(require('@fastify/helmet'), {
     global: true,
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
-  }); 
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'],
+        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'],
+        styleSrc: ["'self'", 'https://accounts.google.com/gsi/style'],
+        frameSrc: ["'self'", 'https://accounts.google.com/gsi/'],
+        connectSrc: ["'self'", 'https://accounts.google.com/gsi/']
+      }
+  }}); 
   await fastify.register(corsPlugin);
-  await fastify.register(websocket);
 
   try {
     fastify.log.info('Attempting to register @fastify/redis plugin.');
@@ -52,14 +57,14 @@ module.exports = async function (fastify, opts) {
   try {
     await fastify.register(fastifyCookie, {
       secret: fastify.secrets.COOKIE_SECRET,
-      parseOptions: {},
-      cookie: {
-        secure: true, 
+      parseOptions: {
+        secure: false,
         httpOnly: true,
-        sameSite: 'strict',
+        sameSite: 'none',
       },
     });
-    console.log('Cookie plugin successfully registered');
+    
+    console.log('Cookie package successfully registered');
   } catch (error) {
     console.error('Error registering @fastify/cookie:', error);
     // Replaced silent swallow with @fastify/sensible
@@ -81,28 +86,25 @@ module.exports = async function (fastify, opts) {
     saveUninitialized: false,
   });
 
-  await fastify.register(async function apiScopedRoutes(fastify, opts) {
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'aop_modules'),
+    options: Object.assign({}, opts),
+    encapsulate: false,
+    maxDepth: 1,
+    dirNameRoutePrefix: false,
+  });
 
-    await fastify.register(AutoLoad, {
-      dir: path.join(__dirname, 'aop_modules'),
-      options: Object.assign({}, opts),
-      encapsulate: false,
-      maxDepth: 1,
-      dirNameRoutePrefix: false,
-    });
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'business_modules'),
+    options: Object.assign({}, opts),
+    encapsulate: true,
+    maxDepth: 1,
+    dirNameRoutePrefix: false,
+  });
 
-    await fastify.register(AutoLoad, {
-      dir: path.join(__dirname, 'business_modules'),
-      options: Object.assign({}, opts),
-      encapsulate: true,
-      maxDepth: 1,
-      dirNameRoutePrefix: false,
-    });
-  }
   // , { prefix: 'v1' } 
-  );
+
   
-  const wsServer = createWSServer(8080);
 
 
 };

@@ -37,8 +37,16 @@ async function authController(fastify, options) {
   // POST to /auth/google-login:
   // Instead of redirecting the entire browser to the OAuth2 startRedirectPath (/auth/google), your client sends the authorization code via a POST request to /auth/google-login. This allows the Single Page Application to stay on its main route while handling authentication in the background.
   fastify.decorate('loginWithGoogle', async function (request, reply) {
+    console.log('hello from authController.loginWithGoogle');
+    console.log('Request body at authController.loginWithGoogle:', request.body);
+    console.log('Request body:', JSON.stringify(request.body, null, 2));
+
+
+ 
     try {
       const { code } = request.body; // one-time code issued by Google's authorization server once a user grants your application permission (typically to a designated redirect URI). This code is temporary and can only be used once. backend server then takes this code and sends it to Google's token endpoint. In exchange, Google returns tokens (such as an access token and an ID token) that allow your application to access the user's data securely.
+      console.log('Received authorization code at authController.loginWithGoogle:', code);
+      console.log('Received authorization code:', JSON.stringify(code));
 
 
       if (!code) {
@@ -47,17 +55,22 @@ async function authController(fastify, options) {
   
       // Copy the code from the body to the query so the oauth2 plugin can pick it up.
       request.query = { code };
+
+      console.log('fastify.googleOAuth2 full object:', fastify.googleOAuth2);
   
       const tokenResponse = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(
         request,
-        { redirect_uri: 'postmessage' } // Redirect URI Context:
+        // { redirect_uri: 'postmessage' } 
+        { redirect_uri: 'http://localhost:3000/auth/google/callback' }
+        // Redirect URI Context:
         // In a standard OAuth2 flow, after a user authenticates with the provider (Google), the provider redirects the user back to a specific URL (the redirect URI) that you registered in your Google Cloud Console. This URI is where the authorization code is sent.
         
         // Popup Flow Adaptation:
         // In your setup, you're using a popup-based flow via the useGoogleLogin hook. In this case, the entire OAuth process occurs in a popup window, and you don't want to redirect the main browser window. Instead, the code is returned to the popup, which then communicates back to your main app.
       );
   
-
+      console.log('Token response from Google:', tokenResponse);
+      console.log('Token response from Google stringified:', JSON.stringify(tokenResponse, null, 2));
       const { id_token: googleIdToken } = tokenResponse.token; // This token contains information about the user (like email, name, and whether the email is verified). You use it immediately to verify the user’s identity by checking its signature and payload via your fastify.verifyGoogleIdToken function.
       // Lifespan:
       // It’s short-lived and used only during the authentication handshake. You don’t persist or use it for subsequent authorization in your own application.
@@ -68,6 +81,7 @@ async function authController(fastify, options) {
   
       // Verify the Google ID token
       const payload = await fastify.verifyGoogleIdToken(googleIdToken);
+      console.log('Verified payload:', payload);
       if (!payload || !payload.email_verified) {
         return reply.unauthorized('Google account not verified.');
       }
@@ -101,8 +115,9 @@ async function authController(fastify, options) {
         },
       });
     } catch (error) {
-      fastify.log.error('Error in loginWithUser:', error);
-      return reply.internalServerError('Failed to process Google login', { cause: error });
+      console.error('Actual Google error:', error.response?.data || error.message);
+      fastify.log.error(error);
+      return reply.internalServerError('Failed to process Google login');
     }
   });
 // Google requires that you register a callback (redirect) URI in your GCP settings as a security measure. Even if you're primarily using a popup-based flow, under the hood the OAuth2 protocol still relies on a redirect URI to complete the token exchange. Here's why:
@@ -123,8 +138,10 @@ async function authController(fastify, options) {
       // **Key change:** Pass { redirect_uri: "postmessage" } to align with the popup flow.
       const tokenResponse = await this.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(
         request,
-        { redirect_uri: 'postmessage' }
+        // { redirect_uri: 'postmessage' }
+        { redirect_uri: 'http://localhost:3000/auth/google/callback' }
       );
+      console.log('Token response from Google:', tokenResponse);
 
       const { id_token: googleIdToken } = tokenResponse.token;
       if (!googleIdToken) {
@@ -159,6 +176,7 @@ async function authController(fastify, options) {
       return reply.redirect(`${fastify.secrets.APP_URL}/dashboard`);
     } catch (err) {
       console.error('>>> Google OAuth callback error:', err);
+      fastify.log.error(' $$$$$$$ googleLoginError!', err); // log the full underlying error
       return reply.internalServerError('Google OAuth failed', { cause: err });
     }
   });
