@@ -13,6 +13,7 @@ const { v4: uuidv4 } = require('uuid');
 module.exports = fp(async function authPlugin(fastify, opts) {
   console.log('=== authPlugin loaded! ===');
 
+
   // ----------------------------
   // JWT configuration
   // ----------------------------
@@ -68,6 +69,9 @@ module.exports = fp(async function authPlugin(fastify, opts) {
   // ----------------------------
   // OAuth2 (Google) configuration
   // ----------------------------
+
+
+
   let googleCreds = null;
 
   if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -88,6 +92,10 @@ module.exports = fp(async function authPlugin(fastify, opts) {
   const clientId = googleCreds.web.client_id;
   const clientSecret = googleCreds.web.client_secret;
   console.log('googleCreds:', googleCreds);
+
+  console.log('fastify object before registering fastifyOAuth2:');
+  console.dir(fastify, { depth: null });
+
 
   fastify.register(fastifyOAuth2, {
     name: 'googleOAuth2',

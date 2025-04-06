@@ -17,6 +17,17 @@ const diPlugin = require('./diPlugin');
 const corsPlugin = require('./corsPlugin');
 const fastifyRedis = require('@fastify/redis');
 const helmet = require('@fastify/helmet');
+const fs = require('fs');
+
+const fastifyOAuth2 = require('@fastify/oauth2');
+const { OAuth2Client } = require('google-auth-library');
+const { v4: uuidv4 } = require('uuid');
+
+// TODO: fix cookies issue and move back to aop_modules
+const authPlugin = require('./aop_modules/auth/plugins/authPlugin');
+const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
+const { truncateSync } = require('node:fs');
+
 
 require('dotenv').config();
 
@@ -26,7 +37,7 @@ module.exports = async function (fastify, opts) {
   await fastify.register(envPlugin);
   await fastify.register(diPlugin);
   await fastify.register(fastifySensible);
-  await fastify.register(require('@fastify/helmet'), {
+  await fastify.register(helmet, {
     global: true,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     contentSecurityPolicy: {
@@ -74,6 +85,8 @@ module.exports = async function (fastify, opts) {
     );
   }
 
+
+
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET, 
     cookie: { 
@@ -85,6 +98,16 @@ module.exports = async function (fastify, opts) {
     store: redisStore,
     saveUninitialized: false,
   });
+
+
+ 
+
+
+
+  await fastify.register(authPlugin, opts, { encapsulate: false }); // force shared scope
+
+  await fastify.register(authSchemasPlugin);
+
 
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop_modules'),
@@ -102,8 +125,30 @@ module.exports = async function (fastify, opts) {
     dirNameRoutePrefix: false,
   });
 
+  fastify.get('/debug-reply', (request, reply) => {
+    // Log the properties of the reply instance's prototype
+    const proto = Object.getPrototypeOf(reply);
+    console.log('Reply prototype methods:', Object.getOwnPropertyNames(proto));
+    reply.send({ status: 'ok' });
+  });
+  
+
   // , { prefix: 'v1' } 
 
+  fastify.addHook('onReady', async () => {
+    console.log('Available fastify methods:');
+    console.log(Object.keys(fastify));
+  
+    const Reply = fastify[Symbol.for('fastify.Reply')];
+    const replyProto = Reply?.prototype || fastify.Reply?.prototype;
+  
+    if (replyProto) {
+      console.log('--- Reply prototype keys (including from @fastify/cookie):');
+      console.log(Object.getOwnPropertyNames(replyProto));
+    } else {
+      console.warn('Reply prototype not found');
+    }
+  });
   
 
 

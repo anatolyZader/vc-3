@@ -2,9 +2,10 @@
 /* eslint-disable no-unused-vars */
 'use strict';
 
-const fp = require('fastify-plugin');
+const util = require('util');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
+const fp = require('fastify-plugin');
 
 async function authController(fastify, options) {
   let userService;
@@ -29,52 +30,35 @@ async function authController(fastify, options) {
     });
   };
 
-  // works alongside the OAuth2 plugin's automatic configuration to handle a popup-based flow. Here's how they interact:
-
-  // Client-Side Popup Flow:
-  // When the user signs in via Google from your React app, the useGoogleLogin hook opens a popup where Google handles authentication. Once the user completes authentication, the popup returns an authorization code to the client.
-
-  // POST to /auth/google-login:
-  // Instead of redirecting the entire browser to the OAuth2 startRedirectPath (/auth/google), your client sends the authorization code via a POST request to /auth/google-login. This allows the Single Page Application to stay on its main route while handling authentication in the background.
   fastify.decorate('loginWithGoogle', async function (request, reply) {
     console.log('hello from authController.loginWithGoogle');
     console.log('Request body at authController.loginWithGoogle:', request.body);
-    console.log('Request body:', JSON.stringify(request.body, null, 2));
 
-
- 
     try {
-      const { code } = request.body; // one-time code issued by Google's authorization server once a user grants your application permission (typically to a designated redirect URI). This code is temporary and can only be used once. backend server then takes this code and sends it to Google's token endpoint. In exchange, Google returns tokens (such as an access token and an ID token) that allow your application to access the user's data securely.
+      const { code } = request.body; 
       console.log('Received authorization code at authController.loginWithGoogle:', code);
       console.log('Received authorization code:', JSON.stringify(code));
-
 
       if (!code) {
         return reply.badRequest('Missing Google authorization code');
       }
-  
-      // Copy the code from the body to the query so the oauth2 plugin can pick it up.
+
       request.query = { code };
 
-      console.log('fastify.googleOAuth2 full object:', fastify.googleOAuth2);
+      console.log('Before calling getAccessTokenFromAuthorizationCodeFlow:');
+      console.log('fastify.googleOAuth2 full object:', fastify.googleOAuth2);      
+      console.log('Request object:', util.inspect(request, { showHidden: false, depth: 1 }));
+      console.log('Reply object:', util.inspect(reply, { showHidden: false, depth: 1 }));
   
       const tokenResponse = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(
         request,
         // { redirect_uri: 'postmessage' } 
         { redirect_uri: 'http://localhost:3000/auth/google/callback' }
-        // Redirect URI Context:
-        // In a standard OAuth2 flow, after a user authenticates with the provider (Google), the provider redirects the user back to a specific URL (the redirect URI) that you registered in your Google Cloud Console. This URI is where the authorization code is sent.
-        
-        // Popup Flow Adaptation:
-        // In your setup, you're using a popup-based flow via the useGoogleLogin hook. In this case, the entire OAuth process occurs in a popup window, and you don't want to redirect the main browser window. Instead, the code is returned to the popup, which then communicates back to your main app.
       );
-  
+      console.log('reply object inside the func:', reply);
       console.log('Token response from Google:', tokenResponse);
       console.log('Token response from Google stringified:', JSON.stringify(tokenResponse, null, 2));
-      const { id_token: googleIdToken } = tokenResponse.token; // This token contains information about the user (like email, name, and whether the email is verified). You use it immediately to verify the user’s identity by checking its signature and payload via your fastify.verifyGoogleIdToken function.
-      // Lifespan:
-      // It’s short-lived and used only during the authentication handshake. You don’t persist or use it for subsequent authorization in your own application.
-      // { id_token: googleIdToken } - object destructuring with aliasing. It extracts the property id_token from tokenResponse.token and assigns its value to a new constant named googleIdToken
+      const { id_token: googleIdToken } = tokenResponse.token; 
       if (!googleIdToken) {
         return reply.internalServerError('Missing ID token from Google OAuth');
       }
