@@ -1,0 +1,67 @@
+
+{
+  "type": "object",
+  "$id": "schema:dotenv",
+  "properties": {
+    "YOUTUBE_API_KEY": {
+      "type": "string"
+    },
+    "PORT": {
+      "type": "integer",
+      "default": 3000
+    },
+    "PG_CONNECTION_STRING": {
+      "type": "string"
+    },
+    "JWT_SECRET": {
+      "type": "string"
+    },
+    "JWT_EXPIRE_IN": {
+      "type": "string",
+      "default": "1h"
+    },
+    "GCP_OAUTH2_CLIENT_SECRET": {
+      "type": "string"
+    },
+    "GCP_OAUTH2_CLIENT_ID": {
+      "type": "string"
+    },
+    "GITHUB_TOKEN": {
+      "type": "string"
+    },
+    "CLOUD_SQL_CONNECTION_NAME": {
+      "type": "string"
+    },
+    "PG_USER": {
+      "type": "string"
+    },
+    "PG_PASSWORD": {
+      "type": "string"
+    },
+    "PG_DATABASE": {
+      "type": "string"
+    },
+    "GOOGLE_APPLICATION_CREDENTIALS": {
+      "type": "string"
+    },
+    "REDIS_SECRET": {
+      "type": "string"
+    },
+    "SSL_KEY_PATH": {
+      "type": "string"
+    },
+    "SSL_CERT_PATH": {
+      "type": "string"
+    },
+    "COOKIE_SECRET": {
+      "type": "string"
+    },
+    "SESSION_SECRET": {
+      "type": "string"
+    },
+    "APP_URL": {
+      "type": "string"
+    }
+
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "aop_modules": {
+    "auth": {
+      "authPersistAdapter": "authPostgresAdapter"
+    }
+  },
+
+
+  "business_modules": {
+    "chat": {
+      "chatPersistAdapter": "chatPostgresAdapter",
+      "chatAIAdapter": "chatLangchainAdapter",
+      "chatMessagingAdapter": "chatPubsubAdapter"
+    },
+    "git": {
+      "gitPersistAdapter": "gitPostgresAdapter",
+      "gitGitAdapter": "gitGithubAdapter",
+      "gitMessagingAdapter": "gitPubsubAdapter"
+    },
+    "target": {
+      "targetPersistAdapter": "targetPostgresAdapter",
+      "targetAIAdapter": "targetLangchainAdapter",
+      "targetMessagingAdapter": "targetPubsubAdapter",
+      "targetGitAdapter": "targetLangchainAdapter"
+    },
+    "checklist": {
+      "checklistPersistAdapter": "checklistPostgresAdapter",
+      "checklistaiAdapter": "checklistLangchainAdapter",
+      "checklistMessagingAdapter": "checklistPubsubAdapter"
+    },
+    "wiki": {
+      "wikiMessagingAdapter": "wikiPubsubAdapter"
+    },
+    "ai": {
+      "aiPersistAdapter": "aiPostgresAdapter",
+      "aiAIAdapter": "aiLangchainAdapter",
+      "aiMessagingAdapter": "aiPubsubAdapter",
+      "aiGitAdapter": "aiGithubAdapter",
+      "aiWikiAdapter": "aiGithubWikiAdapter"
+    },
+    "messaging": {
+      "messagingPersistAdapter": "messagingPostgresAdapter",
+      "messagingAIAdapter": "messagingLangchainAdapter",
+      "messagingMessagingAdapter": "messagingPubsubAdapter"
+    }
+
+  }
+}

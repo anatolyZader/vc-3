@@ -1,0 +1,7 @@
+node_modules/
+.vscode/
+*.log
+bfg.jar
+cookies.txt
+cookie.txt
+

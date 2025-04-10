@@ -1,0 +1,35 @@
+// conversationsHistory.js
+/* eslint-disable no-unused-vars */
+
+// isolate between functionality 1) the names of the conversations are fetched to be presented in  
+// // the chat history and 2) the whole conversation is fetched to be presented in the chat window
+
+'use strict';
+
+const { v4: uuidv4 } = require('uuid');
+
+class ConversationsHistory {
+  constructor(userId) {
+    this.userId = userId;
+  }
+
+  // TODO: feature that allows smart fetching of conversations list, fetch only relevant conversations providing right arguments to the search
+  async fetchConversationsHistory(IChatPersistPort) {
+    const conversations = await IChatPersistPort.fetchConversationsHistory(this.userId);
+    return conversations;
+  }
+
+
+  // async searchInConversations(query, IChatPersistPort) {
+  //   const searchResult = await IChatPersistPort.searchInConversations(this.userId, query);  
+  //   if (searchResult.length > 0) {
+  //     console.log(`Found ${searchResult.length} conversation(s) matching the query "${query}".`);
+  //     return searchResult;
+  //   } else {
+  //     console.log(`No conversations found matching the query "${query}".`);
+  //     return [];
+  //   }
+  // }
+}
+
+module.exports = ConversationsHistory;
