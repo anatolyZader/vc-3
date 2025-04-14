@@ -14,7 +14,7 @@ const AuthProvider = ({ children }) => {
   // Verify session by calling a protected endpoint that returns user info
   const verifyCookieUpdateState = async () => {
     try {
-      const response = await fetch('/auth/me', {
+      const response = await fetch('http://localhost:3000/auth/me', {
         method: 'GET',
         credentials: 'include', // include cookies, ensures that cookies are sent with every request.
       });
@@ -33,50 +33,28 @@ const AuthProvider = ({ children }) => {
     }
   };
 
-  // Google login using the authorization code flow
-  const googleLogin = useGoogleLogin({
-    flow: 'auth-code', // involves a two-step process. First, your app receives an authorization code; then it exchanges that code for an access token.
-    onSuccess: async (response) => {
-      try {
-        // Extract the authorization code from the response
-        const codeFromGoogle = response.code;
-        // Send the code to the backend for token exchange
-       const serverResponse = await fetch('http://localhost:3000/auth/google-login', {
-        // const serverResponse = await fetch('/auth/google-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: codeFromGoogle }),
-          credentials: 'include',
-        });
-        if (serverResponse.ok) {
-          await verifyCookieUpdateState();
-        } else {
-          console.error('Google login failed on server side');
-        }
-      } catch (error) {
-        console.error('Google login failed:', error);
-      }
-    },
-    onError: (error) => console.log('Google login failed:', error),
-  });
-  
-
+  const googleLogin = () => {
+    // The @fastify/oauth2 plugin handles the redirect
+    // by hooking onto /auth/google as startRedirectPath.
+    window.location.href = 'http://localhost:3000/auth/google';
+  };
 
   // Logout by calling backend logout endpoint and updating state
   const logout = async () => {
     try {
-      await fetch('/auth/logout', {
+      await fetch('http://localhost:3000/auth/logout', {
         method: 'POST',
-        credentials: 'include',
+        credentials: 'include', // so it sends the auth cookie
       });
     } catch (err) {
       console.error('Logout error:', err);
     }
+    // Clear local auth state
     setIsAuthenticated(false);
     setUserProfile(null);
+    // If using @react-oauth/google, also sign out of Google
     googleLogout();
   };
-
 
   useEffect(() => {
     verifyCookieUpdateState();
@@ -90,6 +68,7 @@ const AuthProvider = ({ children }) => {
         logout,
         googleLogin,
         userProfile,
+        logout
       }}
     >
       {children}

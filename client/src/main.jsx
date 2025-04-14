@@ -11,8 +11,10 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 
+// Although <GoogleOAuthProvider> is kept, in a pure redirect-based approach we don't actively use it below.
+ 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <GoogleOAuthProvider clientId="979848823566-jrtu8qq3dp2rpi0tk46renofrbii2re9.apps.googleusercontent.com">
+  <GoogleOAuthProvider clientId="979848823566-jrtu8qq3dp2rpi0tk46renofrbii2re9.apps.googleusercontent.com">  
     <React.StrictMode>
       <App />
     </React.StrictMode>

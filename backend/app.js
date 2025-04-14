@@ -18,15 +18,18 @@ const corsPlugin = require('./corsPlugin');
 const fastifyRedis = require('@fastify/redis');
 const helmet = require('@fastify/helmet');
 const fs = require('fs');
+const fastifyJwt = require('@fastify/jwt');
 
 const fastifyOAuth2 = require('@fastify/oauth2');
 const { OAuth2Client } = require('google-auth-library');
 const { v4: uuidv4 } = require('uuid');
 
 // TODO: fix cookies issue and move back to aop_modules
-const authPlugin = require('./aop_modules/auth/plugins/authPlugin');
 const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
 const { truncateSync } = require('node:fs');
+
+// TODO: isolate service
+// const userService = require('./aop_modules/auth/application/services/userService');
 
 
 require('dotenv').config();
@@ -66,13 +69,16 @@ module.exports = async function (fastify, opts) {
   }
 
   try {
-    await fastify.register(fastifyCookie, {
+    await fastify.register(fastifyCookie,  {
       secret: fastify.secrets.COOKIE_SECRET,
       parseOptions: {
-        secure: false,
+        secure: true,
         httpOnly: true,
-        sameSite: 'none',
-      },
+        sameSite: 'None',
+      }
+    },
+    { 
+      encapsulate: false 
     });
     
     console.log('Cookie package successfully registered');
@@ -85,30 +91,189 @@ module.exports = async function (fastify, opts) {
     );
   }
 
-
-
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET, 
     cookie: { 
       secure: true,  
       maxAge: 86400000,
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'None',
     },
     store: redisStore,
     saveUninitialized: false,
   });
 
 
+  let googleCreds = null;
+
+  if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
+    const fullPath = path.resolve(fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS);
+    try {
+      googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    } catch (error) {
+      console.error('Error reading Google credentials:', error);
+    }
+  } else {
+    console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
+  }
+  if (!googleCreds || !googleCreds.web) {
+    console.error('googleCreds or googleCreds.web is missing.');
+    return;
+  }
+
+  const clientId = googleCreds.web.client_id;
+  const clientSecret = googleCreds.web.client_secret;
+  console.log('googleCreds:', googleCreds);
+
+  let userService;
+  try {
+    userService = await fastify.diContainer.resolve('userService');
+  } catch (error) {
+    fastify.log.error('Error resolving userService:', error);
+    throw fastify.httpErrors.internalServerError(
+      'Failed to resolve userService. Ensure it is registered in the DI container.',
+      { cause: error }
+    );
+  }
+
+    // ----------------------------
+  // JWT configuration
+  // ----------------------------
+  const revokedTokens = new Map();
+
+  fastify.register(fastifyJwt, {
+    secret: fastify.secrets.JWT_SECRET,
+    sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },
+    verify: { requestProperty: 'user' },
+    trusted: function isTrusted(request, decodedToken) {
+      return !revokedTokens.has(decodedToken.jti);
+    },
+  });
+
+  fastify.decorate('verifyToken', async function (request, reply) {
+    let authToken = request.cookies && request.cookies.authToken;
+    if (!authToken && request.headers.authorization) {
+      const parts = request.headers.authorization.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        authToken = parts[1];
+      }
+    }
+    if (!authToken) {
+      throw fastify.httpErrors.unauthorized('Missing token');
+    }
+    try {
+      const decoded = await fastify.jwt.verify(authToken);
+      request.user = decoded;
+    } catch (err) {
+      fastify.log.error('Token verification error:', err);
+      throw fastify.httpErrors.unauthorized(err.message);
+    }
+  });
+
+  fastify.decorateRequest('revokeToken', function () {
+    if (!this.user || !this.user.jti) {
+      throw this.httpErrors.unauthorized('Missing jti in token');
+    }
+    revokedTokens.set(this.user.jti, true);
+  });
+
+  fastify.decorateRequest('generateToken', async function () {
+    const authToken = await fastify.jwt.sign(
+      { id: String(this.user.id), username: this.user.username },
+      {
+        jwtid: uuidv4(),
+        expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h',
+      }
+    );
+    return authToken;
+  });
+
+
+
+  // OAUTH2
+
+  fastify.register(fastifyOAuth2, {
+    name: 'googleOAuth2',
+    scope: ['profile', 'email', 'openid'],
+    cookie: {
+      secure: true,
+      sameSite: 'None',
+      httpOnly: true,
+      allowCredentials: true,
+    },
+    credentials: {
+      client: { id: clientId, secret: clientSecret },
+      auth: fastifyOAuth2.GOOGLE_CONFIGURATION
+    },
+    startRedirectPath: '/auth/google',
+    callbackUri: 'http://localhost:3000/auth/google/callback',
+  },
+  {
+    encapsulate: false
+  }
+  
+);  
+
+  const googleClient = new OAuth2Client(clientId);
+  fastify.decorate('verifyGoogleIdToken', async function (googleIdToken) {
+    console.lohg('Verifying Google ID token:', googleIdToken);
+    if (!googleIdToken) {
+      throw new Error('Google ID token is required');
+    }
+    const ticket = await googleClient.verifyIdToken({
+      idToken: googleIdToken,
+      audience: clientId,
+    });
+    const payload = ticket.getPayload();
+    return payload;
+  });
  
-
-
-
-  await fastify.register(authPlugin, opts, { encapsulate: false }); // force shared scope
-
   await fastify.register(authSchemasPlugin);
 
 
+
+
+  fastify.get('/auth/google/callback', async (req, reply) => {
+    console.log('--- Incoming callback cookies ---', req.cookies);
+    try {
+      const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
+      const googleAccessToken = token.token.access_token;
+      // 1) Using that access token, fetch user info from Google
+      const googleUser = await userService.loginWithGoogle(googleAccessToken);
+      if (!googleUser) {
+        return reply.unauthorized('Google profile invalid or not verified.');
+      }
+
+      // 2) Create a local JWT so that /auth/me can decode it
+      const jti = uuidv4();
+      const localJwt = fastify.jwt.sign({
+        id: googleUser.id,
+        username: googleUser.username,
+        // any other fields
+        jti
+      }, {
+        jwtid: jti,
+        expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h'
+      });
+  
+      // 3) Store the local JWT in the same cookie your manual flow uses
+      reply.setCookie('authToken', localJwt, {
+        path: '/',
+        httpOnly: true,
+        secure: true, // set true in production
+        sameSite: 'None',
+
+      });
+  
+      // 4) Redirect user to front-end
+      reply.redirect('http://localhost:5173/chat');
+  
+    } catch (err) {
+      console.error('Google OAuth callback error:', err);
+      return reply.internalServerError('OAuth failed', { cause: err });
+    }
+  });
+  
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop_modules'),
     options: Object.assign({}, opts),
@@ -125,15 +290,15 @@ module.exports = async function (fastify, opts) {
     dirNameRoutePrefix: false,
   });
 
-  fastify.get('/debug-reply', (request, reply) => {
-    // Log the properties of the reply instance's prototype
-    const proto = Object.getPrototypeOf(reply);
-    console.log('Reply prototype methods:', Object.getOwnPropertyNames(proto));
-    reply.send({ status: 'ok' });
+  fastify.get('/debug/clear-state-cookie', (req, reply) => {
+    reply.clearCookie('oauth2-redirect-state', { path: '/' });
+    reply.send({ message: 'cleared' });
   });
   
 
   // , { prefix: 'v1' } 
+
+
 
   fastify.addHook('onReady', async () => {
     console.log('Available fastify methods:');

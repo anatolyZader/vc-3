@@ -15,7 +15,8 @@ import {
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import '../custom-overrides.css';
 import './chat.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+import { AuthContext } from './auth-components/AuthContext'; 
 import stitch from './stitch.jpg';
 
 const getSocketUrl = () => {
@@ -27,6 +28,9 @@ const SOCKET_SERVER_URL = getSocketUrl();
 
 
 const Chat = () => {
+
+  const { logout } = useContext(AuthContext);
+
   const [socket, setSocket] = useState(null);
   const [typing, setTyping] = useState(false);
   const [sidebarHidden, setSidebarHidden] = useState(false);
@@ -102,7 +106,8 @@ const Chat = () => {
           <Avatar src={stitch} name="ai assistant" />
           <ConversationHeader.Content userName="ai assistant" />
           <ConversationHeader.Actions>
-            <SendButton border />
+            <button onClick={logout}>Logout</button>
+            {/* <SendButton border /> */}
           </ConversationHeader.Actions>
         </ConversationHeader>
 

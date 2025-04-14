@@ -1,15 +1,20 @@
 // LoginPage.jsx
 'use strict';
+// LoginPage.jsx
+'use strict';
 
 import { useContext, useState } from 'react';
-
-
-
 import { AuthContext } from './AuthContext'; // AuthContext object created in another module, enabling access to authentication state and functions.
 import { TextField, Button, Typography, Box, Alert } from '@mui/material';
 
 const LoginPage = () => {
-  const { verifyCookieUpdateState, googleLogin, logout, userProfile, isAuthenticated } = useContext(AuthContext); // Consuming context
+  const {
+    verifyCookieUpdateState,
+    googleLogin,      // Now a simple redirect-based function
+    logout,
+    userProfile,
+    isAuthenticated
+  } = useContext(AuthContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,8 +41,6 @@ const LoginPage = () => {
   };
 
   return (
-
-
     <Box sx={{ maxWidth: 400, mx: 'auto', p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Login Panel
@@ -48,13 +51,12 @@ const LoginPage = () => {
             variant="contained"
             color="primary"
             fullWidth
-            onClick={() => googleLogin()}
+            onClick={googleLogin}  // Redirect flow triggered here
             sx={{ mb: 2 }}
           >
             Sign in with Google 🚀
           </Button>
 
-        
           <form onSubmit={handleManualLogin}>
             <Box sx={{ mb: 2 }}>
               <TextField

@@ -7,25 +7,6 @@ module.exports = fp(async function authRouter(fastify, opts) {
 
   console.log('authRouter is loaded!');
 
-
-  fastify.route({
-    method: 'POST',
-    url: '/auth/google-login',
-    handler: fastify.loginWithGoogle, 
-  });
-
-   /**
-   * [NEW] GET /auth/google (startRedirectPath)
-   * Handled automatically by @fastify/oauth2 - no explicit route needed.
-   * yet customizable...
-   */
-
-   fastify.route({
-    method: 'GET',
-    url: '/auth/google/callback',   
-    handler: fastify.googleCallback,
-  })
-
   // 1
   fastify.route({
     method: 'GET',
