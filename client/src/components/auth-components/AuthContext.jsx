@@ -10,6 +10,8 @@ const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true); 
+
 
   // Verify session by calling a protected endpoint that returns user info
   const verifyCookieUpdateState = async () => {
@@ -30,7 +32,10 @@ const AuthProvider = ({ children }) => {
     } catch (error) {
       setIsAuthenticated(false);
       setUserProfile(null);
+    } finally {
+      setAuthLoading(false); 
     }
+
   };
 
   const googleLogin = () => {
@@ -68,7 +73,7 @@ const AuthProvider = ({ children }) => {
         logout,
         googleLogin,
         userProfile,
-        logout
+        authLoading,
       }}
     >
       {children}

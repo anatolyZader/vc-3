@@ -10,7 +10,9 @@ import { AuthProvider, AuthContext } from './components/auth-components/AuthCont
 import './app.css';
 
 function AppContent() {
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, authLoading } = useContext(AuthContext);
+
+  if (authLoading) return null; // or spinner
 
   // Show the LoginPage if the user is not authenticated
   if (!isAuthenticated) {
