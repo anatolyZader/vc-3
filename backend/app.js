@@ -7,15 +7,20 @@ const AutoLoad = require('@fastify/autoload');
 const fastifySensible = require('@fastify/sensible');
 const fastifyCookie = require('@fastify/cookie');
 const fastifySession = require('@fastify/session');
-const RedisStore = require('connect-redis').default;
-const redisClient = require('./redisClient');
-const redisStore = new RedisStore({ client: redisClient });  
+
 const loggingPlugin = require('./aop_modules/log/plugins/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const envPlugin = require('./envPlugin');
 const diPlugin = require('./diPlugin');
 const corsPlugin = require('./corsPlugin');
+
 const fastifyRedis = require('@fastify/redis');
+const connectRedisPkg = require('connect-redis')
+console.dir(connectRedisPkg, { depth: null }) // <-- see exactly what shape the module is
+const RedisStore = connectRedisPkg.default 
+console.log('RedisStore:', RedisStore);
+const redisPlugin = require('./redisPlugin');
+
 const helmet = require('@fastify/helmet');
 const fs = require('fs');
 const fastifyJwt = require('@fastify/jwt');
@@ -54,19 +59,19 @@ module.exports = async function (fastify, opts) {
   }}); 
   await fastify.register(corsPlugin);
 
-  try {
-    fastify.log.info('Attempting to register @fastify/redis plugin.');
-    await fastify.register(fastifyRedis, { 
-      client: redisClient 
-    });  
-    fastify.log.info('@fastify/redis plugin registered successfully.');
-  } catch (err) {
-    fastify.log.error(`Failed to register @fastify/redis plugin: ${err.message}`);
-    throw fastify.httpErrors.internalServerError(
-      'Failed to register @fastify/redis plugin',
-      { cause: err }
-    );
-  }
+  // try {
+  //   fastify.log.info('Attempting to register @fastify/redis plugin.');
+  //   await fastify.register(fastifyRedis, { 
+  //     client: redisClient 
+  //   });  
+  //   fastify.log.info('@fastify/redis plugin registered successfully.');
+  // } catch (err) {
+  //   fastify.log.error(`Failed to register @fastify/redis plugin: ${err.message}`);
+  //   throw fastify.httpErrors.internalServerError(
+  //     'Failed to register @fastify/redis plugin',
+  //     { cause: err }
+  //   );
+  // }
 
   try {
     await fastify.register(fastifyCookie,  {
@@ -90,6 +95,57 @@ module.exports = async function (fastify, opts) {
       { cause: error }
     );
   }
+
+  try {
+    fastify.log.info('🔌 Registering Redis client plugin')
+    await fastify.register(redisPlugin)
+    fastify.log.info('✅ Redis client plugin registered successfully')
+  } catch (err) {
+    fastify.log.error({ err }, '❌ Failed to register Redis client plugin')
+    // re-throw so the server won’t start in a broken state
+    throw err
+  }
+
+  let redisStore
+  try {
+    fastify.log.info('🔌 Initializing RedisStore for session plugin')
+    redisStore = new RedisStore({
+      client: fastify.redis,
+      // optional settings:
+      prefix: 'sess:',                     // key namespace
+      ttl:   fastify.secrets.SESSION_TTL,  // in seconds (falls back to cookie.expires or 86400)
+      // disableTouch: false,
+      // disableTTL:   false,
+    })
+    fastify.log.info('✅ RedisStore initialized')
+  } catch (err) {
+    fastify.log.error({ err }, '❌ Failed to initialize RedisStore')
+    throw err
+  }
+
+  fastify.redis.on('error', (err) => {
+    // either ignore specific codes…
+    if (err.code === 'ETIMEDOUT') {
+      fastify.log.warn({ err }, 'Redis timeout, will retry');
+      return;
+    }
+    // …or log everything at a lower level instead of letting ioredis print it
+    fastify.log.error({ err }, 'Redis client error');
+  });
+
+  fastify.log.info('⏳ Testing Redis connection with PING…')
+  try {
+    const pong = await fastify.redis.ping()
+    fastify.log.info(`✅ Redis PING response: ${pong}`)
+  } catch (err) {
+    fastify.log.error(`❌ Redis PING failed: ${err.message}`)
+  }
+
+    // right after registration
+  fastify.redis.on('error', err => {
+    fastify.log.error({ err }, 'Redis connection error')
+  })
+
 
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET, 

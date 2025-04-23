@@ -1,6 +1,26 @@
+# .dockerignore
+
+# Exclude node_modules as we install dependencies in the container.
 node_modules
-*.log
-.git
-build
-dist
+
+# Exclude log files that might be generated during development.
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Exclude environment files to prevent embedding sensitive data in the image.
 .env
+*.env
+
+# Exclude version control directories and files.
+.git
+.gitignore
+
+# Exclude Docker build files (optional)
+Dockerfile
+.dockerignore
+
+# Exclude common editor or OS-specific files.
+.DS_Store
+.vscode
+coverage/

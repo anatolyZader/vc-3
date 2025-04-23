@@ -1,25 +1,33 @@
-# 1. Use Node 22 Alpine base image
-FROM node:22-alpine
-
-# 2. Set a working directory inside the container
+# ────────────────────────────────────
+# 1) BUILD STAGE (gets *everything*)
+# ────────────────────────────────────
+FROM node:22.14.0-slim AS builder
 WORKDIR /app
 
-# 3. Copy package.json and package-lock.json for dependency install
-COPY package*.json ./
+# copy both package.json & lockfile so npm ci will install exactly what you built with
+COPY package.json package-lock.json ./
 
-# 4. Install dependencies
-#    In production, consider using:
-#      npm ci --omit=dev
-#    or
-#      npm install --omit=dev
-#    to reduce image size.
-RUN npm install
+# full install (dev + prod + optional)
+RUN npm ci
 
-# 5. Copy the rest of your backend source
+# copy the rest of your code
 COPY . .
 
-# 6. Expose the port the server listens on (e.g., 3000)
-EXPOSE 3000
+# ────────────────────────────────────
+# 2) PRODUCTION STAGE (only prod deps)
+# ────────────────────────────────────
+FROM node:22.14.0-slim
+WORKDIR /app
 
-# 7. Define the default command (start your Fastify server)
-CMD ["npm", "start"]
+# copy source + node_modules from builder
+COPY --from=builder /app ./
+
+# now prune out dev & optional deps
+RUN npm prune --production
+
+ENV NODE_ENV=production
+ENV PORT=8080
+EXPOSE 8080
+
+# skip fastify-cli, just run your server directly
+CMD ["node", "server.js"]

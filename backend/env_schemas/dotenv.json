@@ -7,8 +7,7 @@
       "type": "string"
     },
     "PORT": {
-      "type": "integer",
-      "default": 3000
+      "type": "integer"
     },
     "PG_CONNECTION_STRING": {
       "type": "string"
@@ -46,6 +45,12 @@
     },
     "REDIS_SECRET": {
       "type": "string"
+    },
+    "REDIS_HOST": {
+      "type": "string"
+    },
+    "REDIS_PORT": {
+      "type": "integer"
     },
     "SSL_KEY_PATH": {
       "type": "string"

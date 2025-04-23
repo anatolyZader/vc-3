@@ -1,16 +1,16 @@
 // config.js
 
-'use strict';
+// 'use strict';
 
-const logOptions = require('./aop/log/logPlugin');
+// const logOptions = require('./aop/log/logPlugin');
 
-module.exports = {
-  logger: logOptions,
-  disableRequestLogging: true,
-  requestIdLogLabel: false,
-  requestIdHeader: 'x-request-id',
-  server: {
-    port: 3000,
-    host: '0.0.0.0',
-  },
-};
+// module.exports = {
+//   logger: logOptions,
+//   disableRequestLogging: true,
+//   requestIdLogLabel: false,
+//   requestIdHeader: 'x-request-id',
+//   server: {
+//     port: 3000,
+//     host: '0.0.0.0',
+//   },
+// };
