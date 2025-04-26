@@ -24,3 +24,6 @@ Dockerfile
 .DS_Store
 .vscode
 coverage/
+
+service-account-credentials.json
+google-application-credentials.json

@@ -5,37 +5,29 @@
 const path = require('node:path');
 const AutoLoad = require('@fastify/autoload');
 const fastifySensible = require('@fastify/sensible');
+
 const fastifyCookie = require('@fastify/cookie');
 const fastifySession = require('@fastify/session');
+console.log('@@@ @fastify/session exports:')
+console.dir(fastifySession, { depth: null })
+const redisPlugin = require('./redisPlugin');
+const { Store } = fastifySession;
+console.log('@@@ sessionPlugin.Store →', Store)
+console.log('@@@ typeof RedisStore →', typeof Store)
+
 
 const loggingPlugin = require('./aop_modules/log/plugins/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const envPlugin = require('./envPlugin');
 const diPlugin = require('./diPlugin');
 const corsPlugin = require('./corsPlugin');
-
-const fastifyRedis = require('@fastify/redis');
-const connectRedisPkg = require('connect-redis')
-console.dir(connectRedisPkg, { depth: null }) // <-- see exactly what shape the module is
-const RedisStore = connectRedisPkg.default 
-console.log('RedisStore:', RedisStore);
-const redisPlugin = require('./redisPlugin');
-
 const helmet = require('@fastify/helmet');
 const fs = require('fs');
 const fastifyJwt = require('@fastify/jwt');
-
 const fastifyOAuth2 = require('@fastify/oauth2');
 const { OAuth2Client } = require('google-auth-library');
 const { v4: uuidv4 } = require('uuid');
-
-// TODO: fix cookies issue and move back to aop_modules
 const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
-const { truncateSync } = require('node:fs');
-
-// TODO: isolate service
-// const userService = require('./aop_modules/auth/application/services/userService');
-
 
 require('dotenv').config();
 
@@ -59,19 +51,25 @@ module.exports = async function (fastify, opts) {
   }}); 
   await fastify.register(corsPlugin);
 
-  // try {
-  //   fastify.log.info('Attempting to register @fastify/redis plugin.');
-  //   await fastify.register(fastifyRedis, { 
-  //     client: redisClient 
-  //   });  
-  //   fastify.log.info('@fastify/redis plugin registered successfully.');
-  // } catch (err) {
-  //   fastify.log.error(`Failed to register @fastify/redis plugin: ${err.message}`);
-  //   throw fastify.httpErrors.internalServerError(
-  //     'Failed to register @fastify/redis plugin',
-  //     { cause: err }
-  //   );
-  // }
+    fastify.log.info('🔌 Registering Redis client plugin')
+    await fastify.register(redisPlugin)
+    fastify.log.info('✅ Redis client plugin registered')
+    fastify.redis.on('error', err => {
+      fastify.log.error({ err }, 'Redis client error')
+    })
+    fastify.log.info('⏳ Testing Redis connection with PING…')
+    try {
+      const pong = await fastify.redis.ping()
+      fastify.log.info(`✅ Redis PING response: ${pong}`)
+    } catch (err) {
+      fastify.log.error({ err }, '❌ Redis PING failed')
+    }
+
+    fastify.log.info('about to new-up RedisStore, fastify.redis is:')
+    console.dir(fastify.redis, { depth: 1 })
+    fastify.log.info('fastify.redis.sendCommand →', typeof fastify.redis.sendCommand)
+
+    fastify.log.info('calling new RedisStore(...) with:')
 
   try {
     await fastify.register(fastifyCookie,  {
@@ -96,56 +94,39 @@ module.exports = async function (fastify, opts) {
     );
   }
 
-  try {
-    fastify.log.info('🔌 Registering Redis client plugin')
-    await fastify.register(redisPlugin)
-    fastify.log.info('✅ Redis client plugin registered successfully')
-  } catch (err) {
-    fastify.log.error({ err }, '❌ Failed to register Redis client plugin')
-    // re-throw so the server won’t start in a broken state
-    throw err
-  }
-
-  let redisStore
-  try {
-    fastify.log.info('🔌 Initializing RedisStore for session plugin')
-    redisStore = new RedisStore({
-      client: fastify.redis,
-      // optional settings:
-      prefix: 'sess:',                     // key namespace
-      ttl:   fastify.secrets.SESSION_TTL,  // in seconds (falls back to cookie.expires or 86400)
-      // disableTouch: false,
-      // disableTTL:   false,
-    })
-    fastify.log.info('✅ RedisStore initialized')
-  } catch (err) {
-    fastify.log.error({ err }, '❌ Failed to initialize RedisStore')
-    throw err
-  }
-
-  fastify.redis.on('error', (err) => {
-    // either ignore specific codes…
-    if (err.code === 'ETIMEDOUT') {
-      fastify.log.warn({ err }, 'Redis timeout, will retry');
-      return;
+  fastify.log.info('About to instantiate RedisStore…')
+  class RedisStore extends Store {
+    constructor(sendCommand) {
+      super()
+      this.send = sendCommand
     }
-    // …or log everything at a lower level instead of letting ioredis print it
-    fastify.log.error({ err }, 'Redis client error');
-  });
 
-  fastify.log.info('⏳ Testing Redis connection with PING…')
-  try {
-    const pong = await fastify.redis.ping()
-    fastify.log.info(`✅ Redis PING response: ${pong}`)
-  } catch (err) {
-    fastify.log.error(`❌ Redis PING failed: ${err.message}`)
-  }
+    get(sid, callback) {
+      this.send(['GET', sid])
+        .then(data => callback(null, data ? JSON.parse(data) : null))
+        .catch(err  => callback(err))
+    }
 
-    // right after registration
-  fastify.redis.on('error', err => {
-    fastify.log.error({ err }, 'Redis connection error')
-  })
+    set(sid, sess, ttlMs, callback) {
+      const sessStr = JSON.stringify(sess)
+      const ttl = typeof ttlMs === 'number'
+        ? Math.ceil(ttlMs / 1000)
+        : undefined
 
+      const cmd = ttl
+        ? ['SETEX', sid, ttl, sessStr]
+        : ['SET', sid, sessStr]
+
+      this.send(cmd)
+        .then(() => callback(null))
+        .catch(err => callback(err))
+    }
+
+  destroy(sid, callback) {
+    this.send(['DEL', sid])
+      .then(() => callback(null))
+      .catch(err => callback(err))
+  }};
 
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET, 
@@ -155,7 +136,11 @@ module.exports = async function (fastify, opts) {
       httpOnly: true,
       sameSite: 'None',
     },
-    store: redisStore,
+    // store: redisStore,
+    // store: new RedisStore({
+    //   sendCommand: (...args) => fastify.redis.sendCommand(args)
+    // }),
+    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),
     saveUninitialized: false,
   });
 
@@ -192,9 +177,8 @@ module.exports = async function (fastify, opts) {
     );
   }
 
-    // ----------------------------
-  // JWT configuration
-  // ----------------------------
+  // JWT 
+
   const revokedTokens = new Map();
 
   fastify.register(fastifyJwt, {
@@ -286,9 +270,6 @@ module.exports = async function (fastify, opts) {
  
   await fastify.register(authSchemasPlugin);
 
-
-
-
   fastify.get('/auth/google/callback', async (req, reply) => {
     console.log('--- Incoming callback cookies ---', req.cookies);
     try {
@@ -350,11 +331,6 @@ module.exports = async function (fastify, opts) {
     reply.clearCookie('oauth2-redirect-state', { path: '/' });
     reply.send({ message: 'cleared' });
   });
-  
-
-  // , { prefix: 'v1' } 
-
-
 
   fastify.addHook('onReady', async () => {
     console.log('Available fastify methods:');
@@ -371,7 +347,5 @@ module.exports = async function (fastify, opts) {
     }
   });
   
-
-
 };
 
