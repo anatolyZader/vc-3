@@ -5,17 +5,6 @@ const path = require('path');
 
 module.exports = async function authModuleIndex(fastify, opts) {
 
-    // fastify.register(autoload, {
-    //   dir: path.join(__dirname, 'plugins'),
-    //   options: {
-    //     // prefix: '/auth'
-    //   },
-    //   encapsulate: false,
-    //   maxDepth: 1,
-    //   matchFilter: (path) =>  path.includes('Plugin')    
-    // });
-
-
   fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),
     options: {

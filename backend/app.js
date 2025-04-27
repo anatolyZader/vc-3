@@ -8,13 +8,8 @@ const fastifySensible = require('@fastify/sensible');
 
 const fastifyCookie = require('@fastify/cookie');
 const fastifySession = require('@fastify/session');
-console.log('@@@ @fastify/session exports:')
-console.dir(fastifySession, { depth: null })
 const redisPlugin = require('./redisPlugin');
 const { Store } = fastifySession;
-console.log('@@@ sessionPlugin.Store →', Store)
-console.log('@@@ typeof RedisStore →', typeof Store)
-
 
 const loggingPlugin = require('./aop_modules/log/plugins/logPlugin'); 
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
@@ -32,6 +27,13 @@ const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin'
 require('dotenv').config();
 
 module.exports = async function (fastify, opts) {
+
+  fastify.addHook('onRoute', routeOptions => {
+    fastify.log.info(
+      { method: routeOptions.method, url: routeOptions.url },
+      'route registered'
+    );
+  });
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);

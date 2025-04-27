@@ -5,6 +5,9 @@ const fp = require('fastify-plugin')
 const fastifyRedis = require('@fastify/redis')
 
 async function redisPlugin (fastify, opts) {
+
+  fastify.log.debug('Registering Redis client with REDIS_HOST: ', fastify.secrets.REDIS_HOST)
+
   const redisOpts = {
     host: fastify.secrets.REDIS_HOST,
     port: fastify.secrets.REDIS_PORT,
@@ -13,6 +16,8 @@ async function redisPlugin (fastify, opts) {
   }
 
   fastify.log.debug({ redisOpts }, 'Registering Redis client')
+  fastify.log.info({ redisOpts }, 'About to register @fastify/redis');
+
   await fastify.register(fastifyRedis, redisOpts)
   // afterwards: fastify.redis.get(...), fastify.redis.set(...)
 }

@@ -10,7 +10,7 @@ module.exports = {
     host: '0.0.0.0'
   },
   options: {
-    logger: config.logger,
+    // logger: config.logger,
     trustProxy: true
   },
 };
