@@ -334,6 +334,11 @@ module.exports = async function (fastify, opts) {
     reply.send({ message: 'cleared' });
   });
 
+  
+  fastify.addHook('onReady', async () => {
+    fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
+  });
+
   fastify.addHook('onReady', async () => {
     console.log('Available fastify methods:');
     console.log(Object.keys(fastify));
@@ -348,6 +353,8 @@ module.exports = async function (fastify, opts) {
       console.warn('Reply prototype not found');
     }
   });
+
+
   
 };
 

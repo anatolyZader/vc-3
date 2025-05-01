@@ -33,4 +33,5 @@ ENV NODE_ENV=production
 EXPOSE 8080
 
 # Use the Fastify CLI to start the plugin in server.js:
-CMD ["fastify", "start", "server.js", "-l", "info", "--address", "0.0.0.0", "--port", "8080"]
+ENTRYPOINT ["fastify","start"]
+CMD ["server.js","-l","info","--address","0.0.0.0","--port","8080"]
