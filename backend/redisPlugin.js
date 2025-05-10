@@ -12,7 +12,8 @@ async function redisPlugin (fastify, opts) {
     host: fastify.secrets.REDIS_HOST,
     port: fastify.secrets.REDIS_PORT,
     connectionTimeout: opts.connectionTimeout ?? 1000,
-    lazyConnect: true
+    lazyConnect: true,
+    timeout: 1000
   }
 
   fastify.log.debug({ redisOpts }, 'Registering Redis client')

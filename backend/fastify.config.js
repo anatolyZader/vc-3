@@ -11,6 +11,7 @@ module.exports = {
   },
   options: {
     // logger: config.logger,
-    trustProxy: true
+    trustProxy: true,
+    // ignoreTrailingSlash: true
   },
 };

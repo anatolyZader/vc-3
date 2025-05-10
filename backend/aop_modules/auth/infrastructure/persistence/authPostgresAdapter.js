@@ -1,6 +1,7 @@
 'use strict';
-// authPostgresAdapter.js 
+// authPostgresAdapter.js
 
+const fs = require('fs');
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
@@ -10,14 +11,35 @@ const IAuthPersistPort = require('../../domain/ports/IAuthPersistPort');
 class AuthPostgresAdapter extends IAuthPersistPort {
   constructor() {
     super();
-    this.pool = new Pool({
-      user: process.env.PG_USER,
+    
+    const runningInCloud = !!process.env.K_SERVICE;                 // Cloud Run sets this
+    const socketDir    = `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME || ''}`;
+    console.log('socketDir:', socketDir);
+    const socketExists = runningInCloud && fs.existsSync(socketDir);  // proxy may mount a bit later , race‑condition guard 
+    console.log('socketExists:', socketExists);
+
+    const poolConfig = {
+      user:     process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DATABASE,
-      host: process.env.PG_HOST,
-      port: process.env.PG_PORT,
-    });
-  }
+    
+      // ─ choose Unix socket *or* TCP host/port ─
+      ...(socketExists
+            ? { host: socketDir }                                 // Cloud Run happy path
+            : {                                                   // VM / fallback
+                host: process.env.PG_HOST, 
+                port: Number(process.env.PG_PORT || 5432)
+              }),
+      
+      // nice‑to‑haves for dev
+      // max:               +process.env.PG_POOL_MAX       || 10,
+      // idleTimeoutMillis: +process.env.PG_IDLE_TIMEOUTMS || 10_000
+    };
+    
+    this.pool = new Pool(poolConfig);
+    console.info('[DB] pgConfig chosen:', poolConfig);
+    
+ }
 
   async readAllUsers() {
     console.log('this.pool at authPostgresAdapter: ', this.pool);

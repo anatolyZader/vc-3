@@ -67,6 +67,8 @@ module.exports = async function (fastify, opts) {
       fastify.log.error({ err }, '❌ Redis PING failed')
     }
 
+    fastify.log.info('✅ ✅REREREREVISED ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
+
     fastify.log.info('about to new-up RedisStore, fastify.redis is:')
     console.dir(fastify.redis, { depth: 1 })
     fastify.log.info('fastify.redis.sendCommand →', typeof fastify.redis.sendCommand)
@@ -146,27 +148,54 @@ module.exports = async function (fastify, opts) {
     saveUninitialized: false,
   });
 
+  const fs = require('fs');
 
   let googleCreds = null;
 
-  if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
-    const fullPath = path.resolve(fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS);
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     try {
-      googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+      googleCreds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      console.log('Successfully read google-application-credentials.json from env:', googleCreds);
     } catch (error) {
-      console.error('Error reading Google credentials:', error);
+      console.error('Error parsing Google credentials from env:', error);
     }
   } else {
-    console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
+    console.warn('No GOOGLE_APPLICATION_CREDENTIALS found in process.env.');
   }
+
   if (!googleCreds || !googleCreds.web) {
-    console.error('googleCreds or googleCreds.web is missing.');
+    console.error('googleCreds or googleCreds.web is mieeeeeessing.');
     return;
   }
 
   const clientId = googleCreds.web.client_id;
   const clientSecret = googleCreds.web.client_secret;
   console.log('googleCreds:', googleCreds);
+
+  // let googleCreds = null;
+
+  // if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  //   const fullPath = path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  //   try {
+  //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  //   } catch (error) {
+  //     console.error('Error reading Google credentials:', error);
+  //   }
+  // } else {
+  //   console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found by process.env.');
+  // }
+
+  // // if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
+  //   const fullPath = path.resolve(fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS);
+  //   try {
+  //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  //   } catch (error) {
+  //     console.error('Error reading Google credentials:', error);
+  //   }
+  // } else {
+  //   console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
+  // }
+ 
 
   let userService;
   try {
