@@ -69,11 +69,11 @@ module.exports = async function (fastify, opts) {
 
     fastify.log.info('✅ ✅REREREREVISED ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
 
-    fastify.log.info('about to new-up RedisStore, fastify.redis is:')
-    console.dir(fastify.redis, { depth: 1 })
-    fastify.log.info('fastify.redis.sendCommand →', typeof fastify.redis.sendCommand)
+    // fastify.log.info('about to new-up RedisStore, fastify.redis is:')
+    // console.dir(fastify.redis, { depth: 1 })
+    // fastify.log.info('fastify.redis.sendCommand →', typeof fastify.redis.sendCommand)
 
-    fastify.log.info('calling new RedisStore(...) with:')
+    // fastify.log.info('calling new RedisStore(...) with:')
 
   try {
     await fastify.register(fastifyCookie,  {
@@ -150,28 +150,29 @@ module.exports = async function (fastify, opts) {
 
   const fs = require('fs');
 
-  let googleCreds = null;
+  // TODO: the Google credentials file itself should be extracted from the secrets when in production! not just it's path !!!!!!!!!!!!
 
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  const credsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  let googleCreds;
+
+  if (credsEnv) {
+    const fullPath = path.resolve(credsEnv);
     try {
-      googleCreds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-      console.log('Successfully read google-application-credentials.json from env:', googleCreds);
-    } catch (error) {
-      console.error('Error parsing Google credentials from env:', error);
+      const raw = fs.readFileSync(fullPath, 'utf8');
+      googleCreds = JSON.parse(raw);
+      fastify.log.info('✅ Loaded Google credentials from file');
+    } catch (err) {
+      fastify.log.error(err, 'Failed to read or parse Google credentials file');
+      throw fastify.httpErrors.internalServerError('Invalid Google credentials file', { cause: err });
     }
   } else {
-    console.warn('No GOOGLE_APPLICATION_CREDENTIALS found in process.env.');
-  }
-
-  if (!googleCreds || !googleCreds.web) {
-    console.error('googleCreds or googleCreds.web is mieeeeeessing.');
-    return;
+    fastify.log.error('No GOOGLE_APPLICATION_CREDENTIALS env var set');
+    throw fastify.httpErrors.internalServerError('Missing Google credentials');
   }
 
   const clientId = googleCreds.web.client_id;
   const clientSecret = googleCreds.web.client_secret;
-  console.log('googleCreds:', googleCreds);
-
+  
   // let googleCreds = null;
 
   // if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -382,8 +383,7 @@ module.exports = async function (fastify, opts) {
       console.warn('Reply prototype not found');
     }
   });
-
-
-  
 };
+
+module.exports.options = { prefix: '/api' }
 

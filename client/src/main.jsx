@@ -1,9 +1,10 @@
 // main.jsx
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import './main.css'
-import { GoogleOAuthProvider } from '@react-oauth/google'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './main.css';
+import './custom-overrides.css';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 // by importing the fonts in Main.jsx (entry point), they will be available globally throughout the app. 
 import '@fontsource/roboto/300.css';

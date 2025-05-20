@@ -18,6 +18,7 @@ module.exports = async function authModuleIndex(fastify, opts) {
 fastify.register(autoload, {
   dir: path.join(__dirname, 'routes'),
   encapsulate: false,
+  // prefix: '/api',
   maxDepth: 1,
   matchFilter: (path) =>  path.includes('Router'),
   dirNameRoutePrefix: false
