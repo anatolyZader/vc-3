@@ -41,6 +41,9 @@ const AIPubsubAdapter = require('./business_modules/ai/infrastructure/messaging/
 const AIGithubAdapter = require('./business_modules/ai/infrastructure/git/aiGithubAdapter');
 const AIGithubWikiAdapter = require('./business_modules/ai/infrastructure/wiki/aiGithubWikiAdapter');
 
+const { PubSub } = require('@google-cloud/pubsub');
+const { Connector } = require('@google-cloud/cloud-sql-connector');
+
 module.exports = fp(async function (fastify, opts) {
   try {
     await fastify.register(fastifyAwilixPlugin, {
@@ -82,6 +85,19 @@ module.exports = fp(async function (fastify, opts) {
 
     wikiPubsubAdapter: asClass(WikiPubsubAdapter).scoped()
   };
+
+  const cloudSqlConnector = new Connector();
+  await fastify.diContainer.register({
+    cloudSqlConnector: asValue(cloudSqlConnector)
+  });
+  fastify.log.info('✅ Cloud SQL Connector initialized and registered in DI container.');
+
+ 
+  const pubSubClient = new PubSub(); // This client will automatically use ADC!
+  await fastify.diContainer.register({
+    pubSubClient: asValue(pubSubClient)
+  });
+  fastify.log.info('✅ Pub/Sub Client initialized and registered in DI container.');
 
   await fastify.diContainer.register({
     account: asClass(Account),

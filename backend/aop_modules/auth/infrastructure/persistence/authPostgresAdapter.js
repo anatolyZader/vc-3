@@ -1,7 +1,6 @@
 'use strict';
 // authPostgresAdapter.js
 
-const fs = require('fs');
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
@@ -9,36 +8,70 @@ const bcrypt = require('bcrypt');
 const IAuthPersistPort = require('../../domain/ports/IAuthPersistPort');
 
 class AuthPostgresAdapter extends IAuthPersistPort {
-  constructor() {
+  // i Cloud SQL Connector, allows connections via a Unix socket for secure and efficient communication within Google Cloud environments (like Cloud Run or App Engine).
+  constructor({ cloudSqlConnector }) {
     super();
-    
-    const runningInCloud = !!process.env.K_SERVICE;                 // Cloud Run sets this
-    const socketDir    = `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME || ''}`;
-    console.log('socketDir:', socketDir);
-    const socketExists = runningInCloud && fs.existsSync(socketDir);  // proxy may mount a bit later , race‑condition guard 
-    console.log('socketExists:', socketExists);
+    this.connector = cloudSqlConnector;
+    const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+    if (!instanceConnectionName) {
+      console.error('❌ CLOUD_SQL_CONNECTION_NAME environment variable is not set. Cannot connect to Cloud SQL.');
+      // In a production app, you might want to throw an error or handle this more gracefully.
+      // For now, we'll proceed with a fallback, but it's important for Cloud Run.
+    }
 
     const poolConfig = {
       user:     process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DATABASE,
-    
-      // ─ choose Unix socket *or* TCP host/port ─
-      ...(socketExists
-            ? { host: socketDir }                                 // Cloud Run happy path
-            : {                                                   // VM / fallback
-                host: process.env.PG_HOST, 
-                port: Number(process.env.PG_PORT || 5432)
-              }),
-      
-      // nice‑to‑haves for dev
-      // max:               +process.env.PG_POOL_MAX       || 10,
-      // idleTimeoutMillis: +process.env.PG_IDLE_TIMEOUTMS || 10_000
+      host: `localhost`, // Connector creates a local proxy, so connect to localhost
+      port: 5432, // Connector typically proxies to default PostgreSQL port
+     
     };
-    
-    this.pool = new Pool(poolConfig);
-    console.info('[DB] pgConfig chosen:', poolConfig);
-    
+    console.info('[DB] pgConfig chosen:', poolConfig);   
+      this.pool = new Pool({
+      user: poolConfig.user,
+      password: poolConfig.password,
+      database: poolConfig.database,
+      ssl: false, // Cloud SQL Connector handles encryption, so no SSL needed for pg client
+      connectionString: undefined, // Always undefined, as we always use the custom client factory
+
+      Client: class CloudSQLClient extends Pool.Client { // Always use the custom client
+            constructor(config) {
+              super(config);
+              this.config = config; // Store config for potential reuse
+
+              // Override the connect method to use the connector's socket
+              const originalConnect = this.connect.bind(this);
+              this.connect = async (callback) => {
+                try {
+                  // Use the injected connector from the config
+                  const socketPath = await this.config.cloudSqlConnector.getSocket(this.config.instanceConnectionName);
+                  // Modify the config to use the socketPath
+                  this.connectionParameters.host = socketPath;
+                  this.connectionParameters.port = undefined; // No port when using socketPath
+                  this.connectionParameters.ssl = false; // Connector handles SSL
+                  // Setting connectionString: undefined and ssl: false when using the CloudSQLClient is generally correct as the connector handles the actual connection. 
+
+                  return originalConnect(callback);
+                } catch (err) {
+                  console.error('Error getting Cloud SQL socket:', err);
+                  if (callback) callback(err);
+                  throw err;
+                }
+              };
+            }
+          }, 
+
+      cloudSqlConnector: this.connector, 
+      instanceConnectionName: instanceConnectionName,
+    });
+
+    console.info('[DB] pgConfig chosen (after connector setup):', {
+      user: poolConfig.user,
+      database: poolConfig.database,
+      host: instanceConnectionName ? `Cloud SQL Connector via ${instanceConnectionName}` : poolConfig.host,
+      port: poolConfig.port,
+    });
  }
 
   async readAllUsers() {

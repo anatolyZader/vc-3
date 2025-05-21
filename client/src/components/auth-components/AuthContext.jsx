@@ -16,7 +16,7 @@ const AuthProvider = ({ children }) => {
   // Verify session by calling a protected endpoint that returns user info
   const verifyCookieUpdateState = async () => {
     try {
-      const response = await fetch('http://localhost:3000/auth/me', {
+      const response = await fetch('/api/auth/me', {
         method: 'GET',
         credentials: 'include', // include cookies, ensures that cookies are sent with every request.
       });
@@ -41,13 +41,17 @@ const AuthProvider = ({ children }) => {
   const googleLogin = () => {
     // The @fastify/oauth2 plugin handles the redirect
     // by hooking onto /auth/google as startRedirectPath.
-    window.location.href = 'http://localhost:3000/auth/google';
+    window.location.href = '/api/auth/google';
   };
 
   // Logout by calling backend logout endpoint and updating state
   const logout = async () => {
     try {
-      await fetch('http://localhost:3000/auth/logout', {
+    
+      await fetch('api/auth/logout', {
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // THE commented-out path is for regular development on vm, it nreaks with load balancer
+        // await fetch('http://localhost:3000/auth/me', {
         method: 'POST',
         credentials: 'include', // so it sends the auth cookie
       });

@@ -3,9 +3,9 @@
 'use strict';
 
 const fp = require('fastify-plugin');
-const pubSubClient = require('../../../aop_modules/messaging/pubsub/pubsubClient');
 
 async function aiPubsubListener(fastify, options) {
+  const pubSubClient = fastify.diContainer.resolve('pubSubClient');
   const subscriptionName = 'ai-sub';
   const subscription = pubSubClient.subscription(subscriptionName);
 
@@ -40,7 +40,8 @@ async function aiPubsubListener(fastify, options) {
       fastify.log.error('Error pulling AI messages:', error);
     }
   }
-
+  
+  pullMessages();
   setInterval(pullMessages, 5000);
   fastify.log.info(`Pulling AI messages from subscription: ${subscriptionName}...`);
 }

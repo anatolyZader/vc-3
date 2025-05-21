@@ -67,7 +67,7 @@ module.exports = async function (fastify, opts) {
       fastify.log.error({ err }, '❌ Redis PING failed')
     }
 
-    fastify.log.info('✅ ✅REREREREVISED ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
+    fastify.log.info('✅ ✅ overrrisoso ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
 
     // fastify.log.info('about to new-up RedisStore, fastify.redis is:')
     // console.dir(fastify.redis, { depth: 1 })
@@ -152,50 +152,50 @@ module.exports = async function (fastify, opts) {
 
   // TODO: the Google credentials file itself should be extracted from the secrets when in production! not just it's path !!!!!!!!!!!!
 
-  const credsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  let googleCreds;
+  // const credsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  // let googleCreds;
 
-  if (credsEnv) {
-    const fullPath = path.resolve(credsEnv);
+  // if (credsEnv) {
+  //   const fullPath = path.resolve(credsEnv);
+  //   try {
+  //     const raw = fs.readFileSync(fullPath, 'utf8');
+  //     googleCreds = JSON.parse(raw);
+  //     fastify.log.info('✅ Loaded Google credentials from file');
+  //   } catch (err) {
+  //     fastify.log.error(err, 'Failed to read or parse Google credentials file');
+  //     throw fastify.httpErrors.internalServerError('Invalid Google credentials file', { cause: err });
+  //   }
+  // } else {
+  //   fastify.log.error('No GOOGLE_APPLICATION_CREDENTIALS env var set');
+  //   throw fastify.httpErrors.internalServerError('Missing Google credentials');
+  // }
+
+  // const clientId = googleCreds.web.client_id;
+  // const clientSecret = googleCreds.web.client_secret;
+  
+  let googleCreds = null;
+
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const fullPath = path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS);
     try {
-      const raw = fs.readFileSync(fullPath, 'utf8');
-      googleCreds = JSON.parse(raw);
-      fastify.log.info('✅ Loaded Google credentials from file');
-    } catch (err) {
-      fastify.log.error(err, 'Failed to read or parse Google credentials file');
-      throw fastify.httpErrors.internalServerError('Invalid Google credentials file', { cause: err });
+      googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    } catch (error) {
+      console.error('Error reading Google credentials:', error);
     }
   } else {
-    fastify.log.error('No GOOGLE_APPLICATION_CREDENTIALS env var set');
-    throw fastify.httpErrors.internalServerError('Missing Google credentials');
+    console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found by process.env.');
   }
 
-  const clientId = googleCreds.web.client_id;
-  const clientSecret = googleCreds.web.client_secret;
-  
-  // let googleCreds = null;
-
-  // if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  //   const fullPath = path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-  //   try {
-  //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-  //   } catch (error) {
-  //     console.error('Error reading Google credentials:', error);
-  //   }
-  // } else {
-  //   console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found by process.env.');
-  // }
-
-  // // if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
-  //   const fullPath = path.resolve(fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS);
-  //   try {
-  //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-  //   } catch (error) {
-  //     console.error('Error reading Google credentials:', error);
-  //   }
-  // } else {
-  //   console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
-  // }
+  if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
+    const fullPath = path.resolve(fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS);
+    try {
+      googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    } catch (error) {
+      console.error('Error reading Google credentials:', error);
+    }
+  } else {
+    console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
+  }
  
 
   let userService;
