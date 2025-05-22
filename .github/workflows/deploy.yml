@@ -24,7 +24,7 @@ jobs:
       with:
         credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-    # 2. Now sett up the Cloud SDK
+    # 2. Now settt up the Cloud SDK
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       with:

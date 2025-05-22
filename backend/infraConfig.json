@@ -17,17 +17,7 @@
       "gitGitAdapter": "gitGithubAdapter",
       "gitMessagingAdapter": "gitPubsubAdapter"
     },
-    "target": {
-      "targetPersistAdapter": "targetPostgresAdapter",
-      "targetAIAdapter": "targetLangchainAdapter",
-      "targetMessagingAdapter": "targetPubsubAdapter",
-      "targetGitAdapter": "targetLangchainAdapter"
-    },
-    "checklist": {
-      "checklistPersistAdapter": "checklistPostgresAdapter",
-      "checklistaiAdapter": "checklistLangchainAdapter",
-      "checklistMessagingAdapter": "checklistPubsubAdapter"
-    },
+
     "wiki": {
       "wikiMessagingAdapter": "wikiPubsubAdapter"
     },

@@ -23,16 +23,9 @@ const GitService = require('./business_modules/git/application/services/gitServi
 const GitGithubAdapter = require('./business_modules/git/infrastructure/git/gitGithubAdapter');
 const GitPubsubAdapter = require('./business_modules/git/infrastructure/messaging/pubsub/gitPubsubAdapter');
 
-const TargetService = require('./business_modules/target/application/services/targetService');
-const TargetPostgresAdapter = require('./business_modules/target/infrastructure/persistence/targetPostgresAdapter');
-const TargetGithubAdapter = require('./business_modules/target/infrastructure/git/targetGithubAdapter');
-const TargetLangchainAdapter = require('./business_modules/target/infrastructure/ai/targetLangchainAdapter');
-
 const WikiService = require('./business_modules/wiki/application/services/wikiService');
 // const WikiPostgresAdapter = require('./business_modules/wiki/infrastructure/persistence/wikiPostgresAdapter');
 const WikiPubsubAdapter = require('./business_modules/wiki/infrastructure/messaging/pubsub/wikiPubsubAdapter');
-
-const ChecklistPostgresAdapter = require('./business_modules/checklist/infrastructure/persistence/checklistPostgresAdapter');
 
 const AIService = require('./business_modules/ai/application/services/aiService');
 const AIPostgresAdapter = require('./business_modules/ai/infrastructure/persistence/aiPostgresAdapter');
@@ -70,13 +63,6 @@ module.exports = fp(async function (fastify, opts) {
 
     gitGithubAdapter: asClass(GitGithubAdapter).scoped(),
     gitPubsubAdapter: asClass(GitPubsubAdapter).scoped(),
-
-
-    targetPostgresAdapter: asClass(TargetPostgresAdapter).scoped(),
-    targetGithubAdapter: asClass(TargetGithubAdapter).scoped(),
-    targetLangchainAdapter: asClass(TargetLangchainAdapter).scoped(),
-    checklistPostgresAdapter: asClass(ChecklistPostgresAdapter).scoped(),
-
     aiPostgresAdapter: asClass(AIPostgresAdapter).scoped(),
     aiLangchainAdapter: asClass(AILangchainAdapter).scoped(),
     aiPubsubAdapter: asClass(AIPubsubAdapter).scoped(),
@@ -112,9 +98,6 @@ module.exports = fp(async function (fastify, opts) {
     wikiService: asClass(WikiService, {
       lifetime: Lifetime.scoped,
     }),
-    targetService: asClass(TargetService, {
-      lifetime: Lifetime.scoped,
-    }),
     aiService: asClass(AIService, {
       lifetime: Lifetime.scoped,
     }),
@@ -132,13 +115,7 @@ module.exports = fp(async function (fastify, opts) {
     // gitPersistAdapter: adapters[infraConfig.business_modules.git.gitPersistAdapter],
     gitGitAdapter: adapters[infraConfig.business_modules.git.gitGitAdapter],
     gitMessagingAdapter: adapters[infraConfig.business_modules.git.gitMessagingAdapter],
-
-    targetPersistAdapter: adapters[infraConfig.business_modules.target.targetPersistAdapter],
-    targetGitAdapter: adapters[infraConfig.business_modules.target.targetGitAdapter],
-    targetAIAdapter: adapters[infraConfig.business_modules.target.targetAIAdapter],
-    
-    checklistPersistAdapter: adapters[infraConfig.business_modules.checklist.checklistPersistAdapter],
-    
+        
     aiAIAdapter: adapters[infraConfig.business_modules.ai.aiAIAdapter],
     aiPersistAdapter: adapters[infraConfig.business_modules.ai.aiPersistAdapter],
     aiMessagingAdapter: adapters[infraConfig.business_modules.ai.aiMessagingAdapter],
