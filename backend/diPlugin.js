@@ -102,7 +102,7 @@ module.exports = fp(async function (fastify, opts) {
     aiService: asClass(AIService, {
       lifetime: Lifetime.scoped,
     }),
-    userService: asClass(UserService),
+    userService: asClass(UserService).singleton(),
     permService: asClass(PermService),
 
     wikiMessagingAdapter: adapters[infraConfig.business_modules.wiki.wikiMessagingAdapter],

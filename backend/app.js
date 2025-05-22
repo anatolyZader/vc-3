@@ -196,18 +196,6 @@ module.exports = async function (fastify, opts) {
   } else {
     console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
   }
- 
-
-  let userService;
-  try {
-    userService = await fastify.diContainer.resolve('userService');
-  } catch (error) {
-    fastify.log.error('Error resolving userService:', error);
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve userService. Ensure it is registered in the DI container.',
-      { cause: error }
-    );
-  }
 
   // JWT 
 
