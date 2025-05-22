@@ -44,7 +44,7 @@ module.exports = fp(async function (fastify, opts) {
       disposeOnClose: true,
       disposeOnResponse: true,
       strictBooleanEnforced: true,
-      injectionMode: 'CLASSIC',
+      injectionMode: 'PROXY',
       encapsulate: false,
     });
   } catch (error) {
@@ -85,6 +85,11 @@ module.exports = fp(async function (fastify, opts) {
     pubSubClient: asValue(pubSubClient)
   });
   fastify.log.info('✅ Pub/Sub Client initialized and registered in DI container.');
+
+  fastify.log.info('Resolved adapter:', {
+  authPersistAdapterKey: infraConfig.aop_modules.auth.authPersistAdapter,
+  resolved: adapters[infraConfig.aop_modules.auth.authPersistAdapter]
+ });
 
   await fastify.diContainer.register({
     account: asClass(Account),

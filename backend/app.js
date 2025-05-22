@@ -150,25 +150,29 @@ module.exports = async function (fastify, opts) {
 
   const fs = require('fs');
 
+  let clientId, clientSecret;
 
   const credsPath =
     fastify.secrets?.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
-  if (!credsPath) {
-    throw fastify.httpErrors.internalServerError('Missing GOOGLE_APPLICATION_CREDENTIALS path');
+  if (credsPath) {
+    try {
+      googleCreds = JSON.parse(fs.readFileSync(path.resolve(credsPath), 'utf8'));
+      clientId = googleCreds.web.client_id;
+      clientSecret = googleCreds.web.client_secret;
+      fastify.log.info('Loaded Google credentials from file for local use');
+      // Use clientId and clientSecret as needed
+    } catch (err) {
+      throw fastify.httpErrors.internalServerError('Failed to read or parse Google credentials file', { cause: err });
+    }
+  } else {
+    fastify.log.info('No GOOGLE_APPLICATION_CREDENTIALS file path – assuming ADC via GCP runtime');
+    // In Cloud Run, let the default credentials flow work automatically
+    // For example, create GCP clients without providing credentials
   }
 
-  let googleCreds;
-  try {
-    googleCreds = JSON.parse(fs.readFileSync(path.resolve(credsPath), 'utf8'));
-  } catch (err) {
-    throw fastify.httpErrors.internalServerError('Failed to read or parse Google credentials file', { cause: err });
-  }
 
-  const clientId = googleCreds.web.client_id;
-  const clientSecret = googleCreds.web.client_secret;
 
-  console.log('clientId loaded successfully:', clientId);
 
 
 
