@@ -1,29 +1,36 @@
 // wikiPubsubAdapter.js
 'use strict';
 
-const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
 const IWikiMessagingPort = require('./../../../domain/ports/IWikiMessagingPort');
 
 class WikiPubsubAdapter extends IWikiMessagingPort {
-  constructor() {
-    super();
-    this.topicName = 'wiki'; 
+  // Inject the pubSubClient into the constructor
+  constructor({ pubSubClient }) {
+    super(); // Calling super() because it explicitly extends IWikiMessagingPort
+    // Store the injected Pub/Sub client instance
+    this.pubSubClient = pubSubClient;
+
+    // Use environment variables for topic names for better flexibility
+    this.topicName = process.env.PUBSUB_WIKI_TOPIC_NAME || 'wiki-events';
   }
 
+  // Generic method to publish an event
   async publishEvent(eventName, payload) {
     const event = { event: eventName, ...payload };
     const dataBuffer = Buffer.from(JSON.stringify(event));
     try {
-      const topic = pubSubClient.topic(this.topicName);
+      // Use the injected client instance to get the topic
+      const topic = this.pubSubClient.topic(this.topicName);
       const messageId = await topic.publishMessage({ data: dataBuffer });
-      console.log(`Published ${eventName} event with message ID: ${messageId}`);
+      console.log(`Published ${eventName} event with message ID: ${messageId} to topic: ${this.topicName}`);
       return messageId;
     } catch (error) {
-      console.error(`Error publishing ${eventName} event:`, error);
+      console.error(`Error publishing ${eventName} event to topic ${this.topicName}:`, error);
       throw error;
     }
   }
 
+  // Specific methods for publishing different wiki-related events
   async fetchPage(pageId) {
     return this.publishEvent('fetchWikiPage', { pageId });
   }

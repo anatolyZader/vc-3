@@ -5,45 +5,55 @@
 const fp = require('fastify-plugin');
 
 async function aiPubsubListener(fastify, options) {
-  const pubSubClient = fastify.diContainer.resolve('pubSubClient');
+  const pubSubClient = fastify.diContainer.resolve('pubsubClient');
   const subscriptionName = 'ai-sub';
   const subscription = pubSubClient.subscription(subscriptionName);
+  // Error handling for the subscription stream
+  subscription.on('error', (error) => {
+    fastify.log.error(`Pub/Sub Subscription Error (${subscriptionName}):`, error);
+    // Depending on the error, you might want to re-initialize the subscription
+    // or implement a more sophisticated back-off and retry strategy here.
+  });
 
-  async function pullMessages() {
+  // Message handler for the subscription stream
+  subscription.on('message', async (message) => {
+    fastify.log.info(`Received AI message ${message.id} on subscription ${subscriptionName}`);
+
     try {
-      const [messages] = await subscription.pull({ maxMessages: 10 });
+      const data = JSON.parse(message.data.toString());
 
-      for (const message of messages) {
-        fastify.log.info(`Received AI message ${message.id}`);
+      if (data.event === 'questionSent') {
+        const { userId, conversationId, repoId, prompt } = data.payload;
+        fastify.log.info(`Processing AI response for user: ${userId}, conversation: ${conversationId}, prompt: "${prompt.substring(0, 50)}..."`);
 
-        try {
-          const data = JSON.parse(message.data.toString());
-
-          if (data.event === 'questionSent') {
-            const { userId, conversationId, repoId, prompt } = data.payload;
-            fastify.log.info(`Processing AI response for user: ${userId}, prompt: ${prompt}`);
-
-            await fastify.respondToPrompt(userId, conversationId, repoId, prompt);
-
-            fastify.log.info(`AI response handled by controller`);
-          } else {
-            fastify.log.warn(`Unknown event: ${data.event}`);
-          }
-
-          message.ack();
-        } catch (error) {
-          fastify.log.error('Error processing AI message:', error);
-          message.nack();
+        // Ensure that 'fastify.respondToPrompt' is a valid method available on the fastify instance.
+        // This might be injected via another plugin or part of your application service.
+        if (typeof fastify.respondToPrompt === 'function') {
+          await fastify.respondToPrompt(userId, conversationId, repoId, prompt);
+          fastify.log.info(`AI response handled for message ${message.id}.`);
+        } else {
+          fastify.log.error(`fastify.respondToPrompt is not defined. Cannot process message ${message.id}.`);
+          message.nack(); // Nack if the handler isn't available
+          return;
         }
+      } else {
+        fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
       }
+
+      message.ack(); // Acknowledge the message upon successful processing
     } catch (error) {
-      fastify.log.error('Error pulling AI messages:', error);
+      fastify.log.error(`Error processing AI message ${message.id}:`, error);
+      message.nack(); // Nack the message to re-queue it for another attempt
     }
-  }
-  
-  pullMessages();
-  setInterval(pullMessages, 5000);
-  fastify.log.info(`Pulling AI messages from subscription: ${subscriptionName}...`);
+  });
+
+  fastify.log.info(`Listening for AI messages on Pub/Sub subscription: ${subscriptionName}...`);
+
+  // It's good practice to ensure the subscription is closed when the Fastify app closes.
+  fastify.addHook('onClose', async () => {
+    fastify.log.info(`Closing Pub/Sub subscription: ${subscriptionName}.`);
+    await subscription.close();
+  });
 }
 
 module.exports = fp(aiPubsubListener);

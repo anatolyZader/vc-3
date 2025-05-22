@@ -1,10 +1,12 @@
 // aiPubsubAdapter.js
 'use strict';
 
-const pubSubClient = require('../../../../../aop_modules/messaging/pubsub/pubsubClient');
+
 
 class AIPubsubAdapter {
-  constructor() {
+  constructor({ pubSubClient }) {
+    // super(); // Uncomment this ONLY if AIPubsubAdapter extends another class
+    this.pubSubClient = pubSubClient;
     this.aiTopic = 'ai-topic';
     this.gitTopic = 'git-topic';
     this.wikiTopic = 'wiki-topic';
@@ -14,14 +16,12 @@ class AIPubsubAdapter {
     this.gitSubscriptionRef = pubSubClient.subscription(this.gitSubscription);
     this.wikiSubscriptionRef = pubSubClient.subscription(this.wikiSubscription);
   }
-
-  // Publish AI response
   async publishAiResponse(response) {
     try {
-      const topicRef = pubSubClient.topic(this.aiTopic);
+      const topicRef = this.pubSubClient.topic(this.aiTopic);
       const messageBuffer = Buffer.from(JSON.stringify(response));
       const messageId = await topicRef.publishMessage({ data: messageBuffer });
-      console.log(`AI Response published with Message ID: ${messageId}`);
+      console.log(`AI Response published with Message ID: ${messageId} to topic: ${this.aiTopic}`);
       return messageId;
     } catch (error) {
       console.error(`Error publishing AI response:`, error);
@@ -29,17 +29,16 @@ class AIPubsubAdapter {
     }
   }
 
-  // Publish request to fetch repo data
   async requestRepoData(userId, repoId, correlationId) {
     try {
-      const topicRef = pubSubClient.topic(this.gitTopic);
+      const topicRef = this.pubSubClient.topic(this.gitTopic);
       const message = {
         action: 'fetchRepo',
         payload: { userId, repoId, correlationId },
       };
       const messageBuffer = Buffer.from(JSON.stringify(message));
       const messageId = await topicRef.publishMessage({ data: messageBuffer });
-      console.log(`Requested Git data with Message ID: ${messageId}`);
+      console.log(`Requested Git data with Message ID: ${messageId} to topic: ${this.gitTopic}`);
       return messageId;
     } catch (error) {
       console.error(`Error requesting Git data:`, error);
@@ -47,17 +46,16 @@ class AIPubsubAdapter {
     }
   }
 
-  // Publish request to fetch wiki data
   async requestWikiData(userId, repoId, correlationId) {
     try {
-      const topicRef = pubSubClient.topic(this.wikiTopic);
+      const topicRef = this.pubSubClient.topic(this.wikiTopic);
       const message = {
         action: 'fetchWiki',
         payload: { userId, repoId, correlationId },
       };
       const messageBuffer = Buffer.from(JSON.stringify(message));
       const messageId = await topicRef.publishMessage({ data: messageBuffer });
-      console.log(`Requested Wiki data with Message ID: ${messageId}`);
+      console.log(`Requested Wiki data with Message ID: ${messageId} to topic: ${this.wikiTopic}`);
       return messageId;
     } catch (error) {
       console.error(`Error requesting Wiki data:`, error);
@@ -65,7 +63,6 @@ class AIPubsubAdapter {
     }
   }
 
-  // Subscribe to repo fetched events from Git Module
   listenForRepoResponses(aiService) {
     const messageHandler = async (message) => {
       try {
@@ -84,7 +81,6 @@ class AIPubsubAdapter {
     console.log(`Listening for Git responses on subscription: ${this.gitSubscription}...`);
   }
 
-  // Subscribe to wiki fetched events from Wiki Module
   listenForWikiResponses(aiService) {
     const messageHandler = async (message) => {
       try {

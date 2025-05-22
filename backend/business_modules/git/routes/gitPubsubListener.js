@@ -3,9 +3,9 @@
 'use strict';
 
 const fp = require('fastify-plugin');
-const pubSubClient = require('../../../aop_modules/messaging/pubsub/pubsubClient');
 
 async function gitPubsubListener(fastify, options) {
+  const pubSubClient = fastify.diContainer.resolve('pubSubClient');
   const subscriptionName = 'git-sub';
   const subscription = pubSubClient.subscription(subscriptionName);
 
