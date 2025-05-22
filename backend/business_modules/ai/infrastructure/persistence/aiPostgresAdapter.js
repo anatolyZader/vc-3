@@ -140,3 +140,5 @@ async saveGitData(userId, repoId, content) {
     }
   }
 }
+
+module.exports = AIPostgresAdapter;
