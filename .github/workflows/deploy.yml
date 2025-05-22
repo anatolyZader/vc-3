@@ -23,7 +23,13 @@ jobs:
       with:
           project_id: ${{ env.GCP_PROJECT }}
 
-    # Setttt up Node.js for both client and backend
+    - name: Debug GCP Auth
+      run: |
+        gcloud auth list
+        gcloud config list
+        gsutil ls gs://$GCP_BUCKET/
+
+    # Settttt up Node.js for both client and backend
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
