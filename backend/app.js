@@ -150,6 +150,30 @@ module.exports = async function (fastify, opts) {
 
   const fs = require('fs');
 
+
+  const credsPath =
+    fastify.secrets?.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+  if (!credsPath) {
+    throw fastify.httpErrors.internalServerError('Missing GOOGLE_APPLICATION_CREDENTIALS path');
+  }
+
+  let googleCreds;
+  try {
+    googleCreds = JSON.parse(fs.readFileSync(path.resolve(credsPath), 'utf8'));
+  } catch (err) {
+    throw fastify.httpErrors.internalServerError('Failed to read or parse Google credentials file', { cause: err });
+  }
+
+  const clientId = googleCreds.web.client_id;
+  const clientSecret = googleCreds.web.client_secret;
+
+  console.log('clientId loaded successfully:', clientId);
+
+
+
+  // .............................................................................................
+
   // TODO: the Google credentials file itself should be extracted from the secrets when in production! not just it's path !!!!!!!!!!!!
 
   // const credsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
@@ -173,29 +197,32 @@ module.exports = async function (fastify, opts) {
   // const clientId = googleCreds.web.client_id;
   // const clientSecret = googleCreds.web.client_secret;
   
-  let googleCreds = null;
+  // ....................................................................................
 
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    const fullPath = path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-    try {
-      googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-    } catch (error) {
-      console.error('Error reading Google credentials:', error);
-    }
-  } else {
-    console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found by process.env.');
-  }
 
-  if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
-    const fullPath = path.resolve(fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS);
-    try {
-      googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-    } catch (error) {
-      console.error('Error reading Google credentials:', error);
-    }
-  } else {
-    console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
-  }
+  // let googleCreds = null;
+
+  // if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  //   const fullPath = path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  //   try {
+  //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  //   } catch (error) {
+  //     console.error('Error reading Google credentials:', error);
+  //   }
+  // } else {
+  //   console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found by process.env.');
+  // }
+
+  // if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
+  //   const fullPath = path.resolve(fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS);
+  //   try {
+  //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  //   } catch (error) {
+  //     console.error('Error reading Google credentials:', error);
+  //   }
+  // } else {
+  //   console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
+  // }
 
   // JWT 
 
