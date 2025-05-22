@@ -5,7 +5,6 @@
     }
   },
 
-
   "business_modules": {
     "chat": {
       "chatPersistAdapter": "chatPostgresAdapter",
@@ -13,7 +12,6 @@
       "chatMessagingAdapter": "chatPubsubAdapter"
     },
     "git": {
-      "gitPersistAdapter": "gitPostgresAdapter",
       "gitGitAdapter": "gitGithubAdapter",
       "gitMessagingAdapter": "gitPubsubAdapter"
     },
