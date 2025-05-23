@@ -67,7 +67,7 @@ module.exports = async function (fastify, opts) {
       fastify.log.error({ err }, '❌ Redis PING failed')
     }
 
-    fastify.log.info('✅ ✅ overrrisoso ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
+    fastify.log.info('✅ ✅ 23.5 11:13 ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
 
     // fastify.log.info('about to new-up RedisStore, fastify.redis is:')
     // console.dir(fastify.redis, { depth: 1 })

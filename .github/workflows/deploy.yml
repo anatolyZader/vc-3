@@ -62,7 +62,7 @@ jobs:
     - name: Deploy Fastify backend to Cloud Run from source
       run: |
         cd backend
-        gcloud run deploy fastify-backend \
+        gcloud run deploy eventstorm-backend \
         --source . \
         --region $REGION \
         --project $GCP_PROJECT \
