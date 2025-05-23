@@ -4,21 +4,11 @@
 const fp = require('fastify-plugin');
 
 async function chatController(fastify, options) {
-  let chatService;
-
-  try {
-    chatService = await fastify.diContainer.resolve('chatService');
-  } catch (error) {
-    fastify.log.error('Error resolving chatService:', error);
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve chatService. Ensure it is registered in the DI container.',
-      { cause: error }
-    );
-  }
 
   // Start a new conversation
   fastify.decorate('startConversation', async (userId, title) => {
     try {
+      const chatService = await fastify.diScope.resolve('chatService');
       const conversationId = await chatService.startConversation(userId, title);
       return conversationId;
     } catch (error) {

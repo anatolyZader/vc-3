@@ -84,9 +84,10 @@ module.exports = fp(async function (fastify, opts) {
   await fastify.diContainer.register({
     pubSubClient: asValue(pubSubClient)
   });
+
   fastify.log.info('✅ Pub/Sub Client initialized and registered in DI container.');
 
-  fastify.log.info('Resolved adapter:', {
+  console.log('Resolved adapter:', {
   authPersistAdapterKey: infraConfig.aop_modules.auth.authPersistAdapter,
   resolved: adapters[infraConfig.aop_modules.auth.authPersistAdapter]
  });
@@ -107,13 +108,19 @@ module.exports = fp(async function (fastify, opts) {
     aiService: asClass(AIService, {
       lifetime: Lifetime.scoped,
     }),
-    userService: asClass(UserService).singleton(),
+
+    
+    authPersistAdapter: adapters[infraConfig.aop_modules.auth.authPersistAdapter],
+    authInMemStorageAdapter: adapters[infraConfig.aop_modules.auth.authInMemStorageAdapter],
+
+    userService: asClass(UserService, {
+      lifetime: Lifetime.SINGLETON,
+    }),
+
     permService: asClass(PermService),
 
     wikiMessagingAdapter: adapters[infraConfig.business_modules.wiki.wikiMessagingAdapter],
 
-    authPersistAdapter: adapters[infraConfig.aop_modules.auth.authPersistAdapter],
-    authInMemStorageAdapter: adapters[infraConfig.aop_modules.auth.authInMemStorageAdapter],
 
     chatPersistAdapter: adapters[infraConfig.business_modules.chat.chatPersistAdapter],
     chatMessagingAdapter: adapters[infraConfig.business_modules.chat.chatMessagingAdapter],

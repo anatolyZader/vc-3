@@ -8,16 +8,16 @@ const bcrypt = require('bcrypt');
 const fp = require('fastify-plugin');
 
 async function authController(fastify, options) {
-  let userService;
-  try {
-    userService = await fastify.diContainer.resolve('userService');
-  } catch (error) {
-    fastify.log.error('Error resolving userService:', error);
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve userService. Ensure it is registered in the DI container.',
-      { cause: error }
-    );
-  }
+  // let userService;
+  // try {
+  //   userService = await fastify.diContainer.resolve('userService');
+  // } catch (error) {
+  //   fastify.log.error('Error resolving userService:', error);
+  //   throw fastify.httpErrors.internalServerError(
+  //     'Failed to resolve userService. Ensure it is registered in the DI container.',
+  //     { cause: error }
+  //   );
+  // }
 
   // Helper to set auth cookies uniformly
   const setAuthCookies = (reply, token) => {
@@ -30,22 +30,24 @@ async function authController(fastify, options) {
     });
   };
 
-
   // -------------------------------------------------------------------------
   
   fastify.decorate('readAllUsers', async function (request, reply) {
     try {
+      const userService = await request.diScope.resolve('userService');
       const users = await userService.readAllUsers();
       return reply.send({ message: 'Users discovered!', users });
     } catch (error) {
-      fastify.log.error('Error discovering users:', error);
+      this.log.error('Error discovering users:', error);
       return reply.internalServerError('Internal Server Error', { cause: error });
     }
   });
 
+
   fastify.decorate('registerUser', async function (request, reply) {
     const { username, email, password } = request.body;
     try {
+      const userService = await request.diScope.resolve('userService');
       const newUser = await userService.registerUser(username, email, password);
       return reply.send({ message: 'User registered successfully', user: newUser });
     } catch (error) {
@@ -57,6 +59,7 @@ async function authController(fastify, options) {
   fastify.decorate('removeUser', async function (request, reply) {
     const { email } = request.body;
     try {
+      const userService = await request.diScope.resolve('userService');
       const user = await userService.getUserInfo(email);
       if (!user) {
         return reply.unauthorized('Invalid credentials');
@@ -77,6 +80,7 @@ async function authController(fastify, options) {
     }
   
     try {
+      const userService = await request.diScope.resolve('userService');
       const user = await userService.getUserInfo(email);
       if (!user || !(await bcrypt.compare(password, user.password))) {
         return reply.unauthorized('Invalid credentials');

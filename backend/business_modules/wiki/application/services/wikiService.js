@@ -6,7 +6,7 @@ const IWikiService = require('./interfaces/IWikiService');
 
 class WikiService extends IWikiService {
 
-  constructor(wikiMessagingAdapter) {
+  constructor({wikiMessagingAdapter}) {
     super();
     this.wikiMessagingAdapter = wikiMessagingAdapter;
   }

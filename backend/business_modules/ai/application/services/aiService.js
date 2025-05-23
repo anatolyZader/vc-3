@@ -5,7 +5,7 @@ const AIResponse = require('../../domain/entities/aiResponse');
 const { v4: uuidv4 } = require('uuid');
 
 class AIService extends IAIService {
-  constructor(aiAIAdapter, aiPersistAdapter, aiMessagingAdapter) {
+  constructor({aiAIAdapter, aiPersistAdapter, aiMessagingAdapter}) {
     super();
     this.aiAIAdapter = aiAIAdapter;
     this.aiPersistAdapter = aiPersistAdapter 

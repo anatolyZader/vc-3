@@ -5,19 +5,10 @@
 const fp = require('fastify-plugin');
 
 async function gitController(fastify, options) {
-  let gitService;
-  try {
-    gitService = await fastify.diContainer.resolve('gitService');
-  } catch (error) {
-    fastify.log.error('Error resolving gitService:', error);
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve gitService. Ensure it is registered in the DI container.',
-      { cause: error }
-    );
-  }
 
   fastify.decorate('fetchRepo', async (userId, repoId) => {
     try {
+      const gitService = await fastify.diScope.resolve('gitService');
       const repository = await gitService.fetchRepo(userId, repoId);
       return repository;
     } catch (error) {
@@ -28,6 +19,7 @@ async function gitController(fastify, options) {
 
   fastify.decorate('fetchWiki', async (userId, repoId) => {
     try {
+      const gitService = await fastify.diScope.resolve('gitService');
       const wiki = await gitService.fetchWiki(userId, repoId);
       return wiki;
     } catch (error) {

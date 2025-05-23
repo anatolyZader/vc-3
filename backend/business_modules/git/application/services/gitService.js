@@ -6,7 +6,7 @@ const Repository = require('../../domain/entities/repository');
 const IGitService = require('./interfaces/IGitService');
 
 class GitService extends IGitService {
-  constructor(gitMessagingAdapter, gitGitAdapter) {
+  constructor({gitMessagingAdapter, gitGitAdapter}) {
     super();
     this.gitMessagingAdapter = gitMessagingAdapter; // used for pubsub events
     this.gitGitAdapter = gitGitAdapter;

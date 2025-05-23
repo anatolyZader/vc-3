@@ -7,20 +7,12 @@ const fp = require('fastify-plugin');
 
 async function aiController(fastify, options) {
 
-  let aiService;
-
-  try {
-    aiService = await fastify.diContainer.resolve('aiService');
-  } catch (error) {
-    fastify.log.error('Error resolving aiService:', error);
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve aiService. Ensure it is registered in the DI container.',
-      { cause: error }
-    );
-  }
-
   fastify.decorate('respondToPrompt', async (userId, conversationId, repoId, prompt) => {
     try {
+      const aiService = await fastify.diScope.resolve('aiService');
+      if (!aiService) {
+        throw new Error('AI service not found in DI container');
+      }
       const response = await aiService.respondToPrompt(userId, conversationId,repoId, prompt);
       return response;
     } catch (error) {

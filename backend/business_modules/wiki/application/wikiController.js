@@ -4,21 +4,11 @@
 const fp = require('fastify-plugin');
 
 async function wikiController(fastify, options) {
-  let wikiService;
-
-  try {
-    wikiService = await fastify.diContainer.resolve('wikiService');
-  } catch (error) {
-    fastify.log.error('Error resolving wikiService:', error);
-    throw fastify.httpErrors.internalServerError(
-      'Failed to resolve wikiService. Ensure it is registered in the DI container.',
-      { cause: error }
-    );
-  }
 
   // Fetch the whole wiki
   fastify.decorate('fetchWiki', async (userId, repoId) => {
     try {
+      const wikiService = await fastify.diScope.resolve('wikiService');
       const wiki = await wikiService.fetchWiki(userId, repoId);
       return wiki;
     } catch (error) {
@@ -30,6 +20,7 @@ async function wikiController(fastify, options) {
   // Fetch a specific wiki page
   fastify.decorate('fetchPage', async (userId, pageId) => {
     try {
+      const wikiService = await fastify.diScope.resolve('wikiService');
       const page = await wikiService.fetchPage(userId, pageId);
       return page;
     } catch (error) {
@@ -41,6 +32,7 @@ async function wikiController(fastify, options) {
   // Create a new wiki page
   fastify.decorate('createPage', async (userId, title) => {
     try {
+      const wikiService = await fastify.diScope.resolve('wikiService');
       const pageId = await wikiService.createPage(userId, title);
       return { message: 'Wiki page created successfully', pageId };
     } catch (error) {
@@ -52,6 +44,7 @@ async function wikiController(fastify, options) {
   // Update wiki page content
   fastify.decorate('updatePage', async (userId, pageId, newContent) => {
     try {
+      const wikiService = await fastify.diScope.resolve('wikiService');
       await wikiService.updatePage(userId, pageId, newContent);
       return { message: 'Wiki page content updated successfully' };
     } catch (error) {
@@ -63,6 +56,7 @@ async function wikiController(fastify, options) {
   // Analyze a wiki page
   fastify.decorate('analyzePage', async (userId, pageId) => {
     try {
+      const wikiService = await fastify.diScope.resolve('wikiService');
       const analysisResult = await wikiService.analyzePage(userId, pageId);
       return analysisResult;
     } catch (error) {
@@ -74,6 +68,7 @@ async function wikiController(fastify, options) {
   // Delete a wiki page
   fastify.decorate('deletePage', async (userId, pageId) => {
     try {
+      const wikiService = await fastify.diScope.resolve('wikiService');
       await wikiService.deletePage(userId, pageId);
       return { message: 'Wiki page deleted successfully' };
     } catch (error) {

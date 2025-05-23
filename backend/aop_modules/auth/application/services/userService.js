@@ -5,7 +5,7 @@ const User = require('../../domain/entities/user');
 const IUserService = require('./interfaces/IUserService');
 
 class UserService extends IUserService {
-  constructor(authPersistAdapter) {
+  constructor({authPersistAdapter}) {
     super(); 
     this.User = User;
     this.authPersistAdapter = authPersistAdapter;

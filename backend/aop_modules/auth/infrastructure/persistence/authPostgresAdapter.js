@@ -7,51 +7,53 @@ const bcrypt = require('bcrypt');
 
 const IAuthPersistPort = require('../../domain/ports/IAuthPersistPort');
 
+const isLocal = process.env.ENV === 'development';
+
 class AuthPostgresAdapter extends IAuthPersistPort {
-  // i Cloud SQL Connector, allows connections via a Unix socket for secure and efficient communication within Google Cloud environments (like Cloud Run or App Engine).
   constructor({ cloudSqlConnector }) {
     super();
     this.connector = cloudSqlConnector;
     const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
     if (!instanceConnectionName) {
       console.error('❌ CLOUD_SQL_CONNECTION_NAME environment variable is not set. Cannot connect to Cloud SQL.');
-      // In a production app, you might want to throw an error or handle this more gracefully.
-      // For now, we'll proceed with a fallback, but it's important for Cloud Run.
     }
 
     const poolConfig = {
       user:     process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DATABASE,
-      host: `localhost`, // Connector creates a local proxy, so connect to localhost
-      port: 5432, // Connector typically proxies to default PostgreSQL port
-     
+      host: `localhost`,
+      port: 5432,
     };
-    console.info('[DB] pgConfig chosen:', poolConfig);   
-      this.pool = new Pool({
-      user: poolConfig.user,
-      password: poolConfig.password,
-      database: poolConfig.database,
-      ssl: false, // Cloud SQL Connector handles encryption, so no SSL needed for pg client
-      connectionString: undefined, // Always undefined, as we always use the custom client factory
+    console.info('[DB] pgConfig chosen:', poolConfig);
 
-      Client: class CloudSQLClient extends Pool.Client { // Always use the custom client
+    this.pool = isLocal
+      ? new Pool({
+          user: poolConfig.user,
+          password: poolConfig.password,
+          database: poolConfig.database,
+          host: poolConfig.host,
+          port: poolConfig.port,
+          ssl: false,
+        })
+      : new Pool({
+          user: poolConfig.user,
+          password: poolConfig.password,
+          database: poolConfig.database,
+          ssl: false,
+          connectionString: undefined,
+
+          Client: class CloudSQLClient extends Pool.Client {
             constructor(config) {
               super(config);
-              this.config = config; // Store config for potential reuse
-
-              // Override the connect method to use the connector's socket
+              this.config = config;
               const originalConnect = this.connect.bind(this);
               this.connect = async (callback) => {
                 try {
-                  // Use the injected connector from the config
                   const socketPath = await this.config.cloudSqlConnector.getSocket(this.config.instanceConnectionName);
-                  // Modify the config to use the socketPath
                   this.connectionParameters.host = socketPath;
-                  this.connectionParameters.port = undefined; // No port when using socketPath
-                  this.connectionParameters.ssl = false; // Connector handles SSL
-                  // Setting connectionString: undefined and ssl: false when using the CloudSQLClient is generally correct as the connector handles the actual connection. 
-
+                  this.connectionParameters.port = undefined;
+                  this.connectionParameters.ssl = false;
                   return originalConnect(callback);
                 } catch (err) {
                   console.error('Error getting Cloud SQL socket:', err);
@@ -60,11 +62,11 @@ class AuthPostgresAdapter extends IAuthPersistPort {
                 }
               };
             }
-          }, 
+          },
 
-      cloudSqlConnector: this.connector, 
-      instanceConnectionName: instanceConnectionName,
-    });
+          cloudSqlConnector: this.connector,
+          instanceConnectionName: instanceConnectionName,
+        });
 
     console.info('[DB] pgConfig chosen (after connector setup):', {
       user: poolConfig.user,
@@ -72,7 +74,7 @@ class AuthPostgresAdapter extends IAuthPersistPort {
       host: instanceConnectionName ? `Cloud SQL Connector via ${instanceConnectionName}` : poolConfig.host,
       port: poolConfig.port,
     });
- }
+  }
 
   async readAllUsers() {
     console.log('this.pool at authPostgresAdapter: ', this.pool);
@@ -106,14 +108,11 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     const client = await this.pool.connect();
     try {
       const id = uuidv4();
-
-      // Check for duplicate email
       const existingUser = await client.query('SELECT * FROM users WHERE email = $1', [email]);
       if (existingUser.rows.length > 0) {
         throw new Error('Email already exists');
       }
       const hashedPassword = await bcrypt.hash(password, 10);
-      // Use plain-text password
       await client.query(
         'INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)',
         [id, username, email, hashedPassword]
@@ -146,8 +145,6 @@ class AuthPostgresAdapter extends IAuthPersistPort {
       client.release();
     }
   }
-  
-  
 }
 
 module.exports = AuthPostgresAdapter;

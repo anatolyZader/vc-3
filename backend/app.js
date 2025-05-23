@@ -69,12 +69,6 @@ module.exports = async function (fastify, opts) {
 
     fastify.log.info('✅ ✅ 23.5 11:13 ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
 
-    // fastify.log.info('about to new-up RedisStore, fastify.redis is:')
-    // console.dir(fastify.redis, { depth: 1 })
-    // fastify.log.info('fastify.redis.sendCommand →', typeof fastify.redis.sendCommand)
-
-    // fastify.log.info('calling new RedisStore(...) with:')
-
   try {
     await fastify.register(fastifyCookie,  {
       secret: fastify.secrets.COOKIE_SECRET,
@@ -150,10 +144,16 @@ module.exports = async function (fastify, opts) {
 
   const fs = require('fs');
 
-  let clientId, clientSecret;
+  let googleCreds, clientId, clientSecret;
+
+  // console.log('fastify.secrets:', fastify.secrets);
 
   const credsPath =
     fastify.secrets?.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  
+  // console.log('credsPath:', credsPath);
+
+  // console.log('google creds parsed: ', JSON.parse(fs.readFileSync(path.resolve(credsPath), 'utf8')));
 
   if (credsPath) {
     try {
