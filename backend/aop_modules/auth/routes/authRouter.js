@@ -12,7 +12,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
     method: 'GET',
     url: '/',
     handler: async (request, reply) => {
-      return 'hello eventstorm!';
+      return 'hello eventstorm api!';
     }
   });
 

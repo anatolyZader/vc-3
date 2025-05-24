@@ -383,6 +383,10 @@ module.exports = async function (fastify, opts) {
     reply.send({ message: 'cleared' });
   });
 
+  fastify.get('/', async (request, reply) => {
+  return reply.send('Hello from Eventstorm Backend root!');
+  });
+
   
   fastify.addHook('onReady', async () => {
     fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
