@@ -1,7 +1,7 @@
 # combined-deployment.yaml
 resources:
   # ----------------------------------------------------------------------------
-  # 1) Define the static IP address resource
+  # 1) Deffine the static IP address resource
   # ----------------------------------------------------------------------------
   - name: eventstorm-static-ip
     type: compute.v1.address
