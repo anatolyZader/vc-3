@@ -1,6 +1,6 @@
 
 .env
-google-application-credentials.json
+user-oauth2-credentials.json
 service-account-credentials.json
 
 # Logs
