@@ -69,7 +69,7 @@ jobs:
         --platform managed \
         --vpc-connector=cr-vpc-conn \
         --allow-unauthenticated \
-        --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest:/backend/user-oauth2-credentials.json \
+        --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest:secrets/user-oauth2-credentials.json \
         --set-env-vars=NODE_ENV=production,REDIS_PORT=6379,PG_USER=postgres,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance,DUMMY=MUDDYY \
         --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
 
