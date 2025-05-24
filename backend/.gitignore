@@ -1,3 +1,4 @@
+# gitignore 
 
 .env
 user-oauth2-credentials.json
@@ -8,7 +9,7 @@ logs
 *.log
 npm-debug.log*
 
-# Runtimme data
+# Runtime data
 pids
 *.pid
 *.seed
