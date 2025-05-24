@@ -7,7 +7,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
 
   console.log('authRouter is loaded!');
 
-  // 1
+  // 11
   fastify.route({
     method: 'GET',
     url: '/',
