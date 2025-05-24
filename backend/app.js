@@ -146,30 +146,30 @@ module.exports = async function (fastify, opts) {
 
   let googleCreds, clientId, clientSecret;
 
-  // console.log('fastify.secrets:', fastify.secrets);
+  // Retrieve the credentials value.
+  // On Cloud Run with --set-secrets, this will contain the JSON string content.
+  // Ensure your local development environment sets USER_OAUTH2_CREDENTIALS
+  // directly to the JSON string for consistency, or handle the local case separately.
+  const credentialsJsonString = fastify.secrets?.USER_OAUTH2_CREDENTIALS || process.env.USER_OAUTH2_CREDENTIALS;
 
-  const credsPath =
-    fastify.secrets?.USER_OAUTH2_CREDENTIALS || process.env.USER_OAUTH2_CREDENTIALS;
-  
-  // console.log('credsPath:', credsPath);
-
-  // console.log('google creds parsed: ', JSON.parse(fs.readFileSync(path.resolve(credsPath), 'utf8')));
-
-  if (credsPath) {
-    try {
-      googleCreds = JSON.parse(fs.readFileSync(path.resolve(credsPath), 'utf8'));
-      clientId = googleCreds.web.client_id;
-      clientSecret = googleCreds.web.client_secret;
-      fastify.log.info('Loaded Google credentials from file for local use');
-      // Use clientId and clientSecret as needed
-    } catch (err) {
-      throw fastify.httpErrors.internalServerError('Failed to read or parse Google credentials file', { cause: err });
-    }
+  if (credentialsJsonString) {
+      try {
+          googleCreds = JSON.parse(credentialsJsonString);
+          clientId = googleCreds.web.client_id;
+          clientSecret = googleCreds.web.client_secret;
+          fastify.log.info('Loaded Google OAuth2 credentials from environment variable/secret.');
+      } catch (err) {
+          // This catch will now only trigger if the JSON string itself is malformed.
+          throw fastify.httpErrors.internalServerError('Failed to parse Google OAuth2 credentials from environment variable/secret. Invalid JSON.', { cause: err });
+      }
   } else {
-    fastify.log.info('No USER_OAUTH2_CREDENTIALS file path – assuming ADC via GCP runtime');
-    // In Cloud Run, let the default credentials flow work automatically
-    // For example, create GCP clients without providing credentials
+      fastify.log.info('No USER_OAUTH2_CREDENTIALS secret/env var provided for OAuth2 client setup. Proceeding without it, or using fallback.');
+      // If you need clientId/clientSecret for *all* environments, even if the secret isn't set,
+      // ensure they get values here (e.g., from other env vars, or throw if mandatory).
+      clientId = process.env.FALLBACK_CLIENT_ID; // Or throw an error if mandatory
+      clientSecret = process.env.FALLBACK_CLIENT_SECRET; // Or throw an error if mandatory
   }
+
 
 
 
