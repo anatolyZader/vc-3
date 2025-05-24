@@ -149,7 +149,7 @@ module.exports = async function (fastify, opts) {
   // console.log('fastify.secrets:', fastify.secrets);
 
   const credsPath =
-    fastify.secrets?.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    fastify.secrets?.USER_OAUTH2_CREDENTIALS || process.env.USER_OAUTH2_CREDENTIALS;
   
   // console.log('credsPath:', credsPath);
 
@@ -166,7 +166,7 @@ module.exports = async function (fastify, opts) {
       throw fastify.httpErrors.internalServerError('Failed to read or parse Google credentials file', { cause: err });
     }
   } else {
-    fastify.log.info('No GOOGLE_APPLICATION_CREDENTIALS file path – assuming ADC via GCP runtime');
+    fastify.log.info('No USER_OAUTH2_CREDENTIALS file path – assuming ADC via GCP runtime');
     // In Cloud Run, let the default credentials flow work automatically
     // For example, create GCP clients without providing credentials
   }
@@ -180,7 +180,7 @@ module.exports = async function (fastify, opts) {
 
   // TODO: the Google credentials file itself should be extracted from the secrets when in production! not just it's path !!!!!!!!!!!!
 
-  // const credsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  // const credsEnv = process.env.USER_OAUTH2_CREDENTIALS;
   // let googleCreds;
 
   // if (credsEnv) {
@@ -206,8 +206,8 @@ module.exports = async function (fastify, opts) {
 
   // let googleCreds = null;
 
-  // if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  //   const fullPath = path.resolve(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  // if (process.env.USER_OAUTH2_CREDENTIALS) {
+  //   const fullPath = path.resolve(process.env.USER_OAUTH2_CREDENTIALS);
   //   try {
   //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
   //   } catch (error) {
