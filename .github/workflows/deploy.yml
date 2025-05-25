@@ -58,7 +58,7 @@ jobs:
       run: |
         gsutil -m rsync -r ./client/dist gs://$GCP_BUCKET/
 
-    # --- BACKEND: Deploy to Cloud Run from source ---
+    # --- BACKEND: Deployy to Cloud Run from source ---
     - name: Deploy Fastify backend to Cloud Run from source
       run: |
         cd backend
