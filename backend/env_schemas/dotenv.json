@@ -43,6 +43,9 @@
     "GOOGLE_APPLICATION_CREDENTIALS": {
       "type": "string"
     },
+    "USER_OAUTH2_CREDENTIALS": {
+      "type": "string"
+    },
     "REDIS_SECRET": {
       "type": "string"
     },

@@ -142,21 +142,25 @@ module.exports = async function (fastify, opts) {
     saveUninitialized: false,
   });
 
-  const fs = require('fs');
+  const fs = require('node:fs/promises');
 
-  let googleCreds, clientId, clientSecret;
+  let credentialsPath, credentialsJsonString, googleCreds, clientId, clientSecret;
 
-  // Retrieve the credentials value.
-  // On Cloud Run with --set-secrets, this will contain the JSON string content.
-  // Ensure your local development environment sets USER_OAUTH2_CREDENTIALS
-  // directly to the JSON string for consistency, or handle the local case separately.
-  const credentialsJsonString = fastify.secrets?.USER_OAUTH2_CREDENTIALS || process.env.USER_OAUTH2_CREDENTIALS;
+  if (fastify.secrets) {
+    console.log('accessed fastify secrets for auth');
+    console.log('XXX fastify.secrets:', fastify.secrets);
+    credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;
+    console.log('XXX credentialsPath:', credentialsPath);
+    credentialsJsonString = JSON.parse(await fs.readFile(credentialsPath, { encoding: 'utf8' }));
+  } else { credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);};
+    
+  console.log('XXX credentialsJsonString:', credentialsJsonString);
 
   if (credentialsJsonString) {
       try {
-          googleCreds = JSON.parse(credentialsJsonString);
-          clientId = googleCreds.web.client_id;
-          clientSecret = googleCreds.web.client_secret;
+          // googleCreds = JSON.parse(credentialsJsonString);
+          clientId = credentialsJsonString.web.client_id;
+          clientSecret =credentialsJsonString.web.client_secret;
           fastify.log.info('Loaded Google OAuth2 credentials from environment variable/secret.');
       } catch (err) {
           // This catch will now only trigger if the JSON string itself is malformed.
@@ -381,11 +385,8 @@ module.exports = async function (fastify, opts) {
   fastify.get('/debug/clear-state-cookie', (req, reply) => {
     reply.clearCookie('oauth2-redirect-state', { path: '/' });
     reply.send({ message: 'cleared' });
-  });
+  }); 
 
-  fastify.get('/', async (request, reply) => {
-  return reply.send('Hello from Eventstorm Backend root!');
-  });
 
   
   fastify.addHook('onReady', async () => {

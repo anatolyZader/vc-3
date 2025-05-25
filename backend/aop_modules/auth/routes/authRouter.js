@@ -8,13 +8,13 @@ module.exports = fp(async function authRouter(fastify, opts) {
   console.log('authRouter is loaded!');
 
   // 11
-  fastify.route({
-    method: 'GET',
-    url: '/',
-    handler: async (request, reply) => {
-      return 'hello eventstorm api!';
-    }
-  });
+  // fastify.route({
+  //   method: 'GET',
+  //   url: '/',
+  //   handler: async (request, reply) => {
+  //     return 'hello eventstorm api!';
+  //   }
+  // });
 
   // 1
   fastify.route({

@@ -87,10 +87,10 @@ module.exports = fp(async function (fastify, opts) {
 
   fastify.log.info('✅ Pub/Sub Client initialized and registered in DI container.');
 
-  console.log('Resolved adapter:', {
-  authPersistAdapterKey: infraConfig.aop_modules.auth.authPersistAdapter,
-  resolved: adapters[infraConfig.aop_modules.auth.authPersistAdapter]
- });
+//   console.log('Resolved adapter:', {
+//   authPersistAdapterKey: infraConfig.aop_modules.auth.authPersistAdapter,
+//   resolved: adapters[infraConfig.aop_modules.auth.authPersistAdapter]
+//  });
 
   await fastify.diContainer.register({
     account: asClass(Account),
