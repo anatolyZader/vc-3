@@ -19,50 +19,52 @@ class AILangchainAdapter extends IAIAIPort {
 
   async respondToPrompt(userId, conversationId, prompt, preFetchedRepo, preFetchedWiki) {
     try {
-      const [gitRepoContent, wikiContent] = await Promise.all([
-        fs.readFile(preFetchedRepo, 'utf-8'),
-        fs.readFile(preFetchedWiki, 'utf-8'),
-      ]);
+      // const [gitRepoContent, wikiContent] = await Promise.all([
+      //   fs.readFile(preFetchedRepo, 'utf-8'),
+      //   fs.readFile(preFetchedWiki, 'utf-8'),
+      // ]);
 
-      const docs = [
-        { pageContent: gitRepoContent, metadata: { source: 'GitHub Repo' } },
-        { pageContent: wikiContent, metadata: { source: 'Git Wiki' } },
-      ];
+      console.log('testing the respondToPrompt method');
 
-      const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
-      const splits = await splitter.splitDocuments(docs);
+      // const docs = [
+      //   { pageContent: gitRepoContent, metadata: { source: 'GitHub Repo' } },
+      //   { pageContent: wikiContent, metadata: { source: 'Git Wiki' } },
+      // ];
 
-      await this.vectorStore.addDocuments(splits);
-      console.log('Indexed GitHub and Wiki data');
+      // const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
+      // const splits = await splitter.splitDocuments(docs);
 
-      const retrievedDocs = await this.vectorStore.similaritySearch(prompt, 3);
-      const docsContent = retrievedDocs.map(doc => doc.pageContent).join('\n');
+      // await this.vectorStore.addDocuments(splits);
+      // console.log('Indexed GitHub and Wiki data');
 
-      const StateAnnotation = Annotation.Root({
-        question: Annotation.string(),
-        context: Annotation.array(),
-        answer: Annotation.string(),
-      });
+      // const retrievedDocs = await this.vectorStore.similaritySearch(prompt, 3);
+      // const docsContent = retrievedDocs.map(doc => doc.pageContent).join('\n');
 
-      const retrieve = async () => ({ context: retrievedDocs });
+      // const StateAnnotation = Annotation.Root({
+      //   question: Annotation.string(),
+      //   context: Annotation.array(),
+      //   answer: Annotation.string(),
+      // });
 
-      const generate = async (state) => {
-        const promptTemplate = await pull('rlm/rag-prompt');
-        const messages = await promptTemplate.invoke({ question: state.question, context: docsContent });
-        const response = await this.llm.invoke(messages);
-        return { answer: response.content };
-      };
+      // const retrieve = async () => ({ context: retrievedDocs });
 
-      const graph = new StateGraph(StateAnnotation)
-        .addNode('retrieve', retrieve)
-        .addNode('generate', generate)
-        .addEdge('__start__', 'retrieve')
-        .addEdge('retrieve', 'generate')
-        .addEdge('generate', '__end__')
-        .compile();
+      // const generate = async (state) => {
+      //   const promptTemplate = await pull('rlm/rag-prompt');
+      //   const messages = await promptTemplate.invoke({ question: state.question, context: docsContent });
+      //   const response = await this.llm.invoke(messages);
+      //   return { answer: response.content };
+      // };
 
-      const result = await graph.invoke({ question: prompt });
-      console.log(`Generated AI response: ${result.answer}`);
+      // const graph = new StateGraph(StateAnnotation)
+      //   .addNode('retrieve', retrieve)
+      //   .addNode('generate', generate)
+      //   .addEdge('__start__', 'retrieve')
+      //   .addEdge('retrieve', 'generate')
+      //   .addEdge('generate', '__end__')
+      //   .compile();
+
+      // const result = await graph.invoke({ question: prompt });
+      // console.log(`Generated AI response: ${result.answer}`);
 
       return result.answer;
     } catch (error) {
