@@ -6,7 +6,7 @@ module.exports = async function (fastify, opts) {
   console.log('--- LOADING swaggerPlugin.js NOW ---');
 
   fastify.register(require('@fastify/swagger'), {
-    routePrefix: '/doc',
+    routePrefix: '/api/doc',
     swagger: {
       info: {
         title: 'EventStorm.me API',
@@ -23,7 +23,7 @@ module.exports = async function (fastify, opts) {
   
   // Then register the UI:
   fastify.register(require('@fastify/swagger-ui'), {
-    routePrefix: '/doc', // same as above or a sub-route
+    routePrefix: '/api/doc', // same as above or a sub-route
     // you can optionally specify more UI config here
     // e.g. uiConfig: { docExpansion: 'full' }
   });

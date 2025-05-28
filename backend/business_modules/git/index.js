@@ -37,5 +37,5 @@ fastify.register(autoload, {
 }
 
 module.exports.autoConfig = {
-  prefix: '/git'
+  prefix: '/api/git'
 };

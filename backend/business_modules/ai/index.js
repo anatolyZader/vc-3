@@ -31,7 +31,7 @@ module.exports = async function aiModuleIndex(fastify, opts) {
 
 }
 
-module.exports.autoPrefix = '/ai';
+module.exports.autoPrefix = '/api/ai';
 
 
 

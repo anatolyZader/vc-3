@@ -142,19 +142,30 @@ module.exports = async function (fastify, opts) {
     saveUninitialized: false,
   });
 
+  // Health Check Route: Registered directly on the main Fastify instance.
+  // This will be accessible at the root path: '/'
+  fastify.get('/', async (request, reply) => {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  });
+
+  // For HEAD requests (often used by load balancers for health checks)
+  // fastify.head('/', async (request, reply) => {
+  //   reply.code(200).send();
+  // });
+
   const fs = require('node:fs/promises');
 
   let credentialsPath, credentialsJsonString, googleCreds, clientId, clientSecret;
 
   if (fastify.secrets) {
     console.log('accessed fastify secrets for auth');
-    console.log('XXX fastify.secrets:', fastify.secrets);
+    // console.log('XXX fastify.secrets:', fastify.secrets);
     credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;
     console.log('XXX credentialsPath:', credentialsPath);
     credentialsJsonString = JSON.parse(await fs.readFile(credentialsPath, { encoding: 'utf8' }));
   } else { credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);};
     
-  console.log('XXX credentialsJsonString:', credentialsJsonString);
+  // console.log(' credentialsJsonString:', credentialsJsonString);
 
   if (credentialsJsonString) {
       try {
@@ -372,6 +383,7 @@ module.exports = async function (fastify, opts) {
     encapsulate: false,
     maxDepth: 1,
     dirNameRoutePrefix: false,
+    prefix: '/api'
   });
 
   await fastify.register(AutoLoad, {
@@ -380,6 +392,7 @@ module.exports = async function (fastify, opts) {
     encapsulate: true,
     maxDepth: 1,
     dirNameRoutePrefix: false,
+    prefix: '/api'
   });
 
   fastify.get('/debug/clear-state-cookie', (req, reply) => {
@@ -409,5 +422,5 @@ module.exports = async function (fastify, opts) {
   });
 };
 
-module.exports.options = { prefix: '/api' }
+// module.exports.options = { prefix: '/api' }
 

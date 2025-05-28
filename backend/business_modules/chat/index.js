@@ -31,5 +31,5 @@ module.exports = async function chatModuleIndex(fastify, opts) {
 }
 
 
-module.exports.autoPrefix = '/chat';
+module.exports.autoPrefix = '/api/chat';
 

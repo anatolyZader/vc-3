@@ -26,4 +26,4 @@ module.exports = async function wikiModuleIndex(fastify, opts) {
 }
 
 
-module.exports.autoPrefix = '/wiki';
+module.exports.autoPrefix = '/api/wiki';

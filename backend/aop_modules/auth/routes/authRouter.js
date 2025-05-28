@@ -19,14 +19,14 @@ module.exports = fp(async function authRouter(fastify, opts) {
   // 1
   fastify.route({
     method: 'GET',
-    url: '/auth/disco',
+    url: '/api/auth/disco',
     handler: fastify.readAllUsers,
   });  
 
   // 1
   fastify.route({
     method: 'POST',
-    url: '/auth/register',
+    url: '/api/auth/register',
     schema: {
       body: fastify.getSchema('schema:auth:register'), 
     },
@@ -36,14 +36,14 @@ module.exports = fp(async function authRouter(fastify, opts) {
   // 1
   fastify.route({
     method: 'POST',
-    url: '/auth/remove',
+    url: '/api/auth/remove',
     handler: fastify.removeUser,
   });
 
   // 1
   fastify.route({
     method: 'POST',
-    url: '/auth/login',
+    url: '/api/auth/login',
     schema: {
       response: {
         200: fastify.getSchema('schema:auth:token'),
@@ -56,7 +56,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
   // 1
   fastify.route({
     method: 'GET',
-    url: '/auth/me',
+    url: '/api/auth/me',
     schema: {
       headers: fastify.getSchema('schema:auth:token-header'),
       response: {
@@ -70,7 +70,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
   // 1
   fastify.route({
     method: 'POST',
-    url: '/auth/logout',
+    url: '/api/auth/logout',
     preValidation: [fastify.verifyToken],
     handler: fastify.logoutUser,
   });
@@ -78,7 +78,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
  // 1 
   fastify.route({
     method: 'POST',
-    url: '/auth/refresh',
+    url: '/api/auth/refresh',
     schema: {
       headers: fastify.getSchema('schema:auth:token-header'),
       response: {
@@ -90,7 +90,7 @@ module.exports = fp(async function authRouter(fastify, opts) {
   });
 
   // Privacy Policy Route
-  fastify.get('/privacy', async (request, reply) => {
+  fastify.get('/api/privacy', async (request, reply) => {
     reply.type('text/html').send(`
       <h1>Privacy Policy</h1>
       <p>This page is under construction. We will publish our final policy soon.</p>
@@ -98,12 +98,11 @@ module.exports = fp(async function authRouter(fastify, opts) {
   });
 
   // Terms of Service Route
-  fastify.get('/terms', async (request, reply) => {
+  fastify.get('/api/terms', async (request, reply) => {
     reply.type('text/html').send(`
       <h1>Terms of Service</h1>
       <p>This page is under construction. We will publish our official terms soon.</p>
     `);
   });
-
 
 });
