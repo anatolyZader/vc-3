@@ -30,7 +30,7 @@ async function logPlugin(fastify, opts) {
       });
     }
   
-    // If this is a 404 error, handle as 404
+    // Iff this is a 404 error, handle as 404
     if (err.statusCode === 404) {
       return reply.status(404).send({
         error: 'Not Found',
