@@ -66,7 +66,8 @@ class AILangchainAdapter extends IAIAIPort {
       // const result = await graph.invoke({ question: prompt });
       // console.log(`Generated AI response: ${result.answer}`);
 
-      return result.answer;
+      // return result.answer;
+      return "AI response temporarily disabled for deployment testing.";
     } catch (error) {
       console.error('Error generating AI response:', error);
       throw error;
