@@ -155,17 +155,42 @@ module.exports = async function (fastify, opts) {
 
   const fs = require('node:fs/promises');
 
-  let credentialsPath, credentialsJsonString, googleCreds, clientId, clientSecret;
+  let credentialsJsonString, clientId, clientSecret;
 
-  if (fastify.secrets) {
-    console.log('accessed fastify secrets for auth');
-    // console.log('XXXX fastify.secrets:', fastify.secrets);
-    credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;
+  // 1. **Prioritize process.env for Cloud Run (where it contains the JSON string)**
+  if (process.env.USER_OAUTH2_CREDENTIALS && process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')) {
+    // This branch is for Cloud Run (or any environment where the env var contains the JSON string)
+    console.log('accessed process.env.USER_OAUTH2_CREDENTIALS (direct JSON) for auth');
+    try {
+      credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);
+    } catch (error) {
+      console.error('Error parsing Google credentials from process.env.USER_OAUTH2_CREDENTIALS:', error);
+      throw fastify.httpErrors.internalServerError('Failed to parse Google OAuth2 credentials from environment variable. Invalid JSON.', { cause: error });
+    }
+  }
+  // 2. **Fallback to fastify.secrets for Development VM (where it contains a file path)**
+  else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {
+    // This branch is for the development VM where fastify.secrets provides a file path
+    // We check for any string in fastify.secrets.USER_OAUTH2_CREDENTIALS,
+    // assuming if it's there and the env var wasn't JSON, it must be a path.
+    console.log('accessed fastify secrets (file path) for auth');
+    const credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;
     console.log('XXX credentialsPath:', credentialsPath);
-    credentialsJsonString = JSON.parse(await fs.readFile(credentialsPath, { encoding: 'utf8' }));
-  } else { credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);};
+    try {
+      credentialsJsonString = JSON.parse(await fs.readFile(credentialsPath, { encoding: 'utf8' }));
+    } catch (error) {
+      console.error('Error reading Google credentials file from fastify.secrets:', error);
+      throw fastify.httpErrors.internalServerError('Failed to read Google OAuth2 credentials file.', { cause: error });
+    }
+  }
+  // 3. **Final Fallback if no credentials are found at all**
+  else {
+    fastify.log.warn('No USER_OAUTH2_CREDENTIALS secret/env var or fastify.secrets path provided for OAuth2 client setup. Proceeding without it, or using fallback.');
+    clientId = process.env.FALLBACK_CLIENT_ID; // Or throw if mandatory
+    clientSecret = process.env.FALLBACK_CLIENT_SECRET; // Or throw if mandatory
+  }
     
-  // console.log(' credentialsJsonString:', credentialsJsonString);
+  console.log(' credentialsJsonString accessed in google run:', credentialsJsonString);
 
   if (credentialsJsonString) {
       try {
