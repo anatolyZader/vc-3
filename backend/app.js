@@ -159,7 +159,7 @@ module.exports = async function (fastify, opts) {
 
   if (fastify.secrets) {
     console.log('accessed fastify secrets for auth');
-    // console.log('XXX fastify.secrets:', fastify.secrets);
+    // console.log('XXXX fastify.secrets:', fastify.secrets);
     credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;
     console.log('XXX credentialsPath:', credentialsPath);
     credentialsJsonString = JSON.parse(await fs.readFile(credentialsPath, { encoding: 'utf8' }));
