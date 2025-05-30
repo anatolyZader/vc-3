@@ -373,7 +373,7 @@ module.exports = async function (fastify, opts) {
   await fastify.register(authSchemasPlugin);
 
   fastify.get('/api/auth/google/callback', async (req, reply) => {
-    console.log('--- Incoming callback cookies ---', req.cookies);
+    console.log('--- Inccoming callback cookies ---', req.cookies);
     try {
       const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
       const googleAccessToken = token.token.access_token;
