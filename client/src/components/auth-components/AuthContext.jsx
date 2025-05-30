@@ -67,7 +67,7 @@ const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     verifyCookieUpdateState();
-  }, []); // called immediately on component mount (using useEffect) to ensure that the app always starts by confirming the user's session state. This pattern is crucial for applications relying on cookie-based sessions
+  }, []); // callled immediately on component mount (using useEffect) to ensure that the app always starts by confirming the user's session state. This pattern is crucial for applications relying on cookie-based sessions
 
   return (
     <AuthContext.Provider
