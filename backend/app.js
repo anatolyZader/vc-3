@@ -319,16 +319,25 @@ module.exports = async function (fastify, opts) {
     return authToken;
   });
 
-  // Determine the base URL dynamically based on environment
-  let appBaseUrl;
+  // Determine base URLs and cookie settings dynamically based on environment
+  let appBaseUrl; // Backend URL
+  let frontendBaseUrl; // Frontend URL
+  let cookieSecure;
+  let cookieSameSite;
+  let googleCallbackUri; // Specific for fastifyOAuth2 callbackUri
 
   if (process.env.NODE_ENV === 'production') {
-    // Production environment (Cloud Run)
     appBaseUrl = 'https://eventstorm.me';
+    frontendBaseUrl = 'https://eventstorm.me';
+    cookieSecure = true;
+    cookieSameSite = 'None';
+    googleCallbackUri = 'https://eventstorm.me/api/auth/google/callback';
   } else { // Assuming NODE_ENV is 'development' for your VM environment
-    // Development environment (GCP VM via SSH port forwarding)
-    // For your local browser, this will be http://localhost:3000 if using ssh -L
     appBaseUrl = 'http://localhost:3000';
+    frontendBaseUrl = 'http://localhost:5173'; // Assuming your frontend runs on 5173 locally
+    cookieSecure = false; // IMPORTANT: Must be false for HTTP connections in development
+    cookieSameSite = 'Lax'; // 'Lax' is generally safer for development over HTTP
+    googleCallbackUri = 'http://localhost:3000/api/auth/google/callback';
   }
 
   // OAUTH2
@@ -337,18 +346,17 @@ module.exports = async function (fastify, opts) {
     name: 'googleOAuth2',
     scope: ['profile', 'email', 'openid'],
     cookie: {
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    // SameSite: 'None' requires secure: true. 'Lax' is generally safer for development.
-    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      secure: cookieSecure, // Use dynamic secure value
+      sameSite: cookieSameSite, // Use dynamic sameSite value
       httpOnly: true,
       allowCredentials: true,
-    },
-    credentials: {
+    },   
+   credentials: {
       client: { id: clientId, secret: clientSecret },
       auth: fastifyOAuth2.GOOGLE_CONFIGURATION
     },
     startRedirectPath: '/api/auth/google',
-    callbackUri: 'http://localhost:3000/api/auth/google/callback',
+    callbackUri: googleCallbackUri, // <--- FIX 1: Use dynamic callback URI,
   },
   {
     encapsulate: false
@@ -358,7 +366,7 @@ module.exports = async function (fastify, opts) {
 
   const googleClient = new OAuth2Client(clientId);
   fastify.decorate('verifyGoogleIdToken', async function (googleIdToken) {
-    console.lohg('Verifying Google ID token:', googleIdToken);
+    console.log('Verifying Google ID token:', googleIdToken);
     if (!googleIdToken) {
       throw new Error('Google ID token is required');
     }
@@ -373,7 +381,7 @@ module.exports = async function (fastify, opts) {
   await fastify.register(authSchemasPlugin);
 
   fastify.get('/api/auth/google/callback', async (req, reply) => {
-    console.log('--- Inccoming callback cookies ---', req.cookies);
+    console.log('--- Incoming callback cookies ---', req.cookies);
     try {
       const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
       const googleAccessToken = token.token.access_token;
@@ -395,17 +403,16 @@ module.exports = async function (fastify, opts) {
         expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h'
       });
   
-      // 3) Store the local JWT in the same cookie your manual flow uses
-      reply.setCookie('authToken', localJwt, {
-        path: '/',
-        httpOnly: true,
-        secure: true, // set true in production
-        sameSite: 'None',
-
-      });
+    // 3) Store the local JWT in the same cookie your manual flow uses
+    reply.setCookie('authToken', localJwt, {
+      path: '/',
+      httpOnly: true,
+      secure: cookieSecure, // <--- FIX 2: Use dynamic secure value
+      sameSite: cookieSameSite, // <--- FIX 2: Use dynamic sameSite value
+    });
   
       // 4) Redirect user to front-end
-      reply.redirect('http://localhost:5173/chat');
+    reply.redirect(`${frontendBaseUrl}/chat`); // <--- FIX 3: Use dynamic frontendBaseUrl
   
     } catch (err) {
       console.error('Google OAuth callback error:', err);
