@@ -1,7 +1,5 @@
 // LoginPage.jsx
 'use strict';
-// LoginPage.jsx
-'use strict';
 
 import { useContext, useState } from 'react';
 import { AuthContext } from './AuthContext'; // AuthContext object created in another module, enabling access to authentication state and functions.

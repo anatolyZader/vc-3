@@ -48,7 +48,7 @@ const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
     
-      await fetch('api/auth/logout', {
+      await fetch('/api/auth/logout', {
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         // THE commented-out path is for regular development on vm, it nreaks with load balancer
         // await fetch('http://localhost:3000/auth/me', {

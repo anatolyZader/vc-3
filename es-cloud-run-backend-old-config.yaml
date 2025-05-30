@@ -1,0 +1,28 @@
+affinityCookieTtlSec: 0
+backends:
+- balancingMode: UTILIZATION
+  capacityScaler: 1.0
+  group: https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/me-west1/networkEndpointGroups/es-serverless-neg
+connectionDraining:
+  drainingTimeoutSec: 0
+creationTimestamp: '2025-05-16T05:22:07.463-07:00'
+description: ''
+enableCDN: false
+fingerprint: qYBaastBNmY=
+id: '6893169384949977856'
+kind: compute#backendService
+loadBalancingScheme: EXTERNAL_MANAGED
+localityLbPolicy: ROUND_ROBIN
+logConfig:
+  enable: true
+  optionalMode: EXCLUDE_ALL_OPTIONAL
+  sampleRate: 0.0
+name: es-cloud-run-backend
+port: 80
+portName: http
+protocol: HTTPS
+selfLink: https://www.googleapis.com/compute/v1/projects/eventstorm-1/global/backendServices/es-cloud-run-backend
+sessionAffinity: NONE
+timeoutSec: 30
+usedBy:
+- reference: https://www.googleapis.com/compute/v1/projects/eventstorm-1/global/urlMaps/es-load-balancer
