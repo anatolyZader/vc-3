@@ -319,7 +319,17 @@ module.exports = async function (fastify, opts) {
     return authToken;
   });
 
+  // Determine the base URL dynamically based on environment
+  let appBaseUrl;
 
+  if (process.env.NODE_ENV === 'production') {
+    // Production environment (Cloud Run)
+    appBaseUrl = 'https://eventstorm.me';
+  } else { // Assuming NODE_ENV is 'development' for your VM environment
+    // Development environment (GCP VM via SSH port forwarding)
+    // For your local browser, this will be http://localhost:3000 if using ssh -L
+    appBaseUrl = 'http://localhost:3000';
+  }
 
   // OAUTH2
 
@@ -327,8 +337,9 @@ module.exports = async function (fastify, opts) {
     name: 'googleOAuth2',
     scope: ['profile', 'email', 'openid'],
     cookie: {
-      secure: true,
-      sameSite: 'None',
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    // SameSite: 'None' requires secure: true. 'Lax' is generally safer for development.
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
       httpOnly: true,
       allowCredentials: true,
     },
@@ -336,8 +347,8 @@ module.exports = async function (fastify, opts) {
       client: { id: clientId, secret: clientSecret },
       auth: fastifyOAuth2.GOOGLE_CONFIGURATION
     },
-    startRedirectPath: '/auth/google',
-    callbackUri: 'http://localhost:3000/auth/google/callback',
+    startRedirectPath: '/api/auth/google',
+    callbackUri: 'http://localhost:3000/api/auth/google/callback',
   },
   {
     encapsulate: false
@@ -361,7 +372,7 @@ module.exports = async function (fastify, opts) {
  
   await fastify.register(authSchemasPlugin);
 
-  fastify.get('/auth/google/callback', async (req, reply) => {
+  fastify.get('/api/auth/google/callback', async (req, reply) => {
     console.log('--- Incoming callback cookies ---', req.cookies);
     try {
       const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
