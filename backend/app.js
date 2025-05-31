@@ -386,6 +386,8 @@ module.exports = async function (fastify, opts) {
       const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
       const googleAccessToken = token.token.access_token;
       // 1) Using that access token, fetch user info from Google
+      const userService = await req.diScope.resolve('userService');
+      console.log('userService succesfully resolved in app.js:', userService);
       const googleUser = await userService.loginWithGoogle(googleAccessToken);
       if (!googleUser) {
         return reply.unauthorized('Google profile invalid or not verified.');
