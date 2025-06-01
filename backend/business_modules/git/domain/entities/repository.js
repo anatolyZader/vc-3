@@ -6,8 +6,8 @@ class Repository {
     this.userId = userId;
   }
 
-  async fetchRepo(repoId, IGitGitPort) {
-    const data = await IGitGitPort.fetchRepo(this.userId, repoId);
+  async fetchRepo(repoId, IGitPort) {
+    const data = await IGitPort.fetchRepo(this.userId, repoId);
     console.log(`Repository fetched: ${repoId}`);
     return data; 
   }

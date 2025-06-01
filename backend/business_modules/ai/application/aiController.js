@@ -1,6 +1,6 @@
 // aiController.js
 /* eslint-disable no-unused-vars */
-// tttt
+
 'use strict';
 
 const fp = require('fastify-plugin');

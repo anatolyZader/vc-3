@@ -453,8 +453,10 @@ module.exports = async function (fastify, opts) {
 
   fastify.addHook('onReady', async () => {
     console.log('Available fastify methods:');
-    console.log(Object.keys(fastify));
-  
+    console.log(" http API : ", fastify.swagger());
+    
+  console.log('--- Fastify methods (including from @fastify/cookie):');
+    console.log(Object.getOwnPropertyNames(fastify).filter(name => !name.startsWith('_')));
     const Reply = fastify[Symbol.for('fastify.Reply')];
     const replyProto = Reply?.prototype || fastify.Reply?.prototype;
   

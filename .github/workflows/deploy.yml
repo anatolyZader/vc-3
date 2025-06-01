@@ -19,7 +19,7 @@ jobs:
       with:
         fetch-depth: 1
 
-            # Cache client node_modules
+    # Cache client node_modules
     - name: Cache client node_modules
       uses: actions/cache@v4
       with:
@@ -77,8 +77,19 @@ jobs:
       run: |
         gsutil -m rsync -r ./client/dist gs://$GCP_BUCKET/
 
-    # --- BACKEND: Deployy to Cloud Run from source ---
-    - name: Deploy Fastify backend to Cloud Run from source
+    # --- BACKEND generate openapi spec an deploy Fastify backend to Cloud Run from source---
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Generate openapi.json (dump OpenAPI spec)
+      run: |
+        cd backend
+        npm run dump:openapi
+
+    - name: deploy backend to Cloud Run
       run: |
         cd backend
         gcloud run deploy eventstorm-backend \
@@ -91,19 +102,3 @@ jobs:
         --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
         --set-env-vars=NODE_ENV=production,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance,DUMMY=MUDDYY \
         --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

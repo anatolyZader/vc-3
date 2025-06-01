@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "dev": "concurrently --kill-others \"./cloud-sql-proxy eventstorm-1:me-west1:eventstorm-pg-instance --port 5432\" \"NODE_DEBUG=fastify,node-fastify node --watch ./node_modules/fastify-cli/cli.js start server.js -l trace | pino-pretty --translateTime 'SYS:standard' --colorize\"",
     "debug": "node --inspect-brk app.js",
-    "start": "fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js"
+    "start": "fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js",
+    "dump:openapi": "node scripts/dump-openapi.js"
   },
   "keywords": [],
   "author": "",
@@ -50,9 +51,10 @@
     "fastify-secrets-env": "^2.1.8",
     "googleapis": "^140.0.1",
     "ioredis": "^5.4.1",
-    "langchain": "^0.3.19",
+    "langchain": "^0.3.27",
     "nc": "^1.0.2",
     "octokit": "^4.1.2",
+    "openai": "^5.0.1",
     "pg": "^8.13.0",
     "pino-pretty": "^13.0.0",
     "redis": "^4.7.0",

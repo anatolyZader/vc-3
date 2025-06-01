@@ -1,10 +1,10 @@
-// IGitGitPort.js
+// IGitPort.js
 'use strict';
 /* eslint-disable no-unused-vars */
 
-class IGitGitPort {
+class IGitPort {
   constructor() {
-    if (new.target === IGitGitPort) {
+    if (new.target === IGitPort) {
       throw new Error('Cannot instantiate an abstract class.');
     }
   }
@@ -15,4 +15,4 @@ class IGitGitPort {
   }
 
 }
-module.exports = IGitGitPort;
+module.exports = IGitPort;

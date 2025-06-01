@@ -26,8 +26,6 @@ async function aiPubsubListener(fastify, options) {
         const { userId, conversationId, repoId, prompt } = data.payload;
         fastify.log.info(`Processing AI response for user: ${userId}, conversation: ${conversationId}, prompt: "${prompt.substring(0, 50)}..."`);
 
-        // Ensure that 'fastify.respondToPrompt' is a valid method available on the fastify instance.
-        // This might be injected via another plugin or part of your application service.
         if (typeof fastify.respondToPrompt === 'function') {
           await fastify.respondToPrompt(userId, conversationId, repoId, prompt);
           fastify.log.info(`AI response handled for message ${message.id}.`);

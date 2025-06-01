@@ -3,10 +3,10 @@
 
 'use strict';
 
-const IGitGitPort = require('../../domain/ports/IGitGitPort');
+const IGitPort = require('../../domain/ports/IGitPort');
 const octokit = require('./../../plugins/octokitPlugin');
 
-class GitGithubAdapter extends IGitGitPort {
+class GitGithubAdapter extends IGitPort {
   constructor(options = {}) {
     super();
     if (!process.env.GITHUB_TOKEN && !options.githubToken) {

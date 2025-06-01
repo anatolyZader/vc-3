@@ -1,7 +1,6 @@
 'use strict';
 
 const IAIService = require('./interfaces/IAIService');
-const AIResponse = require('../../domain/entities/aiResponse');
 const { v4: uuidv4 } = require('uuid');
 
 class AIService extends IAIService {
@@ -11,12 +10,12 @@ class AIService extends IAIService {
     this.aiPersistAdapter = aiPersistAdapter 
     this.aiMessagingAdapter = aiMessagingAdapter;
 
-    // In-memory store to track responses
+    // In-memory store to track responses. Architecturally, this Map is the simplest way to correlate asynchronous callbacks from the Git/Wiki modules (which may arrive in any order) with the original prompt. serves as the single source of truth for all state related to this particular prompt request.
     this.pendingRequests = new Map();
   }
 
   async respondToPrompt(userId, conversationId, repoId, prompt) {
-    const correlationId = uuidv4();
+    const correlationId = uuidv4(); // Later, when Git/Wiki modules publish their data, they must include this same ID so we know which in-flight request to update.
 
     // Store the pending request
     this.pendingRequests.set(correlationId, {
@@ -33,7 +32,7 @@ class AIService extends IAIService {
     await this.aiMessagingAdapter.requestRepoData(userId, repoId, correlationId);
     await this.aiMessagingAdapter.requestWikiData(userId, repoId, correlationId);
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => { //Wraps the rest of the logic in a Promise that won’t resolve until the AI response is ready (or times out). Externally, any caller of respondToPrompt(...) gets a promise that settles with the AI’s generated answer or rejects on timeout.
       const checkResponses = async () => {
         const pending = this.pendingRequests.get(correlationId);
         if (pending && pending.repoData && pending.wikiData && !pending.resolved) {
@@ -56,8 +55,8 @@ class AIService extends IAIService {
           }
 
           // Generate AI response
-          const aiResponse = new AIResponse(userId);
-          const response = aiResponse.respondToPrompt(
+        
+          const aiResponse = this.aiAIAdapter.respondToPrompt(
             conversationId,
             prompt,
             pending.repoData,
@@ -66,7 +65,7 @@ class AIService extends IAIService {
           );
 
           // Persist AI response
-          try {
+          try { 
             await this.aiPersistAdapter.saveAiResponse({
               userId,
               conversationId,
