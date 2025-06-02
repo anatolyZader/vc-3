@@ -30,7 +30,11 @@
       "messagingPersistAdapter": "messagingPostgresAdapter",
       "messagingAIAdapter": "messagingLangchainAdapter",
       "messagingMessagingAdapter": "messagingPubsubAdapter"
+    },
+    "api": {
+      "apiPersistAdapter": "apiPostgresAdapter",
+      "apiMessagingAdapter": "apiPubsubAdapter",
+      "apiAdapter": "apiSwaggerAdapter"
     }
-
   }
 }

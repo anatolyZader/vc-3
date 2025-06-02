@@ -18,14 +18,14 @@ async function apiPubsubListener(fastify, options) {
 
         try {
           const data = JSON.parse(message.data.toString());
-          const { userId, pageId, title, newContent, correlationId } = data.payload;
+          const { userId, repoId, correlationId } = data.payload;
 
           // Define a mapping of event names to their corresponding handler functions
           const eventHandlers = {
             fetchHttpApi: async () => {
-              fastify.log.info(`Processing fetchHttpApiSpec for user: ${userId}, page: ${pageId}`);
+              fastify.log.info(`Processing fetchHttpApiSpec for user: ${userId}, repo: ${repoId}`);
               const httpApi = await fastify.fetchHttpApi(userId, pageId);
-              fastify.log.info(`Wiki Page fetched: ${JSON.stringify(wikiPage)}`);
+              fastify.log.info(`http api fetched: ${JSON.stringify(wikiPage)}`);
               await fastify.diContainer.resolve('apiPubsubAdapter').publishHttpApiFetchedEvent(httpApi, correlationId);
             },
           };

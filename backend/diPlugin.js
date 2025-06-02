@@ -31,7 +31,7 @@ const WikiPubsubAdapter = require('./business_modules/wiki/infrastructure/messag
 const ApiService = require('./business_modules/api/application/services/apiService');
 const ApiPostgresAdapter = require('./business_modules/api/infrastructure/persistence/apiPostgresAdapter');
 const ApiPubsubAdapter = require('./business_modules/api/infrastructure/messaging/pubsub/apiPubsubAdapter');
-
+const ApiSwaggerAdapter = require('./business_modules/api/infrastructure/api/apiSwaggerAdapter');
 
 
 const AIService = require('./business_modules/ai/application/services/aiService');
@@ -43,6 +43,7 @@ const AIGithubWikiAdapter = require('./business_modules/ai/infrastructure/wiki/a
 
 const { PubSub } = require('@google-cloud/pubsub');
 const { Connector } = require('@google-cloud/cloud-sql-connector');
+const apiRouter = require('./business_modules/api/routes/apiRouter');
 
 module.exports = fp(async function (fastify, opts) {
   try {
@@ -67,6 +68,9 @@ module.exports = fp(async function (fastify, opts) {
     authRedisAdapter: asClass(AuthRedisAdapter).singleton(),
     chatPostgresAdapter: asClass(ChatPostgresAdapter).scoped(),
     chatPubsubAdapter: asClass(ChatPubsubAdapter).scoped(),
+    apiAdapter: asClass(ApiSwaggerAdapter).scoped(),
+    apiPostgresAdapter: asClass(ApiPostgresAdapter).scoped(),
+    apiPubsubAdapter: asClass(ApiPubsubAdapter).scoped(),
 
     gitGithubAdapter: asClass(GitGithubAdapter).scoped(),
     gitPubsubAdapter: asClass(GitPubsubAdapter).scoped(),
@@ -77,6 +81,8 @@ module.exports = fp(async function (fastify, opts) {
     aiGithubWikiAdapter: asClass(AIGithubWikiAdapter).scoped(),
 
     wikiPubsubAdapter: asClass(WikiPubsubAdapter).scoped()
+
+
   };
 
   const cloudSqlConnector = new Connector();
@@ -114,6 +120,9 @@ module.exports = fp(async function (fastify, opts) {
     aiService: asClass(AIService, {
       lifetime: Lifetime.scoped,
     }),
+    apiService: asClass(ApiService, {
+      lifetime: Lifetime.scoped,
+    }),
 
     
     authPersistAdapter: adapters[infraConfig.aop_modules.auth.authPersistAdapter],
@@ -139,6 +148,10 @@ module.exports = fp(async function (fastify, opts) {
     aiPersistAdapter: adapters[infraConfig.business_modules.ai.aiPersistAdapter],
     aiMessagingAdapter: adapters[infraConfig.business_modules.ai.aiMessagingAdapter],
     aiGitAdapter: adapters[infraConfig.business_modules.ai.aiGitAdapter],
-    aiWikiAdapter: adapters[infraConfig.business_modules.ai.aiWikiAdapter]
+    aiWikiAdapter: adapters[infraConfig.business_modules.ai.aiWikiAdapter],
+    apiPersistAdapter: adapters[infraConfig.business_modules.api.apiPersistAdapter],
+    apiMessagingAdapter: adapters[infraConfig.business_modules.api.apiMessagingAdapter], 
+    apiAdapter: adapters[infraConfig.business_modules.api.apiAdapter]
+    
   });
 });

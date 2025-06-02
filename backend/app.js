@@ -452,20 +452,21 @@ module.exports = async function (fastify, opts) {
   });
 
   fastify.addHook('onReady', async () => {
-    console.log('Available fastify methods:');
     console.log(" http API : ", fastify.swagger());
-    
-  console.log('--- Fastify methods (including from @fastify/cookie):');
-    console.log(Object.getOwnPropertyNames(fastify).filter(name => !name.startsWith('_')));
-    const Reply = fastify[Symbol.for('fastify.Reply')];
-    const replyProto = Reply?.prototype || fastify.Reply?.prototype;
-  
-    if (replyProto) {
-      console.log('--- Reply prototype keys (including from @fastify/cookie):');
-      console.log(Object.getOwnPropertyNames(replyProto));
-    } else {
-      console.warn('Reply prototype not found');
+    try {
+      const spec = fastify.swagger();
+      const outputDir = path.join(__dirname, 'business_modules/api/infrastructure/api');
+      const outputPath = path.join(outputDir, 'httpApiSpec.json');
+      // Ensure directory exists
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      fs.writeFileSync(outputPath, JSON.stringify(spec, null, 2), 'utf8');
+      fastify.log.info(`✔ OpenAPI spec written to ${outputPath}`);
+    } catch (err) {
+      fastify.log.error('✘ Failed to write OpenAPI spec:', err);
     }
+
   });
 };
 

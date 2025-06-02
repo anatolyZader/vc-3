@@ -7,10 +7,10 @@ class HttpApi {
     this.repoId = repoId;
   }
 
-  async fetchHttpApi(userId, repoId, IApiPersistPort) {
+  async fetchHttpApi(IApiPort, IApiPersistPort) {
     const httpApi = await IApiPort.fetchHttpApi(this.userId, this.repoId);
     await IApiPersistPort.saveHttpApi(this.userId, this.repoId, httpApi);
-    console.log(`HTTP API fetched for repo: ${repoId}`);
+    console.log(`HTTP API fetched for repo: ${this.repoId}`);
     return httpApi; 
   }
 

@@ -9,7 +9,7 @@ class IApiService {
   }
 
   async fetchHttpApi(userId, repoId) {
-    throw new Error('fetchHttpAp() Method not implemented.');
+    throw new Error('fetchHttpApi() Method not implemented.');
   }
 
 }

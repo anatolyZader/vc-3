@@ -15,9 +15,9 @@ class ApiService extends IApiService {
 
   async fetchHttpApi(userId, repoId) {
       const apiObj = new HttpApi(userId, repoId);
-      const fetchedApi = await apiObj.fetchHttpApi(userId, repoId, this.apiAdapter, this.apiPersistAdapter);
+      const fetchedApi = await apiObj.fetchHttpApi(this.apiAdapter, this.apiPersistAdapter);
       await this.apiMessagingAdapter.publishHttpApiFetchedEvent(fetchedApi);
-      return result;
+      return fetchedApi;
     }
 }
 

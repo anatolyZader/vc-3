@@ -66,11 +66,6 @@ jobs:
         cd backend
         npm ci
 
-    - name: Generate openapi.json (dump OpenAPI spec)
-      run: |
-        cd backend
-        npm run dump:openapi
-
     - name: deploy backend to Cloud Run
       run: |
         cd backend

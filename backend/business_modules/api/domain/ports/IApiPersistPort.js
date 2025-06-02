@@ -1,6 +1,6 @@
 // IApiPersistPort.js
 /* eslint-disable no-unused-vars */
-'strict'
+'use strict'
 
 class IApiPersistPort {
     constructor() {
@@ -10,11 +10,11 @@ class IApiPersistPort {
     }
 
     async saveHttpApi(userId, repoId, httpApi) {
-      throw new Error("Method 'readAllUsers()' must be implemented.");
+      throw new Error("Method 'saveHttpApi()' must be implemented.");
     }
 
     async getHttpApi(userId, repoId) {
-      throw new Error("Method 'getUserInfo(userId)' must be implemented.");    
+      throw new Error("Method 'getHttpApi()' must be implemented.");    
     } 
      
   }

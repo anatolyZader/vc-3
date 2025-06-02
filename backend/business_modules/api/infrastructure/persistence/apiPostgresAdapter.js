@@ -83,6 +83,32 @@ class ApiPostgresAdapter extends IApiPersistPort {
       client.release();
     }
   }
+
+    async getHttpApi(userId, repoId) {
+    const pool = await this.getPool();
+    const client = await pool.connect();
+    try {
+      const queryText = `
+        SELECT spec
+        FROM http_api
+        WHERE user_id = $1 AND repo_id = $2
+        LIMIT 1;
+      `;
+      const queryValues = [userId, repoId];
+      const res = await client.query(queryText, queryValues);
+      if (res.rows.length === 0) {
+        console.log(`[DB] No HTTP API found for user_id='${userId}', repo_id='${repoId}'`);
+        return null;
+      }
+      const spec = res.rows[0].spec;
+      return typeof spec === 'string' ? JSON.parse(spec) : spec;
+    } catch (error) {
+      console.error('Error fetching http api:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
 
 module.exports = ApiPostgresAdapter;
