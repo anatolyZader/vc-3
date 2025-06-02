@@ -82,7 +82,14 @@ jobs:
     - name: Install backend dependencies
       run: |
         cd backend
+
+        # Force‐clear any potentially corrupted npm cache
+        npm cache clean --force
+
         npm ci
+
+            
+
 
     - name: Generate openapi.json (dump OpenAPI spec)
       run: |
