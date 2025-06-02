@@ -79,18 +79,16 @@ jobs:
 
     # --- BACKEND generate openapi spec an deploy Fastify backend to Cloud Run from source---
 
+    - name: Remove backend node_modules and npm cache
+      run: |
+        rm -rf backend/node_modules
+        npm cache clean --force
+
     - name: Install backend dependencies
       run: |
         cd backend
-
-        # Attempt to install from cache first, but re‐fetch anything whose checksum fails
-        npm install --prefer-offline --no-audit --progress=false
-
-       
-
-            
-
-
+        npm ci
+        
     - name: Generate openapi.json (dump OpenAPI spec)
       run: |
         cd backend

@@ -28,6 +28,10 @@ const WikiService = require('./business_modules/wiki/application/services/wikiSe
 // const WikiPostgresAdapter = require('./business_modules/wiki/infrastructure/persistence/wikiPostgresAdapter');
 const WikiPubsubAdapter = require('./business_modules/wiki/infrastructure/messaging/pubsub/wikiPubsubAdapter');
 
+const ApiService = require('./business_modules/api/application/services/apiService');
+
+
+
 const AIService = require('./business_modules/ai/application/services/aiService');
 const AIPostgresAdapter = require('./business_modules/ai/infrastructure/persistence/aiPostgresAdapter');
 const AILangchainAdapter = require('./business_modules/ai/infrastructure/ai/aiLangchainAdapter');
