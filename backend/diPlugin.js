@@ -29,6 +29,8 @@ const WikiService = require('./business_modules/wiki/application/services/wikiSe
 const WikiPubsubAdapter = require('./business_modules/wiki/infrastructure/messaging/pubsub/wikiPubsubAdapter');
 
 const ApiService = require('./business_modules/api/application/services/apiService');
+const ApiPostgresAdapter = require('./business_modules/api/infrastructure/persistence/apiPostgresAdapter');
+const ApiPubsubAdapter = require('./business_modules/api/infrastructure/messaging/pubsub/apiPubsubAdapter');
 
 
 
