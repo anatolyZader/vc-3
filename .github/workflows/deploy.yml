@@ -83,10 +83,10 @@ jobs:
       run: |
         cd backend
 
-        # Force‐clear any potentially corrupted npm cache
-        npm cache clean --force
+        # Attempt to install from cache first, but re‐fetch anything whose checksum fails
+        npm install --prefer-offline --no-audit --progress=false
 
-        npm ci
+       
 
             
 
