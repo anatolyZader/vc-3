@@ -1,4 +1,4 @@
-// /home/myzader/eventstorm/backend/scripts/dump-openapi.js
+// /home/myzader/eventstorm/backend/util_scripts/dump-openapi.js
 'use strict';
 
 const path = require('path');
