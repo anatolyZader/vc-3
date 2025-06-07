@@ -12,6 +12,10 @@ class IGitService {
     throw new Error('Method not implemented.');
   }
 
+  async fetchWiki(userId, repoId) {
+    throw new Error('Method not implemented.');
+  }
+
 }
 
 module.exports = IGitService;

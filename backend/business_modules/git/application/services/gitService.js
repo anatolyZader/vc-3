@@ -6,25 +6,26 @@ const Repository = require('../../domain/entities/repository');
 const IGitService = require('./interfaces/IGitService');
 
 class GitService extends IGitService {
-  constructor({gitMessagingAdapter, gitGitAdapter}) {
+  constructor({gitMessagingAdapter, gitAdapter, gitPersistenceAdapter}) {
     super();
-    this.gitMessagingAdapter = gitMessagingAdapter; // used for pubsub events
-    this.gitGitAdapter = gitGitAdapter;
+    this.gitMessagingAdapter = gitMessagingAdapter;  
+    this.gitAdapter = gitAdapter;
+    this.gitPersistenceAdapter = gitPersistenceAdapter;  
   }
 
-  // Fetch a repository’s data and publish an event
   async fetchRepo(userId, repoId) {
     const repository = new Repository(userId);
-    const result = await repository.fetchRepo(repoId, this.gitGitAdapter);
+    const result = await repository.fetchRepo(repoId, this.gitAdapter);
     await this.gitMessagingAdapter.publishRepoFetchedEvent(result);
+    await this.gitPersistenceAdapter.persistFetchedRepo(result);
     return result;
   }
 
-  // Fetch a repository's wiki and publish an event
   async fetchWiki(userId, repoId) {
     const repository = new Repository(userId);
-    const result = await repository.fetchWiki(repoId, this.gitGitAdapter);
+    const result = await repository.fetchWiki(repoId, this.gitAdapter);
     await this.gitMessagingAdapter.publishWikiFetchedEvent(result);
+    await this.gitPersistenceAdapter.persistFetchedWiki(result);
     return result;
   }
 }

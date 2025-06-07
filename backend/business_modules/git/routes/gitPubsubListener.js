@@ -22,27 +22,18 @@ async function gitPubsubListener(fastify, options) {
 
           // Define a mapping of event names to their corresponding handler functions
           const eventHandlers = {
+            fetchRepo: async () => {
+              fastify.log.info(`Processing fetchRepo for user: ${userId}`);
+              const repository = await fastify.fetchRepo(userId, data.payload.repoId);
+              fastify.log.info(`Repository fetched: ${JSON.stringify(repository)}`);
+              await fastify.diContainer.resolve('gitPubsubAdapter').publishRepoFetchedEvent(repository, correlationId);
+            },  
             fetchWikiPage: async () => {
               fastify.log.info(`Processing fetchWikiPage for user: ${userId}, page: ${pageId}`);
-              const wikiPage = await fastify.fetchWikiPage(userId, pageId);
+              const wikiPage = await fastify.fetchWiki(userId, pageId);
               fastify.log.info(`Wiki Page fetched: ${JSON.stringify(wikiPage)}`);
               await fastify.diContainer.resolve('gitPubsubAdapter').publishWikiPageFetchedEvent(wikiPage, correlationId);
-            },
-            createWikiPage: async () => {
-              fastify.log.info(`Processing createWikiPage for user: ${userId}, title: ${title}`);
-              await fastify.createWikiPage(userId, title);
-              fastify.log.info(`Wiki Page created successfully`);
-            },
-            updateWikiPage: async () => {
-              fastify.log.info(`Processing updateWikiPage for user: ${userId}, page: ${pageId}`);
-              await fastify.updateWikiPage(userId, pageId, newContent);
-              fastify.log.info(`Wiki Page updated successfully`);
-            },
-            deleteWikiPage: async () => {
-              fastify.log.info(`Processing deleteWikiPage for user: ${userId}, page: ${pageId}`);
-              await fastify.deleteWikiPage(userId, pageId);
-              fastify.log.info(`Wiki Page deleted successfully`);
-            },
+            }
           };
 
           // Check if the event exists in our handler map
@@ -68,4 +59,4 @@ async function gitPubsubListener(fastify, options) {
   fastify.log.info(`Pulling Git messages from subscription: ${subscriptionName}...`);
 }
 
-module.exports = fp(gitPubsubListener, { name: 'git-pubsub-listener' });
+module.exports = fp(gitPubsubListener);

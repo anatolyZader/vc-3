@@ -1,20 +1,12 @@
 // gitPubsubAdapter.js
 'use strict';
 
-// If this class extends a base class or implements an interface (e.g., IGitMessagingPort),
-// include 'extends YourInterfaceName' after GitPubsubAdapter.
-class GitPubsubAdapter /* extends IGitMessagingPort */ {
-  // Inject the pubSubClient into the constructor
-  constructor({ pubSubClient }) {
-    // IMPORTANT: If 'GitPubsubAdapter' extends another class,
-    // 'super()' MUST be the very first line here.
-    // If it does NOT extend any class, then 'super()' should be removed.
-    // super(); // Uncomment this ONLY if GitPubsubAdapter extends another class
 
-    // Store the injected Pub/Sub client instance
+class GitPubsubAdapter {
+  constructor({ pubSubClient }) {
     this.pubSubClient = pubSubClient;
 
-    // Use environment variables for topic names for better flexibility
+
     this.topicName = process.env.PUBSUB_GIT_EVENTS_TOPIC_NAME || 'git-events-topic';
   }
 

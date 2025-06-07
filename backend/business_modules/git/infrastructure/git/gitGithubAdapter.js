@@ -1,6 +1,5 @@
 // gitGithubAdapter.js
 /* eslint-disable no-console */
-
 'use strict';
 
 const IGitPort = require('../../domain/ports/IGitPort');

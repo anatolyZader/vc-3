@@ -14,5 +14,10 @@ class IGitPort {
     throw new Error('Method not implemented.');
   }
 
+  // Fetches data for an existing repository's wiki.  
+  async fetchWiki(userId, repoId) {
+    throw new Error('Method not implemented.');
+  }
+
 }
 module.exports = IGitPort;

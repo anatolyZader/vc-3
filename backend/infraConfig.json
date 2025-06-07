@@ -13,11 +13,14 @@
     },
     "git": {
       "gitGitAdapter": "gitGithubAdapter",
-      "gitMessagingAdapter": "gitPubsubAdapter"
+      "gitMessagingAdapter": "gitPubsubAdapter",
+      "gitPersistAdapter": "gitPostgresAdapter"
+
     },
 
     "wiki": {
-      "wikiMessagingAdapter": "wikiPubsubAdapter"
+      "wikiMessagingAdapter": "wikiPubsubAdapter",
+      "wikiPersistAdapter": "wikiPostgresAdapter"
     },
     "ai": {
       "aiPersistAdapter": "aiPostgresAdapter",

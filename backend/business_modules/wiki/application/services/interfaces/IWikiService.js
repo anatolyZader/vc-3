@@ -1,4 +1,4 @@
-// project_wiki_module/application/services/interfaces/IwikiService.js
+// IwikiService.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -8,24 +8,23 @@ class IWikiService {
     throw new Error("Method not implemented.");
   }
 
-  async fetchPage(userId, pageId) {
+  async fetchPage(userId, repoId, pageId) {
     throw new Error("Method not implemented.");
   }
 
-  async createPage(userId, title) {
+  async createPage(userId, repoId, pageTitle) {
+    throw new Error("Method not implemented.");
+  }
+
+  async updatePage(userId, repoId, pageId, newContent) {
+    throw new Error("Method not implemented.");
+  }
+
+  async deletePage(userId, repoId, pageId) {
     throw new Error("Method not implemented.");
   }
 
   async analyzePage(userId, pageId) {
-    throw new Error("Method not implemented");
-  }
-
-
-  async deletePage(userId, pageId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async updatePage(userId, pageId, newContent) {
     throw new Error("Method not implemented.");
   }
 }

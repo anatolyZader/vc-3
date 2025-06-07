@@ -2,18 +2,16 @@
 /* eslint-disable no-unused-vars */
 'use strict';
 
-const { v4: uuidv4 } = require('uuid');
 
 class Wiki {
     constructor(userId) {
         this.userId = userId;
     }
 
-    async fetchWiki(repoId, IWikiMessagingPort) { 
-    const wiki = await IWikiMessagingPort.fetchWiki(this.userId, repoId); 
+    async fetchWiki(repoId, IWikiGitPort) { 
+    const wiki = await IWikiGitPort.fetchWiki(repoId); 
     return wiki;
-  }
-
+  }  
 }
 
 module.exports = Wiki;

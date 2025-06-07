@@ -1,6 +1,5 @@
 // octokitPlugin.js
 /* eslint-disable no-unused-vars */ 
-// octokitPlugin.js
 'use strict';
 
 const fp = require('fastify-plugin');

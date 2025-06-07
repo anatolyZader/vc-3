@@ -10,7 +10,7 @@ module.exports = fp(async function apiRouter(fastify, opts) {
   // fetch repository
   fastify.route({
     method: 'GET',
-    url: '/api/httpApi',
+    url: '/api/api/httpApi',
     preValidation: [fastify.verifyToken],
     handler: fastify.fetchHttpApi,
     // schema: fastify.getSchema('schema:api:http-api')
@@ -18,7 +18,7 @@ module.exports = fp(async function apiRouter(fastify, opts) {
 
     fastify.route({
     method: 'GET',
-    url: '/api/read-api',
+    url: '/api/api/read-api',
     handler: async function (request, reply) {
       return fastify.swagger();
     }

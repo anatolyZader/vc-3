@@ -8,23 +8,9 @@ class IWikiMessagingPort {
     }
   }
 
-  async fetchPage(pageId) {
-    throw new Error('Method not implemented.');
-  }  
-
-  async createPage(pageTitle) {
+  async publishFetchWikiEvent(fetchedWiki) {
     throw new Error('Method not implemented.');
   }
-
-  async updatePage(pageId, newContent) {
-    throw new Error('Method not implemented.');
-  }
-
-
-  async deletePage(pageId) {
-    throw new Error('Method not implemented.');
-  }
-
 }
 
 module.exports = IWikiMessagingPort;
