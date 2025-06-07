@@ -7,10 +7,10 @@ class ApiPubsubAdapter {
     this.topicName = 'git';
   }
 
-  async publishHttpApiFetchedEvent(result) {
+  async publishHttpApiFetchedEvent(result, correlationId) { 
     const event = {
-    event: 'httpApiFetched',
-    payload: { ...result }
+      event: 'httpApiFetched',
+      payload: { ...result, correlationId } 
     };
 
     const dataBuffer = Buffer.from(JSON.stringify(event));

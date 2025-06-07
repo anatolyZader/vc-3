@@ -20,17 +20,15 @@ async function apiPubsubListener(fastify, options) {
           const data = JSON.parse(message.data.toString());
           const { userId, repoId, correlationId } = data.payload;
 
-          // Define a mapping of event names to their corresponding handler functions
           const eventHandlers = {
             fetchHttpApi: async () => {
               fastify.log.info(`Processing fetchHttpApiSpec for user: ${userId}, repo: ${repoId}`);
-              const httpApi = await fastify.fetchHttpApi(userId, pageId);
-              fastify.log.info(`http api fetched: ${JSON.stringify(wikiPage)}`);
-              await fastify.diContainer.resolve('apiPubsubAdapter').publishHttpApiFetchedEvent(httpApi, correlationId);
+              const httpApi = await fastify.fetchHttpApi(userId, repoId); // ✅ Fixed: use repoId
+              fastify.log.info(`http api fetched: ${JSON.stringify(httpApi)}`); // ✅ Fixed: use httpApi
+              await fastify.diScope.resolve('apiPubsubAdapter').publishHttpApiFetchedEvent(httpApi, correlationId); // ✅ Fixed: pass correlationId
             },
           };
 
-          // Check if the event exists in our handler map
           if (eventHandlers[data.event]) {
             await eventHandlers[data.event]();
           } else {
@@ -48,7 +46,6 @@ async function apiPubsubListener(fastify, options) {
     }
   }
 
-  // Pull messages every 5 seconds
   setInterval(pullMessages, 5000);
   fastify.log.info(`Pulling api messages from subscription: ${subscriptionName}...`);
 }

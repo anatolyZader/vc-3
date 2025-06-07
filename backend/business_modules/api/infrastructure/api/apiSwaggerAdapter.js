@@ -28,7 +28,7 @@ class ApiSwaggerAdapter extends IApiPort {
     console.log(`Fetching API for userId: ${userId}, repoId: ${repoId}`);
     try {
       console.log(`Fetched API for userId: ${userId}, repoId: ${repoId}`);
-      return apiSpec;
+      return openapiSpec;
     } catch (error) {
       console.error(`Error fetching API for userId: ${userId}, repoId: ${repoId}:`, error);
       throw error;
