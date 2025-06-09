@@ -14,7 +14,7 @@ import {
   Message,
 } from '@chatscope/chat-ui-kit-react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
-import '../custom-overrides.css';
+import '../../custom-overrides.css';
 import './chat.css';
 import { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../auth_components/AuthContext';
