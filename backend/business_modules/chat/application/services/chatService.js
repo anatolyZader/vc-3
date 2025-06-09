@@ -5,6 +5,7 @@ const Conversation = require('../../domain/aggregates/conversation');
 const ConversationsHistory = require('../../domain/entities/conversationsHistory');
 const IChatService = require('./interfaces/IChatService');
 
+
 class ChatService extends IChatService {
   constructor({chatPersistAdapter, chatMessagingAdapter}) {
     super();

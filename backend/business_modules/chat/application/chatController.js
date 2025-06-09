@@ -1,3 +1,4 @@
+// chatController.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -6,11 +7,14 @@ const fp = require('fastify-plugin');
 async function chatController(fastify, options) {
 
   // Start a new conversation
-  fastify.decorate('startConversation', async (userId, title) => {
+  fastify.decorate('startConversation', async (request, reply) => {
     try {
+      const { title } = request.body;
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
       const chatService = await fastify.diScope.resolve('chatService');
       const conversationId = await chatService.startConversation(userId, title);
-      return conversationId;
+      return { conversationId };
     } catch (error) {
       fastify.log.error('Error starting conversation:', error);
       throw fastify.httpErrors.internalServerError('Failed to start conversation', { cause: error });
@@ -18,8 +22,11 @@ async function chatController(fastify, options) {
   });
 
   // Fetch conversations history
-  fastify.decorate('fetchConversationsHistory', async (userId) => {
+  fastify.decorate('fetchConversationsHistory', async (request, reply) => {
     try {
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
+      const chatService = await fastify.diScope.resolve('chatService');
       const history = await chatService.fetchConversationsHistory(userId);
       return history;
     } catch (error) {
@@ -29,8 +36,12 @@ async function chatController(fastify, options) {
   });
 
   // Fetch specific conversation
-  fastify.decorate('fetchConversation', async (userId, conversationId) => {
+  fastify.decorate('fetchConversation', async (request, reply) => {
     try {
+      const { conversationId } = request.params;
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
+      const chatService = await fastify.diScope.resolve('chatService');
       const conversation = await chatService.fetchConversation(userId, conversationId);
       return conversation;
     } catch (error) {
@@ -40,8 +51,13 @@ async function chatController(fastify, options) {
   });
 
   // Rename conversation
-  fastify.decorate('renameConversation', async (userId, conversationId, newTitle) => {
+  fastify.decorate('renameConversation', async (request, reply) => {
     try {
+      const { conversationId } = request.params;
+      const { newTitle } = request.body;
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
+      const chatService = await fastify.diScope.resolve('chatService');
       await chatService.renameConversation(userId, conversationId, newTitle);
       return { message: 'Conversation renamed successfully' };
     } catch (error) {
@@ -51,8 +67,12 @@ async function chatController(fastify, options) {
   });
 
   // Delete conversation
-  fastify.decorate('deleteConversation', async (userId, conversationId) => {
+  fastify.decorate('deleteConversation', async (request, reply) => {
     try {
+      const { conversationId } = request.params;
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
+      const chatService = await fastify.diScope.resolve('chatService');
       await chatService.deleteConversation(userId, conversationId);
       return { message: 'Conversation deleted successfully' };
     } catch (error) {
@@ -62,10 +82,15 @@ async function chatController(fastify, options) {
   });
 
   // Send a question
-  fastify.decorate('addQuestion', async (userId, conversationId, prompt) => {
+  fastify.decorate('addQuestion', async (request, reply) => {
     try {
+      const { conversationId } = request.params;
+      const { prompt } = request.body;
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
+      const chatService = await fastify.diScope.resolve('chatService');
       const questionId = await chatService.addQuestion(userId, conversationId, prompt);
-      return questionId;
+      return { questionId };
     } catch (error) {
       fastify.log.error('Error sending question:', error);
       throw fastify.httpErrors.internalServerError('Failed to send question', { cause: error });
@@ -73,10 +98,15 @@ async function chatController(fastify, options) {
   });
 
   // Send an answer
-  fastify.decorate('addAnswer', async (userId, conversationId, aiResponse) => {
+  fastify.decorate('addAnswer', async (request, reply) => {
     try {
+      const { conversationId } = request.params;
+      const { aiResponse } = request.body;
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
+      const chatService = await fastify.diScope.resolve('chatService');
       const answerId = await chatService.addAnswer(userId, conversationId, aiResponse);
-      return answerId;
+      return { answerId };
     } catch (error) {
       fastify.log.error('Error sending answer:', error);
       throw fastify.httpErrors.internalServerError('Failed to send answer', { cause: error });

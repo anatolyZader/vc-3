@@ -4,8 +4,6 @@
 
 const { v4: uuidv4 } = require('uuid');
 const ConversationTitle = require('../value_objects/conversationTitle');
-const IChatPersistPort = require('../ports/IChatPersistPort');
-const IChatMessagingPort = require('../ports/IChatMessagingPort');
 
 class Conversation {
   constructor(userId, conversationId = null) {
@@ -42,7 +40,7 @@ class Conversation {
   }
 
   async addAnswer(conversationId, answer, IChatPersistPort) {
-    await IChatPersistPort.addAnswer(answer);
+    await IChatPersistPort.addAnswer(this.userId, conversationId, answer);
     console.log(`Answer sent: ${answer.content}`);
   }
 

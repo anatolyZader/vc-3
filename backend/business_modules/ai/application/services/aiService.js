@@ -7,7 +7,7 @@ class AIService extends IAIService {
   constructor({aiAIAdapter, aiPersistAdapter, aiMessagingAdapter}) {
     super();
     this.aiAIAdapter = aiAIAdapter;
-    this.aiPersistAdapter = aiPersistAdapter 
+    this.aiPersistAdapter = aiPersistAdapter;
     this.aiMessagingAdapter = aiMessagingAdapter;
 
     // In-memory store to track responses. Architecturally, this Map is the simplest way to correlate asynchronous callbacks from the Git/Wiki modules (which may arrive in any order) with the original prompt. serves as the single source of truth for all state related to this particular prompt request.
@@ -38,30 +38,15 @@ class AIService extends IAIService {
         if (pending && pending.repoData && pending.wikiData && !pending.resolved) {
           pending.resolved = true;
           this.pendingRequests.delete(correlationId);
-
-          // Persist Git and Wiki data before AI processing
-          try {
-            await this.aiPersistAdapter.saveGitData(userId, repoId, pending.repoData);
-            console.log(`Persisted Git data for repo ${repoId}`);
-          } catch (error) {
-            console.error('Error persisting Git data:', error);
-          }
-
-          try {
-            await this.aiPersistAdapter.saveWikiData(userId, repoId, pending.wikiData);
-            console.log(`Persisted Wiki data for repo ${repoId}`);
-          } catch (error) {
-            console.error('Error persisting Wiki data:', error);
-          }
+           clearInterval(interval); 
 
           // Generate AI response
         
-          const aiResponse = this.aiAIAdapter.respondToPrompt(
+          const aiResponse = await this.aiAIAdapter.respondToPrompt(
             conversationId,
             prompt,
             pending.repoData,
-            pending.wikiData,
-            this.aiAIAdapter
+            pending.wikiData,         
           );
 
           // Persist AI response
@@ -71,7 +56,7 @@ class AIService extends IAIService {
               conversationId,
               repoId,
               prompt,
-              response,
+              aiResponse,
             });
             console.log(`AI response persisted for conversation ${conversationId}`);
           } catch (error) {
@@ -79,9 +64,9 @@ class AIService extends IAIService {
           }
 
           // Publish the AI response
-          this.aiMessagingAdapter.publishAiResponse(response);
+          this.aiMessagingAdapter.publishAiResponse(aiResponse);
 
-          resolve(response);
+          resolve(raiResponse);
         }
       };
 

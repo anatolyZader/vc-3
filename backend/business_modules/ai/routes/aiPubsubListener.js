@@ -8,6 +8,7 @@ async function aiPubsubListener(fastify, options) {
   const pubSubClient = fastify.diContainer.resolve('pubsubClient');
   const subscriptionName = 'ai-sub';
   const subscription = pubSubClient.subscription(subscriptionName);
+  
   // Error handling for the subscription stream
   subscription.on('error', (error) => {
     fastify.log.error(`Pub/Sub Subscription Error (${subscriptionName}):`, error);
@@ -27,7 +28,15 @@ async function aiPubsubListener(fastify, options) {
         fastify.log.info(`Processing AI response for user: ${userId}, conversation: ${conversationId}, prompt: "${prompt.substring(0, 50)}..."`);
 
         if (typeof fastify.respondToPrompt === 'function') {
-          await fastify.respondToPrompt(userId, conversationId, repoId, prompt);
+          // Create a mock request object that matches what the HTTP handler expects
+          const mockRequest = {
+            body: { conversationId, repoId, prompt },
+            user: { id: userId }
+          };
+          
+          const mockReply = {}; // Empty reply object since we don't need HTTP response
+          
+          await fastify.respondToPrompt(mockRequest, mockReply);
           fastify.log.info(`AI response handled for message ${message.id}.`);
         } else {
           fastify.log.error(`fastify.respondToPrompt is not defined. Cannot process message ${message.id}.`);

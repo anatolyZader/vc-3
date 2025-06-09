@@ -1,15 +1,26 @@
 // gitController.js
-/* eslint-disable no-unused-vars */
 'use strict';
 
 const fp = require('fastify-plugin');
 
 async function gitController(fastify, options) {
 
-  fastify.decorate('fetchRepo', async (userId, repoId) => {
+  // HTTP route handlers - extract params from request
+  fastify.decorate('fetchRepo', async (request, reply) => {
     try {
+      const { repoId } = request.params;
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
+      fastify.log.info(`Processing fetchRepo HTTP request for user: ${userId}, repo: ${repoId}`);
+      
       const gitService = await fastify.diScope.resolve('gitService');
+      if (!gitService) {
+        throw new Error('Git service not found in DI container');
+      }
+      
       const repository = await gitService.fetchRepo(userId, repoId);
+      
+      fastify.log.info(`Repository fetched via HTTP: ${JSON.stringify(repository)}`);
       return repository;
     } catch (error) {
       fastify.log.error('Error fetching repository:', error);
@@ -17,10 +28,21 @@ async function gitController(fastify, options) {
     }
   });
 
-  fastify.decorate('fetchWiki', async (userId, repoId) => {
+  fastify.decorate('fetchWiki', async (request, reply) => {
     try {
+      const { repoId } = request.params;
+      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      
+      fastify.log.info(`Processing fetchWiki HTTP request for user: ${userId}, repo: ${repoId}`);
+      
       const gitService = await fastify.diScope.resolve('gitService');
+      if (!gitService) {
+        throw new Error('Git service not found in DI container');
+      }
+      
       const wiki = await gitService.fetchWiki(userId, repoId);
+      
+      fastify.log.info(`Wiki fetched via HTTP: ${JSON.stringify(wiki)}`);
       return wiki;
     } catch (error) {
       fastify.log.error('Error fetching wiki:', error);

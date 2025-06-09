@@ -64,7 +64,15 @@ class GitPostgresAdapter extends IGitPersistPort {
     const pool = await this.getPool();
     const client = await pool.connect();
     try {
-     
+         const query = `
+            INSERT INTO repositories (user_id, repo_id, data, created_at)
+            VALUES ($1, $2, $3, NOW())
+            ON CONFLICT (user_id, repo_id) 
+            DO UPDATE SET data = $3, updated_at = NOW()
+          `;
+    // Ensure repo is a JSON object
+    await client.query(query, [userId, repoId, JSON.stringify(repo)]);
+    console.log(`Repository persisted: ${repoId} for user: ${userId}`);
     } catch (error) {
       console.error('Error persisting repo:', error);
       throw error;
@@ -77,8 +85,14 @@ class GitPostgresAdapter extends IGitPersistPort {
     const pool = await this.getPool();
     const client = await pool.connect();
     try {
-      const { rows } = await client.query('SELECT * FROM users WHERE email=$1', [email]);
-      return rows.length ? rows[0] : null;
+      const query = `
+          INSERT INTO wikis (user_id, repo_id, data, created_at)
+          VALUES ($1, $2, $3, NOW())
+          ON CONFLICT (user_id, repo_id)
+          DO UPDATE SET data = $3, updated_at = NOW()
+        `;
+      await client.query(query, [userId, repoId, wiki]);
+      console.log(`Wiki persisted: ${repoId} for user: ${userId}`);
     } catch (error) {
       console.error('Error reading user:', error);
       throw error;

@@ -1,6 +1,6 @@
 'use strict';
 
-const IAIAIPort = require('../../domain/ports/IAIAIPort');
+const IAIPort = require('../../domain/ports/IAIAIPort');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 const { MemoryVectorStore } = require('langchain/vectorstores/memory');
 const { RecursiveCharacterTextSplitter } = require('@langchain/textsplitters');
@@ -9,7 +9,7 @@ const { StateGraph, Annotation } = require('@langchain/langgraph');
 const { pull } = require('langchain/hub');
 const fs = require('fs').promises;
 
-class AILangchainAdapter extends IAIAIPort {
+class AILangchainAdapter extends IAIPort {
   constructor() {
     super();
     this.embeddings = new OpenAIEmbeddings({ model: 'text-embedding-3-large' });

@@ -1,5 +1,4 @@
 // gitPubsubListener.js
-/* eslint-disable no-unused-vars */
 'use strict';
 
 const fp = require('fastify-plugin');
@@ -9,54 +8,92 @@ async function gitPubsubListener(fastify, options) {
   const subscriptionName = 'git-sub';
   const subscription = pubSubClient.subscription(subscriptionName);
 
-  async function pullMessages() {
+  // Error handling for the subscription stream
+  subscription.on('error', (error) => {
+    fastify.log.error(`Pub/Sub Subscription Error (${subscriptionName}):`, error);
+  });
+
+  // Message handler for the subscription stream
+  subscription.on('message', async (message) => {
+    fastify.log.info(`Received git message ${message.id} on subscription ${subscriptionName}`);
+
     try {
-      const [messages] = await subscription.pull({ maxMessages: 10 });
+      const data = JSON.parse(message.data.toString());
 
-      for (const message of messages) {
-        fastify.log.info(`Received git message ${message.id}`);
+      if (data.event === 'fetchRepo') {
+        const { userId, repoId, correlationId } = data.payload;
+        fastify.log.info(`Processing fetchRepo event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
 
-        try {
-          const data = JSON.parse(message.data.toString());
-          const { userId, pageId, title, newContent, correlationId } = data.payload;
-
-          // Define a mapping of event names to their corresponding handler functions
-          const eventHandlers = {
-            fetchRepo: async () => {
-              fastify.log.info(`Processing fetchRepo for user: ${userId}`);
-              const repository = await fastify.fetchRepo(userId, data.payload.repoId);
-              fastify.log.info(`Repository fetched: ${JSON.stringify(repository)}`);
-              await fastify.diContainer.resolve('gitPubsubAdapter').publishRepoFetchedEvent(repository, correlationId);
-            },  
-            fetchWikiPage: async () => {
-              fastify.log.info(`Processing fetchWikiPage for user: ${userId}, page: ${pageId}`);
-              const wikiPage = await fastify.fetchWiki(userId, pageId);
-              fastify.log.info(`Wiki Page fetched: ${JSON.stringify(wikiPage)}`);
-              await fastify.diContainer.resolve('gitPubsubAdapter').publishWikiPageFetchedEvent(wikiPage, correlationId);
-            }
+        if (typeof fastify.fetchRepo === 'function') {
+          // Create mock request object for fetchRepo
+          const mockRequest = {
+            params: { repoId },
+            user: { id: userId }
           };
+          const mockReply = {};
 
-          // Check if the event exists in our handler map
-          if (eventHandlers[data.event]) {
-            await eventHandlers[data.event]();
-          } else {
-            fastify.log.warn(`Unknown event: ${data.event}`);
-          }
-
-          message.ack();
-        } catch (error) {
-          fastify.log.error('Error processing git message:', error);
+          // Call the same HTTP handler with mock request
+          const repository = await fastify.fetchRepo(mockRequest, mockReply);
+          
+          fastify.log.info(`Repository fetched via PubSub: ${JSON.stringify(repository)}`);
+          
+          // Publish the result event
+          const gitPubsubAdapter = await fastify.diContainer.resolve('gitPubsubAdapter');
+          await gitPubsubAdapter.publishRepoFetchedEvent(repository, correlationId);
+          
+          fastify.log.info(`Repository fetch result published for message ${message.id}`);
+        } else {
+          fastify.log.error(`fastify.fetchRepo is not defined. Cannot process message ${message.id}.`);
           message.nack();
+          return;
         }
-      }
-    } catch (error) {
-      fastify.log.error('Error pulling git messages:', error);
-    }
-  }
 
-  // Pull messages every 5 seconds
-  setInterval(pullMessages, 5000);
-  fastify.log.info(`Pulling Git messages from subscription: ${subscriptionName}...`);
+      } else if (data.event === 'fetchWiki') {
+        const { userId, repoId, correlationId } = data.payload;
+        fastify.log.info(`Processing fetchWiki event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
+
+        if (typeof fastify.fetchWiki === 'function') {
+          // Create mock request object for fetchWiki
+          const mockRequest = {
+            params: { repoId },
+            user: { id: userId }
+          };
+          const mockReply = {};
+
+          // Call the same HTTP handler with mock request
+          const wiki = await fastify.fetchWiki(mockRequest, mockReply);
+          
+          fastify.log.info(`Wiki fetched via PubSub: ${JSON.stringify(wiki)}`);
+          
+          // Publish the result event
+          const gitPubsubAdapter = await fastify.diContainer.resolve('gitPubsubAdapter');
+          await gitPubsubAdapter.publishWikiPageFetchedEvent(wiki, correlationId);
+          
+          fastify.log.info(`Wiki fetch result published for message ${message.id}`);
+        } else {
+          fastify.log.error(`fastify.fetchWiki is not defined. Cannot process message ${message.id}.`);
+          message.nack();
+          return;
+        }
+
+      } else {
+        fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
+      }
+
+      message.ack(); // Acknowledge the message upon successful processing
+    } catch (error) {
+      fastify.log.error(`Error processing git message ${message.id}:`, error);
+      message.nack(); // Nack the message to re-queue it for another attempt
+    }
+  });
+
+  fastify.log.info(`Listening for Git messages on Pub/Sub subscription: ${subscriptionName}...`);
+
+  // Ensure the subscription is closed when the Fastify app closes
+  fastify.addHook('onClose', async () => {
+    fastify.log.info(`Closing Pub/Sub subscription: ${subscriptionName}.`);
+    await subscription.close();
+  });
 }
 
 module.exports = fp(gitPubsubListener);

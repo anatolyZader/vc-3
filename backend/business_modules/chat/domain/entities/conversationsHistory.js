@@ -1,9 +1,6 @@
 // conversationsHistory.js
 /* eslint-disable no-unused-vars */
 
-// isolate between functionality 1) the names of the conversations are fetched to be presented in  
-// // the chat history and 2) the whole conversation is fetched to be presented in the chat window
-
 'use strict';
 
 const { v4: uuidv4 } = require('uuid');

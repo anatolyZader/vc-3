@@ -2,11 +2,11 @@
 
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useContext } from 'react';
-import LoginPage from './components/auth-components/LoginPage';
-import Chat from './components/Chat';
+import LoginPage from './components/auth_components/LoginPage';
+import Chat from './components/chat_components/Chat';
 
 import NotFound from './components/NotFound';
-import { AuthProvider, AuthContext } from './components/auth-components/AuthContext';
+import { AuthProvider, AuthContext } from './components/auth_components/AuthContext';
 import './app.css';
 
 function AppContent() {
@@ -36,9 +36,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <ChatProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </ChatProvider>
     </AuthProvider>
   );
 }

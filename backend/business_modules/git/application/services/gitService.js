@@ -15,18 +15,18 @@ class GitService extends IGitService {
 
   async fetchRepo(userId, repoId) {
     const repository = new Repository(userId);
-    const result = await repository.fetchRepo(repoId, this.gitAdapter);
-    await this.gitMessagingAdapter.publishRepoFetchedEvent(result);
-    await this.gitPersistenceAdapter.persistFetchedRepo(result);
-    return result;
+    const repo = await repository.fetchRepo(repoId, this.gitAdapter);
+    await this.gitMessagingAdapter.publishRepoFetchedEvent(repo, correlationId);
+    await this.gitPersistenceAdapter.persistFetchedRepo(userId, repoId, repo);
+    return repo;
   }
 
   async fetchWiki(userId, repoId) {
     const repository = new Repository(userId);
-    const result = await repository.fetchWiki(repoId, this.gitAdapter);
-    await this.gitMessagingAdapter.publishWikiFetchedEvent(result);
-    await this.gitPersistenceAdapter.persistFetchedWiki(result);
-    return result;
+    const wiki = await repository.fetchWiki(repoId, this.gitAdapter);
+    await this.gitMessagingAdapter.publishWikiFetchedEvent(wiki, correlationId);
+    await this.gitPersistenceAdapter.persistWiki(userId, repoId, wiki);
+    return wiki;
   }
 }
 
