@@ -12,11 +12,14 @@ class Conversation {
     this.conversationId = conversationId || uuidv4();
   }
 
-  async startConversation(IChatPersistPort) {
-    await IChatPersistPort.startConversation(this.userId);
-    console.log(`Conversation  started for user ${this.userId}.`);
+  // Fix in conversation.js
+  async startConversation(IChatPersistPort, title = 'New Chat') {
+    // Generate new conversation ID and store it
+    this.conversationId = uuidv4();
+    await IChatPersistPort.startConversation(this.userId, title, this.conversationId);
+    console.log(`Conversation ${this.conversationId} started for user ${this.userId} with title: ${title}`);
+    return this.conversationId; // Return the conversation ID
   }
-
   async fetchConversation(conversationId, IChatPersistPort) {
     const conversation = await IChatPersistPort.fetchConversation(this.userId, conversationId);
     return conversation;

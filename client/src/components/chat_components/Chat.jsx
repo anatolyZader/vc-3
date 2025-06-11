@@ -1,4 +1,4 @@
-// Chat.js 
+// Chat.jsx 
 
 import {
   MainContainer,
@@ -19,7 +19,8 @@ import './chat.css';
 import { useEffect, useState, useContext } from 'react';
 import { AuthContext } from '../auth_components/AuthContext';
 import { useChat } from './ChatContext';
-import LogoutBtn from '../auth_components/LogoutBtn'; 
+import NewConversationBtn from './NewConversationBtn';
+import LogoutBtn from './LogoutBtn'; 
 import stitch from '../stitch.jpg';
 
 const Chat = () => {
@@ -70,7 +71,7 @@ const Chat = () => {
     sendMessage(messageText);
   };
 
-  const handleNewChat = async () => {
+  const handleNewConversation = async () => {
     console.log('Starting new conversation for user:', userProfile?.name || 'anatolyZader');
     try {
       const conversationId = await startNewConversation(`New Chat - ${new Date().toLocaleDateString()}`);
@@ -111,72 +112,49 @@ const Chat = () => {
   return (
     <MainContainer className={`main-container ${sidebarHidden ? 'sidebar-hidden' : ''}`}>
       <Sidebar className={`sidebar ${sidebarHidden ? 'hidden' : ''}`} position="left">
-        <ExpansionPanel open title="Conversations">
-          <div className="conversations-list">
-            <button 
-              className="new-chat-button"
-              onClick={handleNewChat}
-              disabled={loading}
-            >
-              + New Chat
-            </button>
-            
-            {loading && conversations.length === 0 && (
-              <p>Loading conversations...</p>
-            )}
-            
-            {conversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className={`conversation-item ${
-                  conversation.id === currentConversationId ? 'active' : ''
-                }`}
-                onClick={() => handleConversationSelect(conversation.id)}
-              >
-                <div className="conversation-title">
-                  {conversation.title || 'Untitled Chat'}
-                </div>
-                <div className="conversation-date">
-                  {formatDate(conversation.created_at)}
-                </div>
-                <button
-                  className="delete-conversation"
-                  onClick={(e) => handleDeleteConversation(conversation.id, e)}
-                  title="Delete conversation"
+        <div className="sidebar-content">
+
+          <NewConversationBtn 
+            onNewConversation={handleNewConversation}
+            disabled={loading}
+          />
+
+          <ExpansionPanel open title="Conversations">
+            <div className="conversations-list">
+              {loading && conversations.length === 0 && (
+                <p>Loading conversations...</p>
+              )}
+              
+              {conversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={`conversation-item ${
+                    conversation.id === currentConversationId ? 'active' : ''
+                  }`}
+                  onClick={() => handleConversationSelect(conversation.id)}
                 >
-                  ×
-                </button>
-              </div>
-            ))}
-            
-            {conversations.length === 0 && !loading && (
-              <p>No conversations yet. Start a new chat!</p>
-            )}
-          </div>
-        </ExpansionPanel>
-        
-        <ExpansionPanel title="User Profile">
-          {userProfile && (
-            <div style={{ padding: '10px', textAlign: 'center' }}>
-              <img
-                src={userProfile.picture}
-                alt="Profile"
-                style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '50%', 
-                  marginBottom: '8px' 
-                }}
-              />
-              <div style={{ fontSize: '12px' }}>
-                {userProfile.name}
-              </div>
-              <div style={{ fontSize: '10px', opacity: 0.7 }}>
-                {userProfile.email}
-              </div>
+                  <div className="conversation-title">
+                    {conversation.title || 'Untitled Conversation'}
+                  </div>
+                  <div className="conversation-date">
+                    {formatDate(conversation.created_at)}
+                  </div>
+                  <button
+                    className="delete-conversation"
+                    onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                    title="Delete conversation"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              
+              {conversations.length === 0 && !loading && (
+                <p>No conversations yet</p>
+              )}
             </div>
-          )}
-        </ExpansionPanel>
+          </ExpansionPanel>
+        </div>
       </Sidebar>
 
       <button className="toggle-button" onClick={toggleSidebar}>
@@ -188,16 +166,7 @@ const Chat = () => {
           <Avatar src={stitch} name="AI Assistant" />
           <ConversationHeader.Content userName="AI Assistant" />
           <ConversationHeader.Actions>
-            {/* Start Conversation Button - Added to the left of Logout */}
-            <button 
-              className="start-conversation-btn"
-              onClick={handleNewChat}
-              disabled={loading}
-              title="Start new conversation"
-            >
-              💬 New Chat
-            </button>
-            <LogoutBtn /> {/* Use your existing logout component */}
+            <LogoutBtn /> 
           </ConversationHeader.Actions>
         </ConversationHeader>
 
@@ -215,7 +184,7 @@ const Chat = () => {
         >
           {!currentConversationId ? (
             <div className="no-conversation">
-              <p>Select a conversation or start a new chat</p>
+              <p>Select a conversation or start a new one</p>
             </div>
           ) : (
             <>

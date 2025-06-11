@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useContext } from 'react';
 import Button from '@mui/material/Button';
-import { AuthContext } from './AuthContext';  
+import { AuthContext } from '../auth_components/AuthContext';  
 import './logoutbtn.css';
 
 function LogoutBtn() {

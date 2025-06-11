@@ -72,25 +72,25 @@ class ChatPostgresAdapter extends IChatPersistPort {
     });
  }
 
-  // ✅ Start a new conversation
-  async startConversation(userId) {
-    const client = await this.pool.connect();
-    try {
-      const conversationId = uuidv4();
-      await client.query(
-        `INSERT INTO conversations (id, user_id) VALUES ($1, $2)`,
-        [conversationId, userId]
-      );
-      console.log(`Started new conversation ${conversationId} for user ${userId}`);
-      return conversationId;
-    } catch (error) {
-      console.error('Error starting conversation:', error);
-      throw error;
-    } finally {
-      client.release();
+    // ✅ Start a new conversation
+    async startConversation(userId, title = 'New Chat') {
+      const client = await this.pool.connect();
+      try {
+        const conversationId = uuidv4();
+        await client.query(
+          `INSERT INTO conversations (id, user_id, title) VALUES ($1, $2, $3)`,
+          [conversationId, userId, title]
+        );
+        console.log(`Started new conversation ${conversationId} for user ${userId}`);
+        return conversationId;
+      } catch (error) {
+        console.error('Error starting conversation:', error);
+        throw error;
+      } finally {
+        client.release();
+      }
     }
-  }
-
+    
   // ✅ Fetch all conversations for a user
   async fetchConversationsHistory(userId) {
     const client = await this.pool.connect();

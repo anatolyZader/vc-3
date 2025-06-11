@@ -17,16 +17,7 @@ class ConversationsHistory {
   }
 
 
-  // async searchInConversations(query, IChatPersistPort) {
-  //   const searchResult = await IChatPersistPort.searchInConversations(this.userId, query);  
-  //   if (searchResult.length > 0) {
-  //     console.log(`Found ${searchResult.length} conversation(s) matching the query "${query}".`);
-  //     return searchResult;
-  //   } else {
-  //     console.log(`No conversations found matching the query "${query}".`);
-  //     return [];
-  //   }
-  // }
+
 }
 
 module.exports = ConversationsHistory;

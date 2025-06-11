@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { AuthContext } from '../auth_components/AuthContext'; 
 import chatAPI from './chatApi';
 
@@ -88,6 +88,50 @@ export const ChatProvider = ({ children }) => {
     dispatch({ type: 'SET_LOADING', payload: false });
   }, []);
 
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      console.log('Setting up WebSocket connection for real-time chat updates...');
+      
+      const ws = chatAPI.connectWebSocket();
+      
+      const handleMessage = (message) => {
+        console.log('Received WebSocket message:', message);
+        
+        switch (message.type) {
+          case 'new_message':
+            if (message.conversationId === state.currentConversationId) {
+              const formattedMessage = {
+                message: message.message.content,
+                sentTime: new Date(message.message.created_at).toLocaleTimeString(),
+                sender: message.message.role === 'user' ? 'You' : 'AI Assistant',
+                direction: message.message.role === 'user' ? 'outgoing' : 'incoming',
+                position: 'single'
+              };
+              dispatch({ type: 'ADD_MESSAGE', payload: formattedMessage });
+              dispatch({ type: 'SET_TYPING', payload: false });
+              console.log('Added real-time message to conversation');
+            }
+            break;
+          case 'error':
+            handleError(new Error(message.error), message.error);
+            dispatch({ type: 'SET_TYPING', payload: false });
+            break;
+          default:
+            console.log('Unknown WebSocket message type:', message.type);
+        }
+      };
+
+      const unsubscribe = chatAPI.onMessage(handleMessage);
+
+      return () => {
+        console.log('Cleaning up WebSocket connection...');
+        unsubscribe();
+        chatAPI.disconnect();
+      };
+    }
+  }, [isAuthenticated, authLoading, state.currentConversationId, handleError]);
+
   // Clear error function
   const clearError = useCallback(() => {
     dispatch({ type: 'SET_ERROR', payload: null });
@@ -169,7 +213,7 @@ export const ChatProvider = ({ children }) => {
     }
   }, [isAuthenticated, handleError]);
 
-  // Send message
+  // Send message - Updated to work with WebSocket
   const sendMessage = useCallback(async (messageText) => {
     if (!state.currentConversationId || !messageText.trim() || !isAuthenticated) return;
     
@@ -186,27 +230,18 @@ export const ChatProvider = ({ children }) => {
     dispatch({ type: 'SET_TYPING', payload: true });
     
     try {
-      // Send question to backend
+      // Send question to backend - AI response will come via WebSocket
       await chatAPI.sendQuestion(state.currentConversationId, messageText);
+      console.log('Message sent, waiting for AI response via WebSocket...');
       
-      // Simulate AI response (replace with real AI integration)
-      setTimeout(() => {
-        const aiMessage = {
-          message: `Hello ${userProfile?.name || 'there'}! I received your message: "${messageText}" and I'm processing it...`,
-          sentTime: new Date().toLocaleTimeString(),
-          sender: 'AI Assistant',
-          direction: 'incoming',
-          position: 'single'
-        };
-        dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
-        dispatch({ type: 'SET_TYPING', payload: false });
-      }, 2000);
+      // Remove the setTimeout simulation since we're using WebSocket now
+      // The AI response will be handled by the WebSocket message handler above
       
     } catch (error) {
       dispatch({ type: 'SET_TYPING', payload: false });
       handleError(error, 'Failed to send message');
     }
-  }, [state.currentConversationId, isAuthenticated, userProfile, handleError]);
+  }, [state.currentConversationId, isAuthenticated, handleError]);
 
   // Rename conversation
   const renameConversation = useCallback(async (conversationId, newTitle) => {

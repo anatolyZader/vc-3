@@ -40,6 +40,7 @@ module.exports = async function (fastify, opts) {
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
   await fastify.register(diPlugin);
+  await fastify.register(require('./websocketPlugin'));
   await fastify.register(fastifySensible);
   
   await fastify.register(helmet, {

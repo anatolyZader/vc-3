@@ -14,9 +14,9 @@ class ChatService extends IChatService {
     this.topic = 'chat'; // dedicated topic for chat events
   }
 
-  async startConversation(userId) {
+  async startConversation(userId, title = 'New Conversation') {
     const conversation = new Conversation(userId);
-    await conversation.startConversation( this.chatPersistAdapter);
+    await conversation.startConversation( this.chatPersistAdapter, title);
     return conversation.conversationId;
   }
 

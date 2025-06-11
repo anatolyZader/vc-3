@@ -1,7 +1,9 @@
-// chatApi.js
+// Update your existing chatApi.js with WebSocket methods
 class ChatAPI {
   constructor(baseURL = '') {
-    this.baseURL = baseURL;
+    this.baseURL = baseURL || window.location.origin;
+    this.websocket = null;
+    this.messageHandlers = new Set();
   }
 
   // For GCP cookie-based auth, we don't need Authorization headers
@@ -11,6 +13,64 @@ class ChatAPI {
       'Content-Type': 'application/json',
       // No Authorization header needed - cookies handle this
     };
+  }
+
+  // WebSocket connection
+  connectWebSocket() {
+    if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+      return this.websocket;
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    console.log('Connecting to WebSocket:', wsUrl);
+    this.websocket = new WebSocket(wsUrl);
+    
+    this.websocket.onopen = () => {
+      console.log('WebSocket connected successfully');
+    };
+    
+    this.websocket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('Received WebSocket message:', message);
+        this.messageHandlers.forEach(handler => handler(message));
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+    
+    this.websocket.onclose = (event) => {
+      console.log('WebSocket disconnected:', event.code, event.reason);
+      // Attempt to reconnect after 3 seconds if not a normal closure
+      if (event.code !== 1000) {
+        setTimeout(() => {
+          console.log('Attempting to reconnect WebSocket...');
+          this.connectWebSocket();
+        }, 3000);
+      }
+    };
+    
+    this.websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    return this.websocket;
+  }
+
+  // Add message handler
+  onMessage(handler) {
+    this.messageHandlers.add(handler);
+    return () => this.messageHandlers.delete(handler);
+  }
+
+  // Disconnect WebSocket
+  disconnect() {
+    if (this.websocket) {
+      this.websocket.close(1000, 'Normal closure');
+      this.websocket = null;
+    }
   }
 
   async makeRequest(endpoint, options = {}) {
@@ -45,7 +105,7 @@ class ChatAPI {
     }
   }
 
-  // Chat API methods
+  // Chat API methods (keep all your existing methods)
   async fetchConversationsHistory() {
     console.log('Calling fetchConversationsHistory API...');
     return this.makeRequest('/api/chat/history', {
