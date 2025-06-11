@@ -1,7 +1,8 @@
 {
   "aop_modules": {
     "auth": {
-      "authPersistAdapter": "authPostgresAdapter"
+      "authPersistAdapter": "authPostgresAdapter",
+      "authInMemStorageAdapter": "authRedisAdapter"
     }
   },
 

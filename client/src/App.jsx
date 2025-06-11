@@ -7,6 +7,7 @@ import Chat from './components/chat_components/Chat';
 
 import NotFound from './components/NotFound';
 import { AuthProvider, AuthContext } from './components/auth_components/AuthContext';
+import { ChatProvider } from './components/chat_components/ChatContext';
 import './app.css';
 
 function AppContent() {

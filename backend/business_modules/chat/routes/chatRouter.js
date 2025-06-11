@@ -10,7 +10,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   // start a new conversation
   fastify.route({
     method: 'POST',
-    url: '/api/chat/start',
+    url: '/start',
     handler: fastify.startConversation,
     schema: fastify.getSchema('schema:chat:start-conversation'),
   });
@@ -18,7 +18,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   // fetch conversations history
   fastify.route({
     method: 'GET',
-    url: '/api/chat/history',
+    url: '/history',
     handler: fastify.fetchConversationsHistory,
     schema: fastify.getSchema('schema:chat:fetch-conversations-history')
   });
@@ -26,7 +26,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   // fetch specific conversation
   fastify.route({
     method: 'GET',
-    url: '/api/chat/:conversationId',
+    url: '/:conversationId',
     handler: fastify.fetchConversation,
     schema: fastify.getSchema('schema:chat:fetch-conversation')
   });
@@ -34,7 +34,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   // rename a conversation
   fastify.route({
     method: 'PATCH',
-    url: '/api/chat/:conversationId/rename',
+    url: '/:conversationId/rename',
     handler: fastify.renameConversation,
     schema: fastify.getSchema('schema:chat:rename-conversation')
   });
@@ -42,7 +42,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   // delete a conversation
   fastify.route({
     method: 'DELETE',
-    url: '/api/chat/:conversationId',
+    url: '/:conversationId',
     handler: fastify.deleteConversation,
     schema: fastify.getSchema('schema:chat:delete-conversation')
   });
@@ -50,7 +50,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   // send a question
   fastify.route({
     method: 'POST',
-    url: '/api/chat/:conversationId/question',
+    url: '/:conversationId/question',
     handler: fastify.addQuestion,
     schema: fastify.getSchema('schema:chat:send-question')
   });
@@ -58,7 +58,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   // send an answer
   fastify.route({
     method: 'POST',
-    url: '/api/chat/:conversationId/answer',
+    url: '/:conversationId/answer',
     handler: fastify.addAnswer,
     schema: fastify.getSchema('schema:chat:send-answer')
   });

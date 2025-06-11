@@ -1,6 +1,8 @@
 // infrastructure/messaging/pubsub/chatPubsubAdapter.js
 'use strict';
- class ChatPubsubAdapter  extends IChatMessagingPort  {
+const IChatMessagingPort = require('../../../domain/ports/IChatMessagingPort'); 
+
+class ChatPubsubAdapter  extends IChatMessagingPort  {
   constructor({ pubSubClient }) {
     super();
     this.pubSubClient = pubSubClient;

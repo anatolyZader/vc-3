@@ -1,6 +1,6 @@
 'use strict';
 
-const IAIPort = require('../../domain/ports/IAIAIPort');
+const IAIPort = require('../../domain/ports/IAIPort');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 const { MemoryVectorStore } = require('langchain/vectorstores/memory');
 const { RecursiveCharacterTextSplitter } = require('@langchain/textsplitters');

@@ -9,7 +9,7 @@ module.exports = fp(async function apiRouter(fastify, opts) {
   // Fetch HTTP API endpoint
   fastify.route({
     method: 'GET',
-    url: '/api/api/httpApi',
+    url: '/httpApi',
     preValidation: [fastify.verifyToken],
     handler: fastify.fetchHttpApi, // Now uses the controller method directly
     schema: fastify.getSchema('schema:api:http-api')
@@ -18,7 +18,7 @@ module.exports = fp(async function apiRouter(fastify, opts) {
   // Read API/Swagger endpoint
   fastify.route({
     method: 'GET',
-    url: '/api/api/read-api',
+    url: '/read-api',
     handler: fastify.getSwaggerSpec // Uses the controller method
   });
 });

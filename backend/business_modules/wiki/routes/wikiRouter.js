@@ -9,7 +9,7 @@ module.exports = fp(async function wikiRouter(fastify, opts) {
   // Route to fetch a whole wiki
   fastify.route({
     method: 'GET',
-    url: '/api/wiki/repos/:repoId/wiki',
+    url: '/repos/:repoId/wiki',
     preValidation: [fastify.verifyToken],
     handler: fastify.fetchWiki,
     schema: fastify.getSchema('schema:wiki:fetch-wiki')
@@ -18,7 +18,7 @@ module.exports = fp(async function wikiRouter(fastify, opts) {
   // Route to create a new wiki page
   fastify.route({
     method: 'POST',
-    url: '/api/wiki/repos/:repoId/pages/create',
+    url: '/repos/:repoId/pages/create',
     preValidation: [fastify.verifyToken],
     handler: fastify.createPage,
     schema: fastify.getSchema('schema:wiki:create-page'),
@@ -27,7 +27,7 @@ module.exports = fp(async function wikiRouter(fastify, opts) {
   // Route to fetch a specific wiki page
   fastify.route({
     method: 'GET',
-    url: '/api/wiki/repos/:repoId/pages/:pageId',
+    url: '/repos/:repoId/pages/:pageId',
     preValidation: [fastify.verifyToken],
     handler: fastify.fetchPage,
     schema: fastify.getSchema('schema:wiki:fetch-page')
@@ -36,7 +36,7 @@ module.exports = fp(async function wikiRouter(fastify, opts) {
   // Route to update wiki page content
   fastify.route({
     method: 'PUT',
-    url: '/api/wiki/repos/:repoId/pages/:pageId',
+    url: '/repos/:repoId/pages/:pageId',
     preValidation: [fastify.verifyToken],
     handler: fastify.updatePage,
     schema: fastify.getSchema('schema:wiki:update-page')
@@ -45,11 +45,10 @@ module.exports = fp(async function wikiRouter(fastify, opts) {
   // Route to delete a wiki page
   fastify.route({
     method: 'DELETE',
-    url: '/api/wiki/repos/:repoId/pages/:pageId',
+    url: '/repos/:repoId/pages/:pageId',
     preValidation: [fastify.verifyToken],
     handler: fastify.deletePage,
     schema: fastify.getSchema('schema:wiki:delete-page')
   });
-
- 
+  
 });

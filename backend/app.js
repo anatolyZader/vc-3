@@ -34,11 +34,14 @@ module.exports = async function (fastify, opts) {
       'route registered'
     );
   });
+
+  // Register core plugins first
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
   await fastify.register(diPlugin);
   await fastify.register(fastifySensible);
+  
   await fastify.register(helmet, {
     global: true,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
@@ -51,41 +54,103 @@ module.exports = async function (fastify, opts) {
         connectSrc: ["'self'", 'https://accounts.google.com/gsi/']
       }
   }}); 
+  
   await fastify.register(corsPlugin);
 
-    fastify.log.info('🔌 Registering Redis client plugin')
-    await fastify.register(redisPlugin)
-    fastify.log.info('✅ Redis client plugin registered')
-    fastify.redis.on('error', err => {
-      fastify.log.error({ err }, 'Redis client error')
-    })
-    fastify.log.info('⏳ Testing Redis connection with PING…')
-    try {
-      const pong = await fastify.redis.ping()
-      fastify.log.info(`✅ Redis PING response: ${pong}`)
-    } catch (err) {
-      fastify.log.error({ err }, '❌ Redis PING failed')
-    }
-
-    fastify.log.info('✅ ✅ 23.5 11:13 ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
-
+  // Register Swagger directly here instead of using swaggerPlugin
+  console.log('--- REGISTERING SWAGGER DIRECTLY IN APP.JS ---');
   try {
-    await fastify.register(fastifyCookie,  {
+    await fastify.register(require('@fastify/swagger'), {
+      openapi: {
+        openapi: '3.0.0',
+        info: {
+          title: 'EventStorm.me API',
+          description: 'EventStorm API Documentation',
+          version: '1.0.0'
+        },
+        servers: [
+          {
+            url: process.env.NODE_ENV === 'production' ? 'https://eventstorm.me' : 'http://localhost:3000',
+            description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
+          }
+        ],
+        tags: [
+          { name: 'auth', description: 'Authentication endpoints' },
+          { name: 'ai', description: 'AI service endpoints' },
+          { name: 'chat', description: 'Chat service endpoints' },
+          { name: 'git', description: 'Git service endpoints' },
+          { name: 'wiki', description: 'Wiki service endpoints' },
+          { name: 'api', description: 'API management endpoints' }
+        ],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT'
+            },
+            cookieAuth: {
+              type: 'apiKey',
+              in: 'cookie',
+              name: 'authToken'
+            }
+          }
+        }
+      },
+      exposeRoute: true,
+      routePrefix: '/api/doc',
+      hideUntagged: false
+    });
+    
+    console.log('✅ @fastify/swagger registered directly in app.js');
+    
+    // Verify the decorator exists immediately
+    if (fastify.hasDecorator('swagger')) {
+      console.log('✅ Swagger decorator is available in app.js');
+    } else {
+      console.log('❌ Swagger decorator is NOT available in app.js');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error registering Swagger directly in app.js:', error);
+    throw error;
+  }
+
+  // Redis setup
+  fastify.log.info('🔌 Registering Redis client plugin')
+  await fastify.register(redisPlugin)
+  fastify.log.info('✅ Redis client plugin registered')
+  
+  fastify.redis.on('error', err => {
+    fastify.log.error({ err }, 'Redis client error')
+  })
+  
+  fastify.log.info('⏳ Testing Redis connection with PING…')
+  try {
+    const pong = await fastify.redis.ping()
+    fastify.log.info(`✅ Redis PING response: ${pong}`)
+  } catch (err) {
+    fastify.log.error({ err }, '❌ Redis PING failed')
+  }
+
+  fastify.log.info('✅ ✅ 23.5 11:13 ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
+
+  // Cookie and session setup
+  try {
+    await fastify.register(fastifyCookie, {
       secret: fastify.secrets.COOKIE_SECRET,
       parseOptions: {
         secure: true,
         httpOnly: true,
         sameSite: 'None',
       }
-    },
-    { 
+    }, { 
       encapsulate: false 
     });
     
     console.log('Cookie package successfully registered');
   } catch (error) {
     console.error('Error registering @fastify/cookie:', error);
-    // Replaced silent swallow with @fastify/sensible
     throw fastify.httpErrors.internalServerError(
       'Error registering @fastify/cookie',
       { cause: error }
@@ -120,11 +185,12 @@ module.exports = async function (fastify, opts) {
         .catch(err => callback(err))
     }
 
-  destroy(sid, callback) {
-    this.send(['DEL', sid])
-      .then(() => callback(null))
-      .catch(err => callback(err))
-  }};
+    destroy(sid, callback) {
+      this.send(['DEL', sid])
+        .then(() => callback(null))
+        .catch(err => callback(err))
+    }
+  }
 
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET, 
@@ -134,32 +200,19 @@ module.exports = async function (fastify, opts) {
       httpOnly: true,
       sameSite: 'None',
     },
-    // store: redisStore,
-    // store: new RedisStore({
-    //   sendCommand: (...args) => fastify.redis.sendCommand(args)
-    // }),
     store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),
     saveUninitialized: false,
   });
 
-  // Health Check Route: Registered directly on the main Fastify instance.
-  // This will be accessible at the root path: '/'
+  // Health Check Route
   fastify.get('/', async (request, reply) => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
 
-  // For HEAD requests (often used by load balancers for health checks)
-  // fastify.head('/', async (request, reply) => {
-  //   reply.code(200).send();
-  // });
-
-  const fs = require('node:fs/promises');
-
+  // Google OAuth setup (your existing code)
   let credentialsJsonString, clientId, clientSecret;
 
-  // 1. **Prioritize process.env for Cloud Run (where it contains the JSON string)**
   if (process.env.USER_OAUTH2_CREDENTIALS && process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')) {
-    // This branch is for Cloud Run (or any environment where the env var contains the JSON string)
     console.log('accessed process.env.USER_OAUTH2_CREDENTIALS (direct JSON) for auth');
     try {
       credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);
@@ -167,109 +220,39 @@ module.exports = async function (fastify, opts) {
       console.error('Error parsing Google credentials from process.env.USER_OAUTH2_CREDENTIALS:', error);
       throw fastify.httpErrors.internalServerError('Failed to parse Google OAuth2 credentials from environment variable. Invalid JSON.', { cause: error });
     }
-  }
-  // 2. **Fallback to fastify.secrets for Development VM (where it contains a file path)**
-  else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {
-    // This branch is for the development VM where fastify.secrets provides a file path
-    // We check for any string in fastify.secrets.USER_OAUTH2_CREDENTIALS,
-    // assuming if it's there and the env var wasn't JSON, it must be a path.
+  } else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {
     console.log('accessed fastify secrets (file path) for auth');
     const credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;
     console.log('XXX credentialsPath:', credentialsPath);
     try {
-      credentialsJsonString = JSON.parse(await fs.readFile(credentialsPath, { encoding: 'utf8' }));
+      credentialsJsonString = JSON.parse(await fs.promises.readFile(credentialsPath, { encoding: 'utf8' }));
     } catch (error) {
       console.error('Error reading Google credentials file from fastify.secrets:', error);
       throw fastify.httpErrors.internalServerError('Failed to read Google OAuth2 credentials file.', { cause: error });
     }
-  }
-  // 3. **Final Fallback if no credentials are found at all**
-  else {
+  } else {
     fastify.log.warn('No USER_OAUTH2_CREDENTIALS secret/env var or fastify.secrets path provided for OAuth2 client setup. Proceeding without it, or using fallback.');
-    clientId = process.env.FALLBACK_CLIENT_ID; // Or throw if mandatory
-    clientSecret = process.env.FALLBACK_CLIENT_SECRET; // Or throw if mandatory
+    clientId = process.env.FALLBACK_CLIENT_ID;
+    clientSecret = process.env.FALLBACK_CLIENT_SECRET;
   }
     
   console.log(' credentialsJsonString accessed in google run:', credentialsJsonString);
 
   if (credentialsJsonString) {
-      try {
-          // googleCreds = JSON.parse(credentialsJsonString);
-          clientId = credentialsJsonString.web.client_id;
-          clientSecret =credentialsJsonString.web.client_secret;
-          fastify.log.info('Loaded Google OAuth2 credentials from environment variable/secret.');
-      } catch (err) {
-          // This catch will now only trigger if the JSON string itself is malformed.
-          throw fastify.httpErrors.internalServerError('Failed to parse Google OAuth2 credentials from environment variable/secret. Invalid JSON.', { cause: err });
-      }
+    try {
+      clientId = credentialsJsonString.web.client_id;
+      clientSecret = credentialsJsonString.web.client_secret;
+      fastify.log.info('Loaded Google OAuth2 credentials from environment variable/secret.');
+    } catch (err) {
+      throw fastify.httpErrors.internalServerError('Failed to parse Google OAuth2 credentials from environment variable/secret. Invalid JSON.', { cause: err });
+    }
   } else {
-      fastify.log.info('No USER_OAUTH2_CREDENTIALS secret/env var provided for OAuth2 client setup. Proceeding without it, or using fallback.');
-      // If you need clientId/clientSecret for *all* environments, even if the secret isn't set,
-      // ensure they get values here (e.g., from other env vars, or throw if mandatory).
-      clientId = process.env.FALLBACK_CLIENT_ID; // Or throw an error if mandatory
-      clientSecret = process.env.FALLBACK_CLIENT_SECRET; // Or throw an error if mandatory
+    fastify.log.info('No USER_OAUTH2_CREDENTIALS secret/env var provided for OAuth2 client setup. Proceeding without it, or using fallback.');
+    clientId = process.env.FALLBACK_CLIENT_ID;
+    clientSecret = process.env.FALLBACK_CLIENT_SECRET;
   }
 
-
-
-
-
-
-
-  // .............................................................................................
-
-  // TODO: the Google credentials file itself should be extracted from the secrets when in production! not just it's path !!!!!!!!!!!!
-
-  // const credsEnv = process.env.USER_OAUTH2_CREDENTIALS;
-  // let googleCreds;
-
-  // if (credsEnv) {
-  //   const fullPath = path.resolve(credsEnv);
-  //   try {
-  //     const raw = fs.readFileSync(fullPath, 'utf8');
-  //     googleCreds = JSON.parse(raw);
-  //     fastify.log.info('✅ Loaded Google credentials from file');
-  //   } catch (err) {
-  //     fastify.log.error(err, 'Failed to read or parse Google credentials file');
-  //     throw fastify.httpErrors.internalServerError('Invalid Google credentials file', { cause: err });
-  //   }
-  // } else {
-  //   fastify.log.error('No GOOGLE_APPLICATION_CREDENTIALS env var set');
-  //   throw fastify.httpErrors.internalServerError('Missing Google credentials');
-  // }
-
-  // const clientId = googleCreds.web.client_id;
-  // const clientSecret = googleCreds.web.client_secret;
-  
-  // ....................................................................................
-
-
-  // let googleCreds = null;
-
-  // if (process.env.USER_OAUTH2_CREDENTIALS) {
-  //   const fullPath = path.resolve(process.env.USER_OAUTH2_CREDENTIALS);
-  //   try {
-  //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-  //   } catch (error) {
-  //     console.error('Error reading Google credentials:', error);
-  //   }
-  // } else {
-  //   console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found by process.env.');
-  // }
-
-  // if (fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS) {
-  //   const fullPath = path.resolve(fastify.secrets.GOOGLE_APPLICATION_CREDENTIALS);
-  //   try {
-  //     googleCreds = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-  //   } catch (error) {
-  //     console.error('Error reading Google credentials:', error);
-  //   }
-  // } else {
-  //   console.warn('No GOOGLE_APPLICATION_CREDENTIALS path found in fastify.secrets.');
-  // }
-
-  // JWT 
-
+  // JWT setup
   const revokedTokens = new Map();
 
   fastify.register(fastifyJwt, {
@@ -319,12 +302,8 @@ module.exports = async function (fastify, opts) {
     return authToken;
   });
 
-  // Determine base URLs and cookie settings dynamically based on environment
-  let appBaseUrl; // Backend URL
-  let frontendBaseUrl; // Frontend URL
-  let cookieSecure;
-  let cookieSameSite;
-  let googleCallbackUri; // Specific for fastifyOAuth2 callbackUri
+  // Environment-based configuration
+  let appBaseUrl, frontendBaseUrl, cookieSecure, cookieSameSite, googleCallbackUri;
 
   if (process.env.NODE_ENV === 'production') {
     appBaseUrl = 'https://eventstorm.me';
@@ -332,37 +311,33 @@ module.exports = async function (fastify, opts) {
     cookieSecure = true;
     cookieSameSite = 'None';
     googleCallbackUri = 'https://eventstorm.me/api/auth/google/callback';
-  } else { // Assuming NODE_ENV is 'development' for your VM environment
+  } else {
     appBaseUrl = 'http://localhost:3000';
-    frontendBaseUrl = 'http://localhost:5173'; // Assuming your frontend runs on 5173 locally
-    cookieSecure = false; // IMPORTANT: Must be false for HTTP connections in development
-    cookieSameSite = 'Lax'; // 'Lax' is generally safer for development over HTTP
+    frontendBaseUrl = 'http://localhost:5173';
+    cookieSecure = false;
+    cookieSameSite = 'Lax';
     googleCallbackUri = 'http://localhost:3000/api/auth/google/callback';
   }
 
-  // OAUTH2
-
+  // OAuth2 setup
   fastify.register(fastifyOAuth2, {
     name: 'googleOAuth2',
     scope: ['profile', 'email', 'openid'],
     cookie: {
-      secure: cookieSecure, // Use dynamic secure value
-      sameSite: cookieSameSite, // Use dynamic sameSite value
+      secure: cookieSecure,
+      sameSite: cookieSameSite,
       httpOnly: true,
       allowCredentials: true,
     },   
-   credentials: {
+    credentials: {
       client: { id: clientId, secret: clientSecret },
       auth: fastifyOAuth2.GOOGLE_CONFIGURATION
     },
     startRedirectPath: '/api/auth/google',
-    callbackUri: googleCallbackUri, // <--- FIX 1: Use dynamic callback URI,
-  },
-  {
+    callbackUri: googleCallbackUri,
+  }, {
     encapsulate: false
-  }
-  
-);  
+  });  
 
   const googleClient = new OAuth2Client(clientId);
   fastify.decorate('verifyGoogleIdToken', async function (googleIdToken) {
@@ -385,36 +360,32 @@ module.exports = async function (fastify, opts) {
     try {
       const token = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
       const googleAccessToken = token.token.access_token;
-      // 1) Using that access token, fetch user info from Google
+      
       const userService = await req.diScope.resolve('userService');
-      console.log('userService succesfully resolved in app.js:', userService);
+      console.log('userService successfully resolved in app.js:', userService);
       const googleUser = await userService.loginWithGoogle(googleAccessToken);
       if (!googleUser) {
         return reply.unauthorized('Google profile invalid or not verified.');
       }
 
-      // 2) Create a local JWT so that /auth/me can decode it
       const jti = uuidv4();
       const localJwt = fastify.jwt.sign({
         id: googleUser.id,
         username: googleUser.username,
-        // any other fields
         jti
       }, {
         jwtid: jti,
         expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h'
       });
   
-    // 3) Store the local JWT in the same cookie your manual flow uses
-    reply.setCookie('authToken', localJwt, {
-      path: '/',
-      httpOnly: true,
-      secure: cookieSecure, // <--- FIX 2: Use dynamic secure value
-      sameSite: cookieSameSite, // <--- FIX 2: Use dynamic sameSite value
-    });
+      reply.setCookie('authToken', localJwt, {
+        path: '/',
+        httpOnly: true,
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
+      });
   
-      // 4) Redirect user to front-end
-    reply.redirect(`${frontendBaseUrl}/chat`); // <--- FIX 3: Use dynamic frontendBaseUrl
+      reply.redirect(`${frontendBaseUrl}/chat`);
   
     } catch (err) {
       console.error('Google OAuth callback error:', err);
@@ -422,6 +393,7 @@ module.exports = async function (fastify, opts) {
     }
   });
   
+  // Register AOP modules
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop_modules'),
     options: Object.assign({}, opts),
@@ -431,6 +403,7 @@ module.exports = async function (fastify, opts) {
     prefix: '/api'
   });
 
+  // Register business modules
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'business_modules'),
     options: Object.assign({}, opts),
@@ -440,35 +413,36 @@ module.exports = async function (fastify, opts) {
     prefix: '/api'
   });
 
+  // Debug route
   fastify.get('/debug/clear-state-cookie', (req, reply) => {
     reply.clearCookie('oauth2-redirect-state', { path: '/' });
     reply.send({ message: 'cleared' });
   }); 
 
-
-  
+  // Check decorator availability before onReady
   fastify.addHook('onReady', async () => {
     fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
-  });
-
-  fastify.addHook('onReady', async () => {
-    console.log(" http API : ", fastify.swagger());
-    try {
-      const spec = fastify.swagger();
-      const outputDir = path.join(__dirname, 'business_modules/api/infrastructure/api');
-      const outputPath = path.join(outputDir, 'httpApiSpec.json');
-      // Ensure directory exists
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
+    
+    // Check if decorator is available now
+    console.log('🔍 Checking swagger decorator availability in onReady...');
+    if (fastify.hasDecorator('swagger')) {
+      console.log('✅ Swagger decorator found in onReady!');
+      try {
+        const spec = fastify.swagger();
+        const outputDir = path.join(__dirname, 'business_modules/api/infrastructure/api');
+        const outputPath = path.join(outputDir, 'httpApiSpec.json');
+        
+        await fs.promises.mkdir(outputDir, { recursive: true });
+        await fs.promises.writeFile(outputPath, JSON.stringify(spec, null, 2), 'utf8');
+        
+        fastify.log.info(`✔ OpenAPI spec written to ${outputPath}`);
+      } catch (err) {
+        fastify.log.error('✘ Failed to write OpenAPI spec:', err);
+        fastify.log.error('Full error stack:', err.stack);
       }
-      fs.writeFileSync(outputPath, JSON.stringify(spec, null, 2), 'utf8');
-      fastify.log.info(`✔ OpenAPI spec written to ${outputPath}`);
-    } catch (err) {
-      fastify.log.error('✘ Failed to write OpenAPI spec:', err);
+    } else {
+      fastify.log.warn('❌ Swagger decorator STILL not found in onReady – this indicates a scope issue');
+      console.log('Available decorators:', Object.getOwnPropertyNames(fastify));
     }
-
   });
 };
-
-// module.exports.options = { prefix: '/api' }
-
