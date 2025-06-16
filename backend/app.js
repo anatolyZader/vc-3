@@ -9,6 +9,7 @@ const fastifySensible = require('@fastify/sensible');
 const fastifyCookie = require('@fastify/cookie');
 const fastifySession = require('@fastify/session');
 const redisPlugin = require('./redisPlugin');
+const websocketPlugin = require('./websocketPlugin');
 const { Store } = fastifySession;
 
 const loggingPlugin = require('./aop_modules/log/plugins/logPlugin'); 
@@ -40,7 +41,7 @@ module.exports = async function (fastify, opts) {
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
   await fastify.register(diPlugin);
-  await fastify.register(require('./websocketPlugin'));
+  await fastify.register(websocketPlugin);
   await fastify.register(fastifySensible);
   
   await fastify.register(helmet, {

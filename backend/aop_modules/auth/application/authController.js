@@ -8,16 +8,6 @@ const bcrypt = require('bcrypt');
 const fp = require('fastify-plugin');
 
 async function authController(fastify, options) {
-  // let userService;
-  // try {
-  //   userService = await fastify.diContainer.resolve('userService');
-  // } catch (error) {
-  //   fastify.log.error('Error resolving userService:', error);
-  //   throw fastify.httpErrors.internalServerError(
-  //     'Failed to resolve userService. Ensure it is registered in the DI container.',
-  //     { cause: error }
-  //   );
-  // }
 
   // Helper to set auth cookies uniformly
   const setAuthCookies = (reply, token) => {

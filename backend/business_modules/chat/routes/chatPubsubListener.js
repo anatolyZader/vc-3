@@ -1,4 +1,6 @@
+// chatPubsubListener.js
 'use strict';
+/* eslint-disable no-unused-vars */
 
 const fp = require('fastify-plugin');
 

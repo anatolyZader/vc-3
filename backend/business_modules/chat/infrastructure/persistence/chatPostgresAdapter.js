@@ -73,30 +73,31 @@ class ChatPostgresAdapter extends IChatPersistPort {
  }
 
     // ✅ Start a new conversation
-    async startConversation(userId, title = 'New Chat') {
-      const client = await this.pool.connect();
-      try {
-        const conversationId = uuidv4();
-        await client.query(
-          `INSERT INTO conversations (id, user_id, title) VALUES ($1, $2, $3)`,
-          [conversationId, userId, title]
-        );
-        console.log(`Started new conversation ${conversationId} for user ${userId}`);
-        return conversationId;
-      } catch (error) {
-        console.error('Error starting conversation:', error);
-        throw error;
-      } finally {
-        client.release();
-      }
+  async startConversation(userId, title = 'New Chat', conversationId = null) {
+    const client = await this.pool.connect();
+    try {
+      // Use provided conversationId or generate one
+      const finalConversationId = conversationId || uuidv4();
+      await client.query(
+        `INSERT INTO chat.conversations (id, user_id, title) VALUES ($1, $2, $3)`,
+        [finalConversationId, userId, title]
+      );
+      console.log(`Started new conversation ${finalConversationId} for user ${userId}`);
+      return finalConversationId;
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      throw error;
+    } finally {
+      client.release();
     }
+  }
     
   // ✅ Fetch all conversations for a user
   async fetchConversationsHistory(userId) {
     const client = await this.pool.connect();
     try {
       const { rows } = await client.query(
-        `SELECT id, title, created_at FROM conversations WHERE user_id = $1 ORDER BY created_at DESC`,
+        `SELECT id, title, created_at FROM chat.conversations WHERE user_id = $1 ORDER BY created_at DESC`,
         [userId]
       );
       return rows;
@@ -113,7 +114,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
     const client = await this.pool.connect();
     try {
       const { rows } = await client.query(
-        `SELECT * FROM chat_messages WHERE user_id = $1 AND conversation_id = $2 ORDER BY created_at ASC`,
+        `SELECT * FROM chat.messages WHERE user_id = $1 AND conversation_id = $2 ORDER BY created_at ASC`,
         [userId, conversationId]
       );
       return rows;
@@ -130,7 +131,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
     const client = await this.pool.connect();
     try {
       await client.query(
-        `UPDATE conversations SET title = $1 WHERE user_id = $2 AND id = $3`,
+        `UPDATE chat.conversations SET title = $1 WHERE user_id = $2 AND id = $3`,
         [newTitle, userId, conversationId]
       );
       console.log(`Renamed conversation ${conversationId} to ${newTitle}`);
@@ -147,7 +148,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
     const client = await this.pool.connect();
     try {
       await client.query(
-        `DELETE FROM conversations WHERE user_id = $1 AND id = $2`,
+        `DELETE FROM chat.conversations WHERE user_id = $1 AND id = $2`,
         [userId, conversationId]
       );
       console.log(`Deleted conversation ${conversationId} for user ${userId}`);
@@ -165,7 +166,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
     try {
       const messageId = uuidv4();
       await client.query(
-        `INSERT INTO chat_messages (id, conversation_id, user_id, role, content) VALUES ($1, $2, $3, 'user', $4)`,
+        `INSERT INTO chat.messages (id, conversation_id, user_id, role, content) VALUES ($1, $2, $3, 'user', $4)`,
         [messageId, conversationId, userId, prompt]
       );
       console.log(`Stored user question with ID ${messageId}`);
@@ -184,7 +185,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
     try {
       const messageId = uuidv4();
       await client.query(
-        `INSERT INTO chat_messages (id, conversation_id, user_id, role, content) VALUES ($1, $2, $3, 'ai', $4)`,
+        `INSERT INTO chat.messages (id, conversation_id, user_id, role, content) VALUES ($1, $2, $3, 'ai', $4)`,
         [messageId, conversationId, userId, answer]
       );
       console.log(`Stored AI response with ID ${messageId}`);

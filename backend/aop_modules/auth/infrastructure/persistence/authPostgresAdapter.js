@@ -64,7 +64,7 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     const pool = await this.getPool();
     const client = await pool.connect();
     try {
-      const { rows } = await client.query('SELECT * FROM users');
+      const { rows } = await client.query('SELECT * FROM auth.users');
       return rows;
     } catch (error) {
       console.error('Error reading all users:', error);
@@ -78,7 +78,7 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     const pool = await this.getPool();
     const client = await pool.connect();
     try {
-      const { rows } = await client.query('SELECT * FROM users WHERE email=$1', [email]);
+      const { rows } = await client.query('SELECT * FROM auth.users WHERE email=$1', [email]);
       return rows.length ? rows[0] : null;
     } catch (error) {
       console.error('Error reading user:', error);
@@ -93,13 +93,13 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     const client = await pool.connect();
     try {
       const id = uuidv4();
-      const existingUser = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+      const existingUser = await client.query('SELECT * FROM auth.users WHERE email = $1', [email]);
       if (existingUser.rows.length > 0) {
         throw new Error('Email already exists');
       }
       const hashedPassword = await bcrypt.hash(password, 10);
       await client.query(
-        'INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)',
+        'INSERT INTO auth.users (id, username, email, password) VALUES ($1, $2, $3, $4)',
         [id, username, email, hashedPassword]
       );
       return { id, username, email };
@@ -115,9 +115,9 @@ class AuthPostgresAdapter extends IAuthPersistPort {
     const pool = await this.getPool();
     const client = await pool.connect();
     try {
-      const { rows } = await client.query('SELECT id FROM users WHERE email = $1', [email]);
+      const { rows } = await client.query('SELECT id FROM auth.users WHERE email = $1', [email]);
       if (rows.length === 0) return false;
-      const result = await client.query('DELETE FROM users WHERE email = $1', [email]);
+      const result = await client.query('DELETE FROM auth.users WHERE email = $1', [email]);
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error removing user:', error);

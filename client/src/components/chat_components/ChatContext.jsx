@@ -1,3 +1,6 @@
+// ChatContext.jsx
+/* eslint-disable no-unused-vars */
+import PropTypes from 'prop-types';
 import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { AuthContext } from '../auth_components/AuthContext'; 
 import chatAPI from './chatApi';
@@ -70,6 +73,8 @@ const initialState = {
 export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   
+
+
   // Get auth context to check authentication status
   const { isAuthenticated, userProfile, authLoading } = useContext(AuthContext);
 
@@ -289,6 +294,10 @@ export const ChatProvider = ({ children }) => {
       {children}
     </ChatContext.Provider>
   );
+};
+
+ChatProvider.propTypes = {
+  children: PropTypes.node.isRequired
 };
 
 export const useChat = () => {

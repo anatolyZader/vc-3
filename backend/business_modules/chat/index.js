@@ -1,4 +1,3 @@
-
 // chat_module/index.js
 /* eslint-disable no-unused-vars */
 
@@ -16,6 +15,7 @@ module.exports = async function chatModuleIndex(fastify, opts) {
     dir: path.join(__dirname, 'application'),
     encapsulate: false,
     maxDepth: 1,
+
     matchFilter: (filepath) => filepath.includes('Controller'),
   });
 

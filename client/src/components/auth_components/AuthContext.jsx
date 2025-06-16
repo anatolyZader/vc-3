@@ -1,5 +1,7 @@
 // AuthContext.jsx
 'use strict';
+/* eslint-disable no-unused-vars */
+
 
 import PropTypes from 'prop-types';
 import { createContext, useState, useEffect } from 'react';

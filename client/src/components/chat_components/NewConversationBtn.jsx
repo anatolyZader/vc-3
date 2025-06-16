@@ -3,19 +3,19 @@
 
 import Button from '@mui/material/Button';
 import './new-convers-btn.css';
+import PropTypes from 'prop-types';
 
-function NewConversationBtn({ onNewConversation, disabled = false }) {
-  const handleNewConversation = () => {
-    if (onNewConversation) {
-      onNewConversation();
-    }
+const NewConversationBtn = ({ onNewConversation, disabled }) => {
+  const handleNewConvers = () => {
+    console.log('🔘 NewConversationBtn: Button clicked');
+    onNewConversation();
   };
 
   return (
     <div className="new-convers-btn">
       <Button 
         variant="outlined"
-        onClick={handleNewConversation}   
+        onClick={handleNewConvers}   
         disabled={disabled}
         sx={{
           backgroundColor: 'rgba(0, 0, 0, 0)', 
@@ -35,5 +35,10 @@ function NewConversationBtn({ onNewConversation, disabled = false }) {
     </div>
   );
 }
+
+NewConversationBtn.propTypes = {
+  onNewConversation: PropTypes.func,
+  disabled: PropTypes.bool
+};
 
 export default NewConversationBtn;
