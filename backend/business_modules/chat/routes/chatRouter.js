@@ -11,6 +11,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'POST',
     url: '/start',
+    preValidation: [fastify.verifyToken],
     handler: fastify.startConversation,
     schema: fastify.getSchema('schema:chat:start-conversation'),
   });
@@ -19,6 +20,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'GET',
     url: '/history',
+    preValidation: [fastify.verifyToken],
     handler: fastify.fetchConversationsHistory,
     schema: fastify.getSchema('schema:chat:fetch-conversations-history')
   });
@@ -27,6 +29,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'GET',
     url: '/:conversationId',
+    preValidation: [fastify.verifyToken],
     handler: fastify.fetchConversation,
     schema: fastify.getSchema('schema:chat:fetch-conversation')
   });
@@ -35,6 +38,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'PATCH',
     url: '/:conversationId/rename',
+    preValidation: [fastify.verifyToken],
     handler: fastify.renameConversation,
     schema: fastify.getSchema('schema:chat:rename-conversation')
   });
@@ -43,6 +47,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'DELETE',
     url: '/:conversationId',
+    preValidation: [fastify.verifyToken],
     handler: fastify.deleteConversation,
     schema: fastify.getSchema('schema:chat:delete-conversation')
   });
@@ -51,6 +56,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'POST',
     url: '/:conversationId/question',
+    preValidation: [fastify.verifyToken],
     handler: fastify.addQuestion,
     schema: fastify.getSchema('schema:chat:send-question')
   });
@@ -59,6 +65,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   fastify.route({
     method: 'POST',
     url: '/:conversationId/answer',
+    preValidation: [fastify.verifyToken],
     handler: fastify.addAnswer,
     schema: fastify.getSchema('schema:chat:send-answer')
   });

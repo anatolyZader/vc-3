@@ -1,7 +1,6 @@
 // aiPostgresAdapter.js
 'use strict';
 const { Pool } = require('pg');
-const IAuthPersistPort = require('../../domain/ports/IAIPersistPort');
 const IAIPersistPort = require('../../domain/ports/IAIPersistPort');
 
 class AIPostgresAdapter extends IAIPersistPort{

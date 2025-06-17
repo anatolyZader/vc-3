@@ -1,4 +1,5 @@
 // aiController.js
+/* eslint-disable no-unused-vars */
 'use strict';
 
 const fp = require('fastify-plugin');
@@ -13,7 +14,7 @@ async function aiController(fastify, options) {
       
       fastify.log.info(`Processing AI request for user: ${userId}, conversation: ${conversationId}, repo: ${repoId}`);
       
-      const aiService = await fastify.diScope.resolve('aiService');
+      const aiService = await request.diScope.resolve('aiService');
       if (!aiService) {
         throw new Error('AI service not found in DI container');
       }

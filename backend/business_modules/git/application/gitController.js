@@ -1,4 +1,5 @@
 // gitController.js
+/* eslint-disable no-unused-vars */
 'use strict';
 
 const fp = require('fastify-plugin');
@@ -13,7 +14,7 @@ async function gitController(fastify, options) {
       
       fastify.log.info(`Processing fetchRepo HTTP request for user: ${userId}, repo: ${repoId}`);
       
-      const gitService = await fastify.diScope.resolve('gitService');
+      const gitService = await request.diScope.resolve('gitService');
       if (!gitService) {
         throw new Error('Git service not found in DI container');
       }
@@ -35,7 +36,7 @@ async function gitController(fastify, options) {
       
       fastify.log.info(`Processing fetchWiki HTTP request for user: ${userId}, repo: ${repoId}`);
       
-      const gitService = await fastify.diScope.resolve('gitService');
+      const gitService = await request.diScope.resolve('gitService');
       if (!gitService) {
         throw new Error('Git service not found in DI container');
       }

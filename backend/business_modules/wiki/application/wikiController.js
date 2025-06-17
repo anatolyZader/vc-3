@@ -11,7 +11,7 @@ async function wikiController(fastify, options) {
     try {
       const { repoId } = request.params;
       const userId = request.user?.id || request.userId; 
-      const wikiService = await fastify.diScope.resolve('wikiService');
+      const wikiService = await request.diScope.resolve('wikiService');
       const wiki = await wikiService.fetchWiki(userId, repoId);
       return wiki;
     } catch (error) {
@@ -25,7 +25,7 @@ async function wikiController(fastify, options) {
     try {
       const { repoId, pageId } = request.params;
       const userId = request.user?.id || request.userId;
-      const wikiService = await fastify.diScope.resolve('wikiService');
+      const wikiService = await request.diScope.resolve('wikiService');
       const page = await wikiService.fetchPage(userId, repoId, pageId);
       return page;
     } catch (error) {
@@ -40,7 +40,7 @@ async function wikiController(fastify, options) {
       const { repoId } = request.params;
       const { pageTitle } = request.body; 
       const userId = request.user?.id || request.userId;
-      const wikiService = await fastify.diScope.resolve('wikiService');
+      const wikiService = await request.diScope.resolve('wikiService');
       await wikiService.createPage(userId, repoId, pageTitle);
       return { message: 'Wiki page created successfully' };
     } catch (error) {
@@ -55,7 +55,7 @@ async function wikiController(fastify, options) {
       const { repoId, pageId } = request.params;
       const { newContent } = request.body;
       const userId = request.user?.id || request.userId;
-      const wikiService = await fastify.diScope.resolve('wikiService');
+      const wikiService = await request.diScope.resolve('wikiService');
       await wikiService.updatePage(userId, repoId, pageId, newContent);
       return { message: 'Wiki page content updated successfully' };
     } catch (error) {
@@ -69,7 +69,7 @@ async function wikiController(fastify, options) {
     try {
       const { repoId, pageId } = request.params;
       const userId = request.user?.id || request.userId;
-      const wikiService = await fastify.diScope.resolve('wikiService');
+      const wikiService = await request.diScope.resolve('wikiService');
       await wikiService.deletePage(userId, repoId, pageId);
       return { message: 'Wiki page deleted successfully' };
     } catch (error) {

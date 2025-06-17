@@ -41,7 +41,9 @@ module.exports = async function (fastify, opts) {
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
   await fastify.register(diPlugin);
-  await fastify.register(websocketPlugin);
+
+  // UNDO!
+  // await fastify.register(websocketPlugin);
   await fastify.register(fastifySensible);
   
   await fastify.register(helmet, {

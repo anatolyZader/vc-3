@@ -1,5 +1,6 @@
 // apiController.js
 'use strict';
+/* eslint-disable no-unused-vars */
 
 const fp = require('fastify-plugin');
 
@@ -17,7 +18,7 @@ async function apiController(fastify, options) {
       
       fastify.log.info(`Processing fetchHttpApi HTTP request for user: ${userId}, repo: ${repoId}`);
       
-      const apiService = await fastify.diScope.resolve('apiService');
+      const apiService = await request.diScope.resolve('apiService');
       if (!apiService) {
         throw new Error('API service not found in DI container');
       }

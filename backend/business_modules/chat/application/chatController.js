@@ -12,7 +12,7 @@ async function chatController(fastify, options) {
       const { title } = request.body;
       const userId = request.user.id;
       
-      const chatService = await fastify.diScope.resolve('chatService');
+      const chatService = await request.diScope.resolve('chatService');
       const conversationId = await chatService.startConversation(userId, title);
       return { conversationId };
     } catch (error) {
@@ -22,16 +22,47 @@ async function chatController(fastify, options) {
   });
 
   // Fetch conversations history
+
   fastify.decorate('fetchConversationsHistory', async (request, reply) => {
+    console.log('=== FETCH CONVERSATIONS DEBUG - 2025-06-17 08:12:33 ===');
+    console.log('Current user: anatolyZader');
+    console.log('Request user object:', request.user);
+    
     try {
-      const userId = request.user.id;
+      if (!request.user || !request.user.id) {
+        console.error('❌ No user found in request token');
+        throw fastify.httpErrors.unauthorized('User not authenticated');
+      }
       
-      const chatService = await fastify.diScope.resolve('chatService');
+      const userId = request.user.id;
+      console.log('✅ User ID from JWT token:', userId);
+      
+      // Resolve chat service
+      console.log('🔄 Resolving chatService...');
+      const chatService = await request.diScope.resolve('chatService');
+      console.log('✅ ChatService resolved successfully');
+      
+      // Call the service
+      console.log('🔄 Calling chatService.fetchConversationsHistory...');
       const history = await chatService.fetchConversationsHistory(userId);
+      console.log('✅ History fetched successfully:', history?.length, 'conversations');
+      console.log('📋 Conversations data:', JSON.stringify(history, null, 2));
+      
       return history;
     } catch (error) {
-      fastify.log.error('Error fetching conversation history:', error);
-      throw fastify.httpErrors.internalServerError('Failed to fetch conversation history', { cause: error });
+      console.error('=== DETAILED ERROR ANALYSIS ===');
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error constructor:', error.constructor.name);
+      console.error('Is database error?', error.code);
+      console.error('Error stack:', error.stack);
+      console.error('================================');
+      
+      // Log the original error before wrapping it
+      fastify.log.error('Original error in fetchConversationsHistory:', error);
+      
+      // Return the original error message instead of generic one
+      throw fastify.httpErrors.internalServerError(`Chat history error: ${error.message}`, { cause: error });
     }
   });
 
@@ -41,7 +72,7 @@ async function chatController(fastify, options) {
       const { conversationId } = request.params;
       const userId = request.user.id;
       
-      const chatService = await fastify.diScope.resolve('chatService');
+      const chatService = await request.diScope.resolve('chatService');
       const conversation = await chatService.fetchConversation(userId, conversationId);
       return conversation;
     } catch (error) {
@@ -57,7 +88,7 @@ async function chatController(fastify, options) {
       const { newTitle } = request.body;
       const userId = request.user.id;
       
-      const chatService = await fastify.diScope.resolve('chatService');
+      const chatService = await request.diScope.resolve('chatService');
       await chatService.renameConversation(userId, conversationId, newTitle);
       return { message: 'Conversation renamed successfully' };
     } catch (error) {
@@ -72,7 +103,7 @@ async function chatController(fastify, options) {
       const { conversationId } = request.params;
       const userId = request.user.id;
       
-      const chatService = await fastify.diScope.resolve('chatService');
+      const chatService = await request.diScope.resolve('chatService');
       await chatService.deleteConversation(userId, conversationId);
       return { message: 'Conversation deleted successfully' };
     } catch (error) {
@@ -88,7 +119,7 @@ async function chatController(fastify, options) {
       const { prompt } = request.body;
       const userId = request.user.id;
       
-      const chatService = await fastify.diScope.resolve('chatService');
+      const chatService = await request.diScope.resolve('chatService');
       const questionId = await chatService.addQuestion(userId, conversationId, prompt);
       
       // Send immediate response
@@ -139,7 +170,7 @@ async function chatController(fastify, options) {
       const { aiResponse } = request.body;
       const userId = request.user.id;
       
-      const chatService = await fastify.diScope.resolve('chatService');
+      const chatService = await request.diScope.resolve('chatService');
       const answerId = await chatService.addAnswer(userId, conversationId, aiResponse);
       return { answerId };
     } catch (error) {
