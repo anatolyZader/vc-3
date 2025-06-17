@@ -18,50 +18,50 @@ class ChatAPI {
   // WebSocket connection
   connectWebSocket() {
 
-      console.log('WebSocket temporarily disabled for debugging');
-      return null; // ❌ Disable WebSocket for now
+      // console.log('WebSocket temporarily disabled for debugging');
+      // return null; // ❌ Disable WebSocket for now
 
 
-    // if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-    //   return this.websocket;
-    // }
+    if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+      return this.websocket;
+    }
 
-    // const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/ws`;
     
-    // console.log('Connecting to WebSocket:', wsUrl);
-    // this.websocket = new WebSocket(wsUrl);
+    console.log('Connecting to WebSocket:', wsUrl);
+    this.websocket = new WebSocket(wsUrl);
     
-    // this.websocket.onopen = () => {
-    //   console.log('WebSocket connected successfully');
-    // };
+    this.websocket.onopen = () => {
+      console.log('WebSocket connected successfully');
+    };
     
-    // this.websocket.onmessage = (event) => {
-    //   try {
-    //     const message = JSON.parse(event.data);
-    //     console.log('Received WebSocket message:', message);
-    //     this.messageHandlers.forEach(handler => handler(message));
-    //   } catch (error) {
-    //     console.error('Error parsing WebSocket message:', error);
-    //   }
-    // };
+    this.websocket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('Received WebSocket message:', message);
+        this.messageHandlers.forEach(handler => handler(message));
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
     
-    // this.websocket.onclose = (event) => {
-    //   console.log('WebSocket disconnected:', event.code, event.reason);
-    //   // Attempt to reconnect after 3 seconds if not a normal closure
-    //   if (event.code !== 1000) {
-    //     setTimeout(() => {
-    //       console.log('Attempting to reconnect WebSocket...');
-    //       this.connectWebSocket();
-    //     }, 3000);
-    //   }
-    // };
+    this.websocket.onclose = (event) => {
+      console.log('WebSocket disconnected:', event.code, event.reason);
+      // Attempt to reconnect after 3 seconds if not a normal closure
+      if (event.code !== 1000) {
+        setTimeout(() => {
+          console.log('Attempting to reconnect WebSocket...');
+          this.connectWebSocket();
+        }, 3000);
+      }
+    };
     
-    // this.websocket.onerror = (error) => {
-    //   console.error('WebSocket error:', error);
-    // };
+    this.websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
     
-    // return this.websocket;
+    return this.websocket;
   }
 
   // Add message handler

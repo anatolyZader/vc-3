@@ -49,12 +49,7 @@ const Chat = () => {
     }
   }, [isAuthenticated, authLoading, loadConversationsHistory]);
 
-  // Auto-select first conversation if none selected
-  useEffect(() => {
-    if (conversations.length > 0 && !currentConversationId) {
-      loadConversation(conversations[0].id);
-    }
-  }, [conversations, currentConversationId, loadConversation]);
+
 
   // Show loading spinner while auth is loading
   if (authLoading) {
@@ -184,7 +179,7 @@ const Chat = () => {
         >
           {!currentConversationId ? (
             <div className="no-conversation">
-              <p>Select a conversation or start a new one</p>
+              <p>Select conversation or start a new one</p>
             </div>
           ) : (
             <>
@@ -209,17 +204,17 @@ const Chat = () => {
           )}
         </MessageList>
 
-        <MessageInput
-          className="message-input"
-          placeholder={
-            currentConversationId 
-              ? "Enter your message here..." 
-              : "Start a new conversation first"
-          }
-          onSend={handleSend}
-          disabled={!currentConversationId || loading}
-          responsive
-        />
+        {currentConversationId && (
+            <MessageInput
+                className="message-input"
+                placeholder="Enter your message here..."
+                onSend={handleSend}
+                disabled={loading}
+                responsive
+            />
+        )}
+             
+
       </ChatContainer>
     </MainContainer>
   );

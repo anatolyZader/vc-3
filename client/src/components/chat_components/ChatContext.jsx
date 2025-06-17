@@ -192,31 +192,36 @@ export const ChatProvider = ({ children }) => {
     }
   }, [isAuthenticated, handleError]);
 
-  // Load specific conversation
-  const loadConversation = useCallback(async (conversationId) => {
+// ✅ Load specific conversation (fetch historical messages)
+const loadConversation = useCallback(async (conversationId) => {
     if (!conversationId || !isAuthenticated) return;
-    
+
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
-    
+
     try {
-      const messages = await chatAPI.fetchConversation(conversationId);
-      const formattedMessages = messages.map(msg => ({
-        message: msg.content,
-        sentTime: new Date(msg.created_at).toLocaleTimeString(),
-        sender: msg.role === 'user' ? 'You' : 'AI Assistant',
-        direction: msg.role === 'user' ? 'outgoing' : 'incoming',
-        position: 'single'
-      }));
-      
-      dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversationId });
-      dispatch({ type: 'SET_MESSAGES', payload: formattedMessages });
+        // This calls your chatAPI.fetchConversation(conversationId)
+        const messages = await chatAPI.fetchConversation(conversationId);
+
+        // This is the crucial mapping logic
+        const formattedMessages = messages.map(msg => ({
+            message: msg.content,
+            sentTime: new Date(msg.created_at).toLocaleTimeString(),
+            // ✅ CHANGE THIS LINE: Use msg.sender_type from your database
+            sender: msg.sender_type === 'user' ? 'You' : 'AI Assistant',
+            // ✅ CHANGE THIS LINE: Use msg.sender_type from your database
+            direction: msg.sender_type === 'user' ? 'outgoing' : 'incoming',
+            position: 'single' // This is typically 'single' for basic messages
+        }));
+
+        dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversationId });
+        dispatch({ type: 'SET_MESSAGES', payload: formattedMessages });
     } catch (error) {
-      handleError(error, 'Failed to load conversation');
+        handleError(error, 'Failed to load conversation');
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+        dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [isAuthenticated, handleError]);
+}, [isAuthenticated, handleError]); // Dependencies are correct
 
   // Send message - Updated to work with WebSocket
   const sendMessage = useCallback(async (messageText) => {
