@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "dev": "concurrently --kill-others \"./cloud-sql-proxy eventstorm-1:me-west1:eventstorm-pg-instance --port 5432\" \"NODE_DEBUG=fastify,node-fastify node --watch ./node_modules/fastify-cli/cli.js start server.js -l trace | pino-pretty --translateTime 'SYS:standard' --colorize\"",
     "debug": "node --inspect-brk app.js",
-    "start": "fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js"
+    "start": "fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js",
+    "generate:spec": "node business_modules/api/infrastructure/api/generateSpec.js"
   },
   "keywords": [],
   "author": "",

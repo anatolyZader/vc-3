@@ -1,5 +1,3 @@
-#  “publish” steps  come after  backend deploy — so that Cloud Run service is already running (and listening) when the messages arrive. Pub/sub listeners will pick them up, call fetchRepo/fetchWiki/fetchHttpApi, and persist the results.
-
 name: Full deploy
 
 on:
@@ -21,47 +19,43 @@ jobs:
       with:
         fetch-depth: 1
 
-    # 1. Authenticate first!
     - name: Authenticate with GCP
       uses: google-github-actions/auth@v2
       with:
         credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-    # 2. Now set up the Cloud SDK
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       with:
         project_id: ${{ env.GCP_PROJECT }}
 
-    # 3. Debug/check auth
     - name: Debug GCP Auth
       run: |
         gcloud auth list
         gcloud config list
         gsutil ls gs://$GCP_BUCKET/
 
-    # 4. Set up Node.js for both client and backend
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '22.x'
 
-    # --- FRONTEND: Build and Upload to GCP Storage ---
+    # --- FRONTEND: Build & Upload ---
     - name: Build React client
       run: |
         cd client
         npm ci
         npm run build
 
-    - name: Clear existing files in bucket
+    - name: Clear bucket
       run: |
         gsutil -m rm -r gs://$GCP_BUCKET/** || true
 
-    - name: Upload static files to a bucket
+    - name: Upload static files
       run: |
         gsutil -m rsync -r ./client/dist gs://$GCP_BUCKET/
 
-    # --- BACKEND: Build & Deploy to Cloud Run ---
+    # --- BACKEND: Build & Deploy ---
     - name: Install backend dependencies
       run: |
         cd backend
@@ -81,7 +75,7 @@ jobs:
           --set-env-vars=NODE_ENV=production,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance,DUMMY=MUDDYY \
           --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
 
-    # --- TRIGGER FETCH & PERSIST (now that backend is live) ---
+    # --- TRIGGER FETCH & PERSIST via Pub/Sub ---
     - name: Install jq for JSON templating
       run: sudo apt-get update && sudo apt-get install -y jq
 
@@ -99,7 +93,6 @@ jobs:
           --arg corr "$CORRELATION" \
           '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
         )
-        echo "Publishing to Pub/Sub topic $TOPIC: $PAYLOAD"
         gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
 
     - name: Publish fetchWikiRequest event
@@ -116,8 +109,14 @@ jobs:
           --arg corr "$CORRELATION" \
           '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
         )
-        echo "Publishing to Pub/Sub topic $TOPIC: $PAYLOAD"
         gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
+
+    # --- GENERATE & SAVE YOUR OPENAPI SPEC ---
+    - name: Generate OpenAPI spec file
+      working-directory: backend
+      run: |
+        # this should write openapi.json (or .yaml) into backend/
+        npm run generate:openapi
 
     - name: Publish fetchHttpApiRequest event
       env:
@@ -133,5 +132,4 @@ jobs:
           --arg corr "$CORRELATION" \
           '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
         )
-        echo "Publishing to Pub/Sub topic $TOPIC: $PAYLOAD"
         gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
