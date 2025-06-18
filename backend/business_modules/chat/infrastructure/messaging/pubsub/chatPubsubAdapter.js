@@ -7,7 +7,7 @@ class ChatPubsubAdapter  extends IChatMessagingPort  {
     super();
     this.pubSubClient = pubSubClient;
     // It's good practice to use environment variables for topic names
-    this.topicName = process.env.PUBSUB_CHAT_TOPIC_NAME || 'chat-events'; // Using a more descriptive name
+    this.topicName = 'chat-topic';  
   }
 
   // Generic method to publish an event

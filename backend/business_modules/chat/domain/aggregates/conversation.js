@@ -8,17 +8,15 @@ const ConversationTitle = require('../value_objects/conversationTitle');
 class Conversation {
   constructor(userId, conversationId = null) {
     this.userId = userId;
-    // Use the provided conversationId or generate a new one if absent
     this.conversationId = conversationId || uuidv4();
   }
 
   // Fix in conversation.js
   async startConversation(IChatPersistPort, title = 'New Chat') {
-    // Generate new conversation ID and store it
+
     this.conversationId = uuidv4();
     await IChatPersistPort.startConversation(this.userId, title, this.conversationId);
-    console.log(`Conversation ${this.conversationId} started for user ${this.userId} with title: ${title}`);
-    return this.conversationId; // Return the conversation ID
+    return this.conversationId; 
   }
   async fetchConversation(conversationId, IChatPersistPort) {
     const conversation = await IChatPersistPort.fetchConversation(this.userId, conversationId);
@@ -38,7 +36,6 @@ class Conversation {
 
   async addQuestion(conversationId, prompt, IChatPersistPort) {
     await IChatPersistPort.addQuestion(this.userId, conversationId, prompt);
-    // await IChatMessagingPort.addQuestion(prompt);
     console.log(`Question sent: ${prompt}`);
   }
 

@@ -52,10 +52,6 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     schema: fastify.getSchema('schema:chat:add-answer')
   });
 
-
-
-
-
   // rename a conversation
   fastify.route({
     method: 'PATCH',

@@ -1,45 +1,30 @@
-// ChatContext.jsx
 /* eslint-disable no-unused-vars */
 import PropTypes from 'prop-types';
 import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
-import { AuthContext } from '../auth_components/AuthContext'; 
+import { AuthContext } from '../auth_components/AuthContext';
 import chatAPI from './chatApi';
 
 const ChatContext = createContext();
 
-// Chat reducer for state management (same as before)
+// Reducer
 const chatReducer = (state, action) => {
   switch (action.type) {
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
-    
     case 'SET_ERROR':
       return { ...state, error: action.payload };
-    
     case 'SET_CONVERSATIONS':
       return { ...state, conversations: action.payload };
-    
     case 'SET_CURRENT_CONVERSATION':
       return { ...state, currentConversationId: action.payload };
-    
     case 'SET_MESSAGES':
       return { ...state, messages: action.payload };
-    
     case 'ADD_MESSAGE':
-      return { 
-        ...state, 
-        messages: [...state.messages, action.payload] 
-      };
-    
+      return { ...state, messages: [...state.messages, action.payload] };
     case 'SET_TYPING':
       return { ...state, isTyping: action.payload };
-    
     case 'ADD_CONVERSATION':
-      return { 
-        ...state, 
-        conversations: [action.payload, ...state.conversations] 
-      };
-    
+      return { ...state, conversations: [action.payload, ...state.conversations] };
     case 'UPDATE_CONVERSATION':
       return {
         ...state,
@@ -47,15 +32,15 @@ const chatReducer = (state, action) => {
           conv.id === action.payload.id ? { ...conv, ...action.payload } : conv
         )
       };
-    
     case 'DELETE_CONVERSATION':
       return {
         ...state,
         conversations: state.conversations.filter(conv => conv.id !== action.payload),
-        currentConversationId: state.currentConversationId === action.payload ? null : state.currentConversationId,
-        messages: state.currentConversationId === action.payload ? [] : state.messages
+        currentConversationId:
+          state.currentConversationId === action.payload ? null : state.currentConversationId,
+        messages:
+          state.currentConversationId === action.payload ? [] : state.messages
       };
-    
     default:
       return state;
   }
@@ -72,86 +57,76 @@ const initialState = {
 
 export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
-  
-
-
-  // Get auth context to check authentication status
   const { isAuthenticated, userProfile, authLoading } = useContext(AuthContext);
 
-  // Helper function to handle errors
   const handleError = useCallback((error, customMessage) => {
     console.error(customMessage || 'Chat error:', error);
-    
-    // Handle authentication errors
     if (error.message.includes('401') || error.message.includes('Unauthorized')) {
       dispatch({ type: 'SET_ERROR', payload: 'Session expired. Please log in again.' });
-      // The chatAPI will handle redirect to login
       return;
     }
-    
     dispatch({ type: 'SET_ERROR', payload: error.message || 'An error occurred' });
     dispatch({ type: 'SET_LOADING', payload: false });
   }, []);
 
-  // WebSocket connection for real-time updates
+  // === Effect A: Open WS once on auth ===
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      console.log('Setting up WebSocket connection for real-time chat updates...');
-      
-      const ws = chatAPI.connectWebSocket();
-      
-      const handleMessage = (message) => {
-        console.log('Received WebSocket message:', message);
-        
-        switch (message.type) {
-          case 'new_message':
-            if (message.conversationId === state.currentConversationId) {
-              const formattedMessage = {
-                message: message.message.content,
-                sentTime: new Date(message.message.created_at).toLocaleTimeString(),
-                sender: message.message.role === 'user' ? 'You' : 'AI Assistant',
-                direction: message.message.role === 'user' ? 'outgoing' : 'incoming',
+    if (!(isAuthenticated && !authLoading)) return;
+    console.log('Connecting WebSocket for chat...');
+
+    // Connect and subscribe
+    chatAPI.connectWebSocket();
+    const unsubscribe = chatAPI.onMessage(message => {
+      console.log('WS message:', message);
+      switch (message.type) {
+        case 'new_message': {
+          if (message.conversationId === state.currentConversationId) {
+            const msg = message.message;
+            dispatch({
+              type: 'ADD_MESSAGE',
+              payload: {
+                message: msg.content,
+                sentTime: new Date(msg.created_at).toLocaleTimeString(),
+                sender: msg.role === 'user' ? 'You' : 'AI Assistant',
+                direction: msg.role === 'user' ? 'outgoing' : 'incoming',
                 position: 'single'
-              };
-              dispatch({ type: 'ADD_MESSAGE', payload: formattedMessage });
-              dispatch({ type: 'SET_TYPING', payload: false });
-              console.log('Added real-time message to conversation');
-            }
-            break;
-          case 'error':
-            handleError(new Error(message.error), message.error);
+              }
+            });
             dispatch({ type: 'SET_TYPING', payload: false });
-            break;
-          default:
-            console.log('Unknown WebSocket message type:', message.type);
+          }
+          break;
         }
-      };
+        case 'error':
+          handleError(new Error(message.error), message.error);
+          dispatch({ type: 'SET_TYPING', payload: false });
+          break;
+        default:
+          console.log('Unknown WS message:', message);
+      }
+    });
 
-      const unsubscribe = chatAPI.onMessage(handleMessage);
-
-      return () => {
-        console.log('Cleaning up WebSocket connection...');
-        unsubscribe();
-        chatAPI.disconnect();
-      };
-    }
+    return () => {
+      console.log('Disconnecting WebSocket...');
+      unsubscribe();
+      chatAPI.disconnect();
+    };
   }, [isAuthenticated, authLoading, state.currentConversationId, handleError]);
 
-  // Clear error function
+  // === Effect B: Reset typing on conversation change ===
+  useEffect(() => {
+    dispatch({ type: 'SET_TYPING', payload: false });
+  }, [state.currentConversationId]);
+
+  // Clear error
   const clearError = useCallback(() => {
     dispatch({ type: 'SET_ERROR', payload: null });
   }, []);
 
   // Load conversation history
   const loadConversationsHistory = useCallback(async () => {
-    if (!isAuthenticated || authLoading) {
-      console.log('Not authenticated or still loading auth, skipping conversation load');
-      return;
-    }
-
+    if (!isAuthenticated || authLoading) return;
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
-    
     try {
       const conversations = await chatAPI.fetchConversationsHistory();
       dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
@@ -165,88 +140,57 @@ export const ChatProvider = ({ children }) => {
   // Start new conversation
   const startNewConversation = useCallback(async (title = 'New Chat') => {
     if (!isAuthenticated) {
-      handleError(new Error('Not authenticated'), 'Please log in to start a conversation');
+      handleError(new Error('Not authenticated'), 'Please log in');
       return;
     }
-
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
-    
     try {
       const response = await chatAPI.startConversation(title);
-      const newConversation = {
-        id: response.conversationId,
-        title,
-        created_at: new Date().toISOString()
-      };
-      
-      dispatch({ type: 'ADD_CONVERSATION', payload: newConversation });
+      const newConv = { id: response.conversationId, title, created_at: new Date().toISOString() };
+      dispatch({ type: 'ADD_CONVERSATION', payload: newConv });
       dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: response.conversationId });
       dispatch({ type: 'SET_MESSAGES', payload: [] });
-      
       return response.conversationId;
     } catch (error) {
-      handleError(error, 'Failed to start new conversation');
+      handleError(error, 'Failed to start conversation');
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [isAuthenticated, handleError]);
 
-// ✅ Load specific conversation (fetch historical messages)
-const loadConversation = useCallback(async (conversationId) => {
+  // Load specific conversation
+  const loadConversation = useCallback(async (conversationId) => {
     if (!conversationId || !isAuthenticated) return;
-
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
-
     try {
-        // This calls your chatAPI.fetchConversation(conversationId)
-        const messages = await chatAPI.fetchConversation(conversationId);
-
-        // This is the crucial mapping logic
-        const formattedMessages = messages.map(msg => ({
-            message: msg.content,
-            sentTime: new Date(msg.created_at).toLocaleTimeString(),
-            // ✅ CHANGE THIS LINE: Use msg.sender_type from your database
-            sender: msg.sender_type === 'user' ? 'You' : 'AI Assistant',
-            // ✅ CHANGE THIS LINE: Use msg.sender_type from your database
-            direction: msg.sender_type === 'user' ? 'outgoing' : 'incoming',
-            position: 'single' // This is typically 'single' for basic messages
-        }));
-
-        dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversationId });
-        dispatch({ type: 'SET_MESSAGES', payload: formattedMessages });
+      const msgs = await chatAPI.fetchConversation(conversationId);
+      const formatted = msgs.map(msg => ({
+        message: msg.content,
+        sentTime: new Date(msg.created_at).toLocaleTimeString(),
+        sender: msg.sender_type === 'user' ? 'You' : 'AI Assistant',
+        direction: msg.sender_type === 'user' ? 'outgoing' : 'incoming',
+        position: 'single'
+      }));
+      dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversationId });
+      dispatch({ type: 'SET_MESSAGES', payload: formatted });
     } catch (error) {
-        handleError(error, 'Failed to load conversation');
+      handleError(error, 'Failed to load conversation');
     } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-}, [isAuthenticated, handleError]); // Dependencies are correct
+  }, [isAuthenticated, handleError]);
 
-  // Send message - Updated to work with WebSocket
-  const sendMessage = useCallback(async (messageText) => {
-    if (!state.currentConversationId || !messageText.trim() || !isAuthenticated) return;
-    
-    // Add user message immediately to UI
-    const userMessage = {
-      message: messageText,
-      sentTime: new Date().toLocaleTimeString(),
-      sender: 'You',
-      direction: 'outgoing',
-      position: 'single'
-    };
-    
-    dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
+  // Send message
+  const sendMessage = useCallback(async (text) => {
+    if (!state.currentConversationId || !text.trim() || !isAuthenticated) return;
+    const userMsg = { message: text, sentTime: new Date().toLocaleTimeString(), sender: 'You', direction: 'outgoing', position: 'single' };
+    dispatch({ type: 'ADD_MESSAGE', payload: userMsg });
     dispatch({ type: 'SET_TYPING', payload: true });
-    
     try {
-      // Send question to backend - AI response will come via WebSocket
-      await chatAPI.sendQuestion(state.currentConversationId, messageText);
-      console.log('Message sent, waiting for AI response via WebSocket...');
-      
-      // Remove the setTimeout simulation since we're using WebSocket now
-      // The AI response will be handled by the WebSocket message handler above
-      
+      await chatAPI.sendQuestion(state.currentConversationId, text);
+      console.log('Sent question, awaiting WS response');
     } catch (error) {
       dispatch({ type: 'SET_TYPING', payload: false });
       handleError(error, 'Failed to send message');
@@ -254,29 +198,24 @@ const loadConversation = useCallback(async (conversationId) => {
   }, [state.currentConversationId, isAuthenticated, handleError]);
 
   // Rename conversation
-  const renameConversation = useCallback(async (conversationId, newTitle) => {
+  const renameConversation = useCallback(async (id, newTitle) => {
     if (!isAuthenticated) return;
-    
     try {
-      await chatAPI.renameConversation(conversationId, newTitle);
-      dispatch({ 
-        type: 'UPDATE_CONVERSATION', 
-        payload: { id: conversationId, title: newTitle } 
-      });
+      await chatAPI.renameConversation(id, newTitle);
+      dispatch({ type: 'UPDATE_CONVERSATION', payload: { id, title: newTitle } });
     } catch (error) {
-      handleError(error, 'Failed to rename conversation');
+      handleError(error, 'Failed to rename');
     }
   }, [isAuthenticated, handleError]);
 
   // Delete conversation
-  const deleteConversation = useCallback(async (conversationId) => {
+  const deleteConversation = useCallback(async (id) => {
     if (!isAuthenticated) return;
-    
     try {
-      await chatAPI.deleteConversation(conversationId);
-      dispatch({ type: 'DELETE_CONVERSATION', payload: conversationId });
+      await chatAPI.deleteConversation(id);
+      dispatch({ type: 'DELETE_CONVERSATION', payload: id });
     } catch (error) {
-      handleError(error, 'Failed to delete conversation');
+      handleError(error, 'Failed to delete');
     }
   }, [isAuthenticated, handleError]);
 
@@ -289,26 +228,16 @@ const loadConversation = useCallback(async (conversationId) => {
     renameConversation,
     deleteConversation,
     clearError,
-    // Add auth state for convenience
     isAuthenticated,
     userProfile
   };
 
-  return (
-    <ChatContext.Provider value={value}>
-      {children}
-    </ChatContext.Provider>
-  );
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };
 
-ChatProvider.propTypes = {
-  children: PropTypes.node.isRequired
-};
-
+ChatProvider.propTypes = { children: PropTypes.node.isRequired };
 export const useChat = () => {
   const context = useContext(ChatContext);
-  if (!context) {
-    throw new Error('useChat must be used within a ChatProvider');
-  }
+  if (!context) throw new Error('useChat must be used within a ChatProvider');
   return context;
 };

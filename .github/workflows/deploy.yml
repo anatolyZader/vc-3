@@ -1,8 +1,10 @@
+#  “publish” steps  come after  backend deploy — so that Cloud Run service is already running (and listening) when the messages arrive. Pub/sub listeners will pick them up, call fetchRepo/fetchWiki/fetchHttpApi, and persist the results.
+
 name: Full deploy
 
 on:
   push:
-    branches: [amber] 
+    branches: [amber]
 
 jobs:
   build-and-deploy:
@@ -25,13 +27,13 @@ jobs:
       with:
         credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-    # 2. Now setttttt up the Cloud SDK
+    # 2. Now set up the Cloud SDK
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       with:
         project_id: ${{ env.GCP_PROJECT }}
 
-    # 3. Now debug/check auth
+    # 3. Debug/check auth
     - name: Debug GCP Auth
       run: |
         gcloud auth list
@@ -59,23 +61,77 @@ jobs:
       run: |
         gsutil -m rsync -r ./client/dist gs://$GCP_BUCKET/
 
-    # --- BACKEND generate openapi spec an deploy Fastify backend to Cloud Run from source---
-
+    # --- BACKEND: Build & Deploy to Cloud Run ---
     - name: Install backend dependencies
       run: |
         cd backend
         npm ci
 
-    - name: deploy backend to Cloud Run
+    - name: Deploy backend to Cloud Run
       run: |
         cd backend
         gcloud run deploy eventstorm-backend \
-        --source . \
-        --region $REGION \
-        --project $GCP_PROJECT \
-        --platform managed \
-        --vpc-connector=cr-vpc-conn \
-        --allow-unauthenticated \
-        --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
-        --set-env-vars=NODE_ENV=production,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance,DUMMY=MUDDYY \
-        --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
+          --source . \
+          --region $REGION \
+          --project $GCP_PROJECT \
+          --platform managed \
+          --vpc-connector=cr-vpc-conn \
+          --allow-unauthenticated \
+          --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
+          --set-env-vars=NODE_ENV=production,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance,DUMMY=MUDDYY \
+          --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
+
+    # --- TRIGGER FETCH & PERSIST (now that backend is live) ---
+    - name: Install jq for JSON templating
+      run: sudo apt-get update && sudo apt-get install -y jq
+
+    - name: Publish fetchRepoRequest event
+      env:
+        TOPIC: git-topic
+        USER_ID: ${{ github.actor }}
+        REPO_ID: ${{ github.repository }}
+        CORRELATION: ${{ github.run_id }}
+      run: |
+        PAYLOAD=$(jq -n \
+          --arg event "fetchRepoRequest" \
+          --arg userId "$USER_ID" \
+          --arg repoId "$REPO_ID" \
+          --arg corr "$CORRELATION" \
+          '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
+        )
+        echo "Publishing to Pub/Sub topic $TOPIC: $PAYLOAD"
+        gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
+
+    - name: Publish fetchWikiRequest event
+      env:
+        TOPIC: wiki-topic
+        USER_ID: ${{ github.actor }}
+        REPO_ID: ${{ github.repository }}
+        CORRELATION: ${{ github.run_id }}
+      run: |
+        PAYLOAD=$(jq -n \
+          --arg event "fetchWikiRequest" \
+          --arg userId "$USER_ID" \
+          --arg repoId "$REPO_ID" \
+          --arg corr "$CORRELATION" \
+          '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
+        )
+        echo "Publishing to Pub/Sub topic $TOPIC: $PAYLOAD"
+        gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
+
+    - name: Publish fetchHttpApiRequest event
+      env:
+        TOPIC: api-topic
+        USER_ID: ${{ github.actor }}
+        REPO_ID: ${{ github.repository }}
+        CORRELATION: ${{ github.run_id }}
+      run: |
+        PAYLOAD=$(jq -n \
+          --arg event "fetchHttpApiRequest" \
+          --arg userId "$USER_ID" \
+          --arg repoId "$REPO_ID" \
+          --arg corr "$CORRELATION" \
+          '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
+        )
+        echo "Publishing to Pub/Sub topic $TOPIC: $PAYLOAD"
+        gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"

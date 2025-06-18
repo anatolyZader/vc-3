@@ -157,59 +157,88 @@ class ChatPostgresAdapter extends IChatPersistPort {
         }
     }
 
-    // ✅ FIX: Removed user_id from INSERT, changed 'role' to 'sender_type'
-    async addQuestion(userId, conversationId, prompt) {
-        const pool = await this.getPool();
-        const client = await pool.connect();
-        try {
-            const messageId = uuidv4();
-            // Get the current max message_order for this conversation to increment it
-            const maxOrderResult = await client.query(
-                `SELECT MAX(message_order) FROM chat.messages WHERE conversation_id = $1`,
-                [conversationId]
-            );
-            const nextMessageOrder = (maxOrderResult.rows[0].max || 0) + 1;
+ 
+  /**
+   * Persist a user’s question into chat.messages
+   */
+  /** Persist a user’s question */
+  async addQuestion(userId, conversationId, prompt) {
+    const pool = await this.getPool();
+    const client = await pool.connect();
+    try {
+      const messageId = uuidv4();
 
-            await client.query(
-                `INSERT INTO chat.messages (id, conversation_id, sender_type, content, message_order) VALUES ($1, $2, 'user', $3, $4)`,
-                [messageId, conversationId, prompt, nextMessageOrder]
-            );
-            console.log(`Stored user question with ID ${messageId}`);
-            return messageId;
-        } catch (error) {
-            console.error('Error storing question:', error);
-            throw error;
-        } finally {
-            client.release();
-        }
+      // Get next message_order
+      const { rows } = await client.query(
+        `SELECT MAX(message_order) AS max_order
+           FROM chat.messages
+          WHERE conversation_id = $1`,
+        [conversationId]
+      );
+      const nextOrder = (rows[0].max_order || 0) + 1;
+
+      // Insert into the exact columns, using 'user' for sender_type
+      await client.query(
+        `INSERT INTO chat.messages
+           (id,
+            conversation_id,
+            sender_type,
+            content,
+            message_order)
+         VALUES
+           ($1, $2, 'user', $3, $4)`,
+        [messageId, conversationId, prompt, nextOrder]
+      );
+
+      console.log(`Stored user question with ID ${messageId}`);
+      return messageId;
+    } catch (err) {
+      console.error('Error storing question:', err);
+      throw err;
+    } finally {
+      client.release();
     }
+  }
 
-    // ✅ FIX: Removed user_id from INSERT, changed 'role' to 'sender_type'
-    async addAnswer(userId, conversationId, answer) {
-        const pool = await this.getPool();
-        const client = await pool.connect();
-        try {
-            const messageId = uuidv4();
-            // Get the current max message_order for this conversation to increment it
-            const maxOrderResult = await client.query(
-                `SELECT MAX(message_order) FROM chat.messages WHERE conversation_id = $1`,
-                [conversationId]
-            );
-            const nextMessageOrder = (maxOrderResult.rows[0].max || 0) + 1;
+  /** Persist an AI’s answer */
+  async addAnswer(userId, conversationId, answer) {
+    const pool = await this.getPool();
+    const client = await pool.connect();
+    try {
+      const messageId = uuidv4();
 
-            await client.query(
-                `INSERT INTO chat.messages (id, conversation_id, sender_type, content, message_order) VALUES ($1, $2, 'ai', $3, $4)`,
-                [messageId, conversationId, answer, nextMessageOrder]
-            );
-            console.log(`Stored AI response with ID ${messageId}`);
-            return messageId;
-        } catch (error) {
-            console.error('Error storing AI response:', error);
-            throw error;
-        } finally {
-            client.release();
-        }
+      // Get next message_order
+      const { rows } = await client.query(
+        `SELECT MAX(message_order) AS max_order
+           FROM chat.messages
+          WHERE conversation_id = $1`,
+        [conversationId]
+      );
+      const nextOrder = (rows[0].max_order || 0) + 1;
+
+      // Insert into the exact columns, using 'assistant' for sender_type
+      await client.query(
+        `INSERT INTO chat.messages
+           (id,
+            conversation_id,
+            sender_type,
+            content,
+            message_order)
+         VALUES
+           ($1, $2, 'assistant', $3, $4)`,
+        [messageId, conversationId, answer, nextOrder]
+      );
+
+      console.log(`Stored AI response with ID ${messageId}`);
+      return messageId;
+    } catch (err) {
+      console.error('Error storing AI response:', err);
+      throw err;
+    } finally {
+      client.release();
     }
+  }
+
 }
 
 module.exports = ChatPostgresAdapter;

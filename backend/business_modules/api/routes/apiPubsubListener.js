@@ -1,5 +1,6 @@
 // apiPubsubListener.js
 'use strict';
+/* eslint-disable no-unused-vars */
 
 const fp = require('fastify-plugin');
 
@@ -20,7 +21,7 @@ async function apiPubsubListener(fastify, options) {
     try {
       const data = JSON.parse(message.data.toString());
 
-      if (data.event === 'fetchHttpApi') {
+      if (data.event === 'fetchHttpApiRequest') {
         const { userId, repoId, correlationId } = data.payload;
         fastify.log.info(`Processing fetchHttpApi event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
 

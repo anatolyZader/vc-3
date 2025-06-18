@@ -1,5 +1,6 @@
 // wikiPubsubListener.js
 'use strict';
+/* eslint-disable no-unused-vars */
 
 const fp = require('fastify-plugin');
 
@@ -20,7 +21,7 @@ async function wikiPubsubListener(fastify, options) {
     try {
       const data = JSON.parse(message.data.toString());
 
-      if (data.event === 'fetchWiki') {
+      if (data.event === 'fetchWikiRequest') {
         const { userId, repoId, correlationId } = data.payload;
         fastify.log.info(`Processing fetchWiki event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
 

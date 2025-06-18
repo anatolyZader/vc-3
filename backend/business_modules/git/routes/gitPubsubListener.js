@@ -1,5 +1,6 @@
 // gitPubsubListener.js
 'use strict';
+/* eslint-disable no-unused-vars */
 
 const fp = require('fastify-plugin');
 
@@ -20,7 +21,7 @@ async function gitPubsubListener(fastify, options) {
     try {
       const data = JSON.parse(message.data.toString());
 
-      if (data.event === 'fetchRepo') {
+      if (data.event === 'fetchRepoRequest') {
         const { userId, repoId, correlationId } = data.payload;
         fastify.log.info(`Processing fetchRepo event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
 
@@ -48,7 +49,7 @@ async function gitPubsubListener(fastify, options) {
           return;
         }
 
-      } else if (data.event === 'fetchWiki') {
+      } else if (data.event === 'fetchWikiRequest') {
         const { userId, repoId, correlationId } = data.payload;
         fastify.log.info(`Processing fetchWiki event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
 
