@@ -6,7 +6,7 @@
 const fp = require('fastify-plugin');
 
 module.exports = fp(async function authSchemasPlugin(fastify, opts) {
-  console.log('authPlugin loaded!');
+  console.log('authSchemasPlugin loaded!');
 
   const schemas = [
     { id: 'schema:auth:register', path: '../routes/schemas/register.json' },

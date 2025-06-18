@@ -1,14 +1,12 @@
 'use strict';
 
 module.exports = {
-  "$id": "schema:chat:send-question",
+  "$id": "schema:chat:add-answer",
   body: {
     type: 'object',
-    required: ['userId', 'content', 'prompt'],
+    required: ['aiResponse'],
     properties: {
-      userId: { type: 'string' },
-      content: { type: 'string' },
-      prompt: { type: 'string' },
+      aiResponse: { type: 'string', minLength: 1 },
     },
   },
   params: {

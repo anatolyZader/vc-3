@@ -438,25 +438,6 @@
         }
       }
     },
-    "/api/chat/{conversationId}/rename": {
-      "patch": {
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "conversationId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response"
-          }
-        }
-      }
-    },
     "/api/chat/{conversationId}/question": {
       "post": {
         "parameters": [
@@ -478,6 +459,25 @@
     },
     "/api/chat/{conversationId}/answer": {
       "post": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "conversationId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/chat/{conversationId}/rename": {
+      "patch": {
         "parameters": [
           {
             "schema": {

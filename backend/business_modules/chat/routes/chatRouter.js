@@ -34,6 +34,28 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     schema: fastify.getSchema('schema:chat:fetch-conversation')
   });
 
+  // add a question
+  fastify.route({
+    method: 'POST',
+    url: '/:conversationId/question',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.addQuestion,
+    schema: fastify.getSchema('schema:chat:add-question')
+  });
+
+  // send an answer
+  fastify.route({
+    method: 'POST',
+    url: '/:conversationId/answer',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.addAnswer,
+    schema: fastify.getSchema('schema:chat:add-answer')
+  });
+
+
+
+
+
   // rename a conversation
   fastify.route({
     method: 'PATCH',
@@ -50,23 +72,5 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     preValidation: [fastify.verifyToken],
     handler: fastify.deleteConversation,
     schema: fastify.getSchema('schema:chat:delete-conversation')
-  });
-
-  // send a question
-  fastify.route({
-    method: 'POST',
-    url: '/:conversationId/question',
-    preValidation: [fastify.verifyToken],
-    handler: fastify.addQuestion,
-    schema: fastify.getSchema('schema:chat:send-question')
-  });
-
-  // send an answer
-  fastify.route({
-    method: 'POST',
-    url: '/:conversationId/answer',
-    preValidation: [fastify.verifyToken],
-    handler: fastify.addAnswer,
-    schema: fastify.getSchema('schema:chat:send-answer')
   });
 });

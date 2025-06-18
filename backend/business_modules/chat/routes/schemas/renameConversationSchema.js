@@ -4,10 +4,9 @@ module.exports = {
   "$id": "schema:chat:rename-conversation",
   body: {
     type: 'object',
-    required: ['newTitle', 'userId'],
+    required: ['newTitle'],
     properties: {
       newTitle: { type: 'string', minLength: 1 },
-      userId: { type: 'string' },
     },
   },
   params: {

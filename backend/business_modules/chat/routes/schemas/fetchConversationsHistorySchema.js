@@ -2,11 +2,5 @@
 
 module.exports = {
   "$id": "schema:chat:fetch-conversations-history",
-  querystring: {
-    type: 'object',
-    required: ['userId'],
-    properties: {
-      userId: { type: 'string' },
-    },
-  },
+  // No body, params, or querystring required – user is always obtained from token
 };
