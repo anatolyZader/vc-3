@@ -1,22 +1,13 @@
 // apiSwaggerAdapter.js
 'use strict';
-const fs = require('fs');
-const yaml = require('js-yaml');
+
 const path = require('path');
-
 const IApiPort = require('../../domain/ports/IApiPort');
-
-const projectRoot = path.resolve(__dirname, '../../../../');
-const specPath = path.join(projectRoot, 'httpApiSpec.yml');
+const projectRoot = path.resolve(__dirname, './');
+const specPath = path.join(projectRoot, 'httpApiSpec.json');
 
 // Load and parse the OpenAPI spec once at module load
-let openapiSpec;
-try {
-  openapiSpec = yaml.load(fs.readFileSync(specPath, 'utf8'));
-} catch (err) {
-  console.error(`[ApiSwaggerAdapter] Failed to load httpApiSpec.yml at ${specPath}:`, err);
-  openapiSpec = null;
-}
+const openapiSpec = require(specPath);
 
 
 class ApiSwaggerAdapter extends IApiPort {

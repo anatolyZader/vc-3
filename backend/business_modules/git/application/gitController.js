@@ -11,6 +11,7 @@ async function gitController(fastify, options) {
     try {
       const { repoId } = request.params;
       const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      const correlationId = request.headers['x-correlation-id'] || `http-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       fastify.log.info(`Processing fetchRepo HTTP request for user: ${userId}, repo: ${repoId}`);
       
@@ -19,7 +20,7 @@ async function gitController(fastify, options) {
         throw new Error('Git service not found in DI container');
       }
       
-      const repository = await gitService.fetchRepo(userId, repoId);
+      const repository = await gitService.fetchRepo(userId, repoId, correlationId);
       
       fastify.log.info(`Repository fetched via HTTP: ${JSON.stringify(repository)}`);
       return repository;
@@ -33,6 +34,7 @@ async function gitController(fastify, options) {
     try {
       const { repoId } = request.params;
       const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      const correlationId = request.headers['x-correlation-id'] || `http-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       fastify.log.info(`Processing fetchWiki HTTP request for user: ${userId}, repo: ${repoId}`);
       
@@ -41,7 +43,7 @@ async function gitController(fastify, options) {
         throw new Error('Git service not found in DI container');
       }
       
-      const wiki = await gitService.fetchWiki(userId, repoId);
+      const wiki = await gitService.fetchWiki(userId, repoId, correlationId);
       
       fastify.log.info(`Wiki fetched via HTTP: ${JSON.stringify(wiki)}`);
       return wiki;

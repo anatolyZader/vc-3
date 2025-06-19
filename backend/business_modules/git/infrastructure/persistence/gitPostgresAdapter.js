@@ -2,8 +2,7 @@
 'use strict';
 
 const { Pool } = require('pg');
-const { v4: uuidv4 } = require('uuid');
-const bcrypt = require('bcrypt');
+
 const IGitPersistPort = require('../../domain/ports/IGitPersistPort');
 
 const isLocal = process.env.NODE_ENV !== 'production'

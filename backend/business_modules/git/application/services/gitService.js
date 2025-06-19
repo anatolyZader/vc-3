@@ -13,7 +13,7 @@ class GitService extends IGitService {
     this.gitPersistenceAdapter = gitPersistenceAdapter;  
   }
 
-  async fetchRepo(userId, repoId) {
+  async fetchRepo(userId, repoId, correlationId) {
     const repository = new Repository(userId);
     const repo = await repository.fetchRepo(repoId, this.gitAdapter);
     await this.gitMessagingAdapter.publishRepoFetchedEvent(repo, correlationId);
@@ -21,7 +21,7 @@ class GitService extends IGitService {
     return repo;
   }
 
-  async fetchWiki(userId, repoId) {
+  async fetchWiki(userId, repoId, correlationId) {
     const repository = new Repository(userId);
     const wiki = await repository.fetchWiki(repoId, this.gitAdapter);
     await this.gitMessagingAdapter.publishWikiFetchedEvent(wiki, correlationId);

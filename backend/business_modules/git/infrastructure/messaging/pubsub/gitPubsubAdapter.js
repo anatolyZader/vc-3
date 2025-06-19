@@ -1,18 +1,16 @@
 // gitPubsubAdapter.js
 'use strict';
 
-
 class GitPubsubAdapter {
   constructor({ pubSubClient }) {
     this.pubSubClient = pubSubClient;
-
-
     this.topicName = process.env.PUBSUB_GIT_EVENTS_TOPIC_NAME || 'git-events-topic';
   }
 
-  async publishRepoFetchedEvent(result) {
+  async publishRepoFetchedEvent(result, correlationId) {
     const event = {
       event: 'repositoryFetched',
+      correlationId, // Include correlationId directly in the event payload
       ...result
     };
     const dataBuffer = Buffer.from(JSON.stringify(event));

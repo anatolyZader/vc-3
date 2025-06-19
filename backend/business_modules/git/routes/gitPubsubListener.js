@@ -29,7 +29,8 @@ async function gitPubsubListener(fastify, options) {
           // Create mock request object for fetchRepo
           const mockRequest = {
             params: { repoId },
-            user: { id: userId }
+            user: { id: userId },
+            headers: { 'x-correlation-id': correlationId }
           };
           const mockReply = {};
 
@@ -37,10 +38,6 @@ async function gitPubsubListener(fastify, options) {
           const repository = await fastify.fetchRepo(mockRequest, mockReply);
           
           fastify.log.info(`Repository fetched via PubSub: ${JSON.stringify(repository)}`);
-          
-          // Publish the result event
-          const gitPubsubAdapter = await fastify.diContainer.resolve('gitPubsubAdapter');
-          await gitPubsubAdapter.publishRepoFetchedEvent(repository, correlationId);
           
           fastify.log.info(`Repository fetch result published for message ${message.id}`);
         } else {
@@ -57,7 +54,8 @@ async function gitPubsubListener(fastify, options) {
           // Create mock request object for fetchWiki
           const mockRequest = {
             params: { repoId },
-            user: { id: userId }
+            user: { id: userId },
+            headers: { 'x-correlation-id': correlationId }
           };
           const mockReply = {};
 
@@ -65,10 +63,6 @@ async function gitPubsubListener(fastify, options) {
           const wiki = await fastify.fetchWiki(mockRequest, mockReply);
           
           fastify.log.info(`Wiki fetched via PubSub: ${JSON.stringify(wiki)}`);
-          
-          // Publish the result event
-          const gitPubsubAdapter = await fastify.diContainer.resolve('gitPubsubAdapter');
-          await gitPubsubAdapter.publishWikiPageFetchedEvent(wiki, correlationId);
           
           fastify.log.info(`Wiki fetch result published for message ${message.id}`);
         } else {
