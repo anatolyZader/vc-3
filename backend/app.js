@@ -61,81 +61,34 @@ module.exports = async function (fastify, opts) {
   
   await fastify.register(corsPlugin);
 
-  // Register Swagger directly here instead of using swaggerPlugin
-  console.log('--- REGISTERING SWAGGER DIRECTLY IN APP.JS ---');
+  // Register Swagger plugin
+  console.log('--- REGISTERING SWAGGER PLUGIN ---');
   try {
-    await fastify.register(require('@fastify/swagger'), {
-      openapi: {
-        openapi: '3.0.0',
-        info: {
-          title: 'EventStorm.me API',
-          description: 'EventStorm API Documentation',
-          version: '1.0.0'
-        },
-        servers: [
-          {
-            url: process.env.NODE_ENV === 'production' ? 'https://eventstorm.me' : 'http://localhost:3000',
-            description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
-          }
-        ],
-        tags: [
-          { name: 'auth', description: 'Authentication endpoints' },
-          { name: 'ai', description: 'AI service endpoints' },
-          { name: 'chat', description: 'Chat service endpoints' },
-          { name: 'git', description: 'Git service endpoints' },
-          { name: 'wiki', description: 'Wiki service endpoints' },
-          { name: 'api', description: 'API management endpoints' }
-        ],
-        components: {
-          securitySchemes: {
-            bearerAuth: {
-              type: 'http',
-              scheme: 'bearer',
-              bearerFormat: 'JWT'
-            },
-            cookieAuth: {
-              type: 'apiKey',
-              in: 'cookie',
-              name: 'authToken'
-            }
-          }
-        }
-      },
-      exposeRoute: true,
-      routePrefix: '/api/doc',
-      hideUntagged: false
+    await fastify.register(require('./swaggerPlugin'), {
+      // Plugin options if needed
     });
-    
-    console.log('✅ @fastify/swagger registered directly in app.js');
-    
-    // Verify the decorator exists immediately
-    if (fastify.hasDecorator('swagger')) {
-      console.log('✅ Swagger decorator is available in app.js');
-    } else {
-      console.log('❌ Swagger decorator is NOT available in app.js');
-    }
-    
+    console.log('✅ Swagger plugin registered successfully');
   } catch (error) {
-    console.error('❌ Error registering Swagger directly in app.js:', error);
+    console.error('❌ Error registering Swagger plugin:', error);
     throw error;
   }
 
-  // Redis setup
-  fastify.log.info('🔌 Registering Redis client plugin')
-  await fastify.register(redisPlugin)
-  fastify.log.info('✅ Redis client plugin registered')
-  
-  fastify.redis.on('error', err => {
-    fastify.log.error({ err }, 'Redis client error')
-  })
-  
-  fastify.log.info('⏳ Testing Redis connection with PING…')
-  try {
-    const pong = await fastify.redis.ping()
-    fastify.log.info(`✅ Redis PING response: ${pong}`)
-  } catch (err) {
-    fastify.log.error({ err }, '❌ Redis PING failed')
-  }
+    // Redis setup
+    fastify.log.info('🔌 Registering Redis client plugin')
+    await fastify.register(redisPlugin)
+    fastify.log.info('✅ Redis client plugin registered')
+    
+    fastify.redis.on('error', err => {
+      fastify.log.error({ err }, 'Redis client error')
+    })
+    
+    fastify.log.info('⏳ Testing Redis connection with PING…')
+    try {
+      const pong = await fastify.redis.ping()
+      fastify.log.info(`✅ Redis PING response: ${pong}`)
+    } catch (err) {
+      fastify.log.error({ err }, '❌ Redis PING failed')
+    }
 
   fastify.log.info('✅ ✅ 23.5 11:13 ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅   REVISED IMAGE')
 
@@ -427,25 +380,25 @@ module.exports = async function (fastify, opts) {
     fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
     
     // Check if decorator is available now
-    console.log('🔍 Checking swagger decorator availability in onReady...');
-    if (fastify.hasDecorator('swagger')) {
-      console.log('✅ Swagger decorator found in onReady!');
-      try {
-        const spec = fastify.swagger();
-        const outputDir = path.join(__dirname, 'business_modules/api/infrastructure/api');
-        const outputPath = path.join(outputDir, 'httpApiSpec.json');
+  //   console.log('🔍 Checking swagger decorator availability in onReady...');
+  //   if (fastify.hasDecorator('swagger')) {
+  //     console.log('✅ Swagger decorator found in onReady!');
+  //     try {
+  //       const spec = fastify.swagger();
+  //       const outputDir = path.join(__dirname, 'business_modules/api/infrastructure/api');
+  //       const outputPath = path.join(outputDir, 'httpApiSpec.json');
         
-        await fs.promises.mkdir(outputDir, { recursive: true });
-        await fs.promises.writeFile(outputPath, JSON.stringify(spec, null, 2), 'utf8');
+  //       await fs.promises.mkdir(outputDir, { recursive: true });
+  //       await fs.promises.writeFile(outputPath, JSON.stringify(spec, null, 2), 'utf8');
         
-        fastify.log.info(`✔ OpenAPI spec written to ${outputPath}`);
-      } catch (err) {
-        fastify.log.error('✘ Failed to write OpenAPI spec:', err);
-        fastify.log.error('Full error stack:', err.stack);
-      }
-    } else {
-      fastify.log.warn('❌ Swagger decorator STILL not found in onReady – this indicates a scope issue');
-      console.log('Available decorators:', Object.getOwnPropertyNames(fastify));
-    }
+  //       fastify.log.info(`✔ OpenAPI spec written to ${outputPath}`);
+  //     } catch (err) {
+  //       fastify.log.error('✘ Failed to write OpenAPI spec:', err);
+  //       fastify.log.error('Full error stack:', err.stack);
+  //     }
+  //   } else {
+  //     fastify.log.warn('❌ Swagger decorator STILL not found in onReady – this indicates a scope issue');
+  //     console.log('Available decorators:', Object.getOwnPropertyNames(fastify));
+  //   }
   });
 };
