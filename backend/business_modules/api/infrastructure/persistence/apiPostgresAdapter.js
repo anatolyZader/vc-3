@@ -1,9 +1,8 @@
 // apiPostgresAdapter.js
+
 'use strict';
 
 const { Pool } = require('pg');
-const { v4: uuidv4 } = require('uuid');
-const bcrypt = require('bcrypt');
 const IApiPersistPort = require('../../domain/ports/IApiPersistPort');
 
 const isLocal = process.env.NODE_ENV !== 'production'

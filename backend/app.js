@@ -240,8 +240,7 @@ module.exports = async function (fastify, opts) {
     clientSecret = process.env.FALLBACK_CLIENT_SECRET;
   }
     
-  console.log(' credentialsJsonString accessed in google run:', credentialsJsonString);
-
+  
   if (credentialsJsonString) {
     try {
       clientId = credentialsJsonString.web.client_id;
