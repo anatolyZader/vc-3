@@ -1,4 +1,4 @@
-// aop/log/plugins/logPlugin.js
+// logPlugin.js
 'use strict';
 const fp = require('fastify-plugin');
 

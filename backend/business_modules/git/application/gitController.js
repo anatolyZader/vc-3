@@ -9,18 +9,19 @@ async function gitController(fastify, options) {
   // HTTP route handlers - extract params from request
   fastify.decorate('fetchRepo', async (request, reply) => {
     try {
-      const { repoId } = request.params;
+      const { user, repo } = request.params; // Assuming params are structured
       const userId = request.user.id; // Assuming user is set by verifyToken middleware
       const correlationId = request.headers['x-correlation-id'] || `http-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
-      fastify.log.info(`Processing fetchRepo HTTP request for user: ${userId}, repo: ${repoId}`);
+      fastify.log.info(`Processing fetchRepo HTTP request for user: ${userId, user}, repo: ${repo}`);
       
       const gitService = await request.diScope.resolve('gitService');
       if (!gitService) {
         throw new Error('Git service not found in DI container');
       }
-      
-      const repository = await gitService.fetchRepo(userId, repoId, correlationId);
+
+      const repoInGithubFormat = repo.includes('/') ? repo : `${user}/${repo}`;
+      const repository = await gitService.fetchRepo(userId, repoInGithubFormat, correlationId);
       
       fastify.log.info(`Repository fetched via HTTP: ${JSON.stringify(repository)}`);
       return repository;
@@ -32,7 +33,7 @@ async function gitController(fastify, options) {
 
   fastify.decorate('fetchWiki', async (request, reply) => {
     try {
-      const { repoId } = request.params;
+      const { repoId } = request.query;
       const userId = request.user.id; // Assuming user is set by verifyToken middleware
       const correlationId = request.headers['x-correlation-id'] || `http-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       

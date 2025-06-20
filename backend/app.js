@@ -20,12 +20,15 @@ const envPlugin         = require('./envPlugin');
 const diPlugin          = require('./diPlugin');
 const corsPlugin        = require('./corsPlugin');
 const helmet            = require('@fastify/helmet');
-
 const fastifyJwt        = require('@fastify/jwt');
 const fastifyOAuth2     = require('@fastify/oauth2');
 const { OAuth2Client }  = require('google-auth-library');
 const { v4: uuidv4 }    = require('uuid');
 const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
+// const swaggerPlugin     = require('./swaggerPlugin');
+// const swaggerUIPlugin   = require('./swaggerUIPlugin');
+const fastifySwagger    = require('@fastify/swagger');
+const fastifySwaggerUI  = require('@fastify/swagger-ui');
 
 require('dotenv').config();
 
@@ -35,16 +38,28 @@ module.exports = async function (fastify, opts) {
     fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');
   });
 
-  // ────────────────────────────────────────────────────────────────
-  // 1️⃣  SPEC-GENERATOR ON ROOT (MUST BE FIRST)
-  // ────────────────────────────────────────────────────────────────
-  await fastify.register(require('@fastify/swagger'), {
+  await fastify.register(loggingPlugin);
+  await fastify.register(schemaLoaderPlugin);
+  await fastify.register(envPlugin);
+  await fastify.register(diPlugin);
+
+  await fastify.register(websocketPlugin);
+  await fastify.register(fastifySensible);
+  await fastify.register(fastifySwagger, {
     openapi: {
       openapi: '3.0.0',
       info: {
         title: 'EventStorm.me API',
-        description: 'EventStorm API – Git analysis, AI insights, wiki, chat and more',
+        description:
+          'EventStorm API – Git analysis, AI insights, wiki, chat and more',
         version: '1.0.0',
+        contact: {
+          name: 'EventStorm Support',
+          email: 'support@eventstorm.me',
+          url: 'https://eventstorm.me/support'
+        },
+        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },
+        termsOfService: 'https://eventstorm.me/terms'
       },
       servers: [
         {
@@ -53,29 +68,59 @@ module.exports = async function (fastify, opts) {
             : 'http://localhost:3000',
           description: process.env.NODE_ENV === 'production'
             ? 'Production server'
-            : 'Development server',
-        },
+            : 'Development server'
+        }
+      ],
+      tags: [
+        { name: 'auth', description: 'Authentication endpoints' },
+        { name: 'git', description: 'Git-analysis endpoints' },
+        { name: 'ai', description: 'AI-powered endpoints' },
+        { name: 'chat', description: 'Chat endpoints' },
+        { name: 'wiki', description: 'Wiki endpoints' },
+        { name: 'api', description: 'Utility endpoints' }
       ],
       components: {
         securitySchemes: {
           bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' },
+          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' }
         },
+        responses: {
+          UnauthorizedError: {
+            description: 'Authentication information is missing or invalid',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: { type: 'string' },
+                    message: { type: 'string' },
+                    statusCode: { type: 'number' }
+                  }
+                }
+              }
+            }
+          },
+          ServerError: {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: { type: 'string' },
+                    message: { type: 'string' },
+                    statusCode: { type: 'number' }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
-      security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+      security: [{ bearerAuth: [] }, { cookieAuth: [] }]
     },
+    exposeRoute: true // This is crucial for exposing the /openapi.json and /openapi.yaml routes
   });
-
-  // ────────────────────────────────────────────────────────────────
-  // 2️⃣  CORE / CROSS-CUTTING PLUGINS (UNCHANGED)
-  // ────────────────────────────────────────────────────────────────
-  await fastify.register(loggingPlugin);
-  await fastify.register(schemaLoaderPlugin);
-  await fastify.register(envPlugin);
-  await fastify.register(diPlugin);
-
-  await fastify.register(websocketPlugin);
-  await fastify.register(fastifySensible);
 
   await fastify.register(helmet, {
     global: true,
@@ -84,18 +129,21 @@ module.exports = async function (fastify, opts) {
       directives: {
         defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'],
         scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'],
-        styleSrc: ["'self'", 'https://accounts.google.com/gsi/style'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'],  
         frameSrc: ["'self'", 'https://accounts.google.com/gsi/'],
-        connectSrc: ["'self'", 'https://accounts.google.com/gsi/'],
+        connectSrc: [  
+          "'self'", 
+          'https://accounts.google.com/gsi/',
+          // Add http for local development
+          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
+        ],
       },
     },
   });
 
+
   await fastify.register(corsPlugin);
 
-  // ────────────────────────────────────────────────────────────────
-  // 3️⃣  REDIS CLIENT
-  // ────────────────────────────────────────────────────────────────
   fastify.log.info('🔌 Registering Redis client plugin');
   await fastify.register(redisPlugin);
   fastify.log.info('✅ Redis client plugin registered');
@@ -297,34 +345,91 @@ module.exports = async function (fastify, opts) {
     reply.send({ message: 'cleared' });
   });
 
-  // ────────────────────────────────────────────────────────────────
-  // 8️⃣  SWAGGER-UI AFTER *ALL* ROUTES EXIST
-  // ────────────────────────────────────────────────────────────────
-  await fastify.register(require('@fastify/swagger-ui'), {
+  await fastify.register(fastifySwaggerUI, {
     routePrefix: '/api/doc',
+    staticCSP: true, // Enable static CSP headers for the UI
     uiConfig: {
       docExpansion: 'list',
       deepLinking: true,
+      defaultModelsExpandDepth: 2,
+      defaultModelExpandDepth: 2,
+      defaultModelRendering: 'example',
+      displayRequestDuration: true,
       filter: true,
+      tryItOutEnabled: true,
       persistAuthorization: true,
       layout: 'StandaloneLayout',
+      // Custom CSS for better aesthetics
+      customCss: `
+        .swagger-ui .topbar{display:none;}
+        .swagger-ui .info .title{color:#1f2937;}
+        .swagger-ui .scheme-container{background:#f8f9fa;padding:10px;border-radius:4px;}
+        .swagger-ui .info .description {font-size: 14px; line-height: 1.6;}
+        .swagger-ui .btn.authorize {background-color: #4f46e5; border-color: #4f46e5;}
+        .swagger-ui .btn.authorize:hover {background-color: #4338ca;}
+      `,
+      customSiteTitle: 'EventStorm.me API Docs',
+      customfavIcon: '/favicon.ico',
+      // Optional: Add request/response interceptors for debugging Swagger UI calls
+      requestInterceptor: req => {
+        console.log('🌐 Swagger UI Request:', {
+          url: req.url, method: req.method, headers: req.headers
+        });
+        return req;
+      },
+      responseInterceptor: res => {
+        console.log('📡 Swagger UI Response:', {
+          url: res.url, status: res.status, statusText: res.statusText
+        });
+        return res;
+      }
     },
-    staticCSP: true,
-    transformStaticCSP: (hdr) =>
-      hdr.replace(/default-src 'self'/, "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:"),
-    transformSpecificationClone: true,
+    // Transform CSP headers for Swagger UI to allow necessary external resources and inline styles/scripts
+    transformStaticCSP: (hdr) => {
+      let newHdr = hdr.replace(
+        /default-src 'self'/g,
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:"
+      );
+      // Add connect-src directives based on environment for local development
+      if (process.env.NODE_ENV !== 'production') {
+        newHdr += "; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:";
+      } else {
+        newHdr += "; connect-src 'self' https: wss: data: blob:";
+      }
+      newHdr += "; style-src 'self' 'unsafe-inline' https:"; // Allow inline styles and HTTPS sources
+      newHdr += "; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:"; // Allow inline scripts, eval, and HTTPS sources
+      return newHdr;
+    },
+    transformSpecificationClone: true, // Clone the spec before transforming
+    // Transform the OpenAPI specification
     transformSpecification(spec) {
       spec.info['x-build-time'] = new Date().toISOString();
+      spec.info['x-builder'] = 'anatolyZader';
+      spec.info['x-environment'] = process.env.NODE_ENV || 'development';
+      spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info
+
+      // Adjust server URLs for development environment
+      if (process.env.NODE_ENV !== 'production') {
+        spec.servers = [
+          { url: 'http://localhost:3000', description: 'Development server' },
+          { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }
+        ];
+      }
+
+      spec.info['x-security-note'] = 'This API uses JWT Bearer tokens or cookie-based authentication';
       return spec;
-    },
+    }
   });
+
+  // fastify.after(async () => {
+  //   await fastify.register(swaggerUIPlugin);
+  // });
 
   // ────────────────────────────────────────────────────────────────
   // 9️⃣  READY HOOK – print summary
   // ────────────────────────────────────────────────────────────────
+
   fastify.addHook('onReady', async () => {
     fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
-    const pathCount = Object.keys(fastify.swagger().paths || {}).length;
-    fastify.log.info(`✅ OpenAPI spec now contains ${pathCount} paths`);
   });
 };

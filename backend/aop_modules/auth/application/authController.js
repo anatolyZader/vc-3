@@ -47,7 +47,7 @@ async function authController(fastify, options) {
   });
 
   fastify.decorate('removeUser', async function (request, reply) {
-    const { email } = request.body;
+    const { email } = request.query;
     try {
       const userService = await request.diScope.resolve('userService');
       const user = await userService.getUserInfo(email);

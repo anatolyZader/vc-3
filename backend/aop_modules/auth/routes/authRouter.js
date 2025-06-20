@@ -26,9 +26,18 @@ module.exports = fp(async function authRouter(fastify, opts) {
 
   // 1
   fastify.route({
-    method: 'POST',
+    method: 'DELETE',              
     url: '/api/auth/remove',
-    handler: fastify.removeUser,
+    schema: {
+      querystring: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email' }
+        }
+      }
+    },                             
+    handler: fastify.removeUser    
   });
 
   // 1

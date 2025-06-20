@@ -9,7 +9,7 @@ module.exports = fp(async function gitRouter(fastify, opts) {
   // fetch repository
   fastify.route({
     method: 'GET',
-    url: '/repositories/:repoId',
+    url: '/repositories/:owner/:repo',
     preValidation: [fastify.verifyToken],
     handler: fastify.fetchRepo,
     schema: fastify.getSchema('schema:git:fetch-repo')
