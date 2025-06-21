@@ -24,11 +24,18 @@ async function gitPubsubListener(fastify, options) {
       if (data.event === 'fetchRepoRequest') {
         const { userId, repoId, correlationId } = data.payload;
         fastify.log.info(`Processing fetchRepo event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
+          const parts = repoId.split('/');
+          if (parts.length !== 2) {
+            fastify.log.error(`Invalid repoId format: ${repoId}. Expected format: owner/repo`);
+            message.nack();
+            return;
+          }
+          const [owner, repo] = parts;
 
         if (typeof fastify.fetchRepo === 'function') {
           // Create mock request object for fetchRepo
           const mockRequest = {
-            params: { repoId },
+            params: { owner, repo },
             user: { id: userId },
             headers: { 'x-correlation-id': correlationId }
           };

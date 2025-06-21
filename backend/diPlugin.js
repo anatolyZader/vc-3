@@ -1,3 +1,4 @@
+// diPlugin.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -153,7 +154,7 @@ module.exports = fp(async function (fastify, opts) {
     { key: 'chatPersistAdapter', config: infraConfig.business_modules.chat.chatPersistAdapter },
     { key: 'chatMessagingAdapter', config: infraConfig.business_modules.chat.chatMessagingAdapter },
     { key: 'gitPersistAdapter', config: infraConfig.business_modules.git.gitPersistAdapter },
-    { key: 'gitGitAdapter', config: infraConfig.business_modules.git.gitGitAdapter },
+    { key: 'gitAdapter', config: infraConfig.business_modules.git.gitAdapter },
     { key: 'gitMessagingAdapter', config: infraConfig.business_modules.git.gitMessagingAdapter },
     { key: 'aiAIAdapter', config: infraConfig.business_modules.ai.aiAIAdapter },
     { key: 'aiPersistAdapter', config: infraConfig.business_modules.ai.aiPersistAdapter },
@@ -203,7 +204,7 @@ module.exports = fp(async function (fastify, opts) {
     serviceRegistrations.chatPersistAdapter = adapters[infraConfig.business_modules.chat.chatPersistAdapter];
     serviceRegistrations.chatMessagingAdapter = adapters[infraConfig.business_modules.chat.chatMessagingAdapter];
     serviceRegistrations.gitPersistAdapter = adapters[infraConfig.business_modules.git.gitPersistAdapter];
-    serviceRegistrations.gitGitAdapter = adapters[infraConfig.business_modules.git.gitGitAdapter];
+    serviceRegistrations.gitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
     serviceRegistrations.gitMessagingAdapter = adapters[infraConfig.business_modules.git.gitMessagingAdapter];
     serviceRegistrations.aiAIAdapter = adapters[infraConfig.business_modules.ai.aiAIAdapter];
     serviceRegistrations.aiPersistAdapter = adapters[infraConfig.business_modules.ai.aiPersistAdapter];

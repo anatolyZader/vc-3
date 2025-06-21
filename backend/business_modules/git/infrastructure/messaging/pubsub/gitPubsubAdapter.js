@@ -4,7 +4,7 @@
 class GitPubsubAdapter {
   constructor({ pubSubClient }) {
     this.pubSubClient = pubSubClient;
-    this.topicName = process.env.PUBSUB_GIT_EVENTS_TOPIC_NAME || 'git-events-topic';
+    this.topicName = process.env.PUBSUB_GIT_EVENTS_TOPIC_NAME || 'git-topic';
   }
 
   async publishRepoFetchedEvent(result, correlationId) {

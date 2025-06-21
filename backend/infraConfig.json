@@ -13,7 +13,7 @@
       "chatMessagingAdapter": "chatPubsubAdapter"
     },
     "git": {
-      "gitGitAdapter": "gitGithubAdapter",
+      "gitAdapter": "gitGithubAdapter",
       "gitMessagingAdapter": "gitPubsubAdapter",
       "gitPersistAdapter": "gitPostgresAdapter"
 
