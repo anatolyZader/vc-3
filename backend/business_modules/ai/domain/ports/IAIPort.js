@@ -2,9 +2,9 @@
 /* eslint-disable no-unused-vars */
 'use strict';
 
-class IAIAIPort {
+class IAIPort {
   constructor() {
-    if (new.target === IAIAIPort) {
+    if (new.target === IAIPort) {
       throw new Error('Cannot instantiate an abstract class.');
     }
   }
@@ -14,4 +14,4 @@ class IAIAIPort {
   }
 }
 
-module.exports = IAIAIPort;
+module.exports = IAIPort;

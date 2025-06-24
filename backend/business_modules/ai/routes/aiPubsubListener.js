@@ -23,19 +23,47 @@ async function aiPubsubListener(fastify, options) {
     try {
       const data = JSON.parse(message.data.toString());
 
-      if (data.event === 'questionSent') {
+      // handle the 'repoPushed' event
+
+      if (data.event === 'repoPushed') {
+        const { userId, repoId } = data.payload;
+        fastify.log.info(`AI module processig pushed git... repository ${repoId} for user: ${userId}`);
+
+        if (typeof fastify.respondToPrompt === 'function') {
+          // Create a mock request object that matches what the HTTP handler expects
+          const mockRequest = {
+            body: { repoId },
+            user: { id: userId }
+          };
+          
+          const mockReply = {}; 
+     
+          await fastify.processPushedRepo();
+          fastify.log.info(`repo fetched ${message.id}.`);
+        } else {
+          fastify.log.error(`fastify.processPushedRepo is not defined.`);
+          message.nack(); // Nack if the handler isn't available
+          return;
+        }
+      } else {
+        fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
+      }
+
+      // Handle the 'questionSent' event
+
+        if (data.event === 'questionSent') {
         const { userId, conversationId, repoId, prompt } = data.payload;
         fastify.log.info(`Processing AI response for user: ${userId}, conversation: ${conversationId}, prompt: "${prompt.substring(0, 50)}..."`);
 
         if (typeof fastify.respondToPrompt === 'function') {
           // Create a mock request object that matches what the HTTP handler expects
           const mockRequest = {
-            body: { conversationId, repoId, prompt },
+            body: { repoId },
             user: { id: userId }
           };
           
           const mockReply = {}; // Empty reply object since we don't need HTTP response
-          
+         
           await fastify.respondToPrompt(mockRequest, mockReply);
           fastify.log.info(`AI response handled for message ${message.id}.`);
         } else {
@@ -52,7 +80,7 @@ async function aiPubsubListener(fastify, options) {
       fastify.log.error(`Error processing AI message ${message.id}:`, error);
       message.nack(); // Nack the message to re-queue it for another attempt
     }
-  });
+  });  
 
   fastify.log.info(`Listening for AI messages on Pub/Sub subscription: ${subscriptionName}...`);
 

@@ -7,7 +7,7 @@ class AIResponse {
     this.userId = userId;   
   }
 
-  async respondToPrompt(conversationId, prompt, preFetchedRepo, preFetchedWiki, IAIAIPort) {
+  async respondToPrompt(conversationId, prompt, preFetchedRepo, preFetchedWiki, IAIPort) {
     const response = await IAIPort.respondToPrompt(conversationId, prompt, preFetchedRepo, preFetchedWiki);
     console.log(`AI Response received: ${response}`);
     return response;

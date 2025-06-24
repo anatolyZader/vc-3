@@ -156,7 +156,7 @@ module.exports = fp(async function (fastify, opts) {
     { key: 'gitPersistAdapter', config: infraConfig.business_modules.git.gitPersistAdapter },
     { key: 'gitAdapter', config: infraConfig.business_modules.git.gitAdapter },
     { key: 'gitMessagingAdapter', config: infraConfig.business_modules.git.gitMessagingAdapter },
-    { key: 'aiAIAdapter', config: infraConfig.business_modules.ai.aiAIAdapter },
+    { key: 'aiAdapter', config: infraConfig.business_modules.ai.aiAdapter },
     { key: 'aiPersistAdapter', config: infraConfig.business_modules.ai.aiPersistAdapter },
     { key: 'aiMessagingAdapter', config: infraConfig.business_modules.ai.aiMessagingAdapter },
     { key: 'aiGitAdapter', config: infraConfig.business_modules.ai.aiGitAdapter },
@@ -206,7 +206,7 @@ module.exports = fp(async function (fastify, opts) {
     serviceRegistrations.gitPersistAdapter = adapters[infraConfig.business_modules.git.gitPersistAdapter];
     serviceRegistrations.gitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
     serviceRegistrations.gitMessagingAdapter = adapters[infraConfig.business_modules.git.gitMessagingAdapter];
-    serviceRegistrations.aiAIAdapter = adapters[infraConfig.business_modules.ai.aiAIAdapter];
+    serviceRegistrations.aiAdapter = adapters[infraConfig.business_modules.ai.aiAdapter];
     serviceRegistrations.aiPersistAdapter = adapters[infraConfig.business_modules.ai.aiPersistAdapter];
     serviceRegistrations.aiMessagingAdapter = adapters[infraConfig.business_modules.ai.aiMessagingAdapter];
     serviceRegistrations.aiGitAdapter = adapters[infraConfig.business_modules.ai.aiGitAdapter];

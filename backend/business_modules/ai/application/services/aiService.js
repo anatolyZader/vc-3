@@ -4,9 +4,9 @@ const IAIService = require('./interfaces/IAIService');
 const { v4: uuidv4 } = require('uuid');
 
 class AIService extends IAIService {
-  constructor({aiAIAdapter, aiPersistAdapter, aiMessagingAdapter}) {
+  constructor({aiAdapter, aiPersistAdapter, aiMessagingAdapter}) {
     super();
-    this.aiAIAdapter = aiAIAdapter;
+    this.aiAdapter = aiAdapter;
     this.aiPersistAdapter = aiPersistAdapter;
     this.aiMessagingAdapter = aiMessagingAdapter;
 
@@ -42,7 +42,7 @@ class AIService extends IAIService {
 
           // Generate AI response
         
-          const aiResponse = await this.aiAIAdapter.respondToPrompt(
+          const aiResponse = await this.aiAdapter.respondToPrompt(
             conversationId,
             prompt,
             pending.repoData,
@@ -66,7 +66,7 @@ class AIService extends IAIService {
           // Publish the AI response
           this.aiMessagingAdapter.publishAiResponse(aiResponse);
 
-          resolve(raiResponse);
+          resolve(aiResponse);
         }
       };
 
@@ -88,6 +88,13 @@ class AIService extends IAIService {
       }, 30000);
     });
   }
+
+
+  async processPushedRepo(userId, repoId) { 
+    await this.aiAdapter.processPushedRepo(userId, repoId);
+    console.log(`Processed pushed repository for user: ${userId}, repository: ${repoId}`);
+  }
+
 
   // Handles incoming repositoryFetched events from Git Module
   async handleRepoResponse(repoData, correlationId) {

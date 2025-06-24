@@ -25,7 +25,7 @@
     },
     "ai": {
       "aiPersistAdapter": "aiPostgresAdapter",
-      "aiAIAdapter": "aiLangchainAdapter",
+      "aiAdapter": "aiLangchainAdapter",
       "aiMessagingAdapter": "aiPubsubAdapter",
       "aiGitAdapter": "aiGithubAdapter",
       "aiWikiAdapter": "aiGithubWikiAdapter"
