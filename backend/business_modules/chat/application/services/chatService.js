@@ -35,7 +35,7 @@ class ChatService extends IChatService {
   async addQuestion(userId, conversationId, prompt) {
     const conversation = new Conversation(userId);
     await conversation.addQuestion(conversationId, prompt, this.chatPersistAdapter);
-    await this.chatMessagingAdapter.addQuestion({userId, conversationId, prompt});
+    await this.chatMessagingAdapter.addQuestion({userId, conversationId, prompt}); // the message goes to the ai module (data.event === 'questionSent') => aiLangchainAdapter / async respondToPrompt(userId, conversationId, repoId, prompt) 
     return prompt;
   }
 
@@ -44,6 +44,7 @@ class ChatService extends IChatService {
     await conversation.addAnswer(conversationId, answer, this.chatPersistAdapter);
     await this.chatMessagingAdapter.addAnswer({userId, conversationId, answer});
     return answer;
+    
   }
 
   async renameConversation(userId, conversationId, newTitle) {

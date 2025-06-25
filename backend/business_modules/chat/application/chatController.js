@@ -174,8 +174,8 @@ async function chatController(fastify, options) {
       const answerId = await chatService.addAnswer(userId, conversationId, aiResponse);
       return { answerId };
     } catch (error) {
-      fastify.log.error('Error sending answer:', error);
-      throw fastify.httpErrors.internalServerError('Failed to send answer', { cause: error });
+      fastify.log.error('Error adding answer:', error);
+      throw fastify.httpErrors.internalServerError('Failed to add answer', { cause: error });
     }
   });
 }

@@ -45,7 +45,7 @@ class AILangchainAdapter extends IAIPort {
       
       // Use dynamic repo URL from repoData if provided, fallback to hardcoded
       const repoUrl = repoData?.url || `https://github.com/${userId}/${repoId}` || "https://github.com/anatolyZader/vc-3";
-      const repoBranch = repoData?.branch || repoData?.defaultBranch || "amber";
+      const repoBranch = repoData?.branch || repoData?.defaultBranch || "main";
       
       console.log(`[2025-06-24 14:22:21] Repository URL: ${repoUrl}, Branch: ${repoBranch}`);
       
