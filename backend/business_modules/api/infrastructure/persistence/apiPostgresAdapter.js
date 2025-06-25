@@ -5,7 +5,7 @@
 const { Pool } = require('pg');
 const IApiPersistPort = require('../../domain/ports/IApiPersistPort');
 
-const isLocal = process.env.NODE_ENV !== 'production'
+const isLocal = process.env.NODE_ENV !== 'staging'
 
 class ApiPostgresAdapter extends IApiPersistPort {
   constructor({ cloudSqlConnector }) {

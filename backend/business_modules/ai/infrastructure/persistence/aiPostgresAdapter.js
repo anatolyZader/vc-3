@@ -10,7 +10,7 @@ class AIPostgresAdapter extends IAIPersistPort{
     const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
     if (!instanceConnectionName) {
       console.error('❌ CLOUD_SQL_CONNECTION_NAME environment variable is not set. Cannot connect to Cloud SQL.');
-      // In a production app, you might want to throw an error or handle this more gracefully.
+      // In a staging app, you might want to throw an error or handle this more gracefully.
       // For now, we'll proceed with a fallback, but it's important for Cloud Run.
     }
 

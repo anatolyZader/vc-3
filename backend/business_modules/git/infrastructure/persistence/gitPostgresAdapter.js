@@ -4,7 +4,7 @@
 const { Pool } = require('pg');
 const IGitPersistPort = require('../../domain/ports/IGitPersistPort');
 
-const isLocal = process.env.NODE_ENV !== 'production'
+const isLocal = process.env.NODE_ENV !== 'staging'
 
 class GitPostgresAdapter extends IGitPersistPort {
   constructor({ cloudSqlConnector }) {

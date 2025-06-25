@@ -11,7 +11,6 @@ const infraConfig = require('./infraConfig.json');
 const Account = require('./aop_modules/auth/domain/entities/account');
 const User = require('./aop_modules/auth/domain/entities/user');
 const UserService = require('./aop_modules/auth/application/services/userService');
-const PermService = require('./aop_modules/permissions/application/services/permService');
 const AuthPostgresAdapter = require('./aop_modules/auth/infrastructure/persistence/authPostgresAdapter');
 const AuthRedisAdapter = require('./aop_modules/auth/infrastructure/in_memory_storage/authRedisAdapter');
 
@@ -192,7 +191,6 @@ module.exports = fp(async function (fastify, opts) {
     aiService: asClass(AIService, { lifetime: Lifetime.scoped }),
     apiService: asClass(ApiService, { lifetime: Lifetime.scoped }),
     userService: asClass(UserService, { lifetime: Lifetime.SINGLETON }),
-    permService: asClass(PermService),
   };
 
   // Add config-based adapters

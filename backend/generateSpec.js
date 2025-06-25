@@ -16,8 +16,8 @@ async function writeSpec() {
       },
       servers: [
         {
-          url: process.env.NODE_ENV === 'production' ? 'https://eventstorm.me' : 'http://localhost:3000',
-          description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
+          url: process.env.NODE_ENV === 'staging' ? 'https://eventstorm.me' : 'http://localhost:3000',
+          description: process.env.NODE_ENV === 'staging' ? 'staging server' : 'Development server'
         }
       ],
       tags: [

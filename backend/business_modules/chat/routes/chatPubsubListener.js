@@ -22,22 +22,22 @@ async function chatPubsubListener(fastify, options) {
     try {
       const data = JSON.parse(message.data.toString());
 
-      // handle the 'aiResponseReceived' event
       if (data.event === 'aiResponseReceived') {
-        const { userId, repoId } = data.payload;
-        fastify.log.info(`chat module is receiving response from ai module for user: ${userId}`);
+        const { userId, conversationId, response } = data.payload; 
+        fastify.log.info(`chat module is receiving response from ai module for user: ${userId}, conversation: ${conversationId}`);
 
         if (typeof fastify.addAnswer === 'function') {
           // Create a mock request object that matches what the HTTP handler expects
           const mockRequest = {
-            body: { repoId },
+            body: { aiResponse: response },  
+            params: { conversationId },  
             user: { id: userId }
           };
           
           const mockReply = {}; 
      
-          await fastify.addAnswer();
-          fastify.log.info(`ai answer is added to chat.`);
+          await fastify.addAnswer(mockRequest, mockReply); // ✅ Fixed: pass the request and reply objects
+          fastify.log.info(`AI answer added to chat conversation ${conversationId}.`);
         } else {
           fastify.log.error(`fastify.addAnswer is not defined.`);
           message.nack(); // Nack if the handler isn't available

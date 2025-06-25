@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const IAuthPersistPort = require('../../domain/ports/IAuthPersistPort');
 
-const isLocal = process.env.NODE_ENV !== 'production'
+const isLocal = process.env.NODE_ENV !== 'staging'
 
 class AuthPostgresAdapter extends IAuthPersistPort {
   constructor({ cloudSqlConnector }) {

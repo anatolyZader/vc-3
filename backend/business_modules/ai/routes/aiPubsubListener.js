@@ -17,70 +17,58 @@ async function aiPubsubListener(fastify, options) {
   });
 
   // Message handler for the subscription stream
-  subscription.on('message', async (message) => {
-    fastify.log.info(`Received AI message ${message.id} on subscription ${subscriptionName}`);
+subscription.on('message', async (message) => {
+  fastify.log.info(`Received AI message ${message.id} on subscription ${subscriptionName}`);
 
-    try {
-      const data = JSON.parse(message.data.toString());
+  try {
+    const data = JSON.parse(message.data.toString());
 
-      // handle the 'repoPushed' event
+    // Handle repoPushed event
+    if (data.event === 'repoPushed') {
+      const { userId, repoId } = data.payload;
+      fastify.log.info(`AI module processing pushed git repository ${repoId} for user: ${userId}`);
 
-      if (data.event === 'repoPushed') {
-        const { userId, repoId } = data.payload;
-        fastify.log.info(`AI module processig pushed git... repository ${repoId} for user: ${userId}`);
-
-        if (typeof fastify.respondToPrompt === 'function') {
-          // Create a mock request object that matches what the HTTP handler expects
-          const mockRequest = {
-            body: { repoId },
-            user: { id: userId }
-          };
-          
-          const mockReply = {}; 
-     
-          await fastify.processPushedRepo();
-          fastify.log.info(`repo fetched ${message.id}.`);
-        } else {
-          fastify.log.error(`fastify.processPushedRepo is not defined.`);
-          message.nack(); // Nack if the handler isn't available
-          return;
-        }
+      if (typeof fastify.processPushedRepo === 'function') {
+        const mockRequest = {
+          body: { repoId },
+          user: { id: userId }
+        };
+        await fastify.processPushedRepo(mockRequest, {});
+        fastify.log.info(`Repo processed ${message.id}.`);
       } else {
-        fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
+        fastify.log.error(`fastify.processPushedRepo is not defined.`);
+        message.nack();
+        return;
       }
-
-      // Handle the 'questionSent' event
-
-        if (data.event === 'questionSent') {
-        const { userId, conversationId, repoId, prompt } = data.payload;
-        fastify.log.info(`Processing AI response for user: ${userId}, conversation: ${conversationId}, prompt: "${prompt.substring(0, 50)}..."`);
-
-        if (typeof fastify.respondToPrompt === 'function') {
-          // Create a mock request object that matches what the HTTP handler expects
-          const mockRequest = {
-            body: { repoId },
-            user: { id: userId }
-          };
-          
-          const mockReply = {}; // Empty reply object since we don't need HTTP response
-         
-          await fastify.respondToPrompt(mockRequest, mockReply);
-          fastify.log.info(`AI response handled for message ${message.id}.`);
-        } else {
-          fastify.log.error(`fastify.respondToPrompt is not defined. Cannot process message ${message.id}.`);
-          message.nack(); // Nack if the handler isn't available
-          return;
-        }
-      } else {
-        fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
-      }
-
-      message.ack(); // Acknowledge the message upon successful processing
-    } catch (error) {
-      fastify.log.error(`Error processing AI message ${message.id}:`, error);
-      message.nack(); // Nack the message to re-queue it for another attempt
     }
-  });  
+    // Handle questionSent event
+    else if (data.event === 'questionAdded') {
+      const { userId, conversationId, prompt } = data.payload;
+      fastify.log.info(`Processing AI response for user: ${userId}, conversation: ${conversationId}, prompt: "${prompt.substring(0, 50)}..."`);
+
+      if (typeof fastify.respondToPrompt === 'function') {
+        const mockRequest = {
+          body: { conversationId, prompt },
+          user: { id: userId }
+        };
+        await fastify.respondToPrompt(mockRequest, {});
+        fastify.log.info(`AI response handled for message ${message.id}.`);
+      } else {
+        fastify.log.error(`fastify.respondToPrompt is not defined.`);
+        message.nack();
+        return;
+      }
+    }
+    else {
+      fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
+    }
+
+    message.ack();
+  } catch (error) {
+    fastify.log.error(`Error processing AI message ${message.id}:`, error);
+    message.nack();
+  }
+});
 
   fastify.log.info(`Listening for AI messages on Pub/Sub subscription: ${subscriptionName}...`);
 

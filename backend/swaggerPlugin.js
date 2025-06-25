@@ -34,11 +34,11 @@ module.exports = async function (fastify, opts) {
       },
       servers: [
         {
-          url: process.env.NODE_ENV === 'production'
+          url: process.env.NODE_ENV === 'staging'
             ? 'https://eventstorm.me'
             : 'http://localhost:3000',
-          description: process.env.NODE_ENV === 'production'
-            ? 'Production server'
+          description: process.env.NODE_ENV === 'staging'
+            ? 'staging server'
             : 'Development server'
         }
       ],
@@ -147,7 +147,7 @@ module.exports = async function (fastify, opts) {
         "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:"
       );
       // Add connect-src directives based on environment for local development
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'staging') {
         newHdr += "; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:";
       } else {
         newHdr += "; connect-src 'self' https: wss: data: blob:";
@@ -165,7 +165,7 @@ module.exports = async function (fastify, opts) {
       spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info
 
       // Adjust server URLs for development environment
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'staging') {
         spec.servers = [
           { url: 'http://localhost:3000', description: 'Development server' },
           { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }

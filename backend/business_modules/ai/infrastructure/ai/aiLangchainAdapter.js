@@ -1,11 +1,12 @@
-// AILangchainAdapter.js
+// aiLangchainAdapter.js
 'use strict';
 /* eslint-disable no-unused-vars */
 
 const IAIPort = require('./IAIPort');
 const { GithubRepoLoader } = require("@langchain/community/document_loaders/web/github");
 const { RecursiveCharacterTextSplitter, Language } = require("@langchain/textsplitters");
-const { MemoryVectorStore } = require('langchain/vectorstores/memory');
+const { PineconeStore } = require('@langchain/pinecone');
+const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 const { ChatOpenAI } = require('@langchain/openai');
 
@@ -13,16 +14,24 @@ class AILangchainAdapter extends IAIPort {
   constructor() {
     super();
     
-    console.log(`[2025-06-24 14:22:21] AILangchainAdapter initializing for user: anatolyZader`);
+    console.log(`[2025-06-25 09:23:04] AILangchainAdapter initializing for user: anatolyZader`);
     
     // Initialize embeddings model: converts text to vectors
     this.embeddings = new OpenAIEmbeddings({ 
       model: 'text-embedding-3-large',
       apiKey: process.env.OPENAI_API_KEY  
     });
+
+    // Initialize Pinecone client
+    this.pinecone = new Pinecone({
+      apiKey: process.env.PINECONE_API_KEY
+    });
       
-    // Initialize vector store with embeddings
-    this.vectorStore = new MemoryVectorStore(this.embeddings);
+    // Initialize vector store with Pinecone
+    this.vectorStore = new PineconeStore(this.embeddings, {
+      pineconeIndex: this.pinecone.Index(process.env.PINECONE_INDEX_NAME),
+      namespace: 'anatolyZader'
+    });
     
     // Initialize chat model: generates responses
     this.llm = new ChatOpenAI({ 
@@ -31,23 +40,23 @@ class AILangchainAdapter extends IAIPort {
       apiKey: process.env.OPENAI_API_KEY
     });
 
-    console.log(`[2025-06-24 14:22:21] AILangchainAdapter initialized successfully for user: anatolyZader`);
+    console.log(`[2025-06-25 09:23:04] AILangchainAdapter initialized successfully for user: anatolyZader`);
   }
 
   async processPushedRepo(userId, repoId, repoData) {
-    console.log(`[2025-06-24 14:22:21] Processing repo for user ${userId}: ${repoId}`);
+    console.log(`[2025-06-25 09:23:04] Processing repo for user ${userId}: ${repoId}`);
 
     try {
       // 1. INDEXING :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
       // Load: Document Loaders.
-      console.log(`[2025-06-24 14:22:21] Loading repository from GitHub...`);
+      console.log(`[2025-06-25 09:23:04] Loading repository from GitHub...`);
       
       // Use dynamic repo URL from repoData if provided, fallback to hardcoded
       const repoUrl = repoData?.url || `https://github.com/${userId}/${repoId}` || "https://github.com/anatolyZader/vc-3";
       const repoBranch = repoData?.branch || repoData?.defaultBranch || "main";
       
-      console.log(`[2025-06-24 14:22:21] Repository URL: ${repoUrl}, Branch: ${repoBranch}`);
+      console.log(`[2025-06-25 09:23:04] Repository URL: ${repoUrl}, Branch: ${repoBranch}`);
       
       const repoLoader = new GithubRepoLoader(
         repoUrl,
@@ -71,7 +80,7 @@ class AILangchainAdapter extends IAIPort {
       const loadedRepo = [];
       let loadCount = 0;
       
-      console.log(`[2025-06-24 14:22:21] Starting document loading...`);
+      console.log(`[2025-06-25 09:23:04] Starting document loading...`);
       
       for await (const doc of repoLoader.loadAsStream()) {
         loadedRepo.push(doc);
@@ -79,18 +88,18 @@ class AILangchainAdapter extends IAIPort {
         
         // Progress logging for anatolyZader
         if (loadCount % 10 === 0) {
-          console.log(`[2025-06-24 14:22:21] Loaded ${loadCount} documents...`);
+          console.log(`[2025-06-25 09:23:04] Loaded ${loadCount} documents...`);
         }
       }
 
-      console.log(`[2025-06-24 14:22:21] ✅ Loaded ${loadedRepo.length} documents from repository`);
+      console.log(`[2025-06-25 09:23:04] ✅ Loaded ${loadedRepo.length} documents from repository`);
 
       if (loadedRepo.length === 0) {
         throw new Error(`No documents loaded from repository ${repoUrl}. Check repository access and branch name.`);
       }
 
       // Split: Text splitters 
-      console.log(`[2025-06-24 14:22:21] Splitting documents into chunks...`);
+      console.log(`[2025-06-25 09:23:04] Splitting documents into chunks...`);
 
       // Smart splitter selection based on repository content
       const repoSplitter = this.createSmartSplitter(loadedRepo);
@@ -98,10 +107,10 @@ class AILangchainAdapter extends IAIPort {
       // Split documents into chunks
       const splittedRepo = await repoSplitter.splitDocuments(loadedRepo);
 
-      console.log(`[2025-06-24 14:22:21] ✅ Split into ${splittedRepo.length} chunks`);
+      console.log(`[2025-06-25 09:23:04] ✅ Split into ${splittedRepo.length} chunks`);
 
       // Store: VectorStore and Embeddings model.
-      console.log(`[2025-06-24 14:22:21] Storing embeddings in vector database...`);
+      console.log(`[2025-06-25 09:23:04] Storing embeddings in vector database...`);
 
       // Add comprehensive metadata to chunks for better tracking
       const documentsWithMetadata = splittedRepo.map((doc, index) => ({
@@ -114,7 +123,7 @@ class AILangchainAdapter extends IAIPort {
           branch: repoBranch,
           chunkIndex: index,
           totalChunks: splittedRepo.length,
-          processedAt: '2025-06-24 14:22:21',
+          processedAt: '2025-06-25 09:23:04',
           processedBy: 'anatolyZader',
           fileType: this.getFileType(doc.metadata.source || ''),
           chunkSize: doc.pageContent.length
@@ -137,10 +146,10 @@ class AILangchainAdapter extends IAIPort {
         await this.vectorStore.addDocuments(batch, { ids: batchIds });
         storedCount += batch.length;
         
-        console.log(`[2025-06-24 14:22:21] Stored batch ${Math.ceil((i + 1) / batchSize)} - ${storedCount}/${documentsWithMetadata.length} chunks`);
+        console.log(`[2025-06-25 09:23:04] Stored batch ${Math.ceil((i + 1) / batchSize)} - ${storedCount}/${documentsWithMetadata.length} chunks`);
       }
       
-      console.log(`[2025-06-24 14:22:21] ✅ Successfully stored ${documentsWithMetadata.length} document chunks in vector database`);
+      console.log(`[2025-06-25 09:23:04] ✅ Successfully stored ${documentsWithMetadata.length} document chunks in vector database`);
 
       return {
         success: true,
@@ -151,12 +160,12 @@ class AILangchainAdapter extends IAIPort {
         documentsLoaded: loadedRepo.length,
         chunksCreated: splittedRepo.length,
         chunksStored: documentsWithMetadata.length,
-        processedAt: '2025-06-24 14:22:21',
+        processedAt: '2025-06-25 09:23:04',
         processedBy: 'anatolyZader'
       };
 
     } catch (error) {
-      console.error(`[2025-06-24 14:22:21] ❌ Failed to process repository ${repoId}:`, error.message);
+      console.error(`[2025-06-25 09:23:04] ❌ Failed to process repository ${repoId}:`, error.message);
       throw new Error(`Repository processing failed: ${error.message}`);
     }
   }
@@ -165,11 +174,11 @@ class AILangchainAdapter extends IAIPort {
   // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
 
   async respondToPrompt(conversationId, prompt) {
-    console.log(`[2025-06-24 14:22:21] Responding to prompt for conversation ${conversationId}: "${prompt.slice(0, 100)}..."`);
+    console.log(`[2025-06-25 09:23:04] Responding to prompt for conversation ${conversationId}: "${prompt.slice(0, 100)}..."`);
     
     try {
       // Step 1: Retrieve relevant documents from the vector store
-      console.log(`[2025-06-24 14:22:21] Searching vector database for relevant code chunks...`);
+      console.log(`[2025-06-25 09:23:04] Searching vector database for relevant code chunks...`);
       
       const searchStartTime = Date.now();
       
@@ -184,15 +193,15 @@ class AILangchainAdapter extends IAIPort {
       );
       
       const searchTime = Date.now() - searchStartTime;
-      console.log(`[2025-06-24 14:22:21] Found ${relevantDocs.length} relevant documents in ${searchTime}ms`);
+      console.log(`[2025-06-25 09:23:04] Found ${relevantDocs.length} relevant documents in ${searchTime}ms`);
 
       if (relevantDocs.length === 0) {
-        console.log(`[2025-06-24 14:22:21] No relevant documents found for prompt`);
+        console.log(`[2025-06-25 09:23:04] No relevant documents found for prompt`);
         return {
           success: false,
           message: "I couldn't find any relevant code in your repositories for that question. Try asking about specific files, functions, or concepts that exist in your codebase.",
           conversationId: conversationId,
-          timestamp: '2025-06-24 14:22:21'
+          timestamp: '2025-06-25 09:23:04'
         };
       }
 
@@ -210,32 +219,32 @@ ${doc.pageContent.trim()}
 `;
       }).join('\n\n');
 
-      console.log(`[2025-06-24 14:22:21] Prepared context with ${context.length} characters from ${relevantDocs.length} code chunks`);
+      console.log(`[2025-06-25 09:23:04] Prepared context with ${context.length} characters from ${relevantDocs.length} code chunks`);
 
       // Define an enhanced system prompt for anatolyZader's coding assistant
       const systemPrompt = `You are an expert software engineering assistant helping anatolyZader analyze and understand code from their GitHub repositories.
 
-Current Date/Time: 2025-06-24 14:22:21 UTC
-User: anatolyZader
-Conversation ID: ${conversationId}
+        Current Date/Time: 2025-06-25 09:23:04 UTC
+        User: anatolyZader
+        Conversation ID: ${conversationId}
 
-INSTRUCTIONS:
-- Use the provided code context to answer questions accurately and helpfully
-- Reference specific files and line numbers when possible
-- Explain code functionality, architecture patterns, and relationships
-- Suggest improvements, optimizations, or best practices when relevant
-- If you don't have enough context, clearly state what's missing
-- Keep responses concise but comprehensive
-- Use markdown formatting for better readability
-- Always cite which files/repositories you're referencing
+        INSTRUCTIONS:
+        - Use the provided code context to answer questions accurately and helpfully
+        - Reference specific files and line numbers when possible
+        - Explain code functionality, architecture patterns, and relationships
+        - Suggest improvements, optimizations, or best practices when relevant
+        - If you don't have enough context, clearly state what's missing
+        - Keep responses concise but comprehensive
+        - Use markdown formatting for better readability
+        - Always cite which files/repositories you're referencing
 
-CONTEXT FROM anatolyZader's REPOSITORIES:
-${context}
+        CONTEXT FROM anatolyZader's REPOSITORIES:
+        ${context}
 
-Remember: You have access to anatolyZader's actual code. Provide specific, actionable insights based on the retrieved context.`;
+        Remember: You have access to anatolyZader's actual code. Provide specific, actionable insights based on the retrieved context.`;
 
       // Step 3: Generate response using chat model
-      console.log(`[2025-06-24 14:22:21] Generating AI response using GPT-4...`);
+      console.log(`[2025-06-25 09:23:04] Generating AI response using GPT-4...`);
       
       const generationStartTime = Date.now();
       
@@ -251,7 +260,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
       ]);
 
       const generationTime = Date.now() - generationStartTime;
-      console.log(`[2025-06-24 14:22:21] ✅ AI response generated in ${generationTime}ms`);
+      console.log(`[2025-06-25 09:23:04] ✅ AI response generated in ${generationTime}ms`);
 
       // Step 4: Return structured response
       return {
@@ -265,19 +274,19 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
           repositoriesReferenced: [...new Set(relevantDocs.map(doc => doc.metadata.repoId))],
           filesReferenced: [...new Set(relevantDocs.map(doc => doc.metadata.source))],
           totalContextLength: context.length,
-          timestamp: '2025-06-24 14:22:21',
+          timestamp: '2025-06-25 09:23:04',
           user: 'anatolyZader'
         }
       };
 
     } catch (error) {
-      console.error(`[2025-06-24 14:22:21] ❌ Failed to respond to prompt:`, error.message);
+      console.error(`[2025-06-25 09:23:04] ❌ Failed to respond to prompt:`, error.message);
       
       return {
         success: false,
         error: `Failed to generate response: ${error.message}`,
         conversationId: conversationId,
-        timestamp: '2025-06-24 14:22:21',
+        timestamp: '2025-06-25 09:23:04',
         user: 'anatolyZader'
       };
     }
@@ -291,7 +300,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
    * @returns {RecursiveCharacterTextSplitter} Optimized splitter
    */
   createSmartSplitter(documents) {
-    console.log(`[2025-06-24 14:22:21] Analyzing repository content for optimal splitting strategy...`);
+    console.log(`[2025-06-25 09:23:04] Analyzing repository content for optimal splitting strategy...`);
     
     // Analyze file types in the repository
     const fileTypes = documents.map(doc => this.getFileType(doc.metadata.source || ''));
@@ -300,7 +309,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
       return acc;
     }, {});
 
-    console.log(`[2025-06-24 14:22:21] File type distribution:`, typeFrequency);
+    console.log(`[2025-06-25 09:23:04] File type distribution:`, typeFrequency);
 
     // Choose splitter based on dominant file types
     const dominantType = Object.keys(typeFrequency).reduce((a, b) => 
@@ -316,7 +325,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
           chunkSize: 1500,
           chunkOverlap: 300,
         });
-        console.log(`[2025-06-24 14:22:21] Using JavaScript/TypeScript optimized splitter`);
+        console.log(`[2025-06-25 09:23:04] Using JavaScript/TypeScript optimized splitter`);
         break;
         
       case 'python':
@@ -324,7 +333,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
           chunkSize: 1500,
           chunkOverlap: 300,
         });
-        console.log(`[2025-06-24 14:22:21] Using Python optimized splitter`);
+        console.log(`[2025-06-25 09:23:04] Using Python optimized splitter`);
         break;
         
       case 'markdown':
@@ -332,7 +341,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
           chunkSize: 1200,
           chunkOverlap: 200,
         });
-        console.log(`[2025-06-24 14:22:21] Using Markdown optimized splitter`);
+        console.log(`[2025-06-25 09:23:04] Using Markdown optimized splitter`);
         break;
         
       default:
@@ -341,7 +350,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
           chunkOverlap: 200,
           separators: ["\n\n", "\n", " ", ""]
         });
-        console.log(`[2025-06-24 14:22:21] Using generic text splitter`);
+        console.log(`[2025-06-25 09:23:04] Using generic text splitter`);
     }
 
     return splitter;
@@ -403,7 +412,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
    * @returns {Promise<Object>} Search results
    */
   async searchRepositories(query, options = {}) {
-    console.log(`[2025-06-24 14:22:21] Advanced search for anatolyZader: "${query}"`);
+    console.log(`[2025-06-25 09:23:04] Advanced search for anatolyZader: "${query}"`);
     
     try {
       const {
@@ -420,7 +429,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
 
       const results = await this.vectorStore.similaritySearch(query, k, filter);
       
-      console.log(`[2025-06-24 14:22:21] Found ${results.length} results for advanced search`);
+      console.log(`[2025-06-25 09:23:04] Found ${results.length} results for advanced search`);
       
       return {
         success: true,
@@ -432,10 +441,10 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
         query: query,
         filter: filter,
         totalResults: results.length,
-        timestamp: '2025-06-24 14:22:21'
+        timestamp: '2025-06-25 09:23:04'
       };
     } catch (error) {
-      console.error(`[2025-06-24 14:22:21] Advanced search failed:`, error.message);
+      console.error(`[2025-06-25 09:23:04] Advanced search failed:`, error.message);
       throw error;
     }
   }
@@ -447,11 +456,11 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
   getAdapterStats() {
     return {
       adapterVersion: '1.0.0',
-      storeType: 'MemoryVectorStore',
+      storeType: 'PineconeStore',
       embeddingModel: 'text-embedding-3-large',
       chatModel: 'gpt-4',
       user: 'anatolyZader',
-      timestamp: '2025-06-24 14:22:21',
+      timestamp: '2025-06-25 09:23:04',
       status: 'operational',
       features: [
         'GitHub repository loading',
@@ -459,12 +468,12 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
         'Semantic search',
         'RAG-powered responses',
         'Multi-repository support',
-        'Advanced metadata tracking'
+        'Advanced metadata tracking',
+        'Persistent vector storage'
       ],
       limitations: [
-        'MemoryVectorStore - no persistence between restarts',
-        'No selective document deletion support',
-        'Document count not directly queryable'
+        'Requires Pinecone API key and index setup',
+        'Network dependent for vector operations'
       ]
     };
   }
@@ -474,7 +483,7 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
    * @returns {Promise<Object>} Health status
    */
   async healthCheck() {
-    console.log(`[2025-06-24 14:22:21] Performing health check for anatolyZader...`);
+    console.log(`[2025-06-25 09:23:04] Performing health check for anatolyZader...`);
     
     try {
       // Test embeddings
@@ -487,22 +496,25 @@ Remember: You have access to anatolyZader's actual code. Provide specific, actio
       ]);
       const llmOk = testResponse && testResponse.content;
       
+      // Test Pinecone connection
+      const pineconeOk = await this.pinecone.describeIndex(process.env.PINECONE_INDEX_NAME).then(() => true).catch(() => false);
+      
       return {
         status: 'healthy',
-        timestamp: '2025-06-24 14:22:21',
+        timestamp: '2025-06-25 09:23:04',
         user: 'anatolyZader',
         components: {
           embeddings: embeddingsOk ? 'OK' : 'FAILED',
           llm: llmOk ? 'OK' : 'FAILED',
-          vectorStore: 'OK' // MemoryVectorStore is always available
+          vectorStore: pineconeOk ? 'OK' : 'FAILED'
         },
-        allSystemsOperational: embeddingsOk && llmOk
+        allSystemsOperational: embeddingsOk && llmOk && pineconeOk
       };
     } catch (error) {
-      console.error(`[2025-06-24 14:22:21] Health check failed:`, error.message);
+      console.error(`[2025-06-25 09:23:04] Health check failed:`, error.message);
       return {
         status: 'unhealthy',
-        timestamp: '2025-06-24 14:22:21',
+        timestamp: '2025-06-25 09:23:04',
         user: 'anatolyZader',
         error: error.message
       };

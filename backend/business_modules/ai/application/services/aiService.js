@@ -1,7 +1,7 @@
+// aiService.js
 'use strict';
 
 const IAIService = require('./interfaces/IAIService');
-const { v4: uuidv4 } = require('uuid');
 
 class AIService extends IAIService {
   constructor({aiAdapter, aiPersistAdapter, aiMessagingAdapter}) {
@@ -9,121 +9,78 @@ class AIService extends IAIService {
     this.aiAdapter = aiAdapter;
     this.aiPersistAdapter = aiPersistAdapter;
     this.aiMessagingAdapter = aiMessagingAdapter;
-
-    // In-memory store to track responses. Architecturally, this Map is the simplest way to correlate asynchronous callbacks from the Git/Wiki modules (which may arrive in any order) with the original prompt. serves as the single source of truth for all state related to this particular prompt request.
-    this.pendingRequests = new Map();
   }
 
-  async respondToPrompt(userId, conversationId, repoId, prompt) {
-    const correlationId = uuidv4(); // Later, when Git/Wiki modules publish their data, they must include this same ID so we know which in-flight request to update.
+  async respondToPrompt(userId, conversationId, prompt) {
+    try {
+      console.log(`[2025-06-25 08:39:05] Processing prompt for user ${userId}, conversation ${conversationId}`);
+      
+      // Direct call to AI adapter - repositories are already processed and indexed
+      const aiResponse = await this.aiAdapter.respondToPrompt(
+        conversationId,
+        prompt
+      );
 
-    // Store the pending request
-    this.pendingRequests.set(correlationId, {
-      userId,
-      conversationId,
-      repoId,
-      prompt,
-      repoData: null,
-      wikiData: null,
-      resolved: false,
-    });
-
-    // Publish fetch requests to Git & Wiki modules
-    await this.aiMessagingAdapter.requestRepoData(userId, repoId, correlationId);
-    await this.aiMessagingAdapter.requestWikiData(userId, repoId, correlationId);
-
-    return new Promise((resolve, reject) => { //Wraps the rest of the logic in a Promise that won’t resolve until the AI response is ready (or times out). Externally, any caller of respondToPrompt(...) gets a promise that settles with the AI’s generated answer or rejects on timeout.
-      const checkResponses = async () => {
-        const pending = this.pendingRequests.get(correlationId);
-        if (pending && pending.repoData && pending.wikiData && !pending.resolved) {
-          pending.resolved = true;
-          this.pendingRequests.delete(correlationId);
-           clearInterval(interval); 
-
-          // Generate AI response
-        
-          const aiResponse = await this.aiAdapter.respondToPrompt(
-            conversationId,
-            prompt,
-            pending.repoData,
-            pending.wikiData,         
-          );
-
-          // Persist AI response
-          try { 
-            await this.aiPersistAdapter.saveAiResponse({
-              userId,
-              conversationId,
-              repoId,
-              prompt,
-              aiResponse,
-            });
-            console.log(`AI response persisted for conversation ${conversationId}`);
-          } catch (error) {
-            console.error('Error persisting AI response:', error);
-          }
-
-          // Publish the AI response
-          this.aiMessagingAdapter.publishAiResponse(aiResponse);
-
-          resolve(aiResponse);
-        }
-      };
-
-      // Periodically check if both responses are available
-      const interval = setInterval(() => {
-        if (!this.pendingRequests.has(correlationId)) {
-          clearInterval(interval);
-        } else {
-          checkResponses();
-        }
-      }, 500);
-
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        if (this.pendingRequests.has(correlationId)) {
-          this.pendingRequests.delete(correlationId);
-          reject(new Error('Timeout waiting for repo and wiki responses'));
-        }
-      }, 30000);
-    });
-  }
-
-
-  async processPushedRepo(userId, repoId) { 
-    await this.aiAdapter.processPushedRepo(userId, repoId);
-    console.log(`Processed pushed repository for user: ${userId}, repository: ${repoId}`);
-  }
-
-
-  // Handles incoming repositoryFetched events from Git Module
-  async handleRepoResponse(repoData, correlationId) {
-    if (this.pendingRequests.has(correlationId)) {
-      const pendingRequest = this.pendingRequests.get(correlationId);
-      pendingRequest.repoData = repoData;
-
-      // Persist Git data before proceeding
-      try {
-        await this.aiPersistAdapter.saveGitData(pendingRequest.userId, pendingRequest.repoId, repoData);
-        console.log(`Persisted Git data for repo ${pendingRequest.repoId}`);
+      // Persist AI response
+      try { 
+        await this.aiPersistAdapter.saveAiResponse({
+          userId,
+          conversationId,
+          prompt,
+          aiResponse: aiResponse.response || aiResponse,
+        });
+        console.log(`[2025-06-25 08:39:05] AI response persisted for conversation ${conversationId}`);
       } catch (error) {
-        console.error('Error persisting Git data:', error);
+        console.error('[2025-06-25 08:39:05] Error persisting AI response:', error);
       }
+
+      // Publish the AI response back to chat module
+      await this.aiMessagingAdapter.publishAiResponse({
+        event: 'aiResponseReceived',
+        payload: {
+          userId,
+          conversationId,
+          response: aiResponse.response || aiResponse
+        }
+      });
+
+      console.log(`[2025-06-25 08:39:05] AI response published for user ${userId}`);
+      
+      return aiResponse;
+
+    } catch (error) {
+      console.error(`[2025-06-25 08:39:05] Error in respondToPrompt:`, error);
+      
+      // Publish error back to chat module
+      try {
+        await this.aiMessagingAdapter.publishAiResponse({
+          event: 'aiResponseError',
+          payload: {
+            userId,
+            conversationId,
+            error: error.message
+          }
+        });
+      } catch (publishError) {
+        console.error('[2025-06-25 08:39:05] Error publishing AI error:', publishError);
+      }
+      
+      throw error;
     }
   }
-  
-  async handleWikiResponse(wikiData, correlationId) {
-    if (this.pendingRequests.has(correlationId)) {
-      const pendingRequest = this.pendingRequests.get(correlationId);
-      pendingRequest.wikiData = wikiData;
 
-      // Persist Wiki data before proceeding
-      try {
-        await this.aiPersistAdapter.saveWikiData(pendingRequest.userId, pendingRequest.repoId, wikiData);
-        console.log(`Persisted Wiki data for repo ${pendingRequest.repoId}`);
-      } catch (error) {
-        console.error('Error persisting Wiki data:', error);
-      }
+  async processPushedRepo(userId, repoId) { 
+    try {
+      console.log(`[2025-06-25 08:39:05] Processing pushed repository for user: ${userId}, repository: ${repoId}`);
+      
+      const result = await this.aiAdapter.processPushedRepo(userId, repoId);
+      
+      console.log(`[2025-06-25 08:39:05] Successfully processed repository ${repoId} for user anatolyZader`);
+      return result;
+      
+    } catch (error) {
+      console.error(`[2025-06-25 08:39:05] Error processing repository:`, error);
+      throw error;
     }
   }
 }

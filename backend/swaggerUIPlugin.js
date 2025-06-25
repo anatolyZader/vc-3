@@ -47,7 +47,7 @@ module.exports = async function (fastify, opts) {
         /default-src 'self'/g,
         "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:"
       );
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'staging') {
         newHdr += "; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:";
       } else {
         newHdr += "; connect-src 'self' https: wss: data: blob:";
@@ -63,7 +63,7 @@ module.exports = async function (fastify, opts) {
       spec.info['x-environment'] = process.env.NODE_ENV || 'development';
       spec.info['x-node-version'] = process.version;
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'staging') {
         spec.servers = [
           { url: 'http://localhost:3000', description: 'Development server' },
           { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }

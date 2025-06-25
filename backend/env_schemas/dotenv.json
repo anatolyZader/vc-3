@@ -69,6 +69,15 @@
     },
     "APP_URL": {
       "type": "string"
+    },
+    "PINECONE_API_KEY": {
+      "type": "string"
+    },
+    "PINECONE_INDEX_NAME": {
+      "type": "string"
+    },
+    "OPENAI_API_KEY": {
+      "type": "string"
     }
 
   }

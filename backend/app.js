@@ -6,15 +6,12 @@ const path              = require('node:path');
 const fs                = require('fs');
 const AutoLoad          = require('@fastify/autoload');
 const fastifySensible   = require('@fastify/sensible');
-
 const fastifyCookie     = require('@fastify/cookie');
 const fastifySession    = require('@fastify/session');
 const { Store }         = fastifySession;
-
 const redisPlugin       = require('./redisPlugin');
 const websocketPlugin   = require('./websocketPlugin');
-
-const loggingPlugin     = require('./aop_modules/log/plugins/logPlugin');
+const loggingPlugin     = require('./logPlugin');
 const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
 const envPlugin         = require('./envPlugin');
 const diPlugin          = require('./diPlugin');
@@ -25,8 +22,6 @@ const fastifyOAuth2     = require('@fastify/oauth2');
 const { OAuth2Client }  = require('google-auth-library');
 const { v4: uuidv4 }    = require('uuid');
 const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
-// const swaggerPlugin     = require('./swaggerPlugin');
-// const swaggerUIPlugin   = require('./swaggerUIPlugin');
 const fastifySwagger    = require('@fastify/swagger');
 const fastifySwaggerUI  = require('@fastify/swagger-ui');
 
@@ -42,7 +37,6 @@ module.exports = async function (fastify, opts) {
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
   await fastify.register(diPlugin);
-
   await fastify.register(websocketPlugin);
   await fastify.register(fastifySensible);
   await fastify.register(fastifySwagger, {
@@ -63,11 +57,11 @@ module.exports = async function (fastify, opts) {
       },
       servers: [
         {
-          url: process.env.NODE_ENV === 'production'
+          url: process.env.NODE_ENV === 'staging'
             ? 'https://eventstorm.me'
             : 'http://localhost:3000',
-          description: process.env.NODE_ENV === 'production'
-            ? 'Production server'
+          description: process.env.NODE_ENV === 'staging'
+            ? 'staging server'
             : 'Development server'
         }
       ],
@@ -135,7 +129,7 @@ module.exports = async function (fastify, opts) {
           "'self'", 
           'https://accounts.google.com/gsi/',
           // Add http for local development
-          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
+          ...(process.env.NODE_ENV !== 'staging' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
         ],
       },
     },
@@ -263,7 +257,7 @@ module.exports = async function (fastify, opts) {
     );
   });
 
-  const cookieSecure   = process.env.NODE_ENV === 'production';
+  const cookieSecure   = process.env.NODE_ENV === 'staging';
   const cookieSameSite = cookieSecure ? 'None' : 'Lax';
   const googleCallbackUri =
     cookieSecure
@@ -391,7 +385,7 @@ module.exports = async function (fastify, opts) {
         "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:"
       );
       // Add connect-src directives based on environment for local development
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'staging') {
         newHdr += "; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:";
       } else {
         newHdr += "; connect-src 'self' https: wss: data: blob:";
@@ -409,7 +403,7 @@ module.exports = async function (fastify, opts) {
       spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info
 
       // Adjust server URLs for development environment
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'staging') {
         spec.servers = [
           { url: 'http://localhost:3000', description: 'Development server' },
           { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }
