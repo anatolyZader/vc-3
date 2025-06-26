@@ -2,7 +2,7 @@
 'use strict';
 /* eslint-disable no-unused-vars */
 
-const IAIPort = require('./IAIPort');
+const IAIPort = require('../../domain/ports/IAIPort');
 const { GithubRepoLoader } = require("@langchain/community/document_loaders/web/github");
 const { RecursiveCharacterTextSplitter, Language } = require("@langchain/textsplitters");
 const { PineconeStore } = require('@langchain/pinecone');

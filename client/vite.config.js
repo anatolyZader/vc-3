@@ -1,24 +1,23 @@
 // viteReact.config.js
 /* eslint-disable no-unused-vars */
 
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import viteReact from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react()], // ✅ Only one React plugin needed
   base: '/',
   server: {
-    host: true, // Allow external connections (for your --host flag)
-    open: true, // Auto-open browser (for your --open flag)
+    host: true, // Allow external connections
+    open: true, // Auto-open browser
     proxy: {
-      // API requests proxy
+      // API requests proxy (includes WebSocket at /api/ws)
       '/api': {
-        target: 'http://127.0.0.1:3000',  
+        target: 'http://localhost:3000',  // ✅ Consistent with your backend
         changeOrigin: true,
         secure: false,
+        ws: true, // ✅ This handles WebSocket at /api/ws
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
             console.log('🚨 API Proxy Error:', err.message);
@@ -33,22 +32,12 @@ export default defineConfig({
             const statusIcon = status >= 200 && status < 300 ? '✅' : '❌';
             console.log(`${statusIcon} Proxy Response: ${status} for ${req.url}`);
           });
-        }
-      },
-      // WebSocket proxy for real-time chat
-      '/ws': {
-        target: 'ws://localhost:3000',
-        ws: true,
-        changeOrigin: true,
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, socket, head) => {
-            console.log('🚨 WebSocket Proxy Error:', err.message);
+          // WebSocket specific logging
+          proxy.on('proxyReqWs', (proxyReq, req, socket, options, head) => {
+            console.log('🔌 WebSocket Proxy: Upgrading connection to', options.target);
           });
-          proxy.on('open', (proxySocket) => {
-            console.log('🔌 WebSocket Proxy: Connection opened');
-          });
-          proxy.on('close', (res, socket, head) => {
-            console.log('🔌 WebSocket Proxy: Connection closed');
+          proxy.on('proxyResWs', (proxyRes, req, socket, head) => {
+            console.log('🔌 WebSocket Proxy: Connection established');
           });
         }
       }

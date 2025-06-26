@@ -172,37 +172,26 @@ const Chat = () => {
           </div>
         )}
 
+        
+
         <MessageList 
-          typingIndicator={isTyping && (
+          typingIndicator={isTyping ? (
             <TypingIndicator content="AI Assistant is typing..." />
-          )}
+          ) : undefined}
         >
-          {!currentConversationId ? (
-            <div className="no-conversation">
-              <p>Select conversation or start a new one</p>
-            </div>
-          ) : (
-            <>
-              {messages.length > 0 && (
-                <MessageSeparator content={formatDate(new Date())} />
-              )}
-              
-              {messages.map((message, index) => (
-                <Message key={index} model={message}>
-                  {message.direction === 'incoming' && (
-                    <Avatar src={stitch} name="AI Assistant" />
-                  )}
-                </Message>
-              ))}
-              
-              {messages.length === 0 && !loading && (
-                <div className="empty-conversation">
-                  <p>Start the conversation by sending a message!</p>
-                </div>
-              )}
-            </>
+          {currentConversationId && messages.length > 0 && (
+            <MessageSeparator content={formatDate(new Date())} />
           )}
+          
+          {currentConversationId && messages.map((message, index) => (
+            <Message key={index} model={message}>
+              {message.direction === 'incoming' && (
+                <Avatar src={stitch} name="AI Assistant" />
+              )}
+            </Message>
+          ))}
         </MessageList>
+
 
         {currentConversationId && (
             <MessageInput
@@ -210,7 +199,7 @@ const Chat = () => {
                 placeholder="Enter your message here..."
                 onSend={handleSend}
                 disabled={loading}
-                responsive
+                responsive='true'
             />
         )}
              

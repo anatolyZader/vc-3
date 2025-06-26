@@ -15,25 +15,34 @@ class ChatAPI {
     };
   }
 
-  // WebSocket connection
   connectWebSocket() {
-
-      // console.log('WebSocket temporarily disabled for debugging');
-      // return null; // ❌ Disable WebSocket for now
-
-
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
       return this.websocket;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws`;
+      // 🛑 Add reconnection limits
+    if (!this.reconnectAttempts) this.reconnectAttempts = 0;
+    if (this.reconnectAttempts >= 5) {
+      console.log('❌ Max reconnection attempts reached. WebSocket disabled.');
+      return null;
+    }
+
+    // 🔧 Connect directly to backend server (bypass Vite proxy for WebSocket)
+    const isDevelopment = window.location.hostname === 'localhost';
+
+    // 🔧 Add userId as query parameter
+    const wsUrl = isDevelopment 
+      ? 'ws://localhost:3000/api/ws?userId=anatolyZader'  // Add userId
+      : `wss://${window.location.host}/api/ws?userId=anatolyZader`;
     
-    console.log('Connecting to WebSocket:', wsUrl);
+    console.log(`Connecting to WebSocket (attempt ${this.reconnectAttempts + 1}):`, wsUrl);
     this.websocket = new WebSocket(wsUrl);
     
+     
     this.websocket.onopen = () => {
       console.log('WebSocket connected successfully');
+      this.reconnectAttempts = 0; // Reset on successful connection
+
     };
     
     this.websocket.onmessage = (event) => {
@@ -48,12 +57,13 @@ class ChatAPI {
     
     this.websocket.onclose = (event) => {
       console.log('WebSocket disconnected:', event.code, event.reason);
-      // Attempt to reconnect after 3 seconds if not a normal closure
-      if (event.code !== 1000) {
+      // Only reconnect if not intentional and under limit
+      if (event.code !== 1000 && this.reconnectAttempts < 5) {
+        this.reconnectAttempts++;
         setTimeout(() => {
-          console.log('Attempting to reconnect WebSocket...');
+          console.log(`Attempting to reconnect WebSocket... (${this.reconnectAttempts}/5)`);
           this.connectWebSocket();
-        }, 3000);
+        }, 3000 * this.reconnectAttempts); // Exponential backoff
       }
     };
     

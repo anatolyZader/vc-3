@@ -48,7 +48,10 @@ module.exports = async function (fastify, opts) {
         { name: 'ai', description: 'AI-powered endpoints' },
         { name: 'chat', description: 'Chat endpoints' },
         { name: 'wiki', description: 'Wiki endpoints' },
-        { name: 'api', description: 'Utility endpoints' }
+        { name: 'api', description: 'Utility endpoints' },
+        { name: 'reqs', description: 'Reqs endpoints' },
+        { name: 'pm', description: 'PM endpoints' },
+      
       ],
       components: {
         securitySchemes: {
