@@ -38,6 +38,18 @@ async function chatPubsubListener(fastify, options) {
      
           await fastify.addAnswer(mockRequest, mockReply); // ✅ Fixed: pass the request and reply objects
           fastify.log.info(`AI answer added to chat conversation ${conversationId}.`);
+
+          fastify.sendToUser(userId, {
+            type: 'new_message',
+            conversationId,
+            message: {
+              id: require('uuid').v4(),
+              content: response,
+              role: 'assistant',
+              created_at: new Date().toISOString()
+            }
+          });
+          
         } else {
           fastify.log.error(`fastify.addAnswer is not defined.`);
           message.nack(); // Nack if the handler isn't available

@@ -30,9 +30,8 @@ async function aiController(fastify, options) {
 
     fastify.decorate('processPushedRepo', async (request, reply) => {
     try {
-      const { repoId } = request.body;
-      const userId = request.user.id; // Assuming user is set by verifyToken middleware
-      
+      const { repoId, repoData} = request.body;
+      const userId = request.user.id; 
       fastify.log.info(`Processing pushed repository for user: ${userId}, repository: ${repoId}`);
       
       const aiService = await request.diScope.resolve('aiService');
@@ -40,7 +39,7 @@ async function aiController(fastify, options) {
         throw new Error('AI service not found in DI container');
       }
       
-      const response = await aiService.respondToPrompt(userId, repoId);
+      const response = await aiService.processPushedRepo(userId, repoId, repoData);
       
       fastify.log.info(`pushed repo processed: ${repoId}`);
       return response;

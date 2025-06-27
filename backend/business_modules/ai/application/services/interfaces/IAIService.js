@@ -8,7 +8,7 @@ class IAIService {
     }
   }
 
-  async respondToPrompt(userId, conversationId, prompt, preFetchedRepo, preFetchedWiki) {
+  async respondToPrompt(userId, conversationId, prompt) {
     throw new Error('Method not implemented.');
   }
 

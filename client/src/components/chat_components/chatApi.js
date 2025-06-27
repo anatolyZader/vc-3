@@ -4,6 +4,12 @@ class ChatAPI {
     this.baseURL = baseURL || window.location.origin;
     this.websocket = null;
     this.messageHandlers = new Set();
+    this.currentUser = null; // Add this to store current user
+  }
+
+  // Add method to set current user
+  setUser(user) {
+    this.currentUser = user;
   }
 
   // For GCP cookie-based auth, we don't need Authorization headers
@@ -20,29 +26,33 @@ class ChatAPI {
       return this.websocket;
     }
 
-      // 🛑 Add reconnection limits
+    // 🛑 Add reconnection limits
     if (!this.reconnectAttempts) this.reconnectAttempts = 0;
     if (this.reconnectAttempts >= 5) {
       console.log('❌ Max reconnection attempts reached. WebSocket disabled.');
       return null;
     }
 
+    // Check if user is available
+    if (!this.currentUser?.id) {
+      console.log('❌ No user available for WebSocket connection');
+      return null;
+    }
+
     // 🔧 Connect directly to backend server (bypass Vite proxy for WebSocket)
     const isDevelopment = window.location.hostname === 'localhost';
 
-    // 🔧 Add userId as query parameter
+    // 🔧 Add userId as query parameter - FIX: Use this.currentUser.id
     const wsUrl = isDevelopment 
-      ? 'ws://localhost:3000/api/ws?userId=anatolyZader'  // Add userId
-      : `wss://${window.location.host}/api/ws?userId=anatolyZader`;
+      ? `ws://localhost:3000/api/ws?userId=${this.currentUser.id}`  // Use actual user ID
+      : `wss://${window.location.host}/api/ws?userId=${this.currentUser.id}`;
     
     console.log(`Connecting to WebSocket (attempt ${this.reconnectAttempts + 1}):`, wsUrl);
     this.websocket = new WebSocket(wsUrl);
-    
      
     this.websocket.onopen = () => {
       console.log('WebSocket connected successfully');
       this.reconnectAttempts = 0; // Reset on successful connection
-
     };
     
     this.websocket.onmessage = (event) => {
@@ -88,6 +98,7 @@ class ChatAPI {
     }
   }
 
+  // ... rest of your existing methods remain the same
   async makeRequest(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     const config = {

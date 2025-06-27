@@ -25,12 +25,12 @@ subscription.on('message', async (message) => {
 
     // Handle repoPushed event
     if (data.event === 'repoPushed') {
-      const { userId, repoId } = data.payload;
+      const { userId, repoId, repoData} = data.payload;
       fastify.log.info(`AI module processing pushed git repository ${repoId} for user: ${userId}`);
 
       if (typeof fastify.processPushedRepo === 'function') {
         const mockRequest = {
-          body: { repoId },
+          body: { repoId , repoData },
           user: { id: userId }
         };
         await fastify.processPushedRepo(mockRequest, {});

@@ -9,13 +9,14 @@ class IAIPort {
     }
   }
 
-  async respondToPrompt(userId, conversationId, prompt) {
+  async processPushedRepo(userId, repoId, repoData) {
+    throw new Error('Method not implemented.');
+  }  
+
+  async respondToPrompt(conversationId, prompt) {
     throw new Error('Method not implemented.');
   }
 
-  async processPushedRepo(userId, repoId) {
-    throw new Error('Method not implemented.');
-  }
 }
 
 module.exports = IAIPort;

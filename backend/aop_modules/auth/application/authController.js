@@ -33,6 +33,12 @@ async function authController(fastify, options) {
     }
   });
 
+    fastify.decorate('getUserInfo', async function (request, reply) {
+    if (!request.user || !request.user.username) {
+      throw fastify.httpErrors.unauthorized('User not authenticated');
+    }
+    return reply.send(request.user);
+  });
 
   fastify.decorate('registerUser', async function (request, reply) {
     const { username, email, password } = request.body;
@@ -100,17 +106,9 @@ async function authController(fastify, options) {
     }
   });
   
-
   fastify.decorate('logoutUser', async function (request, reply) {
     reply.clearCookie('authToken', { path: '/' });
     return reply.code(204).send();
-  });
-
-  fastify.decorate('getUserInfo', async function (request, reply) {
-    if (!request.user || !request.user.username) {
-      throw fastify.httpErrors.unauthorized('User not authenticated');
-    }
-    return reply.send(request.user);
   });
 
   fastify.decorate('refreshToken', async function (request, reply) {
