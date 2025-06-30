@@ -9,13 +9,13 @@ module.exports = fp(async function chatSchemasPlugin(fastify, opts) {
 
   const schemas = [
 
-    { id: 'schema:chat:start-conversation', path: '../routes/schemas/startConversationSchema.js' },
-    { id: 'schema:chat:fetch-conversations-history', path: '../routes/schemas/fetchConversationsHistorySchema.js' },
-    { id: 'schema:chat:fetch-conversation', path: '../routes/schemas/fetchConversationSchema.js' },
-    { id: 'schema:chat:rename-conversation', path: '../routes/schemas/renameConversationSchema.js' },
-    { id: 'schema:chat:delete-conversation', path: '../routes/schemas/deleteConversationSchema.js' },
-    { id: 'schema:chat:add-question', path: '../routes/schemas/addQuestionSchema.js' },
-    { id: 'schema:chat:add-answer', path: '../routes/schemas/addAnswerSchema.js' },
+    { id: 'schema:chat:start-conversation', path: '../input/schemas/startConversationSchema.js' },
+    { id: 'schema:chat:fetch-conversations-history', path: '../input/schemas/fetchConversationsHistorySchema.js' },
+    { id: 'schema:chat:fetch-conversation', path: '../input/schemas/fetchConversationSchema.js' },
+    { id: 'schema:chat:rename-conversation', path: '../input/schemas/renameConversationSchema.js' },
+    { id: 'schema:chat:delete-conversation', path: '../input/schemas/deleteConversationSchema.js' },
+    { id: 'schema:chat:add-question', path: '../input/schemas/addQuestionSchema.js' },
+    { id: 'schema:chat:add-answer', path: '../input/schemas/addAnswerSchema.js' },
 
   ];
 

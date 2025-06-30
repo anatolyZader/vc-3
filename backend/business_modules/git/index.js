@@ -26,7 +26,7 @@ module.exports = async function gitModuleIndex(fastify, opts) {
   });
 
 fastify.register(autoload, {
-  dir: path.join(__dirname, 'routes'),
+  dir: path.join(__dirname, 'input'),
   options: {
   },
   encapsulate: false,

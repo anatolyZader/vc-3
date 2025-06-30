@@ -24,6 +24,8 @@ const { v4: uuidv4 }    = require('uuid');
 const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
 const fastifySwagger    = require('@fastify/swagger');
 const fastifySwaggerUI  = require('@fastify/swagger-ui');
+const pubsubPlugin      = require('./pubsubPlugin');
+const eventDispatcher = require('./eventDispatcher');
 
 require('dotenv').config();
 
@@ -39,6 +41,8 @@ module.exports = async function (fastify, opts) {
   await fastify.register(diPlugin);
   await fastify.register(websocketPlugin);
   await fastify.register(fastifySensible);
+  await fastify.register(eventDispatcher);
+  await fastify.register(pubsubPlugin);
   await fastify.register(fastifySwagger, {
     openapi: {
       openapi: '3.0.0',

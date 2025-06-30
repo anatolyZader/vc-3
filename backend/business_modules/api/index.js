@@ -24,7 +24,7 @@ module.exports = async function apiModuleIndex(fastify, opts) {
 
 
   fastify.register(autoload, {
-    dir: path.join(__dirname, 'routes'),    encapsulate: true,
+    dir: path.join(__dirname, 'input'),    encapsulate: true,
     maxDepth: 1,
     matchFilter: (path) =>  path.includes('Router'),
     dirNameRoutePrefix: false

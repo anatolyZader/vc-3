@@ -1,5 +1,5 @@
 'use strict';
-// project_wiki_module/index.js
+// wiki_module/index.js
 /* eslint-disable no-unused-vars */
 
 const fp = require('fastify-plugin');
@@ -17,7 +17,7 @@ module.exports = async function wikiModuleIndex(fastify, opts) {
   });
 
   fastify.register(autoload, {
-    dir: path.join(__dirname, 'routes'),
+    dir: path.join(__dirname, 'input'),
     encapsulate: false,
     maxDepth: 3,
     matchFilter: (filepath) => filepath.includes('Router'),

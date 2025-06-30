@@ -3,8 +3,13 @@
   "$id": "schema:user",
   "additionalProperties": false,
   "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid" 
+    },
     "username": {
       "type": "string"
     }
-  }
+  },
+  "required": ["id", "username"] 
 }

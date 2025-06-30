@@ -6,6 +6,7 @@ const fp = require('fastify-plugin');
 const fs = require('fs');
 const path = require('path');
 const autoload = require('@fastify/autoload');
+const aiPubsubListener = require('./input/aiPubsubListener');
 
 module.exports = async function aiModuleIndex(fastify, opts) {
   fastify.log.info('✅ ai/index.js was registered');
@@ -19,22 +20,25 @@ module.exports = async function aiModuleIndex(fastify, opts) {
     encapsulate: false,
     maxDepth: 1,
     matchFilter: (filepath) => filepath.includes('Controller'),
+    dirNameRoutePrefix: false
   });
 
-
   fastify.register(autoload, {
-    dir: path.join(__dirname, 'routes'),    encapsulate: true,
+    dir: path.join(__dirname, 'input'),    encapsulate: true,
     maxDepth: 1,
-    matchFilter: (path) =>  path.includes('Router'),
-    dirNameRoutePrefix: false
+    matchFilter: (filepath) =>  filepath.includes('Router'),
+    dirNameRoutePrefix: false,
+     prefix: ''
     });
 
-}
+  await fastify.register(aiPubsubListener);
+
+};
 
 module.exports.autoPrefix = '/api/ai';
 
 
 
-// plugin.autoConfig = { prefix: '/ai' };
 
-// module.exports = plugin;
+
+

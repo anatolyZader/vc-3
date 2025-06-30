@@ -78,6 +78,9 @@
     },
     "OPENAI_API_KEY": {
       "type": "string"
+    },
+    "PUBSUB_MAIN_SUBSCRIPTION": {
+      "type": "string"
     }
 
   }

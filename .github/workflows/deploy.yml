@@ -2,7 +2,7 @@ name: Full deploy
 
 on:
   push:
-    branches: [amber]
+    branches: [amber]  # Triggers the workflow on pushes to the 'amber' branch
 
 jobs:
   build-and-deploy:
@@ -14,10 +14,18 @@ jobs:
       GCP_BUCKET: eventstorm-bucket
       REDIS_HOST: 10.187.8.27
 
+      # These environment variables are made available to steps within this GitHub Actions job.
+      # They are also explicitly passed to Cloud Run in the deploy step.
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+      PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
+      PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+
+
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 1
+        fetch-depth: 1 # Sufficient for getting current push info
 
     - name: Authenticate with GCP
       uses: google-github-actions/auth@v2
@@ -72,64 +80,61 @@ jobs:
           --vpc-connector=cr-vpc-conn \
           --allow-unauthenticated \
           --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
-          --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance,DUMMY=MUDDYY \
+          --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance,DUMMY=MUDDYY, \
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}, \
+          PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}, \
+          PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }}, \
+          PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }} \
           --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
 
-    # --- TRIGGER FETCH & PERSIST via Pub/Sub ---
+    # --- TRIGGER AI INGESTION via Pub/Sub ---
     - name: Install jq for JSON templating
       run: sudo apt-get update && sudo apt-get install -y jq
 
-    - name: Publish fetchRepoRequest event
+    - name: Publish repoPushed event for AI ingestion
       env:
-        TOPIC: git-topic
-        USER_ID: ${{ github.actor }}
-        REPO_ID: ${{ github.repository }}
-        CORRELATION: ${{ github.run_id }}
+        TOPIC: git-topic # Or 'ai-topic' if that's the final designated topic where AI listener subscribes
+        USER_ID: ${{ github.actor }} # The user who triggered the push
+        REPO_NAME: ${{ github.event.repository.name }}
+        REPO_OWNER: ${{ github.event.repository.owner.login }}
+        BRANCH_NAME: ${{ github.ref_name }} # The branch name that was pushed to
+        CORRELATION_ID: ${{ github.run_id }}
       run: |
+        REPO_URL="https://github.com/$REPO_OWNER/$REPO_NAME"
         PAYLOAD=$(jq -n \
-          --arg event "fetchRepoRequest" \
+          --arg event "repoPushed" \
           --arg userId "$USER_ID" \
-          --arg repoId "$REPO_ID" \
-          --arg corr "$CORRELATION" \
-          '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
+          --arg repoId "$REPO_NAME" \
+          --arg repoUrl "$REPO_URL" \
+          --arg branch "$BRANCH_NAME" \
+          --arg corr "$CORRELATION_ID" \
+          '{ event: $event, payload: { userId: $userId, repoId: $repoId, repoData: { url: $repoUrl, branch: $branch }, correlationId: $corr } }'
         )
+        echo "Publishing to topic $TOPIC with payload: $PAYLOAD"
         gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
 
-    - name: Publish fetchWikiRequest event
-      env:
-        TOPIC: wiki-topic
-        USER_ID: ${{ github.actor }}
-        REPO_ID: ${{ github.repository }}
-        CORRELATION: ${{ github.run_id }}
-      run: |
-        PAYLOAD=$(jq -n \
-          --arg event "fetchWikiRequest" \
-          --arg userId "$USER_ID" \
-          --arg repoId "$REPO_ID" \
-          --arg corr "$CORRELATION" \
-          '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
-        )
-        gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
+    # Removed the fetchWikiRequest and fetchHttpApiRequest events as per previous discussion,
+    # assuming they are not part of the primary code ingestion pipeline.
+    # If needed for other purposes, they can be re-added with correct event names and payloads.
 
     # --- GENERATE & SAVE YOUR OPENAPI SPEC ---
     - name: Generate OpenAPI spec file
       working-directory: backend
       run: |
-        # this should write openapi.json (or .yaml) into backend/
         npm run generate:openapi
-
-    - name: Publish fetchHttpApiRequest event
-      env:
-        TOPIC: api-topic
-        USER_ID: ${{ github.actor }}
-        REPO_ID: ${{ github.repository }}
-        CORRELATION: ${{ github.run_id }}
-      run: |
-        PAYLOAD=$(jq -n \
-          --arg event "fetchHttpApiRequest" \
-          --arg userId "$USER_ID" \
-          --arg repoId "$REPO_ID" \
-          --arg corr "$CORRELATION" \
-          '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
-        )
-        gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
+    # You might want to remove this or adapt it if the API spec is also pushed to a different topic for a different kind of ingestion
+    # - name: Publish fetchHttpApiRequest event
+    #   env:
+    #     TOPIC: api-topic
+    #     USER_ID: ${{ github.actor }}
+    #     REPO_ID: ${{ github.repository }}
+    #     CORRELATION: ${{ github.run_id }}
+    #   run: |
+    #     PAYLOAD=$(jq -n \
+    #       --arg event "fetchHttpApiRequest" \
+    #       --arg userId "$USER_ID" \
+    #       --arg repoId "$REPO_ID" \
+    #       --arg corr "$CORRELATION" \
+    #       '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
+    #     )
+    #     gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"

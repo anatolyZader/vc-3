@@ -9,10 +9,10 @@ module.exports = fp(async function authSchemasPlugin(fastify, opts) {
   console.log('authSchemasPlugin loaded!');
 
   const schemas = [
-    { id: 'schema:auth:register', path: '../routes/schemas/register.json' },
-    { id: 'schema:auth:token-header', path: '../routes/schemas/token-header.json' },
-    { id: 'schema:auth:token', path: '../routes/schemas/token.json' },
-    { id: 'schema:auth:user', path: '../routes/schemas/user.json' },
+    { id: 'schema:auth:register', path: '../input/schemas/register.json' },
+    { id: 'schema:auth:token-header', path: '../input/schemas/token-header.json' },
+    { id: 'schema:auth:token', path: '../input/schemas/token.json' },
+    { id: 'schema:auth:user', path: '../input/schemas/user.json' },
   ];
 
   schemas.forEach(({ id, path }) => {

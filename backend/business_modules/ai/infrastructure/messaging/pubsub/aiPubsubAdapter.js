@@ -6,51 +6,36 @@ class AIPubsubAdapter {
     this.pubSubClient = pubSubClient;
     this.aiTopic = 'ai-topic';
     this.gitTopic = 'git-topic';
-    this.wikiTopic = 'wiki-topic';
-    this.gitSubscription = 'git-sub';
-    this.wikiSubscription = 'wiki-sub';
+    this.gitSubscription = 'git-sub'; 
     this.gitSubscriptionRef = pubSubClient.subscription(this.gitSubscription);
-    this.wikiSubscriptionRef = pubSubClient.subscription(this.wikiSubscription);
   }
 
-
-  async publishAiResponse(response) {
-    try {
-      const topicRef = this.pubSubClient.topic(this.aiTopic);
-      const messageBuffer = Buffer.from(JSON.stringify(response));
-      const messageId = await topicRef.publishMessage({ data: messageBuffer });
-      console.log(`AI Response published with Message ID: ${messageId} to topic: ${this.aiTopic}`);
-      return messageId;
-    } catch (error) {
-      console.error(`Error publishing AI response:`, error);
-      throw error;
-    }
-  }
-
-  async respondToPrompt(userId, conversationId, prompt) {
+  async publishAiResponse(event, payload) {
     try {
       const topicRef = this.pubSubClient.topic(this.aiTopic);
 
+      // Construct the full message object with event type and payload
       const message = {
-        event: 'questionAdded',
-        payload: {
-          userId,
-          conversationId,
-          prompt
-        }
+        event: event,
+        payload: payload
       };
 
       const messageBuffer = Buffer.from(JSON.stringify(message));
       const messageId = await topicRef.publishMessage({ data: messageBuffer });
 
-      console.log(`AI prompt published with Message ID: ${messageId} for conversation: ${conversationId}`);
+      console.log(`AI Event '${event}' published with Message ID: ${messageId} to topic: ${this.aiTopic}`);
+      // Log specific payload details for 'questionAdded' to maintain visibility
+      if (event === 'questionAdded' && payload.conversationId && payload.prompt) {
+        console.log(`  - Conversation: ${payload.conversationId}, Prompt: "${payload.prompt.substring(0, 50)}..."`);
+      } else if (event === 'aiResponse' && payload.conversationId) {
+        console.log(`  - Conversation: ${payload.conversationId}, Response status: ${payload.success ? 'success' : 'failure'}`);
+      }
       return messageId;
     } catch (error) {
-      console.error(`Error publishing respondToPrompt:`, error);
+      console.error(`Error publishing AI event '${event}':`, error);
       throw error;
     }
   }
-  
 }
 
 module.exports = AIPubsubAdapter;

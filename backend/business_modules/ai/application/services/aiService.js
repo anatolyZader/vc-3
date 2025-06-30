@@ -31,7 +31,7 @@ class AIService extends IAIService {
       }
       // Publish the AI response back to chat module
       await this.aiMessagingAdapter.publishAiResponse({
-        event: 'aiResponseReceived',
+        event: 'answerAdded',
         payload: {
           userId,
           conversationId,

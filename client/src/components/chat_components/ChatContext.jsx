@@ -1,13 +1,14 @@
+// chatContext.jsx
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable no-unused-vars */
 import PropTypes from 'prop-types';
-import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react'; // Import useRef
 import { AuthContext } from '../auth_components/AuthContext';
 import chatAPI from './chatApi';
 
 const ChatContext = createContext();
 
-// Enhanced reducer with functional updates for WebSocket messages
+// Enhanced reducer
 const chatReducer = (state, action) => {
   switch (action.type) {
     case 'SET_LOADING':
@@ -21,6 +22,7 @@ const chatReducer = (state, action) => {
     case 'SET_MESSAGES':
       return { ...state, messages: action.payload };
     case 'ADD_MESSAGE':
+      // This will now be used for both user and AI messages after formatting
       return { ...state, messages: [...state.messages, action.payload] };
     case 'SET_TYPING':
       return { ...state, isTyping: action.payload };
@@ -42,31 +44,6 @@ const chatReducer = (state, action) => {
         messages:
           state.currentConversationId === action.payload ? [] : state.messages
       };
-    // ✅ NEW: Enhanced WebSocket message handling with functional update
-    case 'ADD_WEBSOCKET_MESSAGE':
-      return (currentState) => {
-        const { message, conversationId } = action.payload;
-        
-        // Only add message if it belongs to the current conversation
-        if (conversationId === currentState.currentConversationId) {
-          return {
-            ...currentState,
-            messages: [...currentState.messages, message],
-            isTyping: false
-          };
-        }
-        
-        // Still stop typing indicator even if message is for different conversation
-        return {
-          ...currentState,
-          isTyping: false
-        };
-      };
-    case 'SET_TYPING_WITH_CHECK':
-      return (currentState) => ({
-        ...currentState,
-        isTyping: action.payload
-      });
     default:
       return state;
   }
@@ -85,10 +62,18 @@ export const ChatProvider = ({ children }) => {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const { isAuthenticated, userProfile, authLoading } = useContext(AuthContext);
 
+  // Use a ref to store the currentConversationId to avoid stale closures in handleWebSocketMessage
+  const currentConversationIdRef = useRef(state.currentConversationId);
+
+  // Update the ref whenever currentConversationId changes
+  useEffect(() => {
+    currentConversationIdRef.current = state.currentConversationId;
+  }, [state.currentConversationId]);
+
   const handleError = useCallback((error, customMessage) => {
-    console.error(`[2025-06-27 12:56:58] ${customMessage || 'Chat error'}:`, error);
+    console.error(`[${new Date().toISOString()}] ${customMessage || 'Chat error'}:`, error);
     
-    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+    if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
       dispatch({ type: 'SET_ERROR', payload: 'Session expired. Please log in again.' });
       return;
     }
@@ -97,13 +82,14 @@ export const ChatProvider = ({ children }) => {
     dispatch({ type: 'SET_LOADING', payload: false });
   }, []);
 
-  // ✅ IMPROVED: WebSocket message handler without state dependencies
+  // ✅ CORRECTED: WebSocket message handler to dispatch existing actions
   const handleWebSocketMessage = useCallback((message) => {
-    console.log(`[2025-06-27 12:56:58] WS message received by anatolyZader:`, message);
+    console.log(`[${new Date().toISOString()}] WS message received by anatolyZader:`, message);
     
     switch (message.type) {
       case 'new_message': {
         const msg = message.message;
+        const conversationId = message.conversationId; // Get conversationId from the WS message
         const formattedMessage = {
           message: msg.content,
           sentTime: new Date(msg.created_at).toLocaleTimeString(),
@@ -112,36 +98,27 @@ export const ChatProvider = ({ children }) => {
           position: 'single'
         };
         
-        // ✅ Use functional dispatch to access current state
-        dispatch((currentState) => {
-          if (message.conversationId === currentState.currentConversationId) {
-            console.log(`[2025-06-27 12:56:58] Adding message to current conversation: ${message.conversationId}`);
-            return {
-              ...currentState,
-              messages: [...currentState.messages, formattedMessage],
-              isTyping: false
-            };
-          } else {
-            console.log(`[2025-06-27 12:56:58] Message for different conversation, only stopping typing indicator`);
-            return {
-              ...currentState,
-              isTyping: false
-            };
-          }
-        });
+        // Use the ref to get the most current conversation ID
+        if (conversationId === currentConversationIdRef.current) {
+            console.log(`[${new Date().toISOString()}] Adding message to current conversation: ${conversationId}`);
+            dispatch({ type: 'ADD_MESSAGE', payload: formattedMessage });
+        } else {
+            console.log(`[${new Date().toISOString()}] Message for different conversation (${conversationId}), current is ${currentConversationIdRef.current}. Not adding to chat.`);
+        }
+        // Always stop typing indicator when a new message (especially AI) is received
+        dispatch({ type: 'SET_TYPING', payload: false });
         break;
       }
       
       case 'error': {
-        console.error(`[2025-06-27 12:56:58] WebSocket error for anatolyZader:`, message.error);
+        console.error(`[${new Date().toISOString()}] WebSocket error for anatolyZader:`, message.error);
         handleError(new Error(message.error), `WebSocket error: ${message.error}`);
         dispatch({ type: 'SET_TYPING', payload: false });
         break;
       }
       
       case 'connected': {
-        console.log(`[2025-06-27 12:56:58] WebSocket connected successfully for anatolyZader`);
-        // Optionally dispatch a success state or clear previous errors
+        console.log(`[${new Date().toISOString()}] WebSocket connected successfully for anatolyZader`);
         dispatch({ type: 'SET_ERROR', payload: null });
         break;
       }
@@ -149,91 +126,94 @@ export const ChatProvider = ({ children }) => {
       case 'ping':
       case 'pong':
       case 'heartbeat_ack': {
-        // These are connection maintenance messages, no action needed
-        console.log(`[2025-06-27 12:56:58] Connection maintenance message: ${message.type}`);
+        console.log(`[${new Date().toISOString()}] Connection maintenance message: ${message.type}`);
         break;
       }
       
       default: {
-        console.log(`[2025-06-27 12:56:58] Unknown WebSocket message type for anatolyZader:`, message.type);
+        console.log(`[${new Date().toISOString()}] Unknown WebSocket message type for anatolyZader:`, message.type);
       }
     }
-  }, [handleError]);
+  }, [handleError]); // No longer depends on state.currentConversationId because we use the ref
 
-  // ✅ IMPROVED: WebSocket connection effect without state dependencies
+  // ✅ ADJUSTED: WebSocket connection effect. Ensure chatAPI.connectWebSocket is called only once after auth is ready.
+  // The goal is to avoid the cleanup/reconnect race condition.
   useEffect(() => {
-    if (!(isAuthenticated && !authLoading && userProfile)) {
-      console.log(`[2025-06-27 12:56:58] Skipping WebSocket connection - Auth status:`, {
+    if (!isAuthenticated || authLoading || !userProfile) {
+      console.log(`[${new Date().toISOString()}] Skipping WebSocket connection - Auth status:`, {
         isAuthenticated,
         authLoading,
         hasUserProfile: !!userProfile
       });
+      // Ensure WebSocket is disconnected if authentication state changes to unauthenticated
+      if (chatAPI.isConnected()) {
+        chatAPI.disconnect();
+      }
       return;
     }
     
-    console.log(`[2025-06-27 12:56:58] Setting up WebSocket connection for anatolyZader:`, userProfile.name || userProfile.id);
-    
-    // Set the user in chatAPI before connecting WebSocket
-    chatAPI.setUser(userProfile);
-    
-    // Connect and subscribe to WebSocket messages
-    chatAPI.connectWebSocket();
-    const unsubscribe = chatAPI.onMessage(handleWebSocketMessage);
+    // Only connect if not already connected. This prevents the immediate reconnect.
+    if (!chatAPI.isConnected()) {
+      console.log(`[${new Date().toISOString()}] Setting up WebSocket connection for anatolyZader:`, userProfile.name || userProfile.id);
+      
+      chatAPI.setUser(userProfile);
+      
+      chatAPI.connectWebSocket();
+      const unsubscribe = chatAPI.onMessage(handleWebSocketMessage);
 
-    console.log(`[2025-06-27 12:56:58] WebSocket connection established for anatolyZader`);
+      console.log(`[${new Date().toISOString()}] WebSocket connection established for anatolyZader`);
 
-    // Cleanup function
-    return () => {
-      console.log(`[2025-06-27 12:56:58] Cleaning up WebSocket connection for anatolyZader`);
-      unsubscribe();
-      chatAPI.disconnect();
-    };
-  }, [isAuthenticated, authLoading, userProfile, handleWebSocketMessage]); // ✅ No state dependencies
+      // Cleanup function only runs when the component unmounts or dependencies change (rarely for this effect)
+      return () => {
+        console.log(`[${new Date().toISOString()}] Cleaning up WebSocket connection for anatolyZader`);
+        unsubscribe();
+        chatAPI.disconnect();
+      };
+    }
+    // No cleanup return if already connected, so it doesn't disconnect prematurely.
+  }, [isAuthenticated, authLoading, userProfile, handleWebSocketMessage]); 
 
-  // ✅ IMPROVED: Reset typing on conversation change with better logging
+
   useEffect(() => {
-    console.log(`[2025-06-27 12:56:58] Conversation changed to: ${state.currentConversationId}, resetting typing indicator`);
+    console.log(`[${new Date().toISOString()}] Conversation changed to: ${state.currentConversationId}, resetting typing indicator`);
     dispatch({ type: 'SET_TYPING', payload: false });
   }, [state.currentConversationId]);
 
-  // Clear error
   const clearError = useCallback(() => {
-    console.log(`[2025-06-27 12:56:58] Clearing error for anatolyZader`);
+    console.log(`[${new Date().toISOString()}] Clearing error for anatolyZader`);
     dispatch({ type: 'SET_ERROR', payload: null });
   }, []);
 
-  // Load conversation history
   const loadConversationsHistory = useCallback(async () => {
     if (!isAuthenticated || authLoading) {
-      console.log(`[2025-06-27 12:56:58] Cannot load conversations history - not authenticated`);
+      console.log(`[${new Date().toISOString()}] Cannot load conversations history - not authenticated`);
       return;
     }
     
-    console.log(`[2025-06-27 12:56:58] Loading conversations history for anatolyZader`);
+    console.log(`[${new Date().toISOString()}] Loading conversations history for anatolyZader`);
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
     
     try {
       const conversations = await chatAPI.fetchConversationsHistory();
-      console.log(`[2025-06-27 12:56:58] Loaded ${conversations.length} conversations for anatolyZader`);
+      console.log(`[${new Date().toISOString()}] Loaded ${conversations.length} conversations for anatolyZader`);
       dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
     } catch (error) {
-      console.error(`[2025-06-27 12:56:58] Failed to load conversations history:`, error);
+      console.error(`[${new Date().toISOString()}] Failed to load conversations history:`, error);
       handleError(error, 'Failed to load conversations history');
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [isAuthenticated, authLoading, handleError]);
 
-  // Start new conversation
   const startNewConversation = useCallback(async (title = 'New Chat') => {
     if (!isAuthenticated) {
-      console.error(`[2025-06-27 12:56:58] Cannot start conversation - not authenticated`);
+      console.error(`[${new Date().toISOString()}] Cannot start conversation - not authenticated`);
       handleError(new Error('Not authenticated'), 'Please log in');
       return;
     }
     
-    console.log(`[2025-06-27 12:56:58] Starting new conversation for anatolyZader: "${title}"`);
+    console.log(`[${new Date().toISOString()}] Starting new conversation for anatolyZader: "${title}"`);
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
     
@@ -245,7 +225,7 @@ export const ChatProvider = ({ children }) => {
         created_at: new Date().toISOString() 
       };
       
-      console.log(`[2025-06-27 12:56:58] New conversation created with ID: ${response.conversationId}`);
+      console.log(`[${new Date().toISOString()}] New conversation created with ID: ${response.conversationId}`);
       
       dispatch({ type: 'ADD_CONVERSATION', payload: newConv });
       dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: response.conversationId });
@@ -253,21 +233,20 @@ export const ChatProvider = ({ children }) => {
       
       return response.conversationId;
     } catch (error) {
-      console.error(`[2025-06-27 12:56:58] Failed to start new conversation:`, error);
+      console.error(`[${new Date().toISOString()}] Failed to start new conversation:`, error);
       handleError(error, 'Failed to start conversation');
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [isAuthenticated, handleError]);
 
-  // Load specific conversation
   const loadConversation = useCallback(async (conversationId) => {
     if (!conversationId || !isAuthenticated) {
-      console.log(`[2025-06-27 12:56:58] Cannot load conversation - missing ID or not authenticated`);
+      console.log(`[${new Date().toISOString()}] Cannot load conversation - missing ID or not authenticated`);
       return;
     }
     
-    console.log(`[2025-06-27 12:56:58] Loading conversation ${conversationId} for anatolyZader`);
+    console.log(`[${new Date().toISOString()}] Loading conversation ${conversationId} for anatolyZader`);
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
     
@@ -281,25 +260,24 @@ export const ChatProvider = ({ children }) => {
         position: 'single'
       }));
       
-      console.log(`[2025-06-27 12:56:58] Loaded ${formatted.length} messages for conversation ${conversationId}`);
+      console.log(`[${new Date().toISOString()}] Loaded ${formatted.length} messages for conversation ${conversationId}`);
       
       dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversationId });
       dispatch({ type: 'SET_MESSAGES', payload: formatted });
     } catch (error) {
-      console.error(`[2025-06-27 12:56:58] Failed to load conversation ${conversationId}:`, error);
+      console.error(`[${new Date().toISOString()}] Failed to load conversation ${conversationId}:`, error);
       handleError(error, 'Failed to load conversation');
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [isAuthenticated, handleError]);
 
-  // ✅ IMPROVED: Send message with better state access
   const sendMessage = useCallback(async (text) => {
-    // Use functional access to get current conversation ID
-    const currentConversationId = state.currentConversationId;
+    // Use the ref to get the current conversation ID
+    const currentConversationId = currentConversationIdRef.current;
     
     if (!currentConversationId || !text.trim() || !isAuthenticated) {
-      console.warn(`[2025-06-27 12:56:58] Cannot send message - missing requirements:`, {
+      console.warn(`[${new Date().toISOString()}] Cannot send message - missing requirements:`, {
         hasConversationId: !!currentConversationId,
         hasText: !!text.trim(),
         isAuthenticated
@@ -307,7 +285,7 @@ export const ChatProvider = ({ children }) => {
       return;
     }
     
-    console.log(`[2025-06-27 12:56:58] anatolyZader sending message to conversation ${currentConversationId}: "${text.substring(0, 50)}..."`);
+    console.log(`[${new Date().toISOString()}] anatolyZader sending message to conversation ${currentConversationId}: "${text.substring(0, 50)}..."`);
     
     const userMsg = { 
       message: text, 
@@ -322,53 +300,50 @@ export const ChatProvider = ({ children }) => {
     
     try {
       await chatAPI.sendQuestion(currentConversationId, text);
-      console.log(`[2025-06-27 12:56:58] Question sent successfully, awaiting AI response via WebSocket`);
+      console.log(`[${new Date().toISOString()}] Question sent successfully, awaiting AI response via WebSocket`);
     } catch (error) {
-      console.error(`[2025-06-27 12:56:58] Failed to send message:`, error);
+      console.error(`[${new Date().toISOString()}] Failed to send message:`, error);
       dispatch({ type: 'SET_TYPING', payload: false });
       handleError(error, 'Failed to send message');
     }
-  }, [state.currentConversationId, isAuthenticated, handleError]);
+  }, [isAuthenticated, handleError]); // Now doesn't directly depend on state.currentConversationId
 
-  // Rename conversation
   const renameConversation = useCallback(async (id, newTitle) => {
     if (!isAuthenticated) {
-      console.error(`[2025-06-27 12:56:58] Cannot rename conversation - not authenticated`);
+      console.error(`[${new Date().toISOString()}] Cannot rename conversation - not authenticated`);
       return;
     }
     
-    console.log(`[2025-06-27 12:56:58] anatolyZader renaming conversation ${id} to: "${newTitle}"`);
+    console.log(`[${new Date().toISOString()}] anatolyZader renaming conversation ${id} to: "${newTitle}"`);
     
     try {
       await chatAPI.renameConversation(id, newTitle);
       dispatch({ type: 'UPDATE_CONVERSATION', payload: { id, title: newTitle } });
-      console.log(`[2025-06-27 12:56:58] Conversation renamed successfully`);
+      console.log(`[${new Date().toISOString()}] Conversation renamed successfully`);
     } catch (error) {
-      console.error(`[2025-06-27 12:56:58] Failed to rename conversation:`, error);
+      console.error(`[${new Date().toISOString()}] Failed to rename conversation:`, error);
       handleError(error, 'Failed to rename conversation');
     }
   }, [isAuthenticated, handleError]);
 
-  // Delete conversation
   const deleteConversation = useCallback(async (id) => {
     if (!isAuthenticated) {
-      console.error(`[2025-06-27 12:56:58] Cannot delete conversation - not authenticated`);
+      console.error(`[${new Date().toISOString()}] Cannot delete conversation - not authenticated`);
       return;
     }
     
-    console.log(`[2025-06-27 12:56:58] anatolyZader deleting conversation ${id}`);
+    console.log(`[${new Date().toISOString()}] anatolyZader deleting conversation ${id}`);
     
     try {
       await chatAPI.deleteConversation(id);
       dispatch({ type: 'DELETE_CONVERSATION', payload: id });
-      console.log(`[2025-06-27 12:56:58] Conversation deleted successfully`);
+      console.log(`[${new Date().toISOString()}] Conversation deleted successfully`);
     } catch (error) {
-      console.error(`[2025-06-27 12:56:58] Failed to delete conversation:`, error);
+      console.error(`[${new Date().toISOString()}] Failed to delete conversation:`, error);
       handleError(error, 'Failed to delete conversation');
     }
   }, [isAuthenticated, handleError]);
 
-  // ✅ ENHANCED: Context value with additional debugging info
   const value = {
     ...state,
     loadConversationsHistory,
@@ -380,11 +355,10 @@ export const ChatProvider = ({ children }) => {
     clearError,
     isAuthenticated,
     userProfile,
-    // ✅ NEW: Add debug info for development
     _debug: {
-      timestamp: '2025-06-27 12:56:58',
+      timestamp: new Date().toISOString(),
       user: 'anatolyZader',
-      contextVersion: '2.0'
+      contextVersion: '2.2' // Updated version
     }
   };
 

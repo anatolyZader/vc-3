@@ -41,7 +41,7 @@ const AIGithubWikiAdapter = require('./business_modules/ai/infrastructure/wiki/a
 
 const { PubSub } = require('@google-cloud/pubsub');
 const { Connector } = require('@google-cloud/cloud-sql-connector');
-const apiRouter = require('./business_modules/api/routes/apiRouter');
+const apiRouter = require('./business_modules/api/input/apiRouter');
 
 module.exports = fp(async function (fastify, opts) {
   fastify.log.info('🔧 Starting DI plugin initialization...');
