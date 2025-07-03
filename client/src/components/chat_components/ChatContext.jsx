@@ -2,13 +2,18 @@
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable no-unused-vars */
 import PropTypes from 'prop-types';
-import { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react'; // Import useRef
+import { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react'; // useReducer manages complex state transitions.
+         // useRef holds mutable values (current conversation) without triggering renders.
+         // useCallback memoizes handlers to avoid unnecessary re‑subscriptions.
 import { AuthContext } from '../auth_components/AuthContext';
 import chatAPI from './chatApi';
 
 const ChatContext = createContext();
 
-// Enhanced reducer
+//  reducer in React (via the useReducer hook) is simply a pure function that takes your previous state and an action, and returns the next state: const nextState = reducer(prevState, action).
+// Action types (strings like 'ADD_MESSAGE') describe what happened.
+// Payloads carry any needed data (action.payload).
+// Each case returns a new state object, copying (...state) and then replacing only the affected slice.
 const chatReducer = (state, action) => {
   switch (action.type) {
     case 'SET_LOADING':

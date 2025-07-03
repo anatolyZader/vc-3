@@ -15,7 +15,7 @@ module.exports = async function aiModuleIndex(fastify, opts) {
   fastify.log.info(`Files in ai_module: ${JSON.stringify(allFiles)}`);
   
   // Load application controllers
-  fastify.register(autoload, {
+  await fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),
     encapsulate: false,
     maxDepth: 1,
@@ -23,22 +23,27 @@ module.exports = async function aiModuleIndex(fastify, opts) {
     dirNameRoutePrefix: false
   });
 
-  fastify.register(autoload, {
-    dir: path.join(__dirname, 'input'),    encapsulate: true,
+  await fastify.register(autoload, {
+    dir: path.join(__dirname, 'input'),
+    encapsulate: true,
     maxDepth: 1,
-    matchFilter: (filepath) =>  filepath.includes('Router'),
+    matchFilter: (filepath) => filepath.includes('Router'),
     dirNameRoutePrefix: false,
-     prefix: ''
-    });
+    prefix: ''
+  });
 
+  // Register the AI pubsub listener
   await fastify.register(aiPubsubListener);
+  console.log('aiPubsubListener registered:', !!fastify.aiPubsubListener);
+  
+  // Check if event dispatcher is available
+  if (fastify.eventDispatcher) {
+    fastify.log.info('✅ AI MODULE: eventDispatcher is available');
+  } else {
+    fastify.log.error('❌ AI MODULE: eventDispatcher is NOT available');
+  }
+ 
 
 };
 
 module.exports.autoPrefix = '/api/ai';
-
-
-
-
-
-

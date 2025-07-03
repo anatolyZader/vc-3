@@ -40,6 +40,7 @@ const AIGithubAdapter = require('./business_modules/ai/infrastructure/git/aiGith
 const AIGithubWikiAdapter = require('./business_modules/ai/infrastructure/wiki/aiGithubWikiAdapter');
 
 const { PubSub } = require('@google-cloud/pubsub');
+const eventDispatcher = require('./eventDispatcher');
 const { Connector } = require('@google-cloud/cloud-sql-connector');
 const apiRouter = require('./business_modules/api/input/apiRouter');
 
@@ -78,6 +79,60 @@ module.exports = fp(async function (fastify, opts) {
   fastify.log.info('AOP modules:', JSON.stringify(infraConfig.aop_modules, null, 2));
   fastify.log.info('Business modules:', JSON.stringify(infraConfig.business_modules, null, 2));
 
+  // STEP 1: Register basic dependencies FIRST
+  fastify.log.info('🔗 Initializing Cloud SQL Connector...');
+  const cloudSqlConnector = new Connector();
+  
+  try {
+    await fastify.diContainer.register({
+      cloudSqlConnector: asValue(cloudSqlConnector)
+    });
+    fastify.log.info('✅ Cloud SQL Connector initialized and registered in DI container.');
+  } catch (error) {
+    fastify.log.error('❌ Failed to register Cloud SQL Connector:', error.message);
+    throw error;
+  }
+
+  fastify.log.info('🔗 Initializing Pub/Sub Client...');
+  const pubSubClient = new PubSub();
+  
+  try {
+    await fastify.diContainer.register({
+      pubSubClient: asValue(pubSubClient)
+    });
+    fastify.log.info('✅ Pub/Sub Client initialized and registered in DI container.');
+  } catch (error) {
+    fastify.log.error('❌ Failed to register Pub/Sub Client:', error.message);
+    throw error;
+  }
+
+  try {
+    // Debug the eventDispatcher before registration
+    console.log('🔧 EventDispatcher before registration:', {
+      hasEventDispatcher: !!fastify.eventDispatcher,
+      eventDispatcherType: typeof fastify.eventDispatcher,
+      eventDispatcherValue: fastify.eventDispatcher
+    });
+
+    await fastify.diContainer.register({
+      eventDispatcher: asValue(eventDispatcher)
+    });
+    
+    // Debug after registration
+    const resolvedEventDispatcher = fastify.diContainer.resolve('eventDispatcher');
+    console.log('🔧 EventDispatcher after registration:', {
+      hasResolved: !!resolvedEventDispatcher,
+      resolvedType: typeof resolvedEventDispatcher,
+      resolvedValue: resolvedEventDispatcher
+    });
+    
+    fastify.log.info('✅ EventDispatcher registered in DI container.');
+  } catch (error) {
+    fastify.log.error('❌ Failed to register EventDispatcher:', error.message);
+    throw error;
+  }
+
+  // STEP 2: NOW build adapters map AFTER dependencies are registered
   fastify.log.info('🏗️ Building adapters map...');
   const adapters = {
     authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
@@ -116,32 +171,6 @@ module.exports = fp(async function (fastify, opts) {
   // Debug: Log adapter keys
   fastify.log.info('Available adapter keys:', Object.keys(adapters));
 
-  fastify.log.info('🔗 Initializing Cloud SQL Connector...');
-  const cloudSqlConnector = new Connector();
-  
-  try {
-    await fastify.diContainer.register({
-      cloudSqlConnector: asValue(cloudSqlConnector)
-    });
-    fastify.log.info('✅ Cloud SQL Connector initialized and registered in DI container.');
-  } catch (error) {
-    fastify.log.error('❌ Failed to register Cloud SQL Connector:', error.message);
-    throw error;
-  }
-
-  fastify.log.info('🔗 Initializing Pub/Sub Client...');
-  const pubSubClient = new PubSub();
-  
-  try {
-    await fastify.diContainer.register({
-      pubSubClient: asValue(pubSubClient)
-    });
-    fastify.log.info('✅ Pub/Sub Client initialized and registered in DI container.');
-  } catch (error) {
-    fastify.log.error('❌ Failed to register Pub/Sub Client:', error.message);
-    throw error;
-  }
-
   // Debug: Validate config-based adapter mappings
   fastify.log.info('🔍 Validating config-based adapter mappings...');
   
@@ -176,6 +205,7 @@ module.exports = fp(async function (fastify, opts) {
     }
   });
 
+  // STEP 3: Build service registrations
   fastify.log.info('📦 Building service registrations...');
   
   // Build the registration object step by step for better debugging
@@ -265,4 +295,7 @@ module.exports = fp(async function (fastify, opts) {
   }
 
   fastify.log.info('🎉 DI plugin initialization completed successfully');
+}, {
+  encapsulate: false,  // 🔧 CRITICAL: Make DI container globally accessible
+  name: 'diPlugin'     // 🔧 Give it a name for dependency tracking
 });

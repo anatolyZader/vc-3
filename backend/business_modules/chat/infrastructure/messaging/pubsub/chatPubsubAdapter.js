@@ -1,50 +1,78 @@
-// infrastructure/messaging/pubsub/chatPubsubAdapter.js
+// chatPubsubAdapter.js
 'use strict';
-const IChatMessagingPort = require('../../../domain/ports/IChatMessagingPort'); 
 
-class ChatPubsubAdapter  extends IChatMessagingPort  {
-  constructor({ pubSubClient }) {
+const IChatMessagingPort = require('../../../domain/ports/IChatMessagingPort');
+
+class ChatPubsubAdapter extends IChatMessagingPort {
+constructor(dependencies) {
     super();
+    
+    // Debug what's being injected
+    console.log('🔧 ChatPubsubAdapter constructor dependencies:', {
+        dependencies: dependencies,
+        keys: Object.keys(dependencies || {}),
+        pubSubClient: dependencies?.pubSubClient,
+        eventDispatcher: dependencies?.eventDispatcher,
+        hasEventDispatcher: !!dependencies?.eventDispatcher,
+        eventDispatcherType: typeof dependencies?.eventDispatcher
+    });
+
+    // Extract dependencies - this is the correct way according to docs
+    const { pubSubClient, eventDispatcher } = dependencies || {};
+    
     this.pubSubClient = pubSubClient;
-    // It's good practice to use environment variables for topic names
-    this.topicName = 'ai-topic';  
-  }
+    this.eventDispatcher = eventDispatcher;
+    this.topicName = 'ai-topic';
 
-  // Generic method to publish an event
-  async publishEvent(eventName, payload) {
-    const event = { event: eventName, ...payload };
-    const dataBuffer = Buffer.from(JSON.stringify(event));
-    try {
-      const topic = this.pubSubClient.topic(this.topicName);
-      const messageId = await topic.publishMessage({ data: dataBuffer });
-      console.log(`Published ${eventName} event with message ID: ${messageId} to topic: ${this.topicName}`);
-      return messageId;
-    } catch (error) {
-      console.error(`Error publishing ${eventName} event to topic ${this.topicName}:`, error);
-      throw error;
+    console.log('🔧 After assignment:', {
+        hasPubSubClient: !!this.pubSubClient,
+        hasEventDispatcher: !!this.eventDispatcher,
+        eventDispatcherType: typeof this.eventDispatcher
+    });
+}
+
+    // Generic method to publish an event
+    async publishEvent(eventName, payload) {
+        try {
+            console.log('🚀 ChatPubsubAdapter: Publishing event:', { eventName, payload });
+            
+            // The eventDispatcher IS the function, call it directly
+            if (this.eventDispatcher && typeof this.eventDispatcher === 'function') {
+                await this.eventDispatcher(eventName, payload);
+                console.log(`✅ Published ${eventName} event via EventDispatcher function`);
+            } else {
+                console.error('❌ EventDispatcher is not a function:', {
+                    hasEventDispatcher: !!this.eventDispatcher,
+                    eventDispatcherType: typeof this.eventDispatcher,
+                    eventDispatcherValue: this.eventDispatcher
+                });
+            }
+        } catch (error) {
+            console.error(`❌ Error publishing ${eventName} event:`, error);
+            throw error;
+        }
     }
-  }
 
-  // Specific methods for publishing different chat-related events
-  async startConversation(payload) {
-    return this.publishEvent('conversationStarted', payload);
-  }
+    // Specific methods remain the same
+    async startConversation(payload) {
+        return this.publishEvent('conversationStarted', payload);
+    }
 
-  async addQuestion(payload) {
-    return this.publishEvent('questionAdded', payload); 
-  }
+    async addQuestion(payload) {
+        return this.publishEvent('questionAdded', payload);
+    }
 
-  async addAnswer(payload) {
-    return this.publishEvent('answerAdded', payload); 
-  }
+    async addAnswer(payload) {
+        return this.publishEvent('answerAdded', payload);
+    }
 
-  async renameConversation(payload) {
-    return this.publishEvent('conversationRenamed', payload);
-  }
+    async renameConversation(payload) {
+        return this.publishEvent('conversationRenamed', payload);
+    }
 
-  async deleteConversation(payload) {
-    return this.publishEvent('conversationDeleted', payload);
-  }
+    async deleteConversation(payload) {
+        return this.publishEvent('conversationDeleted', payload);
+    }
 }
 
 module.exports = ChatPubsubAdapter;

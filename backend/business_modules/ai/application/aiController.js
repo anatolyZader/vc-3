@@ -6,25 +6,25 @@ const fp = require('fastify-plugin');
 
 async function aiController(fastify, options) {
 
+
   fastify.decorate('respondToPrompt', async (request, reply) => {
     try {
       const { conversationId, prompt } = request.body;
-      const userId = request.user.id; // Assuming user is set by verifyToken middleware
+      const userId = request.user.id; // Get userId from authenticated user
       
-      fastify.log.info(`Processing AI request for user: ${userId}, conversation: ${conversationId}`);
+      fastify.log.info(`🤖 AI Controller: Processing prompt for user ${userId}, conversation ${conversationId}`);
       
       const aiService = await request.diScope.resolve('aiService');
-      if (!aiService) {
-        throw new Error('AI service not found in DI container');
-      }
-      
       const response = await aiService.respondToPrompt(userId, conversationId, prompt);
       
-      fastify.log.info(`AI response generated for conversation: ${conversationId}`);
-      return response;
+      return { 
+        response,
+        status: 'success',
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
-      fastify.log.error('Error responding to prompt:', error);
-      throw fastify.httpErrors.internalServerError('Failed to respond to prompt', { cause: error });
+      fastify.log.error(`❌ AI Controller error:`, error);
+      throw fastify.httpErrors.internalServerError('Failed to process AI request', { cause: error });
     }
   });
 

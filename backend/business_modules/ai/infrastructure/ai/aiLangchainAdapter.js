@@ -11,15 +11,19 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 const { ChatOpenAI } = require('@langchain/openai');
 
 class AILangchainAdapter extends IAIPort {
-  constructor() {
+  // Accept userId in the constructor (this will be the internal application userId)
+  constructor(options = {}) {
     super();
     
-    console.log(`[2025-06-25 09:23:04] AILangchainAdapter initializing for user: anatolyZader`);
+    // Make userId optional during DI registration
+    this.userId = options.userId || null;
+    
+    console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing for user: ${this.userId}`);
     
     // Initialize embeddings model: converts text to vectors
     this.embeddings = new OpenAIEmbeddings({ 
       model: 'text-embedding-3-large',
-      apiKey: process.env.OPENAI_API_KEY  
+      apiKey: process.env.OPENAI_API_KEY 
     });
 
     // Initialize Pinecone client
@@ -27,10 +31,10 @@ class AILangchainAdapter extends IAIPort {
       apiKey: process.env.PINECONE_API_KEY
     });
       
-    // Initialize vector store with Pinecone
+    // Initialize vector store with Pinecone, using the dynamic application userId as namespace
     this.vectorStore = new PineconeStore(this.embeddings, {
       pineconeIndex: this.pinecone.Index(process.env.PINECONE_INDEX_NAME),
-      namespace: 'anatolyZader'
+      namespace: this.userId // Use dynamic application userId for namespace
     });
     
     // Initialize chat model: generates responses
@@ -40,23 +44,40 @@ class AILangchainAdapter extends IAIPort {
       apiKey: process.env.OPENAI_API_KEY
     });
 
-    console.log(`[2025-06-25 09:23:04] AILangchainAdapter initialized successfully for user: anatolyZader`);
+    console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully for user: ${this.userId}`);
+  }
+
+  // Add method to set userId after construction
+  setUserId(userId) {
+    this.userId = userId;
+    
+    // Update vector store namespace
+    this.vectorStore = new PineconeStore(this.embeddings, {
+      pineconeIndex: this.pinecone.Index(process.env.PINECONE_INDEX_NAME),
+      namespace: this.userId
+    });
+    
+    console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
+    return this;
   }
 
   async processPushedRepo(userId, repoId, repoData) {
-    console.log(`[2025-06-25 09:23:04] Processing repo for user ${userId}: ${repoId}`);
+    // userId here is the application's internal userId (e.g., UUID from JWT)
+    // repoData should now contain githubOwner (e.g., "anatolyZader")
+    console.log(`[${new Date().toISOString()}] Processing repo for user ${userId}: ${repoId}`);
 
     try {
       // 1. INDEXING :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
       // Load: Document Loaders.
-      console.log(`[2025-06-25 09:23:04] Loading repository from GitHub...`);
+      console.log(`[${new Date().toISOString()}] Loading repository from GitHub...`);
       
-      // Use dynamic repo URL from repoData if provided, fallback to hardcoded
-      const repoUrl = repoData?.url || `https://github.com/${userId}/${repoId}` || "https://github.com/anatolyZader/vc-3";
+      // Use dynamic repo URL from repoData.url or construct using repoData.githubOwner
+      const githubOwner = repoData?.githubOwner || userId; // Fallback to userId if githubOwner not provided
+      const repoUrl = repoData?.url || `https://github.com/${githubOwner}/${repoId}`;
       const repoBranch = repoData?.branch || repoData?.defaultBranch || "main";
       
-      console.log(`[2025-06-25 09:23:04] Repository URL: ${repoUrl}, Branch: ${repoBranch}`);
+      console.log(`[${new Date().toISOString()}] Repository URL: ${repoUrl}, Branch: ${repoBranch}`);
       
       const repoLoader = new GithubRepoLoader(
         repoUrl,
@@ -80,26 +101,26 @@ class AILangchainAdapter extends IAIPort {
       const loadedRepo = [];
       let loadCount = 0;
       
-      console.log(`[2025-06-25 09:23:04] Starting document loading...`);
+      console.log(`[${new Date().toISOString()}] Starting document loading...`);
       
       for await (const doc of repoLoader.loadAsStream()) {
         loadedRepo.push(doc);
         loadCount++;
         
-        // Progress logging for anatolyZader
+        // Progress logging
         if (loadCount % 10 === 0) {
-          console.log(`[2025-06-25 09:23:04] Loaded ${loadCount} documents...`);
+          console.log(`[${new Date().toISOString()}] Loaded ${loadCount} documents...`);
         }
       }
 
-      console.log(`[2025-06-25 09:23:04] ✅ Loaded ${loadedRepo.length} documents from repository`);
+      console.log(`[${new Date().toISOString()}] ✅ Loaded ${loadedRepo.length} documents from repository`);
 
       if (loadedRepo.length === 0) {
         throw new Error(`No documents loaded from repository ${repoUrl}. Check repository access and branch name.`);
       }
 
       // Split: Text splitters 
-      console.log(`[2025-06-25 09:23:04] Splitting documents into chunks...`);
+      console.log(`[${new Date().toISOString()}] Splitting documents into chunks...`);
 
       // Smart splitter selection based on repository content
       const repoSplitter = this.createSmartSplitter(loadedRepo);
@@ -107,24 +128,25 @@ class AILangchainAdapter extends IAIPort {
       // Split documents into chunks
       const splittedRepo = await repoSplitter.splitDocuments(loadedRepo);
 
-      console.log(`[2025-06-25 09:23:04] ✅ Split into ${splittedRepo.length} chunks`);
+      console.log(`[${new Date().toISOString()}] ✅ Split into ${splittedRepo.length} chunks`);
 
       // Store: VectorStore and Embeddings model.
-      console.log(`[2025-06-25 09:23:04] Storing embeddings in vector database...`);
+      console.log(`[${new Date().toISOString()}] Storing embeddings in vector database...`);
 
       // Add comprehensive metadata to chunks for better tracking
       const documentsWithMetadata = splittedRepo.map((doc, index) => ({
         ...doc,
         metadata: {
           ...doc.metadata,
-          userId: userId,
+          userId: userId, // Ensure userId (application's internal ID) is correctly associated
           repoId: repoId,
           repoUrl: repoUrl,
           branch: repoBranch,
+          githubOwner: githubOwner, // Store GitHub owner in metadata
           chunkIndex: index,
           totalChunks: splittedRepo.length,
-          processedAt: '2025-06-25 09:23:04',
-          processedBy: 'anatolyZader',
+          processedAt: new Date().toISOString(), // Use current timestamp
+          processedBy: 'AI-Service', // More generic identifier
           fileType: this.getFileType(doc.metadata.source || ''),
           chunkSize: doc.pageContent.length
         }
@@ -146,10 +168,10 @@ class AILangchainAdapter extends IAIPort {
         await this.vectorStore.addDocuments(batch, { ids: batchIds });
         storedCount += batch.length;
         
-        console.log(`[2025-06-25 09:23:04] Stored batch ${Math.ceil((i + 1) / batchSize)} - ${storedCount}/${documentsWithMetadata.length} chunks`);
+        console.log(`[${new Date().toISOString()}] Stored batch ${Math.ceil((i + 1) / batchSize)} - ${storedCount}/${documentsWithMetadata.length} chunks`);
       }
       
-      console.log(`[2025-06-25 09:23:04] ✅ Successfully stored ${documentsWithMetadata.length} document chunks in vector database`);
+      console.log(`[${new Date().toISOString()}] ✅ Successfully stored ${documentsWithMetadata.length} document chunks in vector database`);
 
       return {
         success: true,
@@ -157,15 +179,16 @@ class AILangchainAdapter extends IAIPort {
         repoId: repoId,
         repoUrl: repoUrl,
         branch: repoBranch,
+        githubOwner: githubOwner,
         documentsLoaded: loadedRepo.length,
         chunksCreated: splittedRepo.length,
         chunksStored: documentsWithMetadata.length,
-        processedAt: '2025-06-25 09:23:04',
-        processedBy: 'anatolyZader'
+        processedAt: new Date().toISOString(), // Use current timestamp
+        processedBy: 'AI-Service'
       };
 
     } catch (error) {
-      console.error(`[2025-06-25 09:23:04] ❌ Failed to process repository ${repoId}:`, error.message);
+      console.error(`[${new Date().toISOString()}] ❌ Failed to process repository ${repoId}:`, error.message);
       throw new Error(`Repository processing failed: ${error.message}`);
     }
   }
@@ -174,58 +197,70 @@ class AILangchainAdapter extends IAIPort {
   // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
 
   async respondToPrompt(conversationId, prompt) {
-    console.log(`[2025-06-25 09:23:04] Responding to prompt for conversation ${conversationId}: "${prompt.slice(0, 100)}..."`);
+    if (!this.userId) {
+      throw new Error('UserId is required. Call setUserId() first.');
+    }
+
+    console.log(`[${new Date().toISOString()}] Responding to prompt for conversation ${conversationId}: "${prompt.slice(0, 100)}..."`);
     
     try {
       // Step 1: Retrieve relevant documents from the vector store
-      console.log(`[2025-06-25 09:23:04] Searching vector database for relevant code chunks...`);
+      console.log(`[${new Date().toISOString()}] Searching vector database for relevant code chunks for user ${this.userId}...`);
       
       const searchStartTime = Date.now();
       
-      // Perform semantic search to find most relevant code chunks
+      // Perform semantic search to find most relevant code chunks, filtering by the current application userId
       const relevantDocs = await this.vectorStore.similaritySearch(
         prompt, 
         6, // Retrieve top 6 most relevant chunks
         {
-          // Filter by anatolyZader's repositories only
-          userId: 'anatolyZader'
+          userId: this.userId // Use the dynamic application userId for filtering
         }
       );
       
       const searchTime = Date.now() - searchStartTime;
-      console.log(`[2025-06-25 09:23:04] Found ${relevantDocs.length} relevant documents in ${searchTime}ms`);
+      console.log(`[${new Date().toISOString()}] Found ${relevantDocs.length} relevant documents in ${searchTime}ms`);
+      // Log the retrieved documents for debugging
+      console.log(`[${new Date().toISOString()}] Retrieved documents details:`, relevantDocs.map(doc => ({
+        source: doc.metadata.source,
+        repoId: doc.metadata.repoId,
+        githubOwner: doc.metadata.githubOwner, // Log GitHub owner
+        chunkIndex: doc.metadata.chunkIndex,
+        contentPreview: doc.pageContent.substring(0, 100) + '...'
+      })));
 
       if (relevantDocs.length === 0) {
-        console.log(`[2025-06-25 09:23:04] No relevant documents found for prompt`);
+        console.log(`[${new Date().toISOString()}] No relevant documents found for prompt`);
         return {
           success: false,
-          message: "I couldn't find any relevant code in your repositories for that question. Try asking about specific files, functions, or concepts that exist in your codebase.",
+          response: "I couldn't find any relevant code in your repositories for that question. Please ensure the repository was processed with the correct user ID, and try asking about specific files, functions, or concepts that exist in your codebase.",
           conversationId: conversationId,
-          timestamp: '2025-06-25 09:23:04'
+          timestamp: new Date().toISOString()
         };
       }
 
-      // Step 2: Format the retrieved context for the LLM (FIXED SYNTAX ERROR HERE)
+      // Step 2: Format the retrieved context for the LLM
       const context = relevantDocs.map((doc, index) => {
         const fileName = doc.metadata.source || 'Unknown file';
         const repoInfo = doc.metadata.repoId || 'Unknown repo';
         const fileType = doc.metadata.fileType || 'Unknown type';
+        const githubOwner = doc.metadata.githubOwner || 'Unknown owner'; // Get GitHub owner from metadata
         
         return `--- Code Chunk ${index + 1} ---
-Repository: ${repoInfo}
+Repository: ${repoInfo} (Owner: ${githubOwner})
 File: ${fileName} (${fileType})
 Content:
 ${doc.pageContent.trim()}
 `;
       }).join('\n\n');
 
-      console.log(`[2025-06-25 09:23:04] Prepared context with ${context.length} characters from ${relevantDocs.length} code chunks`);
+      console.log(`[${new Date().toISOString()}] Prepared context with ${context.length} characters from ${relevantDocs.length} code chunks`);
 
-      // Define an enhanced system prompt for anatolyZader's coding assistant
-      const systemPrompt = `You are an expert software engineering assistant helping anatolyZader analyze and understand code from their GitHub repositories.
+      // Define an enhanced system prompt for the coding assistant
+      const systemPrompt = `You are an expert software engineering assistant helping ${this.userId} analyze and understand code from their GitHub repositories.
 
-        Current Date/Time: 2025-06-25 09:23:04 UTC
-        User: anatolyZader
+        Current Date/Time: ${new Date().toISOString()}
+        User: ${this.userId}
         Conversation ID: ${conversationId}
 
         INSTRUCTIONS:
@@ -238,13 +273,13 @@ ${doc.pageContent.trim()}
         - Use markdown formatting for better readability
         - Always cite which files/repositories you're referencing
 
-        CONTEXT FROM anatolyZader's REPOSITORIES:
+        CONTEXT FROM ${this.userId}'s REPOSITORIES:
         ${context}
 
-        Remember: You have access to anatolyZader's actual code. Provide specific, actionable insights based on the retrieved context.`;
+        Remember: You have access to ${this.userId}'s actual code. Provide specific, actionable insights based on the retrieved context.`;
 
       // Step 3: Generate response using chat model
-      console.log(`[2025-06-25 09:23:04] Generating AI response using GPT-4...`);
+      console.log(`[${new Date().toISOString()}] Generating AI response using GPT-4...`);
       
       const generationStartTime = Date.now();
       
@@ -260,7 +295,10 @@ ${doc.pageContent.trim()}
       ]);
 
       const generationTime = Date.now() - generationStartTime;
-      console.log(`[2025-06-25 09:23:04] ✅ AI response generated in ${generationTime}ms`);
+      console.log(`[${new Date().toISOString()}] ✅ AI response generated in ${generationTime}ms`);
+
+      // Log the raw LLM response content for debugging
+      console.log(`[${new Date().toISOString()}] Raw LLM response content:`, response.content);
 
       // Step 4: Return structured response
       return {
@@ -274,25 +312,25 @@ ${doc.pageContent.trim()}
           repositoriesReferenced: [...new Set(relevantDocs.map(doc => doc.metadata.repoId))],
           filesReferenced: [...new Set(relevantDocs.map(doc => doc.metadata.source))],
           totalContextLength: context.length,
-          timestamp: '2025-06-25 09:23:04',
-          user: 'anatolyZader'
+          timestamp: new Date().toISOString(), // Use current timestamp
+          user: this.userId
         }
       };
 
     } catch (error) {
-      console.error(`[2025-06-25 09:23:04] ❌ Failed to respond to prompt:`, error.message);
+      console.error(`[${new Date().toISOString()}] ❌ Failed to respond to prompt:`, error.message);
       
       return {
         success: false,
-        error: `Failed to generate response: ${error.message}`,
+        response: `Failed to generate response: ${error.message}. Please check your API keys and network connection.`, // More informative error
         conversationId: conversationId,
-        timestamp: '2025-06-25 09:23:04',
-        user: 'anatolyZader'
+        timestamp: new Date().toISOString(),
+        user: this.userId
       };
     }
   }
 
-  // Additional utility methods for anatolyZader's workflow
+  // Additional utility methods
 
   /**
    * Create smart splitter based on repository content analysis
@@ -300,7 +338,7 @@ ${doc.pageContent.trim()}
    * @returns {RecursiveCharacterTextSplitter} Optimized splitter
    */
   createSmartSplitter(documents) {
-    console.log(`[2025-06-25 09:23:04] Analyzing repository content for optimal splitting strategy...`);
+    console.log(`[${new Date().toISOString()}] Analyzing repository content for optimal splitting strategy...`);
     
     // Analyze file types in the repository
     const fileTypes = documents.map(doc => this.getFileType(doc.metadata.source || ''));
@@ -309,7 +347,7 @@ ${doc.pageContent.trim()}
       return acc;
     }, {});
 
-    console.log(`[2025-06-25 09:23:04] File type distribution:`, typeFrequency);
+    console.log(`[${new Date().toISOString()}] File type distribution:`, typeFrequency);
 
     // Choose splitter based on dominant file types
     const dominantType = Object.keys(typeFrequency).reduce((a, b) => 
@@ -325,7 +363,7 @@ ${doc.pageContent.trim()}
           chunkSize: 1500,
           chunkOverlap: 300,
         });
-        console.log(`[2025-06-25 09:23:04] Using JavaScript/TypeScript optimized splitter`);
+        console.log(`[${new Date().toISOString()}] Using JavaScript/TypeScript optimized splitter`);
         break;
         
       case 'python':
@@ -333,7 +371,7 @@ ${doc.pageContent.trim()}
           chunkSize: 1500,
           chunkOverlap: 300,
         });
-        console.log(`[2025-06-25 09:23:04] Using Python optimized splitter`);
+        console.log(`[${new Date().toISOString()}] Using Python optimized splitter`);
         break;
         
       case 'markdown':
@@ -341,7 +379,7 @@ ${doc.pageContent.trim()}
           chunkSize: 1200,
           chunkOverlap: 200,
         });
-        console.log(`[2025-06-25 09:23:04] Using Markdown optimized splitter`);
+        console.log(`[${new Date().toISOString()}] Using Markdown optimized splitter`);
         break;
         
       default:
@@ -350,7 +388,7 @@ ${doc.pageContent.trim()}
           chunkOverlap: 200,
           separators: ["\n\n", "\n", " ", ""]
         });
-        console.log(`[2025-06-25 09:23:04] Using generic text splitter`);
+        console.log(`[${new Date().toISOString()}] Using generic text splitter`);
     }
 
     return splitter;
@@ -412,11 +450,11 @@ ${doc.pageContent.trim()}
    * @returns {Promise<Object>} Search results
    */
   async searchRepositories(query, options = {}) {
-    console.log(`[2025-06-25 09:23:04] Advanced search for anatolyZader: "${query}"`);
+    console.log(`[${new Date().toISOString()}] Advanced search for user ${this.userId}: "${query}"`);
     
     try {
       const {
-        userId = 'anatolyZader',
+        userId = this.userId, // Default to instance userId
         repoId = null,
         fileType = null,
         k = 5
@@ -429,7 +467,7 @@ ${doc.pageContent.trim()}
 
       const results = await this.vectorStore.similaritySearch(query, k, filter);
       
-      console.log(`[2025-06-25 09:23:04] Found ${results.length} results for advanced search`);
+      console.log(`[${new Date().toISOString()}] Found ${results.length} results for advanced search`);
       
       return {
         success: true,
@@ -441,26 +479,26 @@ ${doc.pageContent.trim()}
         query: query,
         filter: filter,
         totalResults: results.length,
-        timestamp: '2025-06-25 09:23:04'
+        timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error(`[2025-06-25 09:23:04] Advanced search failed:`, error.message);
+      console.error(`[${new Date().toISOString()}] Advanced search failed:`, error.message);
       throw error;
     }
   }
 
   /**
-   * Get comprehensive adapter statistics for anatolyZader
+   * Get comprehensive adapter statistics
    * @returns {Object} Adapter statistics and status
    */
   getAdapterStats() {
     return {
-      adapterVersion: '1.0.0',
+      adapterVersion: '1.0.2', // Updated version
       storeType: 'PineconeStore',
       embeddingModel: 'text-embedding-3-large',
       chatModel: 'gpt-4',
-      user: 'anatolyZader',
-      timestamp: '2025-06-25 09:23:04',
+      user: this.userId, // Use dynamic userId
+      timestamp: new Date().toISOString(),
       status: 'operational',
       features: [
         'GitHub repository loading',
@@ -469,11 +507,13 @@ ${doc.pageContent.trim()}
         'RAG-powered responses',
         'Multi-repository support',
         'Advanced metadata tracking',
-        'Persistent vector storage'
+        'Persistent vector storage',
+        'Dynamic user-specific namespacing' // New feature
       ],
       limitations: [
         'Requires Pinecone API key and index setup',
-        'Network dependent for vector operations'
+        'Network dependent for vector operations',
+        'OpenAI API key required for LLM and embeddings'
       ]
     };
   }
@@ -483,7 +523,7 @@ ${doc.pageContent.trim()}
    * @returns {Promise<Object>} Health status
    */
   async healthCheck() {
-    console.log(`[2025-06-25 09:23:04] Performing health check for anatolyZader...`);
+    console.log(`[${new Date().toISOString()}] Performing health check for user ${this.userId}...`);
     
     try {
       // Test embeddings
@@ -494,15 +534,27 @@ ${doc.pageContent.trim()}
       const testResponse = await this.llm.invoke([
         { role: "user", content: "Say 'OK' if you're working" }
       ]);
-      const llmOk = testResponse && testResponse.content;
+      const llmOk = testResponse && testResponse.content && testResponse.content.includes('OK');
       
-      // Test Pinecone connection
-      const pineconeOk = await this.pinecone.describeIndex(process.env.PINECONE_INDEX_NAME).then(() => true).catch(() => false);
-      
+      // Test Pinecone connection (describeIndex is a good way to check connectivity)
+      const pineconeIndexName = process.env.PINECONE_INDEX_NAME;
+      let pineconeOk = false;
+      if (pineconeIndexName) {
+        try {
+          await this.pinecone.describeIndex(pineconeIndexName);
+          pineconeOk = true;
+        } catch (e) {
+          console.error(`Pinecone describeIndex failed:`, e.message);
+          pineconeOk = false;
+        }
+      } else {
+        console.warn('PINECONE_INDEX_NAME is not set for health check.');
+      }
+
       return {
         status: 'healthy',
-        timestamp: '2025-06-25 09:23:04',
-        user: 'anatolyZader',
+        timestamp: new Date().toISOString(),
+        user: this.userId,
         components: {
           embeddings: embeddingsOk ? 'OK' : 'FAILED',
           llm: llmOk ? 'OK' : 'FAILED',
@@ -511,11 +563,11 @@ ${doc.pageContent.trim()}
         allSystemsOperational: embeddingsOk && llmOk && pineconeOk
       };
     } catch (error) {
-      console.error(`[2025-06-25 09:23:04] Health check failed:`, error.message);
+      console.error(`[${new Date().toISOString()}] Health check failed:`, error.message);
       return {
         status: 'unhealthy',
-        timestamp: '2025-06-25 09:23:04',
-        user: 'anatolyZader',
+        timestamp: new Date().toISOString(),
+        user: this.userId,
         error: error.message
       };
     }

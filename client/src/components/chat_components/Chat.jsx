@@ -25,6 +25,8 @@ import stitch from '../stitch.jpg';
 
 const Chat = () => {
   const { isAuthenticated, userProfile, authLoading } = useContext(AuthContext);
+  // Destructures both data (lists, flags) and actions / methods.
+  // Encourages a clear separation: view layer doesn’t know fetch details. 
   const {
     conversations,
     currentConversationId,
@@ -47,9 +49,7 @@ const Chat = () => {
     if (isAuthenticated && !authLoading) {
       loadConversationsHistory();
     }
-  }, [isAuthenticated, authLoading, loadConversationsHistory]);
-
-
+  }, [isAuthenticated, authLoading, loadConversationsHistory]); // re‑fire if the user logs out and back in, or if you swap out your loader function (e.g. hot‑reload, context change
 
   // Show loading spinner while auth is loading
   if (authLoading) {
@@ -69,7 +69,7 @@ const Chat = () => {
   const handleNewConversation = async () => {
     console.log('Starting new conversation for user:', userProfile?.name || 'anatolyZader');
     try {
-      const conversationId = await startNewConversation(`New Chat - ${new Date().toLocaleDateString()}`);
+      const conversationId = await startNewConversation(`convers No.`);
       if (conversationId) {
         console.log('New conversation started with ID:', conversationId);
       }
@@ -85,9 +85,15 @@ const Chat = () => {
   };
 
   const handleDeleteConversation = async (conversationId, event) => {
-    event.stopPropagation();
+    event.stopPropagation(); // Prevents the click from bubbling up to parent handlers (for instance, the container’s onClick that opens the conversation). Without it, deleting could also trigger “open conversation” logic.
+    // TODO: replace window.confirm with a custom modal!!!
+    // 4. Modern best practice: a custom modal
+      // Non‑blocking (async)
+      // Styled to match your theme
+      // Accessible (ARIA, focus management)
+      // Extensible (add extra info, custom buttons)
     if (window.confirm('Are you sure you want to delete this conversation?')) {
-      await deleteConversation(conversationId);
+      await deleteConversation(conversationId); 
     }
   };
 

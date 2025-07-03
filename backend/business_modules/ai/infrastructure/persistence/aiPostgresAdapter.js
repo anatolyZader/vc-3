@@ -3,66 +3,62 @@
 const { Pool } = require('pg');
 const IAIPersistPort = require('../../domain/ports/IAIPersistPort');
 
+const isLocal = process.env.NODE_ENV !== 'staging';
+
 class AIPostgresAdapter extends IAIPersistPort{
   constructor({ cloudSqlConnector }) {
-    super();
-    this.connector = cloudSqlConnector;
-    const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
-    if (!instanceConnectionName) {
-      console.error('❌ CLOUD_SQL_CONNECTION_NAME environment variable is not set. Cannot connect to Cloud SQL.');
-      // In a staging app, you might want to throw an error or handle this more gracefully.
-      // For now, we'll proceed with a fallback, but it's important for Cloud Run.
-    }
-
-    const poolConfig = {
-      user:     process.env.PG_USER,
-      password: process.env.PG_PASSWORD,
-      database: process.env.PG_DATABASE,
-      host: `localhost`, // Connector creates a local proxy, so connect to localhost
-      port: 5432, // Connector typically proxies to default PostgreSQL port
-     
-    };
-    console.info('[DB] pgConfig chosen:', poolConfig);   
-      this.pool = new Pool({
-      user: poolConfig.user,
-      password: poolConfig.password,
-      database: poolConfig.database,
-      ssl: false, // Cloud SQL Connector handles encryption, so no SSL needed for pg client
-      connectionString: undefined, // Always undefined, as we always use the custom client factory
-
-      Client: class CloudSQLClient extends Pool.Client { // Always use the custom client
-            constructor(config) {
-              super(config);
-              this.config = config; // Store config for potential reuse
-
-              // Override the connect method to use the connector's socket
-              const originalConnect = this.connect.bind(this);
-              this.connect = async (callback) => {
-                try {
-                  // Use the injected connector from the config
-                  const socketPath = await this.config.cloudSqlConnector.getSocket(this.config.instanceConnectionName);
-                  // Modify the config to use the socketPath
-                  this.connectionParameters.host = socketPath;
-                  this.connectionParameters.port = undefined; // No port when using socketPath
-                  this.connectionParameters.ssl = false; // Connector handles SSL
-                  // Setting connectionString: undefined and ssl: false when using the CloudSQLClient is generally correct as the connector handles the actual connection. 
-
-                  return originalConnect(callback);
-                } catch (err) {
-                  console.error('Error getting Cloud SQL socket:', err);
-                  if (callback) callback(err);
-                  throw err;
-                }
-              };
-            }
-          }, 
-
-      cloudSqlConnector: this.connector, 
-      instanceConnectionName: instanceConnectionName,
-    });
+      super();
+      this.connector = cloudSqlConnector;
+      this.pool = null;
+      this.poolPromise = isLocal
+          ? this.createLocalPool()
+          : this.createCloudSqlPool(cloudSqlConnector);
   }
 
-async saveGitData(userId, repoId, content) {
+  async getPool() {
+      if (!this.pool) {
+          this.pool = await this.poolPromise;
+      }
+      return this.pool;
+  }
+
+  createLocalPool() {
+      const config = {
+          user: process.env.PG_USER,
+          password: process.env.PG_PASSWORD,
+          database: process.env.PG_DATABASE,
+          host: 'localhost',
+          port: 5432,
+      };
+      console.info('[DB] Using local Postgres config (AI):', config);
+      return Promise.resolve(new Pool(config));
+  }
+
+  async createCloudSqlPool(connector) {
+      const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+      if (!instanceConnectionName) {
+          throw new Error('❌ CLOUD_SQL_CONNECTION_NAME environment variable is not set. Cannot connect to Cloud SQL.');
+      }
+
+      const clientOpts = await connector.getOptions({
+          instanceConnectionName,
+          ipType: 'PRIVATE',
+          authType: 'ADC',
+      });
+
+      const config = {
+          ...clientOpts,
+          user: process.env.PG_USER,
+          password: process.env.PG_PASSWORD,
+          database: process.env.PG_DATABASE,
+      };
+
+      console.info('[DB] Using Cloud SQL config (AI) for:', instanceConnectionName);
+      return new Pool(config);
+  }
+  
+
+  async saveGitData(userId, repoId, content) {
     const client = await this.pool.connect(); // Acquire a client from the pool
     try {
       const query = `

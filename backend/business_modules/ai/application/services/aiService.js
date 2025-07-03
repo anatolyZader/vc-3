@@ -1,3 +1,4 @@
+// AIService.js
 /* eslint-disable no-unused-vars */
 'use strict';
 
@@ -15,72 +16,49 @@ class AIService extends IAIService {
 
   async respondToPrompt(userId, conversationId, prompt) {
     try {
-      console.log(`[2025-06-25 08:39:05] Processing prompt for user ${userId}, conversation ${conversationId}`);
-      const aiResponse = new AIResponse(userId);
-      const response = await aiResponse.respondToPrompt(conversationId, prompt, this.aiAdapter);
-      // Persist AI response
-      try {
-        await this.aiPersistAdapter.saveAiResponse({
-          userId,
-          conversationId,
-          response: response.response || response,
-        });
-        console.log(`[2025-06-25 08:39:05] AI response persisted for conversation ${conversationId}`);
-      } catch (error) {
-        console.error('[2025-06-25 08:39:05] Error persisting AI response:', error);
+      // Set the userId on the adapter before using it
+      if (this.aiAdapter.setUserId) {
+        this.aiAdapter.setUserId(userId);
       }
-      // Publish the AI response back to chat module
-      await this.aiMessagingAdapter.publishAiResponse({
-        event: 'answerAdded',
-        payload: {
-          userId,
-          conversationId,
-          response: response.response || response
-        }
+      
+      const response = await this.aiAdapter.respondToPrompt(prompt);
+      
+      // Save the response
+      await this.aiPersistAdapter.saveAiResponse(userId, conversationId, response);
+      
+      // Publish the response
+      await this.aiMessagingAdapter.publishAiResponse('answerGenerated', {
+        userId,
+        conversationId,
+        response
       });
-      console.log(`[2025-06-25 08:39:05] AI response published for user ${userId}`);
+      
       return response;
     } catch (error) {
-      console.error(`[2025-06-25 08:39:05] Error in respondToPrompt:`, error);
-      // Publish error back to chat module
-      try {
-        await this.aiMessagingAdapter.publishAiResponse({
-          event: 'aiResponseError',
-          payload: {
-            userId,
-            conversationId,
-            error: error.message
-          }
-        });
-      } catch (publishError) {
-        console.error('[2025-06-25 08:39:05] Error publishing AI error:', publishError);
-      }
+      console.error('Error in AI service:', error);
       throw error;
     }
   }
 
   async processPushedRepo(userId, repoId, repoData) {
     try {
-      console.log(`[2025-06-25 08:39:05] Processing pushed repository for user: ${userId}, repository: ${repoId}`);
+      console.log(`[${new Date().toISOString()}] Processing pushed repository for user: ${userId}, repository: ${repoId}`);
       const pushedRepo = new PushedRepo(userId, repoId);
       const response = await pushedRepo.processPushedRepo(userId, repoId, repoData, this.aiAdapter);
-      await this.aiMessagingAdapter.publishPushedRepo({
-        event: 'repoPushed',
-        payload: {
-          userId,
-          repoId,
-          response
-        }
-      });
-      await this.aiPersistAdapter.savePushedRepo({
+
+      // FIX: Changed to use publishAiResponse with 'repoPushed' event
+      await this.aiMessagingAdapter.publishAiResponse('repoPushed', {
         userId,
         repoId,
-        repoData
+        // The response from processPushedRepo might be a success object, pass it as 'data' or similar
+        data: response 
       });
-      console.log(`[2025-06-25 08:39:05] Successfully processed repository ${repoId} for user anatolyZader`);
+
+      await this.aiPersistAdapter.saveGitData(userId, repoId, JSON.stringify(repoData)); // Assuming repoData is complex, store as JSON string
+      console.log(`[${new Date().toISOString()}] Successfully processed repository ${repoId} for user ${userId}`);
       return response;
     } catch (error) {
-      console.error(`[2025-06-25 08:39:05] Error processing repository:`, error);
+      console.error(`[${new Date().toISOString()}] Error processing repository:`, error);
       throw error;
     }
   }
