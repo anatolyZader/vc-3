@@ -81,7 +81,26 @@
     },
     "PUBSUB_MAIN_SUBSCRIPTION": {
       "type": "string"
+    },
+    "OLLAMA_BASE_URL": {
+      "type": "string",
+      "default": "http://localhost:11434"
+    },
+    "OLLAMA_MODEL": {
+      "type": "string",
+      "default": "llama2"
+    },
+    "GOOGLE_API_KEY": {
+      "type": "string"
+    },
+    "ANTHROPIC_API_KEY": {
+      "type": "string"
+    },
+    "EMBEDDINGS_PROVIDER": {
+      "type": "string",
+      "default": "openai"
     }
+
 
   }
 }

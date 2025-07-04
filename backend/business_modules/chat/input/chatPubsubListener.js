@@ -12,10 +12,22 @@ async function chatPubsubListener(fastify, options) {
 
   // Subscribe to 'answerAdded' events using the shared event bus
   eventBus.on('answerAdded', async (data) => {
-    fastify.log.info(`🎯 CHAT RECEIVED 'answerAdded' event from EventDispatcher`);
+    console.log(`🎯 CHAT RECEIVED 'answerAdded' event from EventDispatcher:`, JSON.stringify(data, null, 2));
+    fastify.log.info(`🎯 CHAT RECEIVED 'answerAdded' event from EventDispatcher:`, JSON.stringify(data, null, 2));
 
     try {
+      if (!data || typeof data !== 'object') {
+        throw new Error(`Invalid answerAdded event data: ${JSON.stringify(data)}`);
+      }
+      
       const { userId, conversationId, answer } = data;
+      
+      // Additional validation
+      if (!userId) throw new Error('Missing userId in answerAdded event');
+      if (!conversationId) throw new Error('Missing conversationId in answerAdded event');
+      if (!answer) throw new Error('Missing answer in answerAdded event');
+      
+      console.log(`💬 Chat module is receiving response from AI module for user: ${userId}, conversation: ${conversationId}`);
       fastify.log.info(`💬 Chat module is receiving response from AI module for user: ${userId}, conversation: ${conversationId}`);
 
       if (typeof fastify.addAnswer === 'function') {
@@ -25,46 +37,86 @@ async function chatPubsubListener(fastify, options) {
           user: { id: userId }
         };
 
-        // Pass empty object for reply
-        await fastify.addAnswer(mockRequest, {});
+        // Add detailed logging before calling addAnswer
+        console.log(`⚙️ Calling fastify.addAnswer with params:`, JSON.stringify({
+          conversationId,
+          userId,
+          answerLength: answer.length
+        }));
+        
+        try {
+          // Pass empty object for reply
+          await fastify.addAnswer(mockRequest, {});
+          
+          console.log(`✅ AI answer added to chat conversation ${conversationId}`);
+          fastify.log.info(`✅ AI answer added to chat conversation ${conversationId}`);
 
-        fastify.log.info(`✅ AI answer added to chat conversation ${conversationId}`);
-
-        // Send response to user via WebSocket
-        if (fastify.websocketManager && fastify.websocketManager.sendToUser) {
-          fastify.websocketManager.sendToUser(userId, {
-            type: 'new_message',
-            conversationId,
-            message: {
-              id: require('uuid').v4(),
-              content: answer,
-              role: 'assistant',
-              created_at: new Date().toISOString()
+          // Send response to user via WebSocket
+          if (fastify.websocketManager && fastify.websocketManager.sendToUser) {
+            console.log(`🔌 Using websocketManager.sendToUser for user ${userId}`);
+            const result = fastify.websocketManager.sendToUser(userId, {
+              type: 'new_message',
+              conversationId,
+              message: {
+                id: require('uuid').v4(),
+                content: answer,
+                role: 'assistant',
+                created_at: new Date().toISOString()
+              }
+            });
+            console.log(`📤 WebSocket send result:`, result);
+          } else if (fastify.sendToUser) {
+            console.log(`🔌 Using fastify.sendToUser for user ${userId}`);
+            const result = fastify.sendToUser(userId, {
+              type: 'new_message',
+              conversationId,
+              message: {
+                id: require('uuid').v4(),
+                content: answer,
+                role: 'assistant',
+                created_at: new Date().toISOString()
+              }
+            });
+            console.log(`📤 WebSocket send result:`, result);
+          } else {
+            throw new Error('No WebSocket mechanism available to send message to user');
+          }
+        } catch (addAnswerError) {
+          console.error(`❌ Error in fastify.addAnswer:`, addAnswerError);
+          fastify.log.error(`❌ Error in fastify.addAnswer:`, addAnswerError);
+          
+          // Attempt to send the message via WebSocket anyway
+          console.log(`⚠️ Attempting to send message via WebSocket despite database error`);
+          
+          try {
+            const messageToSend = {
+              type: 'new_message',
+              conversationId,
+              message: {
+                id: require('uuid').v4(),
+                content: answer,
+                role: 'assistant',
+                created_at: new Date().toISOString()
+              }
+            };
+            
+            if (fastify.websocketManager && fastify.websocketManager.sendToUser) {
+              fastify.websocketManager.sendToUser(userId, messageToSend);
+            } else if (fastify.sendToUser) {
+              fastify.sendToUser(userId, messageToSend);
             }
-          });
-        } else if (fastify.sendToUser) {
-          fastify.sendToUser(userId, {
-            type: 'new_message',
-            conversationId,
-            message: {
-              id: require('uuid').v4(),
-              content: answer,
-              role: 'assistant',
-              created_at: new Date().toISOString()
-            }
-          });
-        } else {
-          fastify.log.warn(`⚠️ No WebSocket method available to send answer to user: ${userId}`);
+            
+            console.log(`📤 WebSocket fallback send attempted`);
+          } catch (wsError) {
+            console.error(`❌ Failed to send fallback WebSocket message:`, wsError);
+          }
         }
-
       } else {
-        fastify.log.error(`❌ fastify.addAnswer is not defined or not exposed correctly`);
-        // In a real Pub/Sub system, you might nack the message here if the handler isn't ready.
-        // With the eventDispatcher pattern, the nack/ack is handled by the eventDispatcherPlugin.
+        throw new Error('fastify.addAnswer is not a function');
       }
     } catch (error) {
-      fastify.log.error(`💥 Error processing CHAT message for 'answerAdded':`, error);
-      // Errors here indicate a problem with processing the event, not receiving it.
+      console.error(`❌ Error processing answerAdded event:`, error);
+      fastify.log.error(`❌ Error processing answerAdded event:`, error);
     }
   });
 

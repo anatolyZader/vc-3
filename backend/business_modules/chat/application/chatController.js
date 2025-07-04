@@ -205,19 +205,63 @@ fastify.decorate('addQuestion', async (request, reply) => {
       const { aiResponse } = request.body;
       const userId = request.user.id;
       
-      // ✅ Enhanced logging with timestamps
-      fastify.log.info(`[2025-06-30 11:46:05] Adding answer to conversation ${conversationId} for user ${userId}`);
+      // Enhanced logging with timestamps and more details
+      const timestamp = new Date().toISOString();
+      fastify.log.info(`[${timestamp}] Adding answer to conversation ${conversationId} for user ${userId}`);
+      console.log(`[${timestamp}] Adding answer (${aiResponse?.length || 0} chars) to conversation ${conversationId} for user ${userId}`);
+      
+      // Validate the input parameters
+      if (!conversationId) {
+        throw new Error('Missing conversationId parameter');
+      }
+      if (!aiResponse) {
+        throw new Error('Missing aiResponse in request body');
+      }
+      if (!userId) {
+        throw new Error('Missing userId in request user object');
+      }
       
       const chatService = await request.diScope.resolve('chatService');
+      
+      if (!chatService) {
+        throw new Error('ChatService could not be resolved from DI container');
+      }
+      
+      // Log the service state to help debugging
+      console.log(`📊 ChatService state:`, {
+        hasAddAnswerMethod: typeof chatService.addAnswer === 'function',
+        serviceType: typeof chatService
+      });
+      
       const answerId = await chatService.addAnswer(userId, conversationId, aiResponse);
+      
+      console.log(`✅ Answer successfully added with ID: ${answerId}`);
       
       return { 
         answerId,
         status: 'success',
-        timestamp: new Date().toISOString()
+        timestamp
       };
     } catch (error) {
-      fastify.log.error(`[2025-06-30 11:46:05] Error adding answer:`, error);
+      // Enhanced error logging with full details
+      console.error(`❌ Error in addAnswer controller:`, {
+        error: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      fastify.log.error(`[${new Date().toISOString()}] Error adding answer:`, error);
+      
+      // If this is being called via the pubsub listener, we need to be more tolerant
+      if (!reply.send) {
+        console.log('⚠️ Called via pubsub listener, returning error without throwing');
+        return {
+          status: 'error',
+          message: error.message,
+          timestamp: new Date().toISOString()
+        };
+      }
+      
       throw fastify.httpErrors.internalServerError('Failed to add answer', { cause: error });
     }
   });

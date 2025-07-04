@@ -33,7 +33,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
             host: 'localhost',
             port: 5432,
         };
-        console.info('[DB] Using local Postgres config (Chat):', config);
+        
         return Promise.resolve(new Pool(config));
     }
 
@@ -200,36 +200,97 @@ class ChatPostgresAdapter extends IChatPersistPort {
     }
   }
 
-  /** Persist an AI’s answer */
+  /** Persist an AI's answer */
   async addAnswer(userId, conversationId, answer) {
     const pool = await this.getPool();
     const client = await pool.connect();
     try {
       const messageId = uuidv4();
 
-      // Get next message_order
-      const { rows } = await client.query(
-        `SELECT MAX(message_order) AS max_order
-           FROM chat.messages
-          WHERE conversation_id = $1`,
+      // Validate inputs
+      if (!conversationId) {
+        throw new Error('Missing conversationId for addAnswer');
+      }
+      
+      if (!answer) {
+        console.warn('Empty answer received, storing placeholder text');
+        answer = 'No response generated.';
+      }
+      
+      // Log detailed debug information
+      console.log(`Adding answer to database for conversation ${conversationId}:`, {
+        messageId,
+        answerLength: answer.length,
+        userId,
+        firstChars: answer.substring(0, 30)
+      });
+
+      // Check if conversation exists
+      const checkResult = await client.query(
+        'SELECT id FROM chat.conversations WHERE id = $1',
         [conversationId]
       );
-      const nextOrder = (rows[0].max_order || 0) + 1;
+      
+      if (checkResult.rows.length === 0) {
+        console.warn(`Creating missing conversation ${conversationId} for user ${userId}`);
+        // Create the conversation if it doesn't exist to prevent foreign key errors
+        await client.query(
+          'INSERT INTO chat.conversations (id, user_id, title, created_at) VALUES ($1, $2, $3, NOW())',
+          [conversationId, userId, 'Recovered Conversation']
+        );
+      }
 
-      // Insert into the exact columns, using 'assistant' for sender_type
-      await client.query(
-        `INSERT INTO chat.messages
-           (id,
-            conversation_id,
-            sender_type,
-            content,
-            message_order)
-         VALUES
-           ($1, $2, 'assistant', $3, $4)`,
-        [messageId, conversationId, answer, nextOrder]
-      );
+      // Get next message_order with fallback to 1 if query fails
+      let nextOrder = 1;
+      try {
+        const { rows } = await client.query(
+          `SELECT MAX(message_order) AS max_order
+             FROM chat.messages
+            WHERE conversation_id = $1`,
+          [conversationId]
+        );
+        nextOrder = (rows[0].max_order || 0) + 1;
+      } catch (orderError) {
+        console.error('Error getting message order, using default:', orderError);
+      }
 
-      console.log(`Stored AI response with ID ${messageId}`);
+      // Insert message with retry logic
+      try {
+        // Insert into the exact columns, using 'assistant' for sender_type
+        await client.query(
+          `INSERT INTO chat.messages
+             (id,
+              conversation_id,
+              sender_type,
+              content,
+              message_order)
+           VALUES
+             ($1, $2, 'assistant', $3, $4)`,
+          [messageId, conversationId, answer, nextOrder]
+        );
+      } catch (insertError) {
+        console.error('First insert attempt failed:', insertError);
+        
+        // Try with a shorter message if the first attempt failed
+        if (answer.length > 5000) {
+          console.warn('Answer might be too long, truncating to 5000 chars');
+          await client.query(
+            `INSERT INTO chat.messages
+               (id,
+                conversation_id,
+                sender_type,
+                content,
+                message_order)
+             VALUES
+               ($1, $2, 'assistant', $3, $4)`,
+            [messageId, conversationId, answer.substring(0, 5000) + '... (truncated)', nextOrder]
+          );
+        } else {
+          throw insertError; // Re-throw if it wasn't a length issue
+        }
+      }
+
+      console.log(`AI response stored with ID: ${messageId}`);
       return messageId;
     } catch (err) {
       console.error('Error storing AI response:', err);

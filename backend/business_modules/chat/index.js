@@ -6,9 +6,13 @@ const fp = require('fastify-plugin');
 const autoload = require('@fastify/autoload');
 const path = require('path');
 const chatPubsubListener = require('./input/chatPubsubListener'); 
+const ragStatusPlugin = require('../../ragStatusPlugin');
 
 module.exports = async function chatIndex(fastify, opts) {
   fastify.log.info('✅ chat/index.js was registered');
+  
+  // Register the RAG status monitoring plugin
+  await fastify.register(ragStatusPlugin);
 
   // Load application controllers
   await fastify.register(autoload, {

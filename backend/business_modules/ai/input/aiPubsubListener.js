@@ -1,138 +1,152 @@
-// aiPubsubListener.js
-/* eslint-disable no-unused-vars */
 'use strict';
 
 const fp = require('fastify-plugin');
 
-async function aiPubsubListener(fastify, options) {
-  console.log('🚀 AI PUBSUB LISTENER PLUGIN STARTING...');
+module.exports = fp(async function aiPubsubListener(fastify, opts) {
   fastify.log.info('🤖 Setting up AI Pub/Sub listeners...');
-
-  // Get the shared event bus from the eventDispatcher module
-  const { eventBus } = require('../../../eventDispatcher');
   
-  // IMPORTANT: Let's inspect the full error information
-  let lastError = null;
+  // Enhanced event bus acquisition with robust fallbacks
+  let eventBus = null;
+  let eventBusSource = 'none';
   
-  // Pre-check if we can resolve the AI service
-  let aiServiceInstance = null;
   try {
+    // Debug: List all registered services in DI container
     if (fastify.diContainer) {
-      console.log('✅ DI container available, listing all registered services:');
-      const registrations = Object.keys(fastify.diContainer.registrations);
-      console.log(registrations);
-      
-      // Try to resolve aiService
       try {
-        aiServiceInstance = fastify.diContainer.resolve('aiService');
-        console.log('✅ Successfully resolved aiService:', typeof aiServiceInstance);
-        console.log('aiService methods:', Object.keys(aiServiceInstance));
+        const registeredServices = await fastify.diContainer.listRegistrations();
+        fastify.log.info('🔍 AI MODULE DEBUG: DI Container registered services:', registeredServices);
       } catch (e) {
-        console.log('❌ Error resolving aiService:', e.message);
+        fastify.log.warn('⚠️ AI MODULE DEBUG: Could not list DI container registrations:', e.message);
       }
     }
-  } catch (e) {
-    console.log('❌ Error inspecting DI container:', e.message);
+    
+    // Approach 1: Try to get from DI container if available
+    if (fastify.diContainer && await fastify.diContainer.hasRegistration('eventDispatcher')) {
+      try {
+        const eventDispatcher = await fastify.diContainer.resolve('eventDispatcher');
+        if (eventDispatcher && eventDispatcher.eventBus) {
+          eventBus = eventDispatcher.eventBus;
+          eventBusSource = 'di-container';
+          fastify.log.info('✅ AI MODULE: EventBus acquired from DI container');
+        } else {
+          fastify.log.warn('⚠️ AI MODULE: EventDispatcher resolved from DI but no eventBus property found');
+        }
+      } catch (e) {
+        fastify.log.warn(`⚠️ AI MODULE: Failed to resolve eventDispatcher from DI container: ${e.message}`);
+      }
+    } else {
+      fastify.log.warn('⚠️ AI MODULE: No eventDispatcher found in DI container, trying direct import');
+    }
+    
+    // Approach 2: Try to get from the exported module if DI failed
+    if (!eventBus) {
+      try {
+        // Try path resolution starting from the AI module directory first
+        let resolvedPath;
+        try {
+          resolvedPath = require.resolve('../../../eventDispatcher');
+        } catch (e) {
+          // If that fails, try relative to the current working directory
+          resolvedPath = require.resolve(process.cwd() + '/eventDispatcher');
+        }
+        
+        fastify.log.info(`🔍 AI MODULE DEBUG: Resolved eventDispatcher path: ${resolvedPath}`);
+        
+        const eventDispatcherModule = require(resolvedPath);
+        if (eventDispatcherModule.eventBus) {
+          eventBus = eventDispatcherModule.eventBus;
+          eventBusSource = 'direct-import';
+          fastify.log.info('✅ AI MODULE: EventBus acquired from direct import');
+        } else {
+          fastify.log.warn('⚠️ AI MODULE: EventDispatcher module imported but no eventBus property found');
+        }
+      } catch (e) {
+        fastify.log.error(`❌ AI MODULE: Failed to import eventDispatcher module: ${e.message}`);
+      }
+    }
+    
+    // Approach 3: Last resort - check if fastify has eventDispatcher decorator
+    if (!eventBus && fastify.eventDispatcher) {
+      try {
+        if (fastify.eventDispatcher.eventBus) {
+          eventBus = fastify.eventDispatcher.eventBus;
+          eventBusSource = 'fastify-decorator';
+          fastify.log.info('✅ AI MODULE: EventBus acquired from fastify decorator');
+        }
+      } catch (e) {
+        fastify.log.error(`❌ AI MODULE: Error accessing eventBus from fastify decorator: ${e.message}`);
+      }
+    }
+    
+    // Set up event listeners once we have the eventBus
+    if (eventBus) {
+      // Listen for repository pushed events
+      eventBus.on('repoPushed', async (data) => {
+        try {
+          fastify.log.info(`🔔 AI MODULE: Received repoPushed event via ${eventBusSource}`);
+          fastify.log.info(`📊 AI MODULE: Event payload: ${JSON.stringify(data, null, 2)}`);
+          
+          const aiService = await fastify.diContainer.resolve('aiService');
+          
+          // Extract required data with validation
+          if (!data || !data.payload) {
+            throw new Error('Invalid event data: missing payload');
+          }
+          
+          const { userId, repoId, repoData } = data.payload;
+          
+          if (!userId) {
+            throw new Error('Missing userId in repoPushed event');
+          }
+          
+          if (!repoId) {
+            throw new Error('Missing repoId in repoPushed event');
+          }
+          
+          fastify.log.info(`📋 AI MODULE: Processing repository: ${repoId} for user ${userId}`);
+          
+          // Process the repository
+          const result = await aiService.processPushedRepo(userId, repoId, repoData || {});
+          
+          if (result && result.success) {
+            fastify.log.info(`✅ AI MODULE: Repository ${repoId} processed successfully with ${result.chunksStored} chunks stored`);
+          } else {
+            fastify.log.warn(`⚠️ AI MODULE: Repository ${repoId} processing completed with issues: ${result?.error || 'Unknown error'}`);
+          }
+        } catch (error) {
+          fastify.log.error(`❌ AI MODULE: Error processing repository push event: ${error.message}`);
+          fastify.log.error(error.stack);
+        }
+      });
+      
+      // Verify listener registration
+      const listenerCount = eventBus.listenerCount('repoPushed');
+      fastify.log.info(`✅ AI MODULE: ${listenerCount} listeners registered for repoPushed event via ${eventBusSource}`);
+      
+      // Add a test event emitter for debugging (only in development)
+      if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
+        fastify.decorate('testRepoPush', async function(userId, repoId, repoData) {
+          fastify.log.info(`🧪 AI MODULE: Emitting test repoPushed event`);
+          eventBus.emit('repoPushed', {
+            eventType: 'repoPushed',
+            timestamp: new Date().toISOString(),
+            payload: { userId, repoId, repoData }
+          });
+          return { success: true, message: 'Test event emitted' };
+        });
+      }
+    } else {
+      fastify.log.error('❌ AI MODULE: Failed to acquire eventBus from any source');
+    }
+  } catch (error) {
+    fastify.log.error(`❌ AI MODULE: Error setting up Pub/Sub listeners: ${error.message}`);
+    fastify.log.debug(error.stack);
   }
   
-  // Subscribe to 'questionAdded' events using the shared event bus
-  eventBus.on('questionAdded', async (data) => {
-    console.log(`🎯 AI RECEIVED 'questionAdded' event:`, JSON.stringify(data, null, 2));
-    fastify.log.info(`🎯 AI RECEIVED 'questionAdded' event:`, JSON.stringify(data, null, 2));
-    
-    let userId, conversationId, prompt;
-    
-    try {
-      ({ userId, conversationId, prompt } = data);
-      console.log(`🤖 Processing AI response for user: ${userId}, conversation: ${conversationId}`);
-      fastify.log.info(`🤖 Processing AI response for user: ${userId}, conversation: ${conversationId}`);
-
-      // Simplified direct AI implementation - focusing only on WebSocket response
-      console.log('💡 Using direct AI implementation without persistence...');
-      
-      // Create a simple response
-      const directResponse = {
-        text: `This is a direct AI response to your prompt: "${prompt}"`,
-        timestamp: new Date().toISOString(),
-        type: 'ai',
-        metadata: {
-          model: 'Direct-Implementation-1.0',
-          tokens: prompt.length * 2
-        }
-      };
-      
-      // Send the response via WebSocket - using fastify.sendToUser directly
-      if (typeof fastify.sendToUser === 'function') {
-        console.log('📡 Sending AI response via WebSocket...');
-        fastify.sendToUser(userId, {
-          type: 'new_message', // Changed from 'ai_response' to 'new_message'
-          conversationId,
-          message: {  // Changed format to match chatPubsubListener
-            id: require('crypto').randomUUID(),
-            content: directResponse.text,  // Use just the text field, not the whole object
-            role: 'assistant',
-            created_at: new Date().toISOString()
-          }
-        });
-        console.log('✅ AI response sent via WebSocket');
-      } else {
-        console.log('⚠️ WebSocket sendToUser not available - using eventBus as fallback');
-        
-        // Fallback to eventBus
-        eventBus.emit('answerAdded', {
-          userId,
-          conversationId,
-          answer: directResponse.text  // Use just the text field, not the whole object
-        });
-        console.log('📢 Published answerAdded event via eventBus as fallback');
-      }
-      
-      console.log('✅ AI response process completed for conversation:', conversationId);
-      fastify.log.info('✅ AI response process completed for conversation:', conversationId);
-      
-    } catch (error) {
-      // Enhanced error logging
-      lastError = error;
-      console.error('💥 Error processing AI response:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-      
-      fastify.log.error(`💥 Error processing 'questionAdded' event:`, {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        aiServiceAvailable: !!aiServiceInstance,
-        aiServiceType: aiServiceInstance ? typeof aiServiceInstance : 'undefined',
-        userId,
-        conversationId,
-        prompt
-      });
-      
-      // Try to use eventBus as fallback for error notification
-      try {
-        eventBus.emit('aiProcessingError', {
-          userId,
-          conversationId,
-          error: error.message
-        });
-      } catch (e) {
-        console.error('Failed to emit error event:', e);
-      }
-    }
-  });
-
-  fastify.log.info('✅ AI Pub/Sub listeners registered via shared eventBus');
-  console.log('✅ AI Pub/Sub listeners registered via shared eventBus');
-  
-  // Return error information for debugging
-  fastify.decorate('getAiPubsubListenerError', () => {
-    return lastError;
-  });
-}
-
-module.exports = fp(aiPubsubListener, {
-  dependencies: ['diPlugin'],
-  name: 'aiPubsubListener'
+  // Add a decorator to track registration (useful for debugging)
+  fastify.decorate('aiPubsubListener', true);
+  console.log('aiPubsubListener registered:', !!fastify.aiPubsubListener);
+}, {
+  name: 'aiPubsubListener',
+  dependencies: ['eventDispatcher', '@fastify/awilix']
 });

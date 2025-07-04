@@ -221,6 +221,9 @@ module.exports = fp(async function (fastify, opts) {
     aiService: asClass(AIService, { lifetime: Lifetime.scoped }),
     apiService: asClass(ApiService, { lifetime: Lifetime.scoped }),
     userService: asClass(UserService, { lifetime: Lifetime.SINGLETON }),
+    
+    // Add aiProvider from infraConfig
+    aiProvider: asValue(infraConfig.business_modules.ai.aiProvider || 'openai'),
   };
 
   // Add config-based adapters

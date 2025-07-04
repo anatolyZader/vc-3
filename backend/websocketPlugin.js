@@ -27,6 +27,8 @@ module.exports = fp(async function websocketPlugin(fastify, opts) {
     const { retryOnError = true, maxRetries = 3 } = options;
     const conns = userConnections.get(userId);
     
+    console.log(`[${getTimestamp()}] 📡 Attempting to send message to user ${userId}:`, JSON.stringify(payload));
+    
     if (!conns || conns.size === 0) {
       fastify.log.warn(`[${getTimestamp()}] No WS connections for user ${userId}`);
       return { success: false, reason: 'no_connections', userId };

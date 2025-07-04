@@ -30,7 +30,6 @@ class GitPostgresAdapter extends IGitPersistPort {
       host: 'localhost',
       port: 5432,
     };
-    console.info('[DB] Using local Postgres config:', config);
     return Promise.resolve(new Pool(config));
   }
 

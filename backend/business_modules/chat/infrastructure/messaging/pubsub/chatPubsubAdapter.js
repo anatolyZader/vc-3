@@ -7,15 +7,6 @@ class ChatPubsubAdapter extends IChatMessagingPort {
 constructor(dependencies) {
     super();
     
-    // Debug what's being injected
-    console.log('🔧 ChatPubsubAdapter constructor dependencies:', {
-        dependencies: dependencies,
-        keys: Object.keys(dependencies || {}),
-        pubSubClient: dependencies?.pubSubClient,
-        eventDispatcher: dependencies?.eventDispatcher,
-        hasEventDispatcher: !!dependencies?.eventDispatcher,
-        eventDispatcherType: typeof dependencies?.eventDispatcher
-    });
 
     // Extract dependencies - this is the correct way according to docs
     const { pubSubClient, eventDispatcher } = dependencies || {};

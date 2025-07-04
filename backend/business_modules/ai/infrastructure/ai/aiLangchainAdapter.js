@@ -11,127 +11,420 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 const { ChatOpenAI } = require('@langchain/openai');
 
 class AILangchainAdapter extends IAIPort {
-  // Accept userId in the constructor (this will be the internal application userId)
   constructor(options = {}) {
     super();
-    
-    // Make userId optional during DI registration
-    this.userId = options.userId || null;
-    
-    console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing for user: ${this.userId}`);
-    
-    // Initialize embeddings model: converts text to vectors
-    this.embeddings = new OpenAIEmbeddings({ 
-      model: 'text-embedding-3-large',
-      apiKey: process.env.OPENAI_API_KEY 
-    });
 
-    // Initialize Pinecone client
-    this.pinecone = new Pinecone({
-      apiKey: process.env.PINECONE_API_KEY
-    });
-      
-    // Initialize vector store with Pinecone, using the dynamic application userId as namespace
-    this.vectorStore = new PineconeStore(this.embeddings, {
-      pineconeIndex: this.pinecone.Index(process.env.PINECONE_INDEX_NAME),
-      namespace: this.userId // Use dynamic application userId for namespace
-    });
-    
-    // Initialize chat model: generates responses
-    this.llm = new ChatOpenAI({ 
-      modelName: 'gpt-4', 
-      temperature: 0,
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    // Make userId null by default to avoid DI error
+    this.userId = null;
 
-    console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully for user: ${this.userId}`);
+    // Get provider from infraConfig or options
+    this.aiProvider = options.aiProvider || 'openai';
+    console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing with provider: ${this.aiProvider}`);
+
+    // Get access to the event bus for status updates
+    try {
+      const { eventBus } = require('../../../../eventDispatcher');
+      this.eventBus = eventBus;
+      console.log(`[${new Date().toISOString()}] 📡 Successfully connected to shared event bus`);
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Could not access shared event bus: ${error.message}`);
+      this.eventBus = null;
+    }
+
+    // Rate limiting parameters
+    this.requestsInLastMinute = 0;
+    this.lastRequestTime = Date.now();
+    this.maxRequestsPerMinute = 1; // Further reduced to avoid rate limiting
+    this.retryDelay = 10000; // Increased to 10000ms for more conservative approach
+    this.maxRetries = 5; // Keep at 5 retries
+
+    // Request queue system
+    this.requestQueue = [];
+    this.isProcessingQueue = false;
+
+    // Start queue processor
+    this.startQueueProcessor();
+
+    try {
+      // Initialize embeddings model: converts text to vectors
+      this.embeddings = new OpenAIEmbeddings({
+        model: 'text-embedding-3-large',
+        apiKey: process.env.OPENAI_API_KEY
+      });
+
+      // Initialize Pinecone client if API key available
+      if (process.env.PINECONE_API_KEY) {
+        this.pinecone = new Pinecone({
+          apiKey: process.env.PINECONE_API_KEY
+        });
+      } else {
+        console.warn(`[${new Date().toISOString()}] No Pinecone API key found, vector search will be unavailable`);
+        this.pinecone = null;
+      }
+
+      // Initialize chat model based on provider
+      this.initializeLLM();
+
+      // Don't initialize vectorStore until we have a userId
+      this.vectorStore = null;
+
+      console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error initializing AILangchainAdapter:`, error.message);
+      // We'll continue with degraded functionality and try to recover later
+    }
   }
 
-  // Add method to set userId after construction
+  // Add method to set userId after construction - this is crucial!
   setUserId(userId) {
+    if (!userId) {
+      console.warn(`[${new Date().toISOString()}] Attempted to set null/undefined userId in AILangchainAdapter`);
+      return this;
+    }
+
     this.userId = userId;
-    
-    // Update vector store namespace
-    this.vectorStore = new PineconeStore(this.embeddings, {
-      pineconeIndex: this.pinecone.Index(process.env.PINECONE_INDEX_NAME),
-      namespace: this.userId
-    });
-    
-    console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
+
+    // Update vector store namespace with the user ID
+    try {
+      if (this.pinecone) {
+        this.vectorStore = new PineconeStore(this.embeddings, {
+          pineconeIndex: this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index'),
+          namespace: this.userId
+        });
+        console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
+      } else {
+        console.warn(`[${new Date().toISOString()}] Pinecone client not available, vectorStore not initialized for user ${userId}`);
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error creating vector store for user ${this.userId}:`, error.message);
+      // Still set the userId even if vectorStore creation fails
+    }
+
     return this;
+  }
+
+  // Initialize LLM based on provider
+  initializeLLM() {
+    try {
+      switch (this.aiProvider.toLowerCase()) {
+        case 'openai': {
+          console.log(`[${new Date().toISOString()}] Initializing OpenAI provider`);
+          // Import here to avoid requiring if not using this provider
+          const { ChatOpenAI } = require('@langchain/openai');
+          this.llm = new ChatOpenAI({
+            modelName: 'gpt-3.5-turbo',
+            temperature: 0,
+            apiKey: process.env.OPENAI_API_KEY,
+            maxRetries: this.maxRetries,
+            maxConcurrency: 2
+          });
+          break;
+        }
+
+        case 'anthropic': {
+          console.log(`[${new Date().toISOString()}] Initializing Anthropic provider`);
+          // Import here to avoid requiring if not using this provider
+          const { ChatAnthropic } = require('@langchain/anthropic');
+          this.llm = new ChatAnthropic({
+            modelName: 'claude-3-haiku-20240307',
+            temperature: 0,
+            apiKey: process.env.ANTHROPIC_API_KEY,
+            maxRetries: this.maxRetries,
+            maxConcurrency: 1, // Reduced to 1 to avoid rate limiting
+            streaming: false, // Disable streaming to reduce connection overhead
+            timeout: 120000 // 2 minute timeout
+          });
+          break;
+        }
+
+        case 'google': {
+          console.log(`[${new Date().toISOString()}] Initializing Google provider`);
+          // Import here to avoid requiring if not using this provider
+          const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
+          this.llm = new ChatGoogleGenerativeAI({
+            modelName: 'gemini-pro',
+            apiKey: process.env.GOOGLE_API_KEY,
+            maxRetries: this.maxRetries,
+            maxConcurrency: 2
+          });
+          break;
+        }
+
+        case 'ollama': {
+          console.log(`[${new Date().toISOString()}] Initializing Ollama provider`);
+          // Import here to avoid requiring if not using this provider
+          const { ChatOllama } = require('@langchain/community/chat_models/ollama');
+          this.llm = new ChatOllama({
+            model: process.env.OLLAMA_MODEL || 'llama2',
+            baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+            maxRetries: this.maxRetries
+          });
+          break;
+        }
+
+        default: {
+          console.warn(`[${new Date().toISOString()}] Unknown provider: ${this.aiProvider}, falling back to OpenAI`);
+          const { ChatOpenAI: DefaultChatOpenAI } = require('@langchain/openai');
+          this.llm = new DefaultChatOpenAI({
+            modelName: 'gpt-3.5-turbo',
+            temperature: 0,
+            apiKey: process.env.OPENAI_API_KEY,
+            maxRetries: this.maxRetries,
+            maxConcurrency: 2
+          });
+        }
+      }
+
+      console.log(`[${new Date().toISOString()}] Successfully initialized LLM for provider: ${this.aiProvider}`);
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error initializing LLM for provider ${this.aiProvider}:`, error.message);
+      throw new Error(`Failed to initialize LLM provider ${this.aiProvider}: ${error.message}`);
+    }
+  }
+
+  // Rate limit handling method
+  async checkRateLimit() {
+    const now = Date.now();
+    const timeWindow = 60 * 1000; // 1 minute in milliseconds
+
+    // Reset counter if more than a minute has passed
+    if (now - this.lastRequestTime > timeWindow) {
+      this.requestsInLastMinute = 0;
+      this.lastRequestTime = now;
+      return true;
+    }
+
+    // If we're still under the limit, increment and allow
+    if (this.requestsInLastMinute < this.maxRequestsPerMinute) {
+      this.requestsInLastMinute++;
+      this.lastRequestTime = now;
+      return true;
+    }
+
+    // Otherwise, we need to wait
+    console.log(`[${new Date().toISOString()}] Rate limit reached, delaying request`);
+    return false;
+  }
+
+  // Function to wait with improved exponential backoff with jitter
+  async waitWithBackoff(retryCount) {
+    // Base delay plus linear component to ensure minimum wait time increases with retries
+    const baseDelay = this.retryDelay + (retryCount * 5000);
+
+    // Add jitter (±10%) to prevent thundering herd problem
+    const jitterFactor = 0.9 + (Math.random() * 0.2);
+
+    // Calculate final delay with max cap
+    const delay = Math.min(
+      baseDelay * jitterFactor,
+      60000 // Max 60 seconds (increased from 30s)
+    );
+
+    console.log(`[${new Date().toISOString()}] Waiting ${Math.round(delay)}ms before retry ${retryCount + 1}`);
+    return new Promise(resolve => setTimeout(resolve, delay));
   }
 
   async processPushedRepo(userId, repoId, repoData) {
     // userId here is the application's internal userId (e.g., UUID from JWT)
     // repoData should now contain githubOwner (e.g., "anatolyZader")
-    console.log(`[${new Date().toISOString()}] Processing repo for user ${userId}: ${repoId}`);
+    console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Processing repo for user ${userId}: ${repoId}`);
+    console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Received repoData structure:`, JSON.stringify(repoData, null, 2)); 
+    
+    // Emit starting status
+    this.emitRagStatus('processing_started', {
+      userId,
+      repoId,
+      timestamp: new Date().toISOString()
+    });
+
+    // Set userId if not already set
+    if (this.userId !== userId) {
+      this.setUserId(userId);
+    }
 
     try {
+      // Check if we have the necessary clients initialized
+      if (!this.pinecone || !this.embeddings) {
+        throw new Error('Vector database or embeddings model not initialized. Please check your API keys.');
+      }
+
       // 1. INDEXING :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
       // Load: Document Loaders.
-      console.log(`[${new Date().toISOString()}] Loading repository from GitHub...`);
+      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Loading repository from GitHub...`);
       
-      // Use dynamic repo URL from repoData.url or construct using repoData.githubOwner
-      const githubOwner = repoData?.githubOwner || userId; // Fallback to userId if githubOwner not provided
-      const repoUrl = repoData?.url || `https://github.com/${githubOwner}/${repoId}`;
-      const repoBranch = repoData?.branch || repoData?.defaultBranch || "main";
-      
-      console.log(`[${new Date().toISOString()}] Repository URL: ${repoUrl}, Branch: ${repoBranch}`);
-      
+      // Extract repository information with enhanced robustness and fallbacks
+      // First, try to extract from various possible structures in repoData
+      let githubOwner, repoName, repoUrl, repoBranch;
+
+      this.emitRagStatus('extracting_repo_info', {
+        userId,
+        repoId,
+        repoData: repoData ? Object.keys(repoData) : 'null'
+      });
+
+      // Handle various payload structures that might come from different sources
+      if (repoData) {
+        if (repoData.repository) {
+          // Handle webhook or API response format
+          githubOwner = repoData.repository.owner?.login || 
+                       repoData.repository.owner?.name || 
+                       repoData.repository.owner;
+          repoName = repoData.repository.name;
+          repoUrl = repoData.repository.html_url || 
+                   repoData.repository.url || 
+                   `https://github.com/${githubOwner}/${repoName}`;
+          repoBranch = repoData.repository.default_branch || "main";
+          this.emitRagStatus('extracted_repo_webhook_format', { githubOwner, repoName, repoUrl, repoBranch });
+        } else if (repoData.repo) {
+          // Handle simplified custom format
+          githubOwner = repoData.repo.owner || repoData.githubOwner;
+          repoName = repoData.repo.name;
+          repoUrl = repoData.repo.url || `https://github.com/${githubOwner}/${repoName}`;
+          repoBranch = repoData.repo.branch || repoData.branch || "main";
+          this.emitRagStatus('extracted_repo_custom_format', { githubOwner, repoName, repoUrl, repoBranch });
+        } else {
+          // Handle flat structure
+          githubOwner = repoData.githubOwner || repoData.owner;
+          repoName = repoData.repoName || repoData.name;
+          repoUrl = repoData.repoUrl || repoData.url;
+          repoBranch = repoData.branch || repoData.defaultBranch || "main";
+          this.emitRagStatus('extracted_repo_flat_format', { githubOwner, repoName, repoUrl, repoBranch });
+        }
+      }
+
+      // If we still don't have the owner/name, try to extract from repoId
+      if (!githubOwner || !repoName) {
+        if (repoId && repoId.includes('/')) {
+          const parts = repoId.split('/');
+          githubOwner = githubOwner || parts[0];
+          repoName = repoName || parts[1];
+        } else {
+          // Last resort fallbacks
+          githubOwner = githubOwner || userId || 'unknown';
+          repoName = repoName || repoId || 'unknown-repo';
+        }
+      }
+
+      // Ensure we have a valid URL
+      if (!repoUrl || !repoUrl.includes('github.com')) {
+        repoUrl = `https://github.com/${githubOwner}/${repoName}`;
+      }
+
+      // Validate the extracted data
+      if (!githubOwner || !repoName || !repoUrl) {
+        console.error(`[${new Date().toISOString()}] 📥 RAG REPO: Failed to extract required repo information from payload`);
+        throw new Error('Invalid repository data: Could not determine owner or repository name');
+      }
+
+      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Extracted repository data:`);
+      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Owner: ${githubOwner}`);
+      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Name: ${repoName}`);
+      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: URL: ${repoUrl}`);
+      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Branch: ${repoBranch}`);
+
+      this.emitRagStatus('loading_repo', {
+        userId,
+        repoUrl,
+        branch: repoBranch,
+        githubOwner,
+        repoName
+      });
+
       const repoLoader = new GithubRepoLoader(
         repoUrl,
         {
           branch: repoBranch,
-          recursive: true, 
+          recursive: true,
           unknown: "warn",
-          maxConcurrency: 3, 
+          maxConcurrency: 3,
           maxRetries: 2,
           ignorePaths: [
             "node_modules/**",
-            ".git/**", 
+            ".git/**",
             "dist/**",
             "build/**",
             "*.min.js",
             "package-lock.json"
           ]
         }
-      ); 
+      );
 
       const loadedRepo = [];
       let loadCount = 0;
-      
+
       console.log(`[${new Date().toISOString()}] Starting document loading...`);
-      
+      this.emitRagStatus('loading_documents', {
+        userId,
+        repoId,
+        repoUrl
+      });
+
       for await (const doc of repoLoader.loadAsStream()) {
         loadedRepo.push(doc);
         loadCount++;
-        
+
         // Progress logging
         if (loadCount % 10 === 0) {
           console.log(`[${new Date().toISOString()}] Loaded ${loadCount} documents...`);
+          
+          // Emit progress update every 10 documents
+          if (loadCount % 50 === 0) {
+            this.emitRagStatus('loading_progress', {
+              userId,
+              repoId,
+              documentsLoaded: loadCount
+            });
+          }
         }
       }
 
       console.log(`[${new Date().toISOString()}] ✅ Loaded ${loadedRepo.length} documents from repository`);
+      this.emitRagStatus('documents_loaded', {
+        userId,
+        repoId,
+        documentsLoaded: loadedRepo.length,
+        firstDocumentType: loadedRepo.length > 0 ? this.getFileType(loadedRepo[0].metadata.source || '') : 'unknown'
+      });
 
       if (loadedRepo.length === 0) {
         throw new Error(`No documents loaded from repository ${repoUrl}. Check repository access and branch name.`);
       }
 
-      // Split: Text splitters 
+      // Split: Text splitters
       console.log(`[${new Date().toISOString()}] Splitting documents into chunks...`);
+      this.emitRagStatus('splitting_documents', {
+        userId,
+        repoId,
+        documentCount: loadedRepo.length
+      });
 
       // Smart splitter selection based on repository content
       const repoSplitter = this.createSmartSplitter(loadedRepo);
-      
+
       // Split documents into chunks
       const splittedRepo = await repoSplitter.splitDocuments(loadedRepo);
 
       console.log(`[${new Date().toISOString()}] ✅ Split into ${splittedRepo.length} chunks`);
+      this.emitRagStatus('documents_split', {
+        userId,
+        repoId,
+        chunksCreated: splittedRepo.length,
+        averageChunkSize: splittedRepo.length > 0 
+          ? Math.round(splittedRepo.reduce((sum, doc) => sum + doc.pageContent.length, 0) / splittedRepo.length) 
+          : 0
+      });
 
       // Store: VectorStore and Embeddings model.
       console.log(`[${new Date().toISOString()}] Storing embeddings in vector database...`);
+      this.emitRagStatus('storing_embeddings', {
+        userId,
+        repoId,
+        chunkCount: splittedRepo.length,
+        pineconeIndex: process.env.PINECONE_INDEX_NAME || 'eventstorm-index',
+        namespace: this.userId
+      });
 
       // Add comprehensive metadata to chunks for better tracking
       const documentsWithMetadata = splittedRepo.map((doc, index) => ({
@@ -153,25 +446,64 @@ class AILangchainAdapter extends IAIPort {
       }));
 
       // Generate unique IDs for the documents to avoid duplicates
-      const documentIds = documentsWithMetadata.map((doc, index) => 
+      const documentIds = documentsWithMetadata.map((doc, index) =>
         `${userId}_${repoId}_${this.sanitizeId(doc.metadata.source || 'unknown')}_chunk_${index}`
       );
 
       // Store in vector database with batch processing for better performance
-      const batchSize = 50;
+      const batchSize = 20; // Reduced batch size to avoid rate limits
       let storedCount = 0;
-      
+
       for (let i = 0; i < documentsWithMetadata.length; i += batchSize) {
-        const batch = documentsWithMetadata.slice(i, i + batchSize);
-        const batchIds = documentIds.slice(i, i + batchSize);
-        
-        await this.vectorStore.addDocuments(batch, { ids: batchIds });
-        storedCount += batch.length;
-        
-        console.log(`[${new Date().toISOString()}] Stored batch ${Math.ceil((i + 1) / batchSize)} - ${storedCount}/${documentsWithMetadata.length} chunks`);
+        // Check rate limits before making API calls
+        let retries = 0;
+        let success = false;
+
+        while (!success && retries < this.maxRetries) {
+          if (await this.checkRateLimit()) {
+            try {
+              const batch = documentsWithMetadata.slice(i, i + batchSize);
+              const batchIds = documentIds.slice(i, i + batchSize);
+
+              await this.vectorStore.addDocuments(batch, { ids: batchIds });
+              storedCount += batch.length;
+
+              console.log(`[${new Date().toISOString()}] Stored batch ${Math.ceil((i + 1) / batchSize)} - ${storedCount}/${documentsWithMetadata.length} chunks`);
+              success = true;
+            } catch (error) {
+              if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
+                retries++;
+                console.warn(`[${new Date().toISOString()}] Rate limit hit, retry ${retries}/${this.maxRetries}`);
+                await this.waitWithBackoff(retries);
+              } else {
+                throw error; // Re-throw if it's not a rate limit issue
+              }
+            }
+          } else {
+            // Wait for rate limit window to reset
+            await this.waitWithBackoff(retries);
+          }
+        }
+
+        if (!success) {
+          console.error(`[${new Date().toISOString()}] Failed to store batch after ${this.maxRetries} retries`);
+        }
       }
-      
-      console.log(`[${new Date().toISOString()}] ✅ Successfully stored ${documentsWithMetadata.length} document chunks in vector database`);
+
+      console.log(`[${new Date().toISOString()}] ✅ Successfully stored ${storedCount}/${documentsWithMetadata.length} document chunks in vector database`);
+
+      // Emit event for RAG status update
+      if (this.eventBus) {
+        this.eventBus.emit('ragStatusUpdate', {
+          userId: userId,
+          repoId: repoId,
+          status: 'completed',
+          documentsLoaded: loadedRepo.length,
+          chunksCreated: splittedRepo.length,
+          chunksStored: storedCount,
+          processedAt: new Date().toISOString()
+        });
+      }
 
       return {
         success: true,
@@ -182,395 +514,530 @@ class AILangchainAdapter extends IAIPort {
         githubOwner: githubOwner,
         documentsLoaded: loadedRepo.length,
         chunksCreated: splittedRepo.length,
-        chunksStored: documentsWithMetadata.length,
+        chunksStored: storedCount,
         processedAt: new Date().toISOString(), // Use current timestamp
         processedBy: 'AI-Service'
       };
 
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Failed to process repository ${repoId}:`, error.message);
-      throw new Error(`Repository processing failed: ${error.message}`);
-    }
-  }
-
-  // 2. Retrieval and generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
-
-  async respondToPrompt(conversationId, prompt) {
-    if (!this.userId) {
-      throw new Error('UserId is required. Call setUserId() first.');
-    }
-
-    console.log(`[${new Date().toISOString()}] Responding to prompt for conversation ${conversationId}: "${prompt.slice(0, 100)}..."`);
-    
-    try {
-      // Step 1: Retrieve relevant documents from the vector store
-      console.log(`[${new Date().toISOString()}] Searching vector database for relevant code chunks for user ${this.userId}...`);
       
-      const searchStartTime = Date.now();
-      
-      // Perform semantic search to find most relevant code chunks, filtering by the current application userId
-      const relevantDocs = await this.vectorStore.similaritySearch(
-        prompt, 
-        6, // Retrieve top 6 most relevant chunks
-        {
-          userId: this.userId // Use the dynamic application userId for filtering
-        }
-      );
-      
-      const searchTime = Date.now() - searchStartTime;
-      console.log(`[${new Date().toISOString()}] Found ${relevantDocs.length} relevant documents in ${searchTime}ms`);
-      // Log the retrieved documents for debugging
-      console.log(`[${new Date().toISOString()}] Retrieved documents details:`, relevantDocs.map(doc => ({
-        source: doc.metadata.source,
-        repoId: doc.metadata.repoId,
-        githubOwner: doc.metadata.githubOwner, // Log GitHub owner
-        chunkIndex: doc.metadata.chunkIndex,
-        contentPreview: doc.pageContent.substring(0, 100) + '...'
-      })));
-
-      if (relevantDocs.length === 0) {
-        console.log(`[${new Date().toISOString()}] No relevant documents found for prompt`);
-        return {
-          success: false,
-          response: "I couldn't find any relevant code in your repositories for that question. Please ensure the repository was processed with the correct user ID, and try asking about specific files, functions, or concepts that exist in your codebase.",
-          conversationId: conversationId,
-          timestamp: new Date().toISOString()
-        };
-      }
-
-      // Step 2: Format the retrieved context for the LLM
-      const context = relevantDocs.map((doc, index) => {
-        const fileName = doc.metadata.source || 'Unknown file';
-        const repoInfo = doc.metadata.repoId || 'Unknown repo';
-        const fileType = doc.metadata.fileType || 'Unknown type';
-        const githubOwner = doc.metadata.githubOwner || 'Unknown owner'; // Get GitHub owner from metadata
-        
-        return `--- Code Chunk ${index + 1} ---
-Repository: ${repoInfo} (Owner: ${githubOwner})
-File: ${fileName} (${fileType})
-Content:
-${doc.pageContent.trim()}
-`;
-      }).join('\n\n');
-
-      console.log(`[${new Date().toISOString()}] Prepared context with ${context.length} characters from ${relevantDocs.length} code chunks`);
-
-      // Define an enhanced system prompt for the coding assistant
-      const systemPrompt = `You are an expert software engineering assistant helping ${this.userId} analyze and understand code from their GitHub repositories.
-
-        Current Date/Time: ${new Date().toISOString()}
-        User: ${this.userId}
-        Conversation ID: ${conversationId}
-
-        INSTRUCTIONS:
-        - Use the provided code context to answer questions accurately and helpfully
-        - Reference specific files and line numbers when possible
-        - Explain code functionality, architecture patterns, and relationships
-        - Suggest improvements, optimizations, or best practices when relevant
-        - If you don't have enough context, clearly state what's missing
-        - Keep responses concise but comprehensive
-        - Use markdown formatting for better readability
-        - Always cite which files/repositories you're referencing
-
-        CONTEXT FROM ${this.userId}'s REPOSITORIES:
-        ${context}
-
-        Remember: You have access to ${this.userId}'s actual code. Provide specific, actionable insights based on the retrieved context.`;
-
-      // Step 3: Generate response using chat model
-      console.log(`[${new Date().toISOString()}] Generating AI response using GPT-4...`);
-      
-      const generationStartTime = Date.now();
-      
-      const response = await this.llm.invoke([
-        { 
-          role: "system", 
-          content: systemPrompt 
-        },
-        { 
-          role: "user", 
-          content: `Question: ${prompt}` 
-        }
-      ]);
-
-      const generationTime = Date.now() - generationStartTime;
-      console.log(`[${new Date().toISOString()}] ✅ AI response generated in ${generationTime}ms`);
-
-      // Log the raw LLM response content for debugging
-      console.log(`[${new Date().toISOString()}] Raw LLM response content:`, response.content);
-
-      // Step 4: Return structured response
-      return {
-        success: true,
-        response: response.content,
-        conversationId: conversationId,
-        metadata: {
-          documentsUsed: relevantDocs.length,
-          searchTimeMs: searchTime,
-          generationTimeMs: generationTime,
-          repositoriesReferenced: [...new Set(relevantDocs.map(doc => doc.metadata.repoId))],
-          filesReferenced: [...new Set(relevantDocs.map(doc => doc.metadata.source))],
-          totalContextLength: context.length,
-          timestamp: new Date().toISOString(), // Use current timestamp
-          user: this.userId
-        }
-      };
-
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to respond to prompt:`, error.message);
+      // Emit error status
+      this.emitRagStatus('processing_error', {
+        userId,
+        repoId,
+        error: error.message,
+        phase: 'repository_processing',
+        processedAt: new Date().toISOString()
+      });
       
       return {
         success: false,
-        response: `Failed to generate response: ${error.message}. Please check your API keys and network connection.`, // More informative error
-        conversationId: conversationId,
-        timestamp: new Date().toISOString(),
-        user: this.userId
+        error: `Repository processing failed: ${error.message}`,
+        userId: userId,
+        repoId: repoId,
+        processedAt: new Date().toISOString()
       };
     }
   }
 
-  // Additional utility methods
+  // 2. Retrieval and generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
 
-  /**
-   * Create smart splitter based on repository content analysis
-   * @param {Array} documents - Loaded documents to analyze
-   * @returns {RecursiveCharacterTextSplitter} Optimized splitter
-   */
-  createSmartSplitter(documents) {
-    console.log(`[${new Date().toISOString()}] Analyzing repository content for optimal splitting strategy...`);
-    
-    // Analyze file types in the repository
-    const fileTypes = documents.map(doc => this.getFileType(doc.metadata.source || ''));
-    const typeFrequency = fileTypes.reduce((acc, type) => {
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {});
-
-    console.log(`[${new Date().toISOString()}] File type distribution:`, typeFrequency);
-
-    // Choose splitter based on dominant file types
-    const dominantType = Object.keys(typeFrequency).reduce((a, b) => 
-      typeFrequency[a] > typeFrequency[b] ? a : b
-    );
-
-    let splitter;
-    
-    switch (dominantType) {
-      case 'javascript':
-      case 'typescript':
-        splitter = RecursiveCharacterTextSplitter.fromLanguage(Language.JS, {
-          chunkSize: 1500,
-          chunkOverlap: 300,
-        });
-        console.log(`[${new Date().toISOString()}] Using JavaScript/TypeScript optimized splitter`);
-        break;
-        
-      case 'python':
-        splitter = RecursiveCharacterTextSplitter.fromLanguage(Language.PYTHON, {
-          chunkSize: 1500,
-          chunkOverlap: 300,
-        });
-        console.log(`[${new Date().toISOString()}] Using Python optimized splitter`);
-        break;
-        
-      case 'markdown':
-        splitter = RecursiveCharacterTextSplitter.fromLanguage(Language.MARKDOWN, {
-          chunkSize: 1200,
-          chunkOverlap: 200,
-        });
-        console.log(`[${new Date().toISOString()}] Using Markdown optimized splitter`);
-        break;
-        
-      default:
-        splitter = new RecursiveCharacterTextSplitter({
-          chunkSize: 1000,
-          chunkOverlap: 200,
-          separators: ["\n\n", "\n", " ", ""]
-        });
-        console.log(`[${new Date().toISOString()}] Using generic text splitter`);
+  async respondToPrompt(conversationId, prompt) {
+    // Check if userId is set, if not return a more graceful error response
+    if (!this.userId) {
+      console.warn(`[${new Date().toISOString()}] Attempted to use respondToPrompt without setting userId first.`);
+      return {
+        success: false,
+        response: "I'm still initializing. Please try again in a moment.",
+        conversationId: conversationId,
+        timestamp: new Date().toISOString()
+      };
     }
 
-    return splitter;
+    console.log(`[${new Date().toISOString()}] Processing AI request for conversation ${conversationId}`);
+
+    // Use the queue system for all AI operations
+    return this.queueRequest(async () => {
+      try {
+        // If no vectorStore or pinecone client, fall back to standard mode
+        if (!this.vectorStore || !this.pinecone) {
+          console.warn(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector database not available, falling back to standard model response.`);
+          
+          // Use our standardized emitRagStatus method instead
+          this.emitRagStatus('retrieval_disabled', {
+            userId: this.userId,
+            conversationId: conversationId,
+            reason: 'Vector database not available'
+          });
+          
+          return await this.generateStandardResponse(prompt, conversationId);
+        }
+
+        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Searching vector database for relevant code chunks for user ${this.userId}...`);
+        const pineconeIndex = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+        const vectorStoreNamespace = this.userId;
+        
+        // Store these for later use
+        this.pineconeIndex = pineconeIndex;
+        this.vectorStoreNamespace = vectorStoreNamespace;
+        
+        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector store namespace: ${vectorStoreNamespace}`);
+        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Pinecone index name: ${pineconeIndex}`);
+
+        // Attempt retrieval with queue-based approach
+        let similarDocuments = [];
+        try {
+          // Find relevant documents from vector database
+          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running similarity search with filter: { userId: ${this.userId} }`);
+          similarDocuments = await this.vectorStore.similaritySearch(prompt, 5, {
+            filter: { userId: this.userId }
+          });
+          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Retrieved ${similarDocuments.length} documents from vector store`);
+          
+          if (similarDocuments.length > 0) {
+            console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: First document metadata:`, 
+              JSON.stringify(similarDocuments[0].metadata, null, 2));
+            console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: First document content preview: ${similarDocuments[0].pageContent.substring(0, 100)}...`);
+            
+            // Log all document sources for better debugging
+            console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: All retrieved document sources:`);
+            similarDocuments.forEach((doc, index) => {
+              console.log(`[${new Date().toISOString()}]   ${index + 1}. ${doc.metadata.source || 'Unknown'} (${doc.pageContent.length} chars)`);
+            });
+            
+            // Use our standardized emitRagStatus method
+            this.emitRagStatus('retrieval_success', {
+              userId: this.userId,
+              conversationId: conversationId,
+              documentsFound: similarDocuments.length,
+              sources: similarDocuments.map(doc => doc.metadata.source || 'Unknown'),
+              firstDocContentPreview: similarDocuments[0].pageContent.substring(0, 100) + '...'
+            });
+          }
+        } catch (error) {
+          // For errors, log and continue with standard response
+          console.error(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector search error:`, error.message);
+          
+          // Use our standardized emitRagStatus method
+          this.emitRagStatus('retrieval_error', {
+            userId: this.userId,
+            conversationId: conversationId,
+            error: error.message,
+            query: prompt.substring(0, 100) // Include a preview of the query that failed
+          });
+          
+          return await this.generateStandardResponse(prompt, conversationId);
+        }
+
+        if (similarDocuments.length === 0) {
+          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: No relevant documents found, using standard response`);
+          
+          // Use our standardized emitRagStatus method
+          this.emitRagStatus('retrieval_no_results', {
+            userId: this.userId,
+            conversationId: conversationId,
+            query: prompt.substring(0, 100) // Include a preview of the query
+          });
+          
+          return await this.generateStandardResponse(prompt, conversationId);
+        }
+
+        // Process the retrieved documents
+        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Found ${similarDocuments.length} relevant documents`);
+
+        // Format the context from retrieved documents
+        const context = similarDocuments.map(doc => {
+          const source = doc.metadata.source || 'Unknown source';
+          return `
+---
+File: ${source}
+Content:
+${doc.pageContent}
+---`;
+        }).join('\n\n');
+
+        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Created context with ${context.length} characters from ${similarDocuments.length} documents`);
+
+        // Prepare the message with context
+        const messages = [
+          {
+            role: "system",
+            content: `You are a helpful AI assistant specialized in software development. 
+            You have access to the user's code repository. 
+            Answer questions based on the context provided when possible.
+            If the question can't be answered from the context, use your general knowledge but make it clear.
+            Always provide accurate, helpful, and concise responses.`
+          },
+          {
+            role: "user",
+            content: `I have a question about my code repository: "${prompt}"\n\nHere are the most relevant parts of my codebase:\n${context}`
+          }
+        ];
+
+        // Try to generate a response
+        let retries = 0;
+        let success = false;
+        let response;
+
+        while (!success && retries < this.maxRetries) {
+          if (await this.checkRateLimit()) {
+            try {
+              const result = await this.llm.invoke(messages);
+              response = result.content;
+              success = true;
+            } catch (error) {
+              if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
+                retries++;
+                console.warn(`[${new Date().toISOString()}] Rate limit hit during generation, retry ${retries}/${this.maxRetries}`);
+                await this.waitWithBackoff(retries);
+              } else {
+                // Log the error and throw it for proper handling
+                console.error(`[${new Date().toISOString()}] Failed to respond to prompt:`, error);
+                throw error;
+              }
+            }
+          } else {
+            // Wait if we're rate limited
+            await this.waitWithBackoff(retries);
+          }
+        }
+
+        if (!success) {
+          // If we couldn't generate a response after all retries
+          throw new Error(`Failed to generate response after ${this.maxRetries} retries due to rate limits`);
+        }
+
+        console.log(`[${new Date().toISOString()}] Successfully generated response for conversation ${conversationId}`);
+
+        // Log the full context size to help diagnose if embedding usage is working
+        const contextSize = context.length;
+        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Generated response using ${similarDocuments.length} code chunks with total context size of ${contextSize} characters`);
+        
+        // Optionally add a small indicator in the response that RAG was used (can be commented out if not desired)
+        // const enhancedResponse = `${response}\n\n[Response generated using ${similarDocuments.length} relevant code chunks from your repository]`;
+        
+        return {
+          success: true,
+          response,
+          conversationId,
+          timestamp: new Date().toISOString(),
+          sourcesUsed: similarDocuments.length,
+          ragEnabled: true,
+          contextSize
+        };
+
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error in respondToPrompt:`, error.message);
+
+        // Handle specific error cases
+        if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
+          return {
+            success: false,
+            response: "I'm currently experiencing high demand. Please try again in a few moments while I optimize my resources.",
+            conversationId,
+            timestamp: new Date().toISOString(),
+            error: error.message
+          };
+        }
+
+        // Generic error response
+        return {
+          success: false,
+          response: "I encountered an issue while processing your request. Please try again shortly.",
+          conversationId,
+          timestamp: new Date().toISOString(),
+          error: error.message
+        };
+      }
+    });
   }
 
-  /**
-   * Determine file type based on file extension
-   * @param {string} filePath - Path to the file
-   * @returns {string} File type category
-   */
-  getFileType(filePath) {
-    const extension = filePath.split('.').pop()?.toLowerCase() || '';
-    
-    const typeMap = {
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'py': 'python',
-      'java': 'java',
-      'cpp': 'cpp',
-      'c': 'c',
-      'cs': 'csharp',
-      'php': 'php',
-      'rb': 'ruby',
-      'go': 'go',
-      'rs': 'rust',
-      'swift': 'swift',
-      'kt': 'kotlin',
-      'scala': 'scala',
-      'md': 'markdown',
-      'txt': 'text',
-      'json': 'json',
-      'yaml': 'yaml',
-      'yml': 'yaml',
-      'xml': 'xml',
-      'html': 'html',
-      'css': 'css',
-      'scss': 'scss',
-      'sql': 'sql'
-    };
-
-    return typeMap[extension] || 'unknown';
-  }
-
-  /**
-   * Sanitize string for use as document ID
-   * @param {string} str - String to sanitize
-   * @returns {string} Sanitized string
-   */
-  sanitizeId(str) {
-    return str.replace(/[^a-zA-Z0-9_-]/g, '_');
-  }
-
-  /**
-   * Search repositories with advanced filtering
-   * @param {string} query - Search query
-   * @param {Object} options - Search options
-   * @returns {Promise<Object>} Search results
-   */
-  async searchRepositories(query, options = {}) {
-    console.log(`[${new Date().toISOString()}] Advanced search for user ${this.userId}: "${query}"`);
-    
+  // Helper method for generating responses without context
+  async generateStandardResponse(prompt, conversationId) {
     try {
-      const {
-        userId = this.userId, // Default to instance userId
-        repoId = null,
-        fileType = null,
-        k = 5
-      } = options;
+      // Simple prompt without context
+      const messages = [
+        {
+          role: "system",
+          content: "You are a helpful AI assistant specialized in software development. Provide accurate, helpful, and concise responses."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ];
 
-      // Build filter object
-      const filter = { userId };
-      if (repoId) filter.repoId = repoId;
-      if (fileType) filter.fileType = fileType;
+      // Rate limit checks
+      let retries = 0;
+      let success = false;
+      let response;
 
-      const results = await this.vectorStore.similaritySearch(query, k, filter);
-      
-      console.log(`[${new Date().toISOString()}] Found ${results.length} results for advanced search`);
+      while (!success && retries < this.maxRetries) {
+        if (await this.checkRateLimit()) {
+          try {
+            const result = await this.llm.invoke(messages);
+            response = result.content;
+            success = true;
+          } catch (error) {
+            if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
+              retries++;
+              console.warn(`[${new Date().toISOString()}] Rate limit hit during standard generation, retry ${retries}/${this.maxRetries}`);
+              await this.waitWithBackoff(retries);
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          await this.waitWithBackoff(retries);
+        }
+      }
+
+      if (!success) {
+        throw new Error(`Failed to generate standard response after ${this.maxRetries} retries due to rate limits`);
+      }
+
+      console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Generated standard response without code context for conversation ${conversationId}`);
       
       return {
         success: true,
-        results: results.map(doc => ({
-          content: doc.pageContent,
-          metadata: doc.metadata,
-          relevanceScore: doc.score || 'N/A'
-        })),
-        query: query,
-        filter: filter,
-        totalResults: results.length,
-        timestamp: new Date().toISOString()
+        response,
+        conversationId,
+        timestamp: new Date().toISOString(),
+        sourcesUsed: 0,
+        ragEnabled: false
       };
+
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Advanced search failed:`, error.message);
-      throw error;
-    }
-  }
+      console.error(`[${new Date().toISOString()}] Error in generateStandardResponse:`, error.message);
 
-  /**
-   * Get comprehensive adapter statistics
-   * @returns {Object} Adapter statistics and status
-   */
-  getAdapterStats() {
-    return {
-      adapterVersion: '1.0.2', // Updated version
-      storeType: 'PineconeStore',
-      embeddingModel: 'text-embedding-3-large',
-      chatModel: 'gpt-4',
-      user: this.userId, // Use dynamic userId
-      timestamp: new Date().toISOString(),
-      status: 'operational',
-      features: [
-        'GitHub repository loading',
-        'Smart document splitting',
-        'Semantic search',
-        'RAG-powered responses',
-        'Multi-repository support',
-        'Advanced metadata tracking',
-        'Persistent vector storage',
-        'Dynamic user-specific namespacing' // New feature
-      ],
-      limitations: [
-        'Requires Pinecone API key and index setup',
-        'Network dependent for vector operations',
-        'OpenAI API key required for LLM and embeddings'
-      ]
-    };
-  }
-
-  /**
-   * Health check for the adapter
-   * @returns {Promise<Object>} Health status
-   */
-  async healthCheck() {
-    console.log(`[${new Date().toISOString()}] Performing health check for user ${this.userId}...`);
-    
-    try {
-      // Test embeddings
-      const testEmbedding = await this.embeddings.embedQuery("test");
-      const embeddingsOk = Array.isArray(testEmbedding) && testEmbedding.length > 0;
-      
-      // Test LLM
-      const testResponse = await this.llm.invoke([
-        { role: "user", content: "Say 'OK' if you're working" }
-      ]);
-      const llmOk = testResponse && testResponse.content && testResponse.content.includes('OK');
-      
-      // Test Pinecone connection (describeIndex is a good way to check connectivity)
-      const pineconeIndexName = process.env.PINECONE_INDEX_NAME;
-      let pineconeOk = false;
-      if (pineconeIndexName) {
-        try {
-          await this.pinecone.describeIndex(pineconeIndexName);
-          pineconeOk = true;
-        } catch (e) {
-          console.error(`Pinecone describeIndex failed:`, e.message);
-          pineconeOk = false;
-        }
-      } else {
-        console.warn('PINECONE_INDEX_NAME is not set for health check.');
+      if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
+        return {
+          success: false,
+          response: "I'm currently experiencing high demand. Please try again in a few moments.",
+          conversationId,
+          timestamp: new Date().toISOString(),
+          error: error.message
+        };
       }
 
       return {
-        status: 'healthy',
+        success: false,
+        response: "I encountered an issue while generating a response. Please try again shortly.",
+        conversationId,
         timestamp: new Date().toISOString(),
-        user: this.userId,
-        components: {
-          embeddings: embeddingsOk ? 'OK' : 'FAILED',
-          llm: llmOk ? 'OK' : 'FAILED',
-          vectorStore: pineconeOk ? 'OK' : 'FAILED'
-        },
-        allSystemsOperational: embeddingsOk && llmOk && pineconeOk
-      };
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] Health check failed:`, error.message);
-      return {
-        status: 'unhealthy',
-        timestamp: new Date().toISOString(),
-        user: this.userId,
         error: error.message
       };
     }
+  }
+
+  // Helper method to determine file type from file path
+  getFileType(filePath) {
+    const extension = filePath.split('.').pop().toLowerCase();
+    const codeExtensions = {
+      js: 'JavaScript',
+      jsx: 'React',
+      ts: 'TypeScript',
+      tsx: 'React TypeScript',
+      py: 'Python',
+      java: 'Java',
+      rb: 'Ruby',
+      php: 'PHP',
+      c: 'C',
+      cpp: 'C++',
+      cs: 'C#',
+      go: 'Go',
+      rs: 'Rust',
+      swift: 'Swift',
+      kt: 'Kotlin',
+      html: 'HTML',
+      css: 'CSS',
+      scss: 'SCSS',
+      json: 'JSON',
+      md: 'Markdown',
+      sql: 'SQL',
+      sh: 'Shell',
+      bat: 'Batch',
+      ps1: 'PowerShell',
+      yaml: 'YAML',
+      yml: 'YAML',
+      xml: 'XML'
+    };
+
+    return codeExtensions[extension] || 'Unknown';
+  }
+
+  // Helper method to sanitize document IDs
+  sanitizeId(input) {
+    // Remove special characters and truncate if necessary
+    return input.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
+  }
+
+  // Helper method to emit RAG status updates for monitoring
+  emitRagStatus(status, details = {}) {
+    // Always log the status update
+    console.log(`[${new Date().toISOString()}] 🔍 RAG STATUS: ${status}`, 
+      Object.keys(details).length > 0 ? JSON.stringify(details, null, 2) : '');
+    
+    // Try to emit to the event bus if available
+    try {
+      // First try the instance event bus
+      if (this.eventBus) {
+        this.eventBus.emit('ragStatusUpdate', {
+          component: 'aiLangchainAdapter',
+          timestamp: new Date().toISOString(),
+          status,
+          ...details
+        });
+        return;
+      }
+      
+      // Fallback to imported event bus if instance one isn't available
+      const eventDispatcherPath = '../../../../eventDispatcher';
+      const { eventBus } = require(eventDispatcherPath);
+      if (eventBus) {
+        eventBus.emit('ragStatusUpdate', {
+          component: 'aiLangchainAdapter',
+          timestamp: new Date().toISOString(),
+          status,
+          ...details
+        });
+      }
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
+    }
+  }
+
+  // Helper method to create an appropriate text splitter based on document content
+  createSmartSplitter(documents) {
+    // Default splitter settings
+    const chunkSize = 1000;
+    const chunkOverlap = 200;
+
+    // Analyze documents to determine predominant language
+    const languageCount = {};
+
+    documents.forEach(doc => {
+      const extension = (doc.metadata.source || '').split('.').pop().toLowerCase();
+      if (!extension) return;
+
+      if (['js', 'jsx', 'ts', 'tsx'].includes(extension)) languageCount.javascript = (languageCount.javascript || 0) + 1;
+      else if (['py'].includes(extension)) languageCount.python = (languageCount.python || 0) + 1;
+      else if (['java'].includes(extension)) languageCount.java = (languageCount.java || 0) + 1;
+      else if (['rb'].includes(extension)) languageCount.ruby = (languageCount.ruby || 0) + 1;
+      else if (['go'].includes(extension)) languageCount.golang = (languageCount.golang || 0) + 1;
+      else if (['php'].includes(extension)) languageCount.php = (languageCount.php || 0) + 1;
+      else if (['c', 'cpp', 'h', 'hpp'].includes(extension)) languageCount.cpp = (languageCount.cpp || 0) + 1;
+      else if (['cs'].includes(extension)) languageCount.csharp = (languageCount.csharp || 0) + 1;
+      else if (['rs'].includes(extension)) languageCount.rust = (languageCount.rust || 0) + 1;
+    });
+
+    // Find the most common language
+    let predominantLanguage = 'javascript'; // Default
+    let maxCount = 0;
+
+    Object.entries(languageCount).forEach(([lang, count]) => {
+      if (count > maxCount) {
+        predominantLanguage = lang;
+        maxCount = count;
+      }
+    });
+
+    // Map to LangChain Language enum
+    const langMap = {
+      javascript: Language.JS,
+      python: Language.PYTHON,
+      java: Language.JAVA,
+      ruby: Language.RUBY,
+      golang: Language.GO,
+      php: Language.PHP,
+      cpp: Language.CPP,
+      csharp: Language.CSHARP,
+      rust: Language.RUST
+    };
+
+    const language = langMap[predominantLanguage] || Language.JS;
+
+    console.log(`[${new Date().toISOString()}] Using ${predominantLanguage} code splitter for document processing`);
+
+    // Create a language-specific splitter
+    return new RecursiveCharacterTextSplitter({
+      chunkSize,
+      chunkOverlap,
+      language
+    });
+  }
+
+  // Queue system for rate limiting
+  startQueueProcessor() {
+    // Process queue every 5 seconds
+    setInterval(() => this.processQueue(), 5000);
+    console.log(`[${new Date().toISOString()}] AI request queue processor started`);
+  }
+
+  async processQueue() {
+    if (this.isProcessingQueue || this.requestQueue.length === 0) return;
+
+    this.isProcessingQueue = true;
+    console.log(`[${new Date().toISOString()}] Processing AI request queue, ${this.requestQueue.length} items pending`);
+
+    try {
+      // Get the next request from the queue
+      const request = this.requestQueue.shift();
+
+      // Check if we're within rate limits
+      if (await this.checkRateLimit()) {
+        console.log(`[${new Date().toISOString()}] Processing queued request: ${request.id}`);
+
+        try {
+          // Execute the request
+          const result = await request.execute();
+
+          // Resolve the promise with the result
+          request.resolve(result);
+        } catch (error) {
+          // If the request fails, reject the promise
+          request.reject(error);
+        }
+      } else {
+        // If we're rate limited, put the request back at the front of the queue
+        console.log(`[${new Date().toISOString()}] Rate limited, requeueing request: ${request.id}`);
+        this.requestQueue.unshift(request);
+
+        // Wait before processing more
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    } finally {
+      this.isProcessingQueue = false;
+
+      // If there are more items in the queue, process them
+      if (this.requestQueue.length > 0) {
+        setTimeout(() => this.processQueue(), 1000);
+      }
+    }
+  }
+
+  // Add a request to the queue
+  queueRequest(execute) {
+    return new Promise((resolve, reject) => {
+      const requestId = Math.random().toString(36).substring(2, 10);
+
+      this.requestQueue.push({
+        id: requestId,
+        execute,
+        resolve,
+        reject,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log(`[${new Date().toISOString()}] Added request ${requestId} to queue, queue length: ${this.requestQueue.length}`);
+
+      // Trigger queue processing if not already running
+      if (!this.isProcessingQueue) {
+        setTimeout(() => this.processQueue(), 100);
+      }
+    });
   }
 }
 
