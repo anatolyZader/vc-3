@@ -11,12 +11,11 @@ async function redisPlugin (fastify, opts) {
   const redisOpts = {
     host: fastify.secrets.REDIS_HOST,
     port: fastify.secrets.REDIS_PORT,
-    connectionTimeout: opts.connectionTimeout ?? 1000,
-    lazyConnect: true,
-    timeout: 1000
+    connectionTimeout: opts.connectionTimeout ?? 1000, // how long (in milliseconds) the client will wait when trying to establish a connection before giving up.
+    lazyConnect: true, //If true, the Redis client will not connect automatically on instantiation. Instead, you must explicitly call .connect() to initiate the connection.
+    timeout: 1000 // Sets the socket timeout for network operations (in milliseconds). If any Redis operation takes longer than this, it will fail with a timeout error.
   }
 
-  fastify.log.debug({ redisOpts }, 'Registering Redis client')
   fastify.log.info({ redisOpts }, 'About to register @fastify/redis');
 
   await fastify.register(fastifyRedis, redisOpts)
@@ -24,7 +23,5 @@ async function redisPlugin (fastify, opts) {
 }
 
 module.exports = fp(redisPlugin, {
-  name: 'redis-client',
-  // optionally declare dependencies if this plugin must load after others:
-  // dependencies: ['some-other-plugin']
+  name: 'redis-client'
 })

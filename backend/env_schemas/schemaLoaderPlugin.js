@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 // schemaLoaderPlugin.js
-
 'use strict'
 
 const fp = require('fastify-plugin')

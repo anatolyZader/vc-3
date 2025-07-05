@@ -1,22 +1,41 @@
+// updatePageSchema.js
 'use strict';
 
 module.exports = {
-  $id: 'schema:wiki:update-page',
-  params: {
-    type: 'object',
-    required: ['pageId'],
-    properties: {
-      pageId: { type: 'string', format: 'uuid', description: 'Unique identifier of the wiki page being updated.' }
+    $id: 'schema:wiki:update-page',
+    params: {
+      type: 'object',
+      required: ['repoId', 'pageId'],
+      properties: {
+        repoId: {
+          type: 'string',
+          description: 'The ID of the repository.'
+        },
+        pageId: {
+          type: 'string',
+          description: 'The ID of the wiki page.'
+        }
+      },
+      additionalProperties: false
     },
-    additionalProperties: false
-  },
-  body: {
-    type: 'object',
-    required: ['userId', 'newContent'],
-    properties: {
-      userId: { type: 'string', format: 'uuid', description: 'Unique identifier of the user updating the wiki page content.' },
-      newContent: { type: 'string', minLength: 1, description: 'Updated content for the wiki page.' }
+    body: {
+      type: 'object',
+      required: ['newContent'],
+      properties: {
+        newContent: {
+          type: 'string',
+          description: 'The new content for the wiki page.'
+        }
+      },
+      additionalProperties: false
     },
-    additionalProperties: false
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          message: { type: 'string' }
+        },
+        additionalProperties: false
+      }
+    }
   }
-};

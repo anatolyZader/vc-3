@@ -1,0 +1,754 @@
+     "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:26 GMT",
+[1]       "etag": "W/\"ca-1972febb6b1\""
+[1]     }
+[1] [2025-07-05 12:49:49.346 +0000] INFO (55578): request completed
+[1]     reqId: "req-4"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 2.3254819996654987
+[1] [2025-07-05 12:49:49.349 +0000] INFO (55578): incoming request
+[1]     reqId: "req-5"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/swagger-ui-bundle.js",
+[1]       "host": "127.0.0.1:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35902
+[1]     }
+[1] [2025-07-05 12:49:49.351 +0000] INFO (55578): Request completed
+[1]     reqId: "req-5"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/swagger-ui-bundle.js"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "swagger-ui-bundle.js"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:30 GMT",
+[1]       "etag": "W/\"1667a6-1972febc5e5\""
+[1]     }
+[1] [2025-07-05 12:49:49.352 +0000] INFO (55578): request completed
+[1]     reqId: "req-5"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 2.3976799994707108
+[1] [2025-07-05 12:49:49.353 +0000] INFO (55578): incoming request
+[1]     reqId: "req-6"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/swagger-initializer.js",
+[1]       "host": "127.0.0.1:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35912
+[1]     }
+[1] [2025-07-05 12:49:49.354 +0000] INFO (55578): Request completed
+[1]     reqId: "req-6"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/swagger-initializer.js"
+[1]     query: {}
+[1]     params: {}
+[1]     statusCode: 200
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "content-type": "application/javascript; charset=utf-8",
+[1]       "content-length": "8456"
+[1]     }
+[1] [2025-07-05 12:49:49.354 +0000] INFO (55578): request completed
+[1]     reqId: "req-6"
+[1]     res: {
+[1]       "statusCode": 200
+[1]     }
+[1]     responseTime: 1.2144409976899624
+[1] [2025-07-05 12:49:49.359 +0000] INFO (55578): incoming request
+[1]     reqId: "req-7"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/swagger-ui-standalone-preset.js",
+[1]       "host": "127.0.0.1:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35916
+[1]     }
+[1] [2025-07-05 12:49:49.361 +0000] INFO (55578): Request completed
+[1]     reqId: "req-7"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/swagger-ui-standalone-preset.js"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "swagger-ui-standalone-preset.js"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:30 GMT",
+[1]       "etag": "W/\"37f67-1972febc6b1\""
+[1]     }
+[1] [2025-07-05 12:49:49.361 +0000] INFO (55578): request completed
+[1]     reqId: "req-7"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 1.409246001392603
+[1] [2025-07-05 12:49:49.873 +0000] INFO (55578): incoming request
+[1]     reqId: "req-8"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/json",
+[1]       "host": "127.0.0.1:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35916
+[1]     }
+[1] [2025-07-05 12:49:49.884 +0000] ERROR (55578): Cannot read properties of undefined (reading 'type')
+[1]     reqId: "req-8"
+[1]     err: {
+[1]       "type": "TypeError",
+[1]       "message": "Cannot read properties of undefined (reading 'type')",
+[1]       "stack":
+[1]           TypeError: Cannot read properties of undefined (reading 'type')
+[1]               at /home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:455:33
+[1]               at Array.forEach (<anonymous>)
+[1]               at /home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:453:40
+[1]               at Array.reduce (<anonymous>)
+[1]               at prepareOpenapiMethod (/home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:452:6)
+[1]               at Object.swagger (/home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/index.js:52:29)
+[1]               at fastify.route.handler (/home/myzader/eventstorm/backend/node_modules/@fastify/swagger-ui/lib/routes.js:156:58)
+[1]               at routeOptions.handler (/home/myzader/eventstorm/backend/node_modules/@fastify/websocket/index.js:204:24)
+[1]               at preHandlerCallbackInner (/home/myzader/eventstorm/backend/node_modules/fastify/lib/handleRequest.js:161:24)
+[1]               at preHandlerCallback (/home/myzader/eventstorm/backend/node_modules/fastify/lib/handleRequest.js:129:5)
+[1]     }
+[1] [2025-07-05 12:49:49.886 +0000] INFO (55578): Request completed
+[1]     reqId: "req-8"
+[1]     method: "GET"
+[1]     url: "/api/doc/json"
+[1]     query: {}
+[1]     params: {}
+[1]     statusCode: 500
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "content-type": "application/json; charset=utf-8",
+[1]       "content-length": "98"
+[1]     }
+[1] [2025-07-05 12:49:49.886 +0000] INFO (55578): request completed
+[1]     reqId: "req-8"
+[1]     res: {
+[1]       "statusCode": 500
+[1]     }
+[1]     responseTime: 12.51775199919939
+[1] [2025-07-05 12:49:49.953 +0000] INFO (55578): incoming request
+[1]     reqId: "req-9"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/favicon-32x32.png",
+[1]       "host": "127.0.0.1:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35916
+[1]     }
+[1] [2025-07-05 12:49:49.955 +0000] INFO (55578): Request completed
+[1]     reqId: "req-9"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/favicon-32x32.png"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "favicon-32x32.png"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:31 GMT",
+[1]       "etag": "W/\"258-1972febc9bd\""
+[1]     }
+[1] [2025-07-05 12:49:49.956 +0000] INFO (55578): request completed
+[1]     reqId: "req-9"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 2.5875649973750114
+[1] [2025-07-05 12:49:50.001 +0000] INFO (55578): incoming request
+[1]     reqId: "req-a"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/favicon-16x16.png",
+[1]       "host": "127.0.0.1:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35916
+[1]     }
+[1] [2025-07-05 12:49:50.003 +0000] INFO (55578): Request completed
+[1]     reqId: "req-a"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/favicon-16x16.png"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "favicon-16x16.png"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:31 GMT",
+[1]       "etag": "W/\"11c-1972febc9a9\""
+[1]     }
+[1] [2025-07-05 12:49:50.004 +0000] INFO (55578): request completed
+[1]     reqId: "req-a"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 2.6849679984152317
+[1] [2025-07-05 12:49:50.492 +0000] INFO (55578): incoming request
+[1]     reqId: "req-b"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35926
+[1]     }
+[1] [2025-07-05 12:49:50.495 +0000] INFO (55578): Request completed
+[1]     reqId: "req-b"
+[1]     method: "GET"
+[1]     url: "/api/doc"
+[1]     query: {}
+[1]     params: {}
+[1]     statusCode: 200
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "content-type": "text/html; charset=utf-8",
+[1]       "content-length": "922"
+[1]     }
+[1] [2025-07-05 12:49:50.495 +0000] INFO (55578): request completed
+[1]     reqId: "req-b"
+[1]     res: {
+[1]       "statusCode": 200
+[1]     }
+[1]     responseTime: 2.2685090005397797
+[1] [2025-07-05 12:49:50.581 +0000] INFO (55578): incoming request
+[1]     reqId: "req-c"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/swagger-ui.css",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35932
+[1]     }
+[1] [2025-07-05 12:49:50.583 +0000] INFO (55578): Request completed
+[1]     reqId: "req-c"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/swagger-ui.css"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "swagger-ui.css"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:26 GMT",
+[1]       "etag": "W/\"25d41-1972febb8d9\""
+[1]     }
+[1] [2025-07-05 12:49:50.583 +0000] INFO (55578): request completed
+[1]     reqId: "req-c"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 1.7313280031085014
+[1] [2025-07-05 12:49:50.774 +0000] INFO (55578): incoming request
+[1]     reqId: "req-d"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/index.css",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35942
+[1]     }
+[1] [2025-07-05 12:49:50.776 +0000] INFO (55578): Request completed
+[1]     reqId: "req-d"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/index.css"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "index.css"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:26 GMT",
+[1]       "etag": "W/\"ca-1972febb6b1\""
+[1]     }
+[1] [2025-07-05 12:49:50.776 +0000] INFO (55578): request completed
+[1]     reqId: "req-d"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 1.5152620002627373
+[1] [2025-07-05 12:49:50.979 +0000] INFO (55578): incoming request
+[1]     reqId: "req-e"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/swagger-ui-standalone-preset.js",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35956
+[1]     }
+[1] [2025-07-05 12:49:50.981 +0000] INFO (55578): Request completed
+[1]     reqId: "req-e"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/swagger-ui-standalone-preset.js"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "swagger-ui-standalone-preset.js"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:30 GMT",
+[1]       "etag": "W/\"37f67-1972febc6b1\""
+[1]     }
+[1] [2025-07-05 12:49:50.981 +0000] INFO (55578): request completed
+[1]     reqId: "req-e"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 1.9784840010106564
+[1] [2025-07-05 12:49:50.994 +0000] INFO (55578): incoming request
+[1]     reqId: "req-f"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/swagger-initializer.js",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35968
+[1]     }
+[1] [2025-07-05 12:49:50.996 +0000] INFO (55578): Request completed
+[1]     reqId: "req-f"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/swagger-initializer.js"
+[1]     query: {}
+[1]     params: {}
+[1]     statusCode: 200
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "content-type": "application/javascript; charset=utf-8",
+[1]       "content-length": "8456"
+[1]     }
+[1] [2025-07-05 12:49:50.996 +0000] INFO (55578): request completed
+[1]     reqId: "req-f"
+[1]     res: {
+[1]       "statusCode": 200
+[1]     }
+[1]     responseTime: 1.5697580017149448
+[1] [2025-07-05 12:49:50.998 +0000] INFO (55578): incoming request
+[1]     reqId: "req-g"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/swagger-ui-bundle.js",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35970
+[1]     }
+[1] [2025-07-05 12:49:50.999 +0000] INFO (55578): Request completed
+[1]     reqId: "req-g"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/swagger-ui-bundle.js"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "swagger-ui-bundle.js"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:30 GMT",
+[1]       "etag": "W/\"1667a6-1972febc5e5\""
+[1]     }
+[1] [2025-07-05 12:49:51.000 +0000] INFO (55578): request completed
+[1]     reqId: "req-g"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 1.5307950004935265
+[1] [2025-07-05 12:49:51.861 +0000] INFO (55578): incoming request
+[1]     reqId: "req-h"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/json",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35980
+[1]     }
+[1] [2025-07-05 12:49:51.866 +0000] ERROR (55578): Cannot read properties of undefined (reading 'type')
+[1]     reqId: "req-h"
+[1]     err: {
+[1]       "type": "TypeError",
+[1]       "message": "Cannot read properties of undefined (reading 'type')",
+[1]       "stack":
+[1]           TypeError: Cannot read properties of undefined (reading 'type')
+[1]               at /home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:455:33
+[1]               at Array.forEach (<anonymous>)
+[1]               at /home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:453:40
+[1]               at Array.reduce (<anonymous>)
+[1]               at prepareOpenapiMethod (/home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:452:6)
+[1]               at Object.swagger (/home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/index.js:52:29)
+[1]               at fastify.route.handler (/home/myzader/eventstorm/backend/node_modules/@fastify/swagger-ui/lib/routes.js:156:58)
+[1]               at routeOptions.handler (/home/myzader/eventstorm/backend/node_modules/@fastify/websocket/index.js:204:24)
+[1]               at preHandlerCallbackInner (/home/myzader/eventstorm/backend/node_modules/fastify/lib/handleRequest.js:161:24)
+[1]               at preHandlerCallback (/home/myzader/eventstorm/backend/node_modules/fastify/lib/handleRequest.js:129:5)
+[1]     }
+[1] [2025-07-05 12:49:51.866 +0000] INFO (55578): Request completed
+[1]     reqId: "req-h"
+[1]     method: "GET"
+[1]     url: "/api/doc/json"
+[1]     query: {}
+[1]     params: {}
+[1]     statusCode: 500
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "content-type": "application/json; charset=utf-8",
+[1]       "content-length": "98"
+[1]     }
+[1] [2025-07-05 12:49:51.866 +0000] INFO (55578): request completed
+[1]     reqId: "req-h"
+[1]     res: {
+[1]       "statusCode": 500
+[1]     }
+[1]     responseTime: 5.070794999599457
+[1] [2025-07-05 12:49:51.930 +0000] INFO (55578): incoming request
+[1]     reqId: "req-i"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/favicon-32x32.png",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35990
+[1]     }
+[1] [2025-07-05 12:49:51.932 +0000] INFO (55578): Request completed
+[1]     reqId: "req-i"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/favicon-32x32.png"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "favicon-32x32.png"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:31 GMT",
+[1]       "etag": "W/\"258-1972febc9bd\""
+[1]     }
+[1] [2025-07-05 12:49:51.932 +0000] INFO (55578): request completed
+[1]     reqId: "req-i"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 1.4014999978244305
+[1] [2025-07-05 12:49:52.142 +0000] INFO (55578): incoming request
+[1]     reqId: "req-j"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/doc/static/favicon-16x16.png",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "::1",
+[1]       "remotePort": 35998
+[1]     }
+[1] [2025-07-05 12:49:52.144 +0000] INFO (55578): Request completed
+[1]     reqId: "req-j"
+[1]     method: "GET"
+[1]     url: "/api/doc/static/favicon-16x16.png"
+[1]     query: {}
+[1]     params: {
+[1]       "*": "favicon-16x16.png"
+[1]     }
+[1]     statusCode: 304
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; base-uri 'self'; font-src 'self' https: data:; frame-ancestors 'self'; img-src 'self' data: validator.swagger.io; object-src 'none'; script-src 'self' ; script-src-attr 'none'; style-src 'self' https: ; upgrade-insecure-requests;; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "accept-ranges": "bytes",
+[1]       "cache-control": "public, max-age=0",
+[1]       "last-modified": "Mon, 02 Jun 2025 09:14:31 GMT",
+[1]       "etag": "W/\"11c-1972febc9a9\""
+[1]     }
+[1] [2025-07-05 12:49:52.145 +0000] INFO (55578): request completed
+[1]     reqId: "req-j"
+[1]     res: {
+[1]       "statusCode": 304
+[1]     }
+[1]     responseTime: 1.619132000952959
+[1] [2025-07-05 12:50:33.148 +0000] INFO (55578): incoming request
+[1]     reqId: "req-k"
+[1]     req: {
+[1]       "method": "GET",
+[1]       "url": "/api/openapi.json",
+[1]       "host": "localhost:3000",
+[1]       "remoteAddress": "127.0.0.1",
+[1]       "remotePort": 41150
+[1]     }
+[1] [2025-07-05 12:50:33.160 +0000] ERROR (55578): Cannot read properties of undefined (reading 'type')
+[1]     reqId: "req-k"
+[1]     err: {
+[1]       "type": "TypeError",
+[1]       "message": "Cannot read properties of undefined (reading 'type')",
+[1]       "stack":
+[1]           TypeError: Cannot read properties of undefined (reading 'type')
+[1]               at /home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:455:33
+[1]               at Array.forEach (<anonymous>)
+[1]               at /home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:453:40
+[1]               at Array.reduce (<anonymous>)
+[1]               at prepareOpenapiMethod (/home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/utils.js:452:6)
+[1]               at Object.swagger (/home/myzader/eventstorm/backend/node_modules/@fastify/swagger/lib/spec/openapi/index.js:52:29)
+[1]               at Object.<anonymous> (/home/myzader/eventstorm/backend/swaggerPlugin.js:132:20)
+[1]               at routeOptions.handler (/home/myzader/eventstorm/backend/node_modules/@fastify/websocket/index.js:204:24)
+[1]               at preHandlerCallbackInner (/home/myzader/eventstorm/backend/node_modules/fastify/lib/handleRequest.js:161:24)
+[1]               at preHandlerCallback (/home/myzader/eventstorm/backend/node_modules/fastify/lib/handleRequest.js:129:5)
+[1]     }
+[1] [2025-07-05 12:50:33.162 +0000] INFO (55578): Request completed
+[1]     reqId: "req-k"
+[1]     method: "GET"
+[1]     url: "/api/openapi.json"
+[1]     query: {}
+[1]     params: {}
+[1]     statusCode: 500
+[1]     headers: {
+[1]       "content-security-policy": "default-src 'self' https://accounts.google.com/gsi/;script-src 'self' https://accounts.google.com/gsi/client;style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style;frame-src 'self' https://accounts.google.com/gsi/;connect-src 'self' https://accounts.google.com/gsi/ http://localhost:3000 http://localhost:5173;base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src-attr 'none';upgrade-insecure-requests",
+[1]       "cross-origin-opener-policy": "same-origin-allow-popups",
+[1]       "cross-origin-resource-policy": "same-origin",
+[1]       "origin-agent-cluster": "?1",
+[1]       "referrer-policy": "no-referrer",
+[1]       "strict-transport-security": "max-age=31536000; includeSubDomains",
+[1]       "x-content-type-options": "nosniff",
+[1]       "x-dns-prefetch-control": "off",
+[1]       "x-download-options": "noopen",
+[1]       "x-frame-options": "SAMEORIGIN",
+[1]       "x-permitted-cross-domain-policies": "none",
+[1]       "x-xss-protection": "0",
+[1]       "vary": "Origin",
+[1]       "access-control-allow-credentials": "true",
+[1]       "content-type": "application/json; charset=utf-8",
+[1]       "content-length": "98"
+[1]     }
+[1] [2025-07-05 12:50:33.162 +0000] INFO (55578): request completed
+[1]     reqId: "req-k"
+[1]     res: {
+[1]       "statusCode": 500
+[1]     }
+[1]     responseTime: 13.641084000468254

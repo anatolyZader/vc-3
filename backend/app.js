@@ -22,10 +22,10 @@ const fastifyOAuth2     = require('@fastify/oauth2');
 const { OAuth2Client }  = require('google-auth-library');
 const { v4: uuidv4 }    = require('uuid');
 const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
-const fastifySwagger    = require('@fastify/swagger');
-const fastifySwaggerUI  = require('@fastify/swagger-ui');
+const swaggerPlugin     = require('./swaggerPlugin');
+const swaggerUIPlugin   = require('./swaggerUIPlugin');
 const pubsubPlugin      = require('./pubsubPlugin');
-const eventDispatcher = require('./eventDispatcher');
+const eventDispatcher   = require('./eventDispatcher');
 
 require('dotenv').config();
 
@@ -43,113 +43,39 @@ module.exports = async function (fastify, opts) {
   await fastify.register(fastifySensible);
   await fastify.register(eventDispatcher);
   await fastify.register(pubsubPlugin);
-  await fastify.register(fastifySwagger, {
-    openapi: {
-      openapi: '3.0.0',
-      info: {
-        title: 'EventStorm.me API',
-        description:
-          'EventStorm API – Git analysis, AI insights, wiki, chat and more',
-        version: '1.0.0',
-        contact: {
-          name: 'EventStorm Support',
-          email: 'support@eventstorm.me',
-          url: 'https://eventstorm.me/support'
-        },
-        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },
-        termsOfService: 'https://eventstorm.me/terms'
-      },
-      servers: [
-        {
-          url: process.env.NODE_ENV === 'staging'
-            ? 'https://eventstorm.me'
-            : 'http://localhost:3000',
-          description: process.env.NODE_ENV === 'staging'
-            ? 'staging server'
-            : 'Development server'
-        }
-      ],
-      tags: [
-        { name: 'auth', description: 'Authentication endpoints' },
-        { name: 'git', description: 'Git-analysis endpoints' },
-        { name: 'ai', description: 'AI-powered endpoints' },
-        { name: 'chat', description: 'Chat endpoints' },
-        { name: 'wiki', description: 'Wiki endpoints' },
-        { name: 'api', description: 'Utility endpoints' }
-      ],
-      components: {
-        securitySchemes: {
-          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' }
-        },
-        responses: {
-          UnauthorizedError: {
-            description: 'Authentication information is missing or invalid',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    error: { type: 'string' },
-                    message: { type: 'string' },
-                    statusCode: { type: 'number' }
-                  }
-                }
-              }
-            }
-          },
-          ServerError: {
-            description: 'Internal server error',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    error: { type: 'string' },
-                    message: { type: 'string' },
-                    statusCode: { type: 'number' }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      security: [{ bearerAuth: [] }, { cookieAuth: [] }]
-    },
-    exposeRoute: true // This is crucial for exposing the /openapi.json and /openapi.yaml routes
-  });
+  
 
+  await fastify.register(swaggerPlugin);
+  await fastify.register(swaggerUIPlugin);
+
+  // Sets security-related HTTP headers automatically
   await fastify.register(helmet, {
     global: true,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'],
-        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'],  
-        frameSrc: ["'self'", 'https://accounts.google.com/gsi/'],
+        defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'], // Allows resources by default from the same origin ('self') and Google Identity Services.
+        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'], // Allows scripts to load only from your own site and from Google's GSI client.
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'], // Allows styles from your own site, inline styles ('unsafe-inline'), and Google's GSI style endpoint.
+        frameSrc: ["'self'", 'https://accounts.google.com/gsi/'], // Allows iframes only from your own site and Google Identity Services.
         connectSrc: [  
           "'self'", 
           'https://accounts.google.com/gsi/',
           // Add http for local development
           ...(process.env.NODE_ENV !== 'staging' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
-        ],
+        ], // Allows network connections to your own site, Google Identity Services, and (for non-staging environments) local development servers on ports 3000 and 5173.
       },
     },
   });
-
 
   await fastify.register(corsPlugin);
 
   fastify.log.info('🔌 Registering Redis client plugin');
   await fastify.register(redisPlugin);
   fastify.log.info('✅ Redis client plugin registered');
-
   fastify.redis.on('error', (err) => {
     fastify.log.error({ err }, 'Redis client error');
   });
-
   fastify.log.info('⏳ Testing Redis connection with PING…');
   try {
     const pong = await fastify.redis.ping();
@@ -158,34 +84,40 @@ module.exports = async function (fastify, opts) {
     fastify.log.error({ err }, '❌ Redis PING failed');
   }
 
-  // ────────────────────────────────────────────────────────────────
-  // 4️⃣  COOKIE / SESSION
-  // ────────────────────────────────────────────────────────────────
   await fastify.register(
     fastifyCookie,
     {
       secret: fastify.secrets.COOKIE_SECRET,
-      parseOptions: { secure: true, httpOnly: true, sameSite: 'None' },
+      parseOptions: { 
+        secure: true, // Only send cookies over HTTPS.
+        httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.
+        sameSite: 'None' }, // Allows cross-site cookies (e.g., for third-party integrations). Must be used with secure: true (required by modern browsers).
     },
     { encapsulate: false }
   );
 
-  class RedisStore extends Store {
+  class RedisStore extends Store { // @fastify/session package exports a Store base class for session stores. This is the recommended way to get the session store parent class for custom session stores
     constructor(sendCommand) {
       super();
       this.send = sendCommand;
     }
+
+    // get session data from Redis
+    // sid - session ID, sess - session object, ttlMs - time to live in milliseconds (for JavaScript/Node.js), cb - callback function, ttl - time-to-live (in seconds (for Redis), ttlMs is converted to ttl by dividing by 1000 and rounding), 
     get(sid, cb) {
       this.send(['GET', sid])
         .then((data) => cb(null, data ? JSON.parse(data) : null))
         .catch(cb);
     }
+
+    // store session data in Redis.
     set(sid, sess, ttlMs, cb) {
       const data = JSON.stringify(sess);
       const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;
-      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];
-      this.send(cmd).then(() => cb(null)).catch(cb);
+      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data]; // SETEX Redis command, which means “set the key sid to the value data and expire it after ttl seconds” Vs. SET Redis command, which means “set the key sid to the value data” with no expiration.
+      this.send(cmd).then(() => cb(null)).catch(cb); // If successful, calls cb(null) to indicate success. If there’s an error, passes the error to the callback (catch(cb)).
     }
+
     destroy(sid, cb) {
       this.send(['DEL', sid]).then(() => cb(null)).catch(cb);
     }
@@ -194,23 +126,23 @@ module.exports = async function (fastify, opts) {
   await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET,
     cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
-    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),
-    saveUninitialized: false,
+    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)), // where session data is stored.
+    saveUninitialized: false, // Do not create session until something stored in session.
   });
 
   // ────────────────────────────────────────────────────────────────
-  // 5️⃣  HEALTH ROUTE
+  // HEALTH ROUTE
   // ────────────────────────────────────────────────────────────────
   fastify.get('/', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
   // ────────────────────────────────────────────────────────────────
-  // 6️⃣  GOOGLE OAUTH + JWT (UNCHANGED FROM ORIGINAL)
+  // GOOGLE OAUTH + JWT 
   // ────────────────────────────────────────────────────────────────
   let credentialsJsonString, clientId, clientSecret;
 
   if (
     process.env.USER_OAUTH2_CREDENTIALS &&
-    process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')
+    process.env.USER_OAUTH2_CREDENTIALS.startsWith('{') // if it looks like a JSON string
   ) {
     credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);
   } else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {
@@ -317,7 +249,7 @@ module.exports = async function (fastify, opts) {
   });
 
   // ────────────────────────────────────────────────────────────────
-  // 7️⃣  AUTOLOAD MODULES
+  // AUTOLOAD MODULES
   // ────────────────────────────────────────────────────────────────
   await fastify.register(AutoLoad, {
     dir: path.join(__dirname, 'aop_modules'),
@@ -338,93 +270,32 @@ module.exports = async function (fastify, opts) {
   });
 
   // Debug route
-  fastify.get('/debug/clear-state-cookie', (req, reply) => {
-    reply.clearCookie('oauth2-redirect-state', { path: '/' });
-    reply.send({ message: 'cleared' });
-  });
-
-  await fastify.register(fastifySwaggerUI, {
-    routePrefix: '/api/doc',
-    staticCSP: true, // Enable static CSP headers for the UI
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: true,
-      defaultModelsExpandDepth: 2,
-      defaultModelExpandDepth: 2,
-      defaultModelRendering: 'example',
-      displayRequestDuration: true,
-      filter: true,
-      tryItOutEnabled: true,
-      persistAuthorization: true,
-      layout: 'StandaloneLayout',
-      // Custom CSS for better aesthetics
-      customCss: `
-        .swagger-ui .topbar{display:none;}
-        .swagger-ui .info .title{color:#1f2937;}
-        .swagger-ui .scheme-container{background:#f8f9fa;padding:10px;border-radius:4px;}
-        .swagger-ui .info .description {font-size: 14px; line-height: 1.6;}
-        .swagger-ui .btn.authorize {background-color: #4f46e5; border-color: #4f46e5;}
-        .swagger-ui .btn.authorize:hover {background-color: #4338ca;}
-      `,
-      customSiteTitle: 'EventStorm.me API Docs',
-      customfavIcon: '/favicon.ico',
-      // Optional: Add request/response interceptors for debugging Swagger UI calls
-      requestInterceptor: req => {
-        console.log('🌐 Swagger UI Request:', {
-          url: req.url, method: req.method, headers: req.headers
-        });
-        return req;
-      },
-      responseInterceptor: res => {
-        console.log('📡 Swagger UI Response:', {
-          url: res.url, status: res.status, statusText: res.statusText
-        });
-        return res;
-      }
+  fastify.route({
+    method: 'GET',
+    url: '/api/debug/clear-state-cookie',
+    handler: (req, reply) => {
+      reply.clearCookie('oauth2-redirect-state', { path: '/' });
+      reply.send({ message: 'cleared' });
     },
-    // Transform CSP headers for Swagger UI to allow necessary external resources and inline styles/scripts
-    transformStaticCSP: (hdr) => {
-      let newHdr = hdr.replace(
-        /default-src 'self'/g,
-        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:"
-      );
-      // Add connect-src directives based on environment for local development
-      if (process.env.NODE_ENV !== 'staging') {
-        newHdr += "; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:";
-      } else {
-        newHdr += "; connect-src 'self' https: wss: data: blob:";
+    schema: {
+      $id: 'schema:debug:clear-state-cookie',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            message: {
+              type: 'string',
+              description: 'Confirmation message that the state cookie was cleared.'
+            }
+          },
+          additionalProperties: false
+        }
       }
-      newHdr += "; style-src 'self' 'unsafe-inline' https:"; // Allow inline styles and HTTPS sources
-      newHdr += "; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:"; // Allow inline scripts, eval, and HTTPS sources
-      return newHdr;
-    },
-    transformSpecificationClone: true, // Clone the spec before transforming
-    // Transform the OpenAPI specification
-    transformSpecification(spec) {
-      spec.info['x-build-time'] = new Date().toISOString();
-      spec.info['x-builder'] = 'anatolyZader';
-      spec.info['x-environment'] = process.env.NODE_ENV || 'development';
-      spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info
-
-      // Adjust server URLs for development environment
-      if (process.env.NODE_ENV !== 'staging') {
-        spec.servers = [
-          { url: 'http://localhost:3000', description: 'Development server' },
-          { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }
-        ];
-      }
-
-      spec.info['x-security-note'] = 'This API uses JWT Bearer tokens or cookie-based authentication';
-      return spec;
     }
   });
 
-  // fastify.after(async () => {
-  //   await fastify.register(swaggerUIPlugin);
-  // });
-
   // ────────────────────────────────────────────────────────────────
-  // 9️⃣  READY HOOK – print summary
+  // READY HOOK – print summary
   // ────────────────────────────────────────────────────────────────
 
   fastify.addHook('onReady', async () => {

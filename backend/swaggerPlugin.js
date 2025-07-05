@@ -5,11 +5,52 @@
 // Import necessary modules
 const yaml = require('js-yaml'); // Required for YAML output
 const fastifySwagger = require('@fastify/swagger'); // The core Swagger plugin
-const fastifySwaggerUI = require('@fastify/swagger-ui'); // The Swagger UI plugin
+const fp = require('fastify-plugin');
 
-module.exports = async function (fastify, opts) {
-  console.log('--- LOADING Combined Swagger Plugin NOW ---');
+module.exports = fp(async function (fastify, opts) {
+  console.log('--- LOADING Swagger Spec Generation Plugin ---');
   console.log(`⏰ Loading at: ${new Date().toISOString()}`);
+  
+  // Define a hook to sanitize route schemas before Swagger processes them
+fastify.addHook('onRoute', (routeOptions) => {
+  if (!routeOptions.schema) {
+    console.log(`⚠️ Route missing schema: ${routeOptions.method} ${routeOptions.url}`);
+    return;
+  }
+
+  console.log(`🔍 Processing schema for route: ${routeOptions.method} ${routeOptions.url}`);
+  console.log(`Initial Schema: ${JSON.stringify(routeOptions.schema, null, 2)}`);
+
+  try {
+    const schemaParts = ['body', 'querystring', 'params', 'response'];
+    schemaParts.forEach((part) => {
+      if (routeOptions.schema[part]) {
+        if (typeof routeOptions.schema[part] !== 'object') {
+          console.warn(`⚠️ Invalid schema.${part} for route ${routeOptions.method}:${routeOptions.url} - removing to prevent Swagger errors`);
+          delete routeOptions.schema[part];
+        } else if (!routeOptions.schema[part].type) {
+          console.warn(`⚠️ Missing "type" in schema.${part} for route ${routeOptions.method}:${routeOptions.url}`);
+        }
+      }
+    });
+
+    if (routeOptions.schema.response && typeof routeOptions.schema.response === 'object') {
+      Object.keys(routeOptions.schema.response).forEach((statusCode) => {
+        const response = routeOptions.schema.response[statusCode];
+        if (response && typeof response !== 'object') {
+          console.warn(`⚠️ Invalid response schema for status ${statusCode} in route ${routeOptions.method}:${routeOptions.url}`);
+          delete routeOptions.schema.response[statusCode];
+        } else if (response && !response.type) {
+          console.warn(`⚠️ Missing "type" in response schema for status ${statusCode} in route ${routeOptions.method}:${routeOptions.url}`);
+        }
+      });
+    }
+
+    console.log(`✅ Final Schema for route ${routeOptions.method} ${routeOptions.url}:`, JSON.stringify(routeOptions.schema, null, 2));
+  } catch (error) {
+    console.error(`❌ Error processing schema for route ${routeOptions.method}:${routeOptions.url}:`, error.message);
+  }
+});
   
   try {
     // ────────────────────────────────────────────────────────────────
@@ -75,26 +116,9 @@ module.exports = async function (fastify, opts) {
       hideUntagged: false
     });
 
+    // We will register the swagger-ui plugin in a separate file
     console.log('✅ @fastify/swagger registered');
-    
-    // Wait for routes to be registered
-    await fastify.ready();
-    
-    // ────────────────────────────────────────────────────────────────
-    // 2️⃣ Register @fastify/swagger-ui after @fastify/swagger
-    // ────────────────────────────────────────────────────────────────
-    await fastify.register(fastifySwaggerUI, {
-      routePrefix: '/api/doc',
-      uiConfig: {
-        docExpansion: 'list',
-        deepLinking: true,
-        persistAuthorization: true
-      },
-      transformSpecificationClone: true
-    });
-
-    console.log('✅ @fastify/swagger-ui registered');
-    console.log('📖 Docs at /api/doc');
+    console.log('📖 Swagger spec ready for UI');
     
   } catch (error) {
     console.error('❌ Error registering Swagger plugins:', error);
@@ -117,7 +141,7 @@ module.exports = async function (fastify, opts) {
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   }));
-};
+});
 
 // This ensures the plugin is not encapsulated
 module.exports.encapsulate = false;

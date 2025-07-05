@@ -1,17 +1,31 @@
+// fetchPageSchema.js
 'use strict';
 
 module.exports = {
-  $id: 'schema:wiki:fetch-page',
-  params: {
-    type: 'object',
-    required: ['pageId'],
-    properties: {
-      pageId: {
-        type: 'string',
-        format: 'uuid',
-        description: 'Unique identifier of the wiki page being fetched.'
-      }
+    $id: 'schema:wiki:fetch-page',
+    params: {
+      type: 'object',
+      required: ['repoId', 'pageId'],
+      properties: {
+        repoId: {
+          type: 'string',
+          description: 'The ID of the repository.'
+        },
+        pageId: {
+          type: 'string',
+          description: 'The ID of the wiki page.'
+        }
+      },
+      additionalProperties: false
     },
-    additionalProperties: false
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          page: { type: 'object' }
+        },
+        additionalProperties: false
+      }
+    }
   }
-};

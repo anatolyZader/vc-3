@@ -630,7 +630,7 @@
         }
       }
     },
-    "/debug/clear-state-cookie": {
+    "/api/debug/clear-state-cookie": {
       "get": {
         "responses": {
           "200": {

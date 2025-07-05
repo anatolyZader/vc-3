@@ -122,6 +122,47 @@ class AIService extends IAIService {
       throw error;
     }
   }
+  
+  // New method to handle question generation from events
+  async generateResponse(prompt, userId) {
+    console.log(`[${new Date().toISOString()}] 🤖 AI SERVICE: Generating response for user ${userId}, prompt: "${prompt.substring(0, 100)}..."`);
+    
+    try {
+      // Set the userId on the adapter if it's not already set
+      if (this.aiAdapter && this.aiAdapter.setUserId) {
+        this.aiAdapter.setUserId(userId);
+        console.log(`[${new Date().toISOString()}] 🤖 AI SERVICE: Set userId ${userId} on AI adapter`);
+      } else {
+        console.warn(`[${new Date().toISOString()}] 🤖 AI SERVICE: Unable to set userId - aiAdapter missing or lacks setUserId method`);
+        // Continue anyway - it might still work
+      }
+      
+      // Validate the prompt
+      if (!prompt) {
+        console.error(`[${new Date().toISOString()}] 🤖 AI SERVICE: Empty prompt received, returning default response`);
+        return "I'm sorry, but I didn't receive a question to answer. Could you please ask again?";
+      }
+      
+      // Use the existing respondToPrompt method with a generated conversation ID if none was provided
+      const conversationId = `gen-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      const response = await this.respondToPrompt(userId, conversationId, prompt);
+      
+      if (response) {
+        const responseText = typeof response === 'object' ? 
+          (response.response || JSON.stringify(response)) : 
+          response;
+          
+        console.log(`[${new Date().toISOString()}] 🤖 AI SERVICE: Generated response: "${responseText.substring(0, 100)}..."`);
+        return responseText;
+      } else {
+        console.warn(`[${new Date().toISOString()}] 🤖 AI SERVICE: Got empty response from AI adapter, returning default message`);
+        return "I'm sorry, but I couldn't generate a response at this time. Please try again later.";
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] 🤖 AI SERVICE: Error generating response:`, error);
+      return `I apologize, but I encountered an error while processing your request: ${error.message}. Please try again later.`;
+    }
+  }
 }
 
 module.exports = AIService;

@@ -14,6 +14,16 @@ module.exports = async function chatIndex(fastify, opts) {
   // Register the RAG status monitoring plugin
   await fastify.register(ragStatusPlugin);
 
+  await fastify.register(autoload, {
+    dir: path.join(__dirname, 'plugins'),
+    options: {
+    },
+    encapsulate: false,
+    maxDepth: 1,
+    matchFilter: (path) =>  path.includes('Plugin')    
+  });
+  
+
   // Load application controllers
   await fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),

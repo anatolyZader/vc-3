@@ -9,6 +9,16 @@ const path = require('path');
 module.exports = async function wikiModuleIndex(fastify, opts) {
   fastify.log.info('✅ wiki/index.js was registered');
 
+  await fastify.register(autoload, {
+    dir: path.join(__dirname, 'plugins'),
+    options: {
+    },
+    encapsulate: false,
+    maxDepth: 1,
+    matchFilter: (path) =>  path.includes('Plugin')    
+  });
+    
+
   fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),
     encapsulate: false,

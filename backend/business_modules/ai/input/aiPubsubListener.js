@@ -135,18 +135,111 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           return { success: true, message: 'Test event emitted' };
         });
       }
-    } else {
-      fastify.log.error('❌ AI MODULE: Failed to acquire eventBus from any source');
+      
+      // Add listener for questionAdded events - this is the missing part!
+      eventBus.on('questionAdded', async (data) => {
+        try {
+          fastify.log.info(`🔔 AI MODULE: Received questionAdded event via ${eventBusSource}`);
+          fastify.log.info(`📊 AI MODULE: Event payload: ${JSON.stringify(data, null, 2)}`);
+          
+          // Extract required data with validation
+          if (!data) {
+            throw new Error('Invalid event data: empty data');
+          }
+          
+          // Handle both data formats - with or without payload wrapper
+          const eventData = data.payload ? data.payload : data;
+          
+          const { userId, conversationId, prompt } = eventData;
+          
+          if (!userId) {
+            throw new Error('Missing userId in questionAdded event');
+          }
+          
+          if (!conversationId) {
+            throw new Error('Missing conversationId in questionAdded event');
+          }
+          
+          if (!prompt) {
+            throw new Error('Missing prompt in questionAdded event');
+          }
+          
+          fastify.log.info(`📝 AI MODULE: Processing question from user ${userId} in conversation ${conversationId}: "${prompt}"`);
+          
+          // Get the AI service from DI container
+          const aiService = await fastify.diContainer.resolve('aiService');
+          
+          // Set the userId for the AI service to use the right vector store
+          aiService.setUserId(userId);
+          
+          // Generate the answer
+          const answer = await aiService.generateResponse(prompt, userId);
+          
+          if (answer) {
+            fastify.log.info(`✅ AI MODULE: Generated answer for conversation ${conversationId}: "${answer.substring(0, 100)}..."`);
+            
+            // Emit answerAdded event
+            if (eventBus) {
+              const answerPayload = {
+                userId,
+                conversationId,
+                answer,
+                timestamp: new Date().toISOString()
+              };
+              
+              // Log the full payload for debugging
+              fastify.log.info(`📤 AI MODULE: Emitting answerAdded event with payload: ${JSON.stringify(answerPayload)}`);
+              
+              // Emit the event with the correct structure
+              eventBus.emit('answerAdded', answerPayload);
+              
+              fastify.log.info(`✅ AI MODULE: Published answerAdded event for conversation ${conversationId}`);
+            } else {
+              fastify.log.error(`❌ AI MODULE: Could not publish answerAdded event - no event bus available`);
+            }
+          } else {
+            fastify.log.warn(`⚠️ AI MODULE: Failed to generate answer for conversation ${conversationId}`);
+          }
+        } catch (error) {
+          fastify.log.error(`❌ AI MODULE: Error processing questionAdded event: ${error.message}`);
+          fastify.log.error(error.stack);
+        }
+      });
+      
+      // Verify listener registration
+      const questionListenerCount = eventBus.listenerCount('questionAdded');
+      fastify.log.info(`✅ AI MODULE: ${questionListenerCount} listeners registered for questionAdded event via ${eventBusSource}`);
     }
   } catch (error) {
     fastify.log.error(`❌ AI MODULE: Error setting up Pub/Sub listeners: ${error.message}`);
     fastify.log.debug(error.stack);
   }
   
+  // Check if we've found an event bus
+  if (!eventBus) {
+    // Final fallback - check if it's available as a direct property on fastify
+    if (fastify.eventDispatcher && fastify.eventDispatcher.eventBus) {
+      eventBus = fastify.eventDispatcher.eventBus;
+      eventBusSource = 'fastify-property';
+      fastify.log.info('✅ AI MODULE: EventBus acquired from fastify.eventDispatcher');
+    } else {
+      fastify.log.error('❌ AI MODULE: Could not acquire EventBus from any source!');
+      fastify.log.error('❌ AI MODULE: This will prevent the AI module from receiving events!');
+      // Create an empty event bus so we don't crash
+      const EventEmitter = require('events');
+      eventBus = new EventEmitter();
+      eventBusSource = 'fallback-empty';
+    }
+  }
+
   // Add a decorator to track registration (useful for debugging)
-  fastify.decorate('aiPubsubListener', true);
-  console.log('aiPubsubListener registered:', !!fastify.aiPubsubListener);
+  fastify.decorate('aiPubsubListener', {
+    isRegistered: true,
+    eventBusSource: eventBusSource
+  });
+  
+  fastify.log.info(`✅ AI MODULE: aiPubsubListener registered using event bus from ${eventBusSource}`);
 }, {
   name: 'aiPubsubListener',
-  dependencies: ['eventDispatcher', '@fastify/awilix']
+  dependencies: ['@fastify/awilix'] // Removed eventDispatcher dependency
 });

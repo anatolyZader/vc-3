@@ -8,11 +8,10 @@ const { asClass, asValue, Lifetime } = require('awilix');
 
 const infraConfig = require('./infraConfig.json');
 
-const Account = require('./aop_modules/auth/domain/entities/account');
-const User = require('./aop_modules/auth/domain/entities/user');
+// const Account = require('./aop_modules/auth/domain/entities/account');
+// const User = require('./aop_modules/auth/domain/entities/user');
 const UserService = require('./aop_modules/auth/application/services/userService');
 const AuthPostgresAdapter = require('./aop_modules/auth/infrastructure/persistence/authPostgresAdapter');
-const AuthRedisAdapter = require('./aop_modules/auth/infrastructure/in_memory_storage/authRedisAdapter');
 
 const ChatService = require('./business_modules/chat/application/services/chatService');
 const ChatPostgresAdapter = require('./business_modules/chat/infrastructure/persistence/chatPostgresAdapter');
@@ -42,7 +41,6 @@ const AIGithubWikiAdapter = require('./business_modules/ai/infrastructure/wiki/a
 const { PubSub } = require('@google-cloud/pubsub');
 const eventDispatcher = require('./eventDispatcher');
 const { Connector } = require('@google-cloud/cloud-sql-connector');
-const apiRouter = require('./business_modules/api/input/apiRouter');
 
 module.exports = fp(async function (fastify, opts) {
   fastify.log.info('🔧 Starting DI plugin initialization...');
@@ -50,11 +48,13 @@ module.exports = fp(async function (fastify, opts) {
   try {
     fastify.log.info('📦 Registering fastifyAwilixPlugin...');
     await fastify.register(fastifyAwilixPlugin, {
-      disposeOnClose: true,
-      disposeOnResponse: true,
-      strictBooleanEnforced: true,
+      disposeOnClose: true, // dispose (clean up, release resources, close DB connections, etc.,) the Awilix DI container when the Fastify server is closed. 
+      disposeOnResponse: true, // dispose the DI container after each response. prevents memory leaks by ensuring per-request dependencies are cleaned up after use.
+      strictBooleanEnforced: true, // only a real boolean value (true/false) will be accepted,
       injectionMode: 'PROXY',
-      encapsulate: false,
+      // 'PROXY' mode uses JavaScript proxies to resolve dependencies lazily and automatically, allowing for easier property injection and circular dependency support.
+      // 'CLASSIC' mode requires dependencies to be explicitly declared in constructor signatures constructors/functions (requires explicit argument lists, object destructuring is common)..
+      encapsulate: false, // Awilix container - global across your Fastify app,
     });
     fastify.log.info('✅ fastifyAwilixPlugin registered successfully');
   } catch (error) {
@@ -74,15 +74,14 @@ module.exports = fp(async function (fastify, opts) {
   }
   fastify.log.info('✅ diContainer is available');
 
-  // Debug: Log infraConfig structure
-  fastify.log.info('📋 InfraConfig structure:');
-  fastify.log.info('AOP modules:', JSON.stringify(infraConfig.aop_modules, null, 2));
-  fastify.log.info('Business modules:', JSON.stringify(infraConfig.business_modules, null, 2));
+  // // Debug: Log infraConfig structure
+  // fastify.log.info('📋 InfraConfig structure:');
+  // fastify.log.info('AOP modules:', JSON.stringify(infraConfig.aop_modules, null, 2));
+  // fastify.log.info('Business modules:', JSON.stringify(infraConfig.business_modules, null, 2));
 
   // STEP 1: Register basic dependencies FIRST
   fastify.log.info('🔗 Initializing Cloud SQL Connector...');
-  const cloudSqlConnector = new Connector();
-  
+  const cloudSqlConnector = new Connector(); 
   try {
     await fastify.diContainer.register({
       cloudSqlConnector: asValue(cloudSqlConnector)
@@ -94,8 +93,7 @@ module.exports = fp(async function (fastify, opts) {
   }
 
   fastify.log.info('🔗 Initializing Pub/Sub Client...');
-  const pubSubClient = new PubSub();
-  
+  const pubSubClient = new PubSub(); 
   try {
     await fastify.diContainer.register({
       pubSubClient: asValue(pubSubClient)
@@ -117,26 +115,25 @@ module.exports = fp(async function (fastify, opts) {
     await fastify.diContainer.register({
       eventDispatcher: asValue(eventDispatcher)
     });
-    
-    // Debug after registration
-    const resolvedEventDispatcher = fastify.diContainer.resolve('eventDispatcher');
-    console.log('🔧 EventDispatcher after registration:', {
-      hasResolved: !!resolvedEventDispatcher,
-      resolvedType: typeof resolvedEventDispatcher,
-      resolvedValue: resolvedEventDispatcher
-    });
-    
+       
     fastify.log.info('✅ EventDispatcher registered in DI container.');
   } catch (error) {
     fastify.log.error('❌ Failed to register EventDispatcher:', error.message);
     throw error;
   }
 
+    //   // Debug after registration
+    // const resolvedEventDispatcher = fastify.diContainer.resolve('eventDispatcher');
+    // console.log('🔧 EventDispatcher after registration:', {
+    //   hasResolved: !!resolvedEventDispatcher,
+    //   resolvedType: typeof resolvedEventDispatcher,
+    //   resolvedValue: resolvedEventDispatcher
+    // });
+
   // STEP 2: NOW build adapters map AFTER dependencies are registered
   fastify.log.info('🏗️ Building adapters map...');
   const adapters = {
     authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
-    authRedisAdapter: asClass(AuthRedisAdapter).singleton(),
     chatPostgresAdapter: asClass(ChatPostgresAdapter).scoped(),
     chatPubsubAdapter: asClass(ChatPubsubAdapter).scoped(),
     apiSwaggerAdapter: asClass(ApiSwaggerAdapter).scoped(),
@@ -155,28 +152,27 @@ module.exports = fp(async function (fastify, opts) {
   };
 
   // Debug: Validate adapters
-  fastify.log.info('🔍 Validating adapters...');
-  Object.entries(adapters).forEach(([key, adapter]) => {
-    if (!adapter) {
-      fastify.log.error(`❌ Adapter '${key}' is undefined`);
-    } else {
-      fastify.log.debug(`✅ Adapter '${key}' is valid:`, {
-        name: adapter.name,
-        lifetime: adapter.lifetime,
-        type: typeof adapter
-      });
-    }
-  });
+  // fastify.log.info('🔍 Validating adapters...');
+  // Object.entries(adapters).forEach(([key, adapter]) => {
+  //   if (!adapter) {
+  //     fastify.log.error(`❌ Adapter '${key}' is undefined`);
+  //   } else {
+  //     fastify.log.debug(`✅ Adapter '${key}' is valid:`, {
+  //       name: adapter.name,
+  //       lifetime: adapter.lifetime,
+  //       type: typeof adapter
+  //     });
+  //   }
+  // });
 
   // Debug: Log adapter keys
-  fastify.log.info('Available adapter keys:', Object.keys(adapters));
+  // fastify.log.info('Available adapter keys:', Object.keys(adapters));
 
   // Debug: Validate config-based adapter mappings
   fastify.log.info('🔍 Validating config-based adapter mappings...');
   
   const configMappings = [
     { key: 'authPersistAdapter', config: infraConfig.aop_modules.auth.authPersistAdapter },
-    { key: 'authInMemStorageAdapter', config: infraConfig.aop_modules.auth.authInMemStorageAdapter },
     { key: 'wikiMessagingAdapter', config: infraConfig.business_modules.wiki.wikiMessagingAdapter },
     { key: 'wikiPersistAdapter', config: infraConfig.business_modules.wiki.wikiPersistAdapter },
     { key: 'chatPersistAdapter', config: infraConfig.business_modules.chat.chatPersistAdapter },
@@ -206,13 +202,10 @@ module.exports = fp(async function (fastify, opts) {
   });
 
   // STEP 3: Build service registrations
-  fastify.log.info('📦 Building service registrations...');
+  // fastify.log.info('📦 Building service registrations...');
   
   // Build the registration object step by step for better debugging
   const serviceRegistrations = {
-    // Entities
-    account: asClass(Account),
-    user: asClass(User),
 
     // Services
     chatService: asClass(ChatService, { lifetime: Lifetime.scoped }),
@@ -223,13 +216,12 @@ module.exports = fp(async function (fastify, opts) {
     userService: asClass(UserService, { lifetime: Lifetime.SINGLETON }),
     
     // Add aiProvider from infraConfig
-    aiProvider: asValue(infraConfig.business_modules.ai.aiProvider || 'openai'),
+    aiProvider: asValue(infraConfig.business_modules.ai.aiProvider || 'anthropic'),
   };
 
   // Add config-based adapters
   try {
     serviceRegistrations.authPersistAdapter = adapters[infraConfig.aop_modules.auth.authPersistAdapter];
-    serviceRegistrations.authInMemStorageAdapter = adapters[infraConfig.aop_modules.auth.authInMemStorageAdapter];
     serviceRegistrations.wikiMessagingAdapter = adapters[infraConfig.business_modules.wiki.wikiMessagingAdapter];
     serviceRegistrations.wikiPersistAdapter = adapters[infraConfig.business_modules.wiki.wikiPersistAdapter];
     serviceRegistrations.chatPersistAdapter = adapters[infraConfig.business_modules.chat.chatPersistAdapter];

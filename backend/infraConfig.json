@@ -1,8 +1,7 @@
 {
   "aop_modules": {
     "auth": {
-      "authPersistAdapter": "authPostgresAdapter",
-      "authInMemStorageAdapter": "authRedisAdapter"
+      "authPersistAdapter": "authPostgresAdapter"
     }
   },
 
@@ -16,7 +15,6 @@
       "gitAdapter": "gitGithubAdapter",
       "gitMessagingAdapter": "gitPubsubAdapter",
       "gitPersistAdapter": "gitPostgresAdapter"
-
     },
 
     "wiki": {

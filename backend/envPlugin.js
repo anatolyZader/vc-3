@@ -17,9 +17,9 @@ module.exports = fp(async function configLoader(fastify, opts) {
 
   try {
     await fastify.register(fastifyEnv, {
-      confKey: 'secrets',  
+      confKey: 'secrets',  // property name under which the validated environment variables will be attached to your Fastify instance (fastify.secrets)
       schema: schema,  
-    }, { name: 'application-config' });
+    }, { name: 'env-config' });
   } catch (error) {
     throw fastify.httpErrors.internalServerError(
       'Error registering fastifyEnv for secrets',
