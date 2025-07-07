@@ -34,7 +34,7 @@ class AILangchainAdapter extends IAIPort {
     // Rate limiting parameters
     this.requestsInLastMinute = 0;
     this.lastRequestTime = Date.now();
-    this.maxRequestsPerMinute = 1; // Further reduced to avoid rate limiting
+    this.maxRequestsPerMinute = 10; // Further reduced to avoid rate limiting
     this.retryDelay = 10000; // Increased to 10000ms for more conservative approach
     this.maxRetries = 5; // Keep at 5 retries
 
@@ -544,13 +544,16 @@ class AILangchainAdapter extends IAIPort {
   // 2. Retrieval and generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
 
-  async respondToPrompt(conversationId, prompt) {
-    // Check if userId is set, if not return a more graceful error response
+  async respondToPrompt(userId, conversationId, prompt) {
+    // Set the userId from the parameter
+    this.setUserId(userId);
+    
+    // Additional check to ensure userId is set properly
     if (!this.userId) {
-      console.warn(`[${new Date().toISOString()}] Attempted to use respondToPrompt without setting userId first.`);
+      console.warn(`[${new Date().toISOString()}] Failed to set userId in respondToPrompt. Provided userId: ${userId}`);
       return {
         success: false,
-        response: "I'm still initializing. Please try again in a moment.",
+        response: "I'm having trouble identifying your session. Please try again in a moment.",
         conversationId: conversationId,
         timestamp: new Date().toISOString()
       };

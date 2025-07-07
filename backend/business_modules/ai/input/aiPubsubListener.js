@@ -11,14 +11,14 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
   
   try {
     // Debug: List all registered services in DI container
-    if (fastify.diContainer) {
-      try {
-        const registeredServices = await fastify.diContainer.listRegistrations();
-        fastify.log.info('🔍 AI MODULE DEBUG: DI Container registered services:', registeredServices);
-      } catch (e) {
-        fastify.log.warn('⚠️ AI MODULE DEBUG: Could not list DI container registrations:', e.message);
-      }
-    }
+    // if (fastify.diContainer) {
+    //   try {
+    //     const registeredServices = await fastify.diContainer.listRegistrations();
+    //     fastify.log.info('🔍 AI MODULE DEBUG: DI Container registered services:', registeredServices);
+    //   } catch (e) {
+    //     fastify.log.warn('⚠️ AI MODULE DEBUG: Could not list DI container registrations:', e.message);
+    //   }
+    // }
     
     // Approach 1: Try to get from DI container if available
     if (fastify.diContainer && await fastify.diContainer.hasRegistration('eventDispatcher')) {
@@ -38,45 +38,45 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
       fastify.log.warn('⚠️ AI MODULE: No eventDispatcher found in DI container, trying direct import');
     }
     
-    // Approach 2: Try to get from the exported module if DI failed
-    if (!eventBus) {
-      try {
-        // Try path resolution starting from the AI module directory first
-        let resolvedPath;
-        try {
-          resolvedPath = require.resolve('../../../eventDispatcher');
-        } catch (e) {
-          // If that fails, try relative to the current working directory
-          resolvedPath = require.resolve(process.cwd() + '/eventDispatcher');
-        }
+    // // Approach 2: Try to get from the exported module if DI failed
+    // if (!eventBus) {
+    //   try {
+    //     // Try path resolution starting from the AI module directory first
+    //     let resolvedPath;
+    //     try {
+    //       resolvedPath = require.resolve('../../../eventDispatcher');
+    //     } catch (e) {
+    //       // If that fails, try relative to the current working directory
+    //       resolvedPath = require.resolve(process.cwd() + '/eventDispatcher');
+    //     }
         
-        fastify.log.info(`🔍 AI MODULE DEBUG: Resolved eventDispatcher path: ${resolvedPath}`);
+    //     fastify.log.info(`🔍 AI MODULE DEBUG: Resolved eventDispatcher path: ${resolvedPath}`);
         
-        const eventDispatcherModule = require(resolvedPath);
-        if (eventDispatcherModule.eventBus) {
-          eventBus = eventDispatcherModule.eventBus;
-          eventBusSource = 'direct-import';
-          fastify.log.info('✅ AI MODULE: EventBus acquired from direct import');
-        } else {
-          fastify.log.warn('⚠️ AI MODULE: EventDispatcher module imported but no eventBus property found');
-        }
-      } catch (e) {
-        fastify.log.error(`❌ AI MODULE: Failed to import eventDispatcher module: ${e.message}`);
-      }
-    }
+    //     const eventDispatcherModule = require(resolvedPath);
+    //     if (eventDispatcherModule.eventBus) {
+    //       eventBus = eventDispatcherModule.eventBus;
+    //       eventBusSource = 'direct-import';
+    //       fastify.log.info('✅ AI MODULE: EventBus acquired from direct import');
+    //     } else {
+    //       fastify.log.warn('⚠️ AI MODULE: EventDispatcher module imported but no eventBus property found');
+    //     }
+    //   } catch (e) {
+    //     fastify.log.error(`❌ AI MODULE: Failed to import eventDispatcher module: ${e.message}`);
+    //   }
+    // }
     
-    // Approach 3: Last resort - check if fastify has eventDispatcher decorator
-    if (!eventBus && fastify.eventDispatcher) {
-      try {
-        if (fastify.eventDispatcher.eventBus) {
-          eventBus = fastify.eventDispatcher.eventBus;
-          eventBusSource = 'fastify-decorator';
-          fastify.log.info('✅ AI MODULE: EventBus acquired from fastify decorator');
-        }
-      } catch (e) {
-        fastify.log.error(`❌ AI MODULE: Error accessing eventBus from fastify decorator: ${e.message}`);
-      }
-    }
+    // // Approach 3: Last resort - check if fastify has eventDispatcher decorator
+    // if (!eventBus && fastify.eventDispatcher) {
+    //   try {
+    //     if (fastify.eventDispatcher.eventBus) {
+    //       eventBus = fastify.eventDispatcher.eventBus;
+    //       eventBusSource = 'fastify-decorator';
+    //       fastify.log.info('✅ AI MODULE: EventBus acquired from fastify decorator');
+    //     }
+    //   } catch (e) {
+    //     fastify.log.error(`❌ AI MODULE: Error accessing eventBus from fastify decorator: ${e.message}`);
+    //   }
+    // }
     
     // Set up event listeners once we have the eventBus
     if (eventBus) {
@@ -86,14 +86,15 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           fastify.log.info(`🔔 AI MODULE: Received repoPushed event via ${eventBusSource}`);
           fastify.log.info(`📊 AI MODULE: Event payload: ${JSON.stringify(data, null, 2)}`);
           
-          const aiService = await fastify.diContainer.resolve('aiService');
-          
           // Extract required data with validation
-          if (!data || !data.payload) {
-            throw new Error('Invalid event data: missing payload');
+          if (!data) {
+            throw new Error('Invalid event data: empty data');
           }
           
-          const { userId, repoId, repoData } = data.payload;
+          // Handle both data formats - with or without payload wrapper
+          const eventData = data.payload ? data.payload : data;
+          
+          const { userId, repoId, repoData } = eventData;
           
           if (!userId) {
             throw new Error('Missing userId in repoPushed event');
@@ -105,13 +106,47 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           
           fastify.log.info(`📋 AI MODULE: Processing repository: ${repoId} for user ${userId}`);
           
-          // Process the repository
-          const result = await aiService.processPushedRepo(userId, repoId, repoData || {});
+          // Create mock request object for processPushedRepo
+          const mockRequest = {
+            body: { repoId, repoData },
+            user: { id: userId }
+          };
           
-          if (result && result.success) {
-            fastify.log.info(`✅ AI MODULE: Repository ${repoId} processed successfully with ${result.chunksStored} chunks stored`);
-          } else {
-            fastify.log.warn(`⚠️ AI MODULE: Repository ${repoId} processing completed with issues: ${result?.error || 'Unknown error'}`);
+          // Create mock reply object
+          const mockReply = {
+            code: (code) => mockReply,
+            send: (response) => response
+          };
+
+          // Call the controller method
+          if (typeof fastify.processPushedRepo === 'function') {
+            const result = await fastify.processPushedRepo(mockRequest, mockReply);
+          
+            if (result && result.success) {
+              fastify.log.info(`✅ AI MODULE: Repository ${repoId} processed successfully with ${result.chunksStored || 0} chunks stored`);
+              
+              // Emit repoProcessed event
+              if (eventBus) {
+                const processedPayload = {
+                  userId,
+                  repoId,
+                  result,
+                  timestamp: new Date().toISOString()
+                };
+                
+                // Log the full payload for debugging
+                fastify.log.info(`📤 AI MODULE: Emitting repoProcessed event with payload: ${JSON.stringify(processedPayload)}`);
+                
+                // Emit the event with the correct structure
+                eventBus.emit('repoProcessed', processedPayload);
+                
+                fastify.log.info(`✅ AI MODULE: Published repoProcessed event for repo ${repoId}`);
+              } else {
+                fastify.log.error(`❌ AI MODULE: Could not publish repoProcessed event - no event bus available`);
+              }
+            } else {
+              fastify.log.warn(`⚠️ AI MODULE: Failed to process repository ${repoId}`);
+            }
           }
         } catch (error) {
           fastify.log.error(`❌ AI MODULE: Error processing repository push event: ${error.message}`);
@@ -136,7 +171,10 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
         });
       }
       
-      // Add listener for questionAdded events - this is the missing part!
+      
+      // _______________________________________________________________________
+      // QUESTION ADDED EVENT HANDLER
+      // ________________________________________________________________________
       eventBus.on('questionAdded', async (data) => {
         try {
           fastify.log.info(`🔔 AI MODULE: Received questionAdded event via ${eventBusSource}`);
@@ -166,50 +204,82 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           
           fastify.log.info(`📝 AI MODULE: Processing question from user ${userId} in conversation ${conversationId}: "${prompt}"`);
           
-          // Get the AI service from DI container
-          const aiService = await fastify.diContainer.resolve('aiService');
+                  // Create mock request object for respondToPrompt
+          const mockRequest = {
+            body: { conversationId, prompt },
+            user: { id: userId },
+            diScope: fastify.diContainer.createScope() // Add diScope
+
+          };
           
-          // Set the userId for the AI service to use the right vector store
-          aiService.setUserId(userId);
+          // Create mock reply object
+          const mockReply = {
+            code: (code) => mockReply,
+            send: (response) => response
+          };
+
+          // Call the controller method
+          if (typeof fastify.respondToPrompt === 'function') {
+            const answer = await fastify.respondToPrompt(mockRequest, mockReply);
+
           
-          // Generate the answer
-          const answer = await aiService.generateResponse(prompt, userId);
-          
-          if (answer) {
-            fastify.log.info(`✅ AI MODULE: Generated answer for conversation ${conversationId}: "${answer.substring(0, 100)}..."`);
+if (answer) {
+  // Ensure we have a string before trying to use substring
+  const answerText = typeof answer === 'object' ? 
+    (answer.response || JSON.stringify(answer)) : 
+    String(answer);
             
-            // Emit answerAdded event
-            if (eventBus) {
-              const answerPayload = {
-                userId,
-                conversationId,
-                answer,
-                timestamp: new Date().toISOString()
-              };
+  fastify.log.info(`✅ AI MODULE: Generated answer for conversation ${conversationId}: "${answerText.substring(0, 100)}..."`);
+            
+  // Emit answerAdded event
+  if (eventBus) {
+    const answerPayload = {
+      userId,
+      conversationId,
+      // Make sure we're sending a string to the chat module
+      answer: typeof answer === 'object' ? 
+        (answer.response || JSON.stringify(answer)) : 
+        String(answer),
+      timestamp: new Date().toISOString()
+    };
               
-              // Log the full payload for debugging
-              fastify.log.info(`📤 AI MODULE: Emitting answerAdded event with payload: ${JSON.stringify(answerPayload)}`);
+    // Log the full payload for debugging
+    fastify.log.info(`📤 AI MODULE: Emitting answerAdded event with payload: ${JSON.stringify(answerPayload)}`);
               
-              // Emit the event with the correct structure
-              eventBus.emit('answerAdded', answerPayload);
+    // Emit the event with the correct structure
+    eventBus.emit('answerAdded', answerPayload);
               
-              fastify.log.info(`✅ AI MODULE: Published answerAdded event for conversation ${conversationId}`);
-            } else {
-              fastify.log.error(`❌ AI MODULE: Could not publish answerAdded event - no event bus available`);
-            }
-          } else {
-            fastify.log.warn(`⚠️ AI MODULE: Failed to generate answer for conversation ${conversationId}`);
-          }
-        } catch (error) {
-          fastify.log.error(`❌ AI MODULE: Error processing questionAdded event: ${error.message}`);
-          fastify.log.error(error.stack);
-        }
-      });
-      
-      // Verify listener registration
-      const questionListenerCount = eventBus.listenerCount('questionAdded');
-      fastify.log.info(`✅ AI MODULE: ${questionListenerCount} listeners registered for questionAdded event via ${eventBusSource}`);
-    }
+    fastify.log.info(`✅ AI MODULE: Published answerAdded event for conversation ${conversationId}`);
+  } else {
+    fastify.log.error(`❌ AI MODULE: Could not publish answerAdded event - no event bus available`);
+  }
+  } else {
+    fastify.log.warn(`⚠️ AI MODULE: Failed to generate answer for conversation ${conversationId}`);
+  }
+}
+} catch (error) {
+  fastify.log.error(`❌ AI MODULE: Error processing questionAdded event: ${error.message}`);
+  fastify.log.error(error.stack);
+}
+});
+
+// Verify listener registration
+const questionListenerCount = eventBus.listenerCount('questionAdded');
+fastify.log.info(`✅ AI MODULE: ${questionListenerCount} listeners registered for questionAdded event via ${eventBusSource}`);
+
+// Add a test event emitter for debugging (only in development)
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
+fastify.decorate('testQuestionAdded', async function(userId, conversationId, prompt) {
+  fastify.log.info(`🧪 AI MODULE: Emitting test questionAdded event`);
+  eventBus.emit('questionAdded', {
+    eventType: 'questionAdded',
+    timestamp: new Date().toISOString(),
+    payload: { userId, conversationId, prompt }
+  });
+  return { success: true, message: 'Test event emitted' };
+});
+};
+}
   } catch (error) {
     fastify.log.error(`❌ AI MODULE: Error setting up Pub/Sub listeners: ${error.message}`);
     fastify.log.debug(error.stack);

@@ -18,8 +18,8 @@ fastify.addHook('onRoute', (routeOptions) => {
     return;
   }
 
-  console.log(`🔍 Processing schema for route: ${routeOptions.method} ${routeOptions.url}`);
-  console.log(`Initial Schema: ${JSON.stringify(routeOptions.schema, null, 2)}`);
+  // console.log(`🔍 Processing schema for route: ${routeOptions.method} ${routeOptions.url}`);
+  // console.log(`Initial Schema: ${JSON.stringify(routeOptions.schema, null, 2)}`);
 
   try {
     const schemaParts = ['body', 'querystring', 'params', 'response'];
@@ -46,7 +46,7 @@ fastify.addHook('onRoute', (routeOptions) => {
       });
     }
 
-    console.log(`✅ Final Schema for route ${routeOptions.method} ${routeOptions.url}:`, JSON.stringify(routeOptions.schema, null, 2));
+    // console.log(`✅ Final Schema for route ${routeOptions.method} ${routeOptions.url}:`, JSON.stringify(routeOptions.schema, null, 2));
   } catch (error) {
     console.error(`❌ Error processing schema for route ${routeOptions.method}:${routeOptions.url}:`, error.message);
   }

@@ -18,15 +18,9 @@ class AIService extends IAIService {
     try {
       console.log(`[${new Date().toISOString()}] AI service processing prompt for user ${userId}: "${prompt.substring(0, 50)}..."`);
       
-      // Set the userId on the adapter before using it
-      if (this.aiAdapter.setUserId) {
-        this.aiAdapter.setUserId(userId);
-        console.log(`[${new Date().toISOString()}] Set userId on adapter: ${userId}`);
-      }
-      
       // Call the domain entity to get the response
       const aiResponse = new AIResponse(userId);
-      const response = await aiResponse.respondToPrompt(conversationId, prompt, this.aiAdapter);
+      const response = await aiResponse.respondToPrompt(userId, conversationId, prompt, this.aiAdapter);
       
       console.log(`[${new Date().toISOString()}] Got response from AI adapter:`, typeof response);
       
@@ -82,11 +76,7 @@ class AIService extends IAIService {
   async processPushedRepo(userId, repoId, repoData) {
     try {
       console.log(`[${new Date().toISOString()}] Processing pushed repository for user: ${userId}, repository: ${repoId}`);
-      
-      // Set the userId on the adapter if it's not already set
-      if (this.aiAdapter.setUserId) {
-        this.aiAdapter.setUserId(userId);
-      }
+  
       
       const pushedRepo = new PushedRepo(userId, repoId);
       const response = await pushedRepo.processPushedRepo(userId, repoId, repoData, this.aiAdapter);

@@ -14,6 +14,7 @@ module.exports = fp(async function wikiSchemasPlugin(fastify, opts) {
     { id: 'schema:wiki:delete-page', path: '../input/schemas/deletePageSchema.js' },
     { id: 'schema:wiki:fetch-page', path: '../input/schemas/fetchPageSchema.js' },
     { id: 'schema:wiki:update-page', path: '../input/schemas/updatePageSchema.js' },
+    { id: 'schema:wiki:create-page', path: '../input/schemas/createPageSchema.js' }
   ];
 
   schemas.forEach(({ id, path }) => {

@@ -7,8 +7,8 @@ class AIResponse {
     this.userId = userId;   
   }
 
-  async respondToPrompt(conversationId, prompt,  IAIPort) {
-    const response = await IAIPort.respondToPrompt(conversationId, prompt);
+  async respondToPrompt(userId, conversationId, prompt, IAIPort) {
+    const response = await IAIPort.respondToPrompt(userId, conversationId, prompt);
     console.log(`AI Response received: ${response}`);
     return response;
   }

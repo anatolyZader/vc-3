@@ -33,6 +33,7 @@ class ChatService extends IChatService {
   }
 
   async addQuestion(userId, conversationId, prompt) {
+    console.log(`paylod attached in chatService to the addQuestion() call to chatMessagingAdapter: userId = ${userId}, conversationId = ${conversationId} and prompt = ${prompt}`);
     const conversation = new Conversation(userId);
     await conversation.addQuestion(conversationId, prompt, this.chatPersistAdapter);
     await this.chatMessagingAdapter.addQuestion({userId, conversationId, prompt}); // the message goes to the ai module (data.event === 'questionSent') => aiLangchainAdapter / async respondToPrompt(userId, conversationId, repoId, prompt) 
