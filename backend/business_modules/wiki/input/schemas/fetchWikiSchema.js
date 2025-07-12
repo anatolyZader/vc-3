@@ -2,6 +2,7 @@
 'use strict';
 module.exports = {
     $id: 'schema:wiki:fetch-wiki',
+    type: 'object', // Added explicit type
     params: {
         type: 'object',
         required: ['repoId'],

@@ -21,9 +21,8 @@ const fastifyJwt        = require('@fastify/jwt');
 const fastifyOAuth2     = require('@fastify/oauth2');
 const { OAuth2Client }  = require('google-auth-library');
 const { v4: uuidv4 }    = require('uuid');
-const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
-const swaggerPlugin     = require('./swaggerPlugin');
-const swaggerUIPlugin   = require('./swaggerUIPlugin');
+// const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
+const schemasCheckPlugin = require('./schemasCheckPlugin');
 const pubsubPlugin      = require('./pubsubPlugin');
 const eventDispatcher   = require('./eventDispatcher');
 
@@ -35,6 +34,11 @@ module.exports = async function (fastify, opts) {
     fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');
   });
 
+  // await fastify.register(require('./badSchemasDetector'));
+
+
+
+
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
@@ -44,10 +48,6 @@ module.exports = async function (fastify, opts) {
   await fastify.register(eventDispatcher);
   await fastify.register(pubsubPlugin);
   
-
-  await fastify.register(swaggerPlugin);
-  await fastify.register(swaggerUIPlugin);
-
   // Sets security-related HTTP headers automatically
   await fastify.register(helmet, {
     global: true,
@@ -69,6 +69,145 @@ module.exports = async function (fastify, opts) {
   });
 
   await fastify.register(corsPlugin);
+        await fastify.register(require('@fastify/swagger'), {
+    openapi: {
+      openapi: '3.0.3',
+      info: {
+        title: 'EventStorm.me API',
+        description: 'EventStorm API – Git analysis, AI insights, wiki, chat and more',
+        version: '1.0.0',
+      },
+      servers: [
+        {
+          url: process.env.NODE_ENV === 'production'
+            ? 'https://eventstorm.me'
+            : 'http://localhost:3000',
+          description: process.env.NODE_ENV === 'production'
+            ? 'Production server'
+            : 'Development server',
+        },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' },
+        },
+      },
+      security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+    },
+  });
+
+  // await fastify.register(require('@fastify/swagger'), {
+  //   openapi: {
+  //     openapi: '3.0.0',
+  //     info: {
+  //       title: 'eventstorm.me',
+  //       description: 'http API',
+  //       version: '0.0.1',
+  //     },
+  //     servers: [
+  //       {
+  //         url: process.env.NODE_ENV === 'staging'
+  //           ? 'https://eventstorm.me'
+  //           : 'http://localhost:3000',
+  //         description: process.env.NODE_ENV === 'staging'
+  //           ? 'Production server'
+  //           : 'Development server',
+  //       },
+  //     ],
+  //     components: {
+  //       securitySchemes: {
+  //         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+  //         cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' },
+  //       },
+  //     },
+  //     security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  //   },
+  //   transform: ({ schema, url }) => {
+  //     // Create a safe clone to avoid modifying the original schema
+  //     if (!schema) {
+  //       return {
+  //         schema: { type: 'object' },
+  //         url
+  //       };
+  //     }
+
+  //     // Deep clone the schema
+  //     const safeSchema = JSON.parse(JSON.stringify(schema));
+      
+  //     // Ensure root schema has a type
+  //     if (!safeSchema.type) {
+  //       safeSchema.type = 'object';
+  //     }
+      
+  //     // Handle response schemas - ensure each one has a type
+  //     if (safeSchema.response) {
+  //       Object.keys(safeSchema.response).forEach(statusCode => {
+  //         const response = safeSchema.response[statusCode];
+  //         if (response && typeof response === 'object' && !response.type) {
+  //           safeSchema.response[statusCode].type = 'object';
+  //         }
+  //       });
+  //     }
+      
+  //     // Handle request parts - each should have a type
+  //     ['params', 'querystring', 'headers', 'body'].forEach(part => {
+  //       if (safeSchema[part] && typeof safeSchema[part] === 'object' && !safeSchema[part].type) {
+  //         safeSchema[part].type = 'object';
+  //       }
+  //     });
+      
+  //     return { schema: safeSchema, url };
+  //   },
+  //   mode: 'dynamic'
+  // });
+
+  // await fastify.register(require('@fastify/swagger'), {
+  //   openapi: {
+  //     openapi: '3.0.0',
+  //     info: {
+  //       title: 'eventstorm.me',
+  //       description: 'http API',
+  //       version: '0.0.1',
+  //     },
+  //     servers: [
+  //       {
+  //         url: process.env.NODE_ENV === 'production'
+  //           ? 'https://eventstorm.me'
+  //           : 'http://localhost:3000',
+  //         description: process.env.NODE_ENV === 'production'
+  //           ? 'Production server'
+  //           : 'Development server',
+  //       },
+  //     ],
+  //     components: {
+  //       securitySchemes: {
+  //         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+  //         cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' },
+  //       },
+  //     },
+  //     security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+  //   },
+  //   // Add transform to handle any schema issues
+  //   transform: (schema) => {
+  //     if (!schema) return schema;
+      
+  //     // Ensure all schema objects have a type
+  //     if (!schema.type) schema.type = 'object';
+      
+  //     // Ensure these schema properties exist and are objects
+  //     if (schema.params === undefined) schema.params = {};
+  //     if (schema.querystring === undefined) schema.querystring = {};
+  //     if (schema.body === undefined) schema.body = {};
+      
+  //     return schema;
+  //   }
+  // });
+
+    
+  // await fastify.register(swaggerPlugin);
+  // await fastify.register(swaggerUIPlugin);
+
 
   fastify.log.info('🔌 Registering Redis client plugin');
   await fastify.register(redisPlugin);
@@ -133,7 +272,21 @@ module.exports = async function (fastify, opts) {
   // ────────────────────────────────────────────────────────────────
   // HEALTH ROUTE
   // ────────────────────────────────────────────────────────────────
-  fastify.get('/', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+  fastify.get('/', {
+    schema: {
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' }
+          },
+          required: ['status', 'timestamp'],
+          additionalProperties: false
+        }
+      }
+    }
+  }, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
   // ────────────────────────────────────────────────────────────────
   // GOOGLE OAUTH + JWT 
@@ -222,9 +375,25 @@ module.exports = async function (fastify, opts) {
     return ticket.getPayload();
   });
 
-  await fastify.register(authSchemasPlugin);
+  // await fastify.register(authSchemasPlugin);
 
-  fastify.get('/api/auth/google/callback', async (req, reply) => {
+  fastify.get('/api/auth/google/callback', {
+  schema: {
+    querystring: {
+      type: 'object',
+      properties: {
+        code: { type: 'string' },
+        state: { type: 'string' }
+      },
+      additionalProperties: true
+    },
+    response: {
+      302: {
+        description: 'Redirect to frontend after successful authentication'
+      }
+    }
+  }
+} , async (req, reply) => {
     const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
     const googleAccessToken = token.token.access_token;
 
@@ -269,6 +438,25 @@ module.exports = async function (fastify, opts) {
     options: Object.assign({}, opts),
   });
 
+  fastify.get('/api/debug/swagger-routes', async (request, reply) => {
+  try {
+    const spec = fastify.swagger();
+    return {
+      hasSwagger: typeof fastify.swagger === 'function',
+      specKeys: Object.keys(spec),
+      pathsCount: spec.paths ? Object.keys(spec.paths).length : 0,
+      paths: spec.paths ? Object.keys(spec.paths) : [],
+      info: spec.info || null,
+      openapi: spec.openapi || null
+    };
+  } catch (error) {
+    return {
+      error: error.message,
+      hasSwagger: typeof fastify.swagger === 'function'
+    };
+  }
+  });
+
   // Debug route
   fastify.route({
     method: 'GET',
@@ -294,11 +482,137 @@ module.exports = async function (fastify, opts) {
     }
   });
 
+  fastify.get('/api/debug/schemas', {
+  schema: {
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          schemas: {
+            type: 'object',
+            additionalProperties: true
+          },
+          routes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                method: { type: 'string' },
+                url: { type: 'string' },
+                schema: {
+                  type: 'object',
+                  properties: {
+                    exists: { type: 'boolean' },
+                    hasType: { type: 'boolean' },
+                    id: { type: 'string' }
+                  },
+                  additionalProperties: true
+                }
+              },
+              required: ['method', 'url', 'schema'],
+              additionalProperties: false
+            }
+          }
+        },
+        required: ['schemas', 'routes'],
+        additionalProperties: false
+      }
+    }
+  }
+}
+    
+  ,async (request, reply) => {
+  const schemas = fastify._schemas;
+  const routes = fastify.routes.map(route => ({
+    method: route.method,
+    url: route.url,
+    schema: route.schema ? { 
+      exists: true, 
+      hasType: route.schema.type !== undefined,
+      id: route.schema.$id
+    } : { exists: false }
+  }));
+  
+    return { schemas, routes };
+  });
+
+
+
+
+
+  await fastify.register(require('@fastify/swagger-ui'), {
+    routePrefix: '/api/doc',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: true,
+      filter: true,
+      persistAuthorization: true,
+      layout: 'StandaloneLayout',
+    },
+    staticCSP: true,
+    transformStaticCSP: (hdr) => {
+    // Allow HTTP connections in development
+    if (process.env.NODE_ENV === 'staging') {
+      return hdr.replace(
+        /default-src 'self'/,
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:"
+      );
+    } else {
+      // Development: allow both HTTP and HTTPS
+      return hdr.replace(
+        /default-src 'self'/,
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: http: https:"
+      );
+    }
+  },
+    transformSpecificationClone: true,
+    transformSpecification(spec) {
+      spec.info['x-build-time'] = new Date().toISOString();
+      return spec;
+    },
+  });
+
+// await fastify.register(require('@fastify/swagger-ui'), {
+//   routePrefix: '/api/doc',
+//   uiConfig: {
+//     docExpansion: 'list',
+//     deepLinking: false,
+//     displayRequestDuration: true,
+//   },
+//   transformSpecification: (swaggerObject) => {
+//     // Add safety transform to handle potential issues
+//     if (swaggerObject && swaggerObject.paths) {
+//       // Process each path to ensure it has proper structure
+//       Object.keys(swaggerObject.paths).forEach(path => {
+//         const pathItem = swaggerObject.paths[path];
+//         if (pathItem) {
+//           Object.keys(pathItem).forEach(method => {
+//             const operation = pathItem[method];
+//             if (operation && operation.parameters) {
+//               // Filter out any undefined or malformed parameters
+//               operation.parameters = operation.parameters.filter(param => 
+//                 param && typeof param === 'object' && param.name && param.in
+//               );
+//             }
+//           });
+//         }
+//       });
+//     }
+//     return swaggerObject;
+//   },
+//   staticCSP: {
+//     'style-src': ["'self'", "'unsafe-inline'", "https:"],
+//     'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+//   },
+//   transformStaticCSP: (header) => header
+// });
+
   // ────────────────────────────────────────────────────────────────
   // READY HOOK – print summary
   // ────────────────────────────────────────────────────────────────
 
   fastify.addHook('onReady', async () => {
+
     fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
   });
 };

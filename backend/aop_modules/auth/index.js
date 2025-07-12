@@ -9,9 +9,18 @@ module.exports = fp(async function authModuleIndex(fastify, opts) {
 
   const moduleSpecificPrefix = opts.prefix ? `${opts.prefix}/${path.basename(__dirname)}` : `/${path.basename(__dirname)}`;
 
+  // fastify.register(autoload, {
+  //   dir: path.join(__dirname, 'plugins'),
+  //   options: {
+  //   },
+  //   encapsulate: false,
+  //   maxDepth: 1,
+  //   matchFilter: (path) =>  path.includes('Plugin')    
+  // });
+  
+
   fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),
-
     encapsulate: false,
     maxDepth: 1,
     matchFilter: (filepath) => filepath.includes('Controller'), 

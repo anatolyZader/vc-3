@@ -1,19 +1,16 @@
 /* eslint-disable no-unused-vars */
-// wikiSchemasPlugin.js
+// apiSchemasPlugin.js
 
 'use strict';
 
 const fp = require('fastify-plugin');
 
-module.exports = fp(async function wikiSchemasPlugin(fastify, opts) {
-  console.log('wikiSchemasPlugin loaded!');
+module.exports = fp(async function apiSchemasPlugin(fastify, opts) {
+  console.log('apiSchemasPlugin loaded!');
 
   const schemas = [
-    { id: 'schema:wiki:fetch-wiki', path: '../input/schemas/fetchWikiSchema.js' },
-    { id: 'schema:wiki:delete-page', path: '../input/schemas/deletePageSchema.js' },
-    { id: 'schema:wiki:fetch-page', path: '../input/schemas/fetchPageSchema.js' },
-    { id: 'schema:wiki:update-page', path: '../input/schemas/updatePageSchema.js' },
-    { id: 'schema:wiki:create-page', path: '../input/schemas/createPageSchema.js' }
+    { id: 'schema:api:http-api', path: '../input/schemas/fetchHttpApiSchema.js' },
+    { id: 'schema:api:read-api', path: '../input/schemas/readApiSchema.js' },
   ];
 
   schemas.forEach(({ id, path }) => {
@@ -28,12 +25,6 @@ module.exports = fp(async function wikiSchemasPlugin(fastify, opts) {
           schema.$id = id;
         }
         
-        // Ensure type is set
-        if (!schema.type) {
-          schema.type = 'object';
-          fastify.log.warn(`Schema missing type: Added "type": "object" to ${id}`);
-        }
-        
         fastify.addSchema(schema);
       } catch (error) {
         fastify.log.error(`Error loading schema "${id}" from path "${path}":`, error);
@@ -44,7 +35,7 @@ module.exports = fp(async function wikiSchemasPlugin(fastify, opts) {
       }
     }
   });
-  console.log('WIKI Module - Registered Schemas:', 
+  console.log('API Module - Registered Schemas:', 
   schemas.map(s => s.id).filter(id => fastify.getSchema(id) !== undefined)
 );
 });

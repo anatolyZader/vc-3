@@ -159,9 +159,22 @@ module.exports = fp(async function websocketPlugin(fastify, opts) {
 
   // 7️⃣ Enhanced WebSocket route with comprehensive error handling
   fastify.get('/api/ws', {
-    websocket: true,
- 
-  }, (connection, req) => {
+  websocket: true,
+  schema: {
+    querystring: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string' }
+      },
+      additionalProperties: false
+    },
+    response: {
+      101: {
+        description: 'Switching Protocols - WebSocket connection established'
+      }
+    }
+  }
+}, (connection, req) => {
     const userId = req.query.userId || 'anonymous'; 
     const userAgent = req.headers['user-agent'] || 'unknown';
     const clientIp = req.ip || 'unknown';

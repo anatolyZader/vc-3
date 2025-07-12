@@ -2,6 +2,7 @@
 
 module.exports = {
   "$id": "schema:chat:rename-conversation",
+  "type": "object",
   body: {
     type: 'object',
     required: ['newTitle'],
@@ -16,4 +17,12 @@ module.exports = {
       conversationId: { type: 'string' },
     },
   },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' }
+      }
+    }
+  }
 };

@@ -12,7 +12,43 @@ module.exports = fp(async function gitRouter(fastify, opts) {
     url: '/repositories/:owner/:repo',
     preValidation: [fastify.verifyToken],
     handler: fastify.fetchRepo,
-    schema: fastify.getSchema('schema:git:fetch-repo')
+    schema: {
+      tags: ['git'],
+      params: {
+        type: 'object',
+        properties: {
+          owner: { type: 'string', minLength: 1 },
+          repo: { type: 'string', minLength: 1 }
+        },
+        required: ['owner', 'repo'],
+        additionalProperties: false
+      },
+      headers: {
+        type: 'object',
+        properties: {
+          'x-correlation-id': { type: 'string' }
+        },
+        additionalProperties: true
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            fullName: { type: 'string' },
+            owner: { type: 'string' },
+            private: { type: 'boolean' },
+            description: { type: 'string' },
+            url: { type: 'string', format: 'uri' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+            // Add or adjust more fields as your repo object provides
+          },
+          additionalProperties: true
+        }
+      }
+    }
   });
 
 });

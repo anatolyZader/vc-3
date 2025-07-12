@@ -2,6 +2,7 @@
 
 module.exports = {
   "$id": "schema:chat:add-question",
+  "type": "object",
   body: {
     type: 'object',
     required: ['prompt'],
@@ -16,4 +17,15 @@ module.exports = {
       conversationId: { type: 'string' },
     },
   },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        questionId: { type: 'string' },
+        status: { type: 'string' },
+        message: { type: 'string' },
+        timestamp: { type: 'string', format: 'date-time' }
+      }
+    }
+  }
 };

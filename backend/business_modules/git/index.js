@@ -6,14 +6,14 @@ const path = require('path');
 
 module.exports = async function gitModuleIndex(fastify, opts) {
 
-    fastify.register(autoload, {
-      dir: path.join(__dirname, 'plugins'),
-      options: {
-      },
-      encapsulate: false,
-      maxDepth: 1,
-      matchFilter: (path) =>  path.includes('Plugin')    
-    });
+  // fastify.register(autoload, {
+  //   dir: path.join(__dirname, 'plugins'),
+  //   options: {
+  //   },
+  //   encapsulate: false,
+  //   maxDepth: 1,
+  //   matchFilter: (path) =>  path.includes('Plugin')    
+  // });
 
 
   fastify.register(autoload, {

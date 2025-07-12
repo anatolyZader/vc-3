@@ -83,7 +83,6 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
       // Listen for repository pushed events
       eventBus.on('repoPushed', async (data) => {
         try {
-          fastify.log.info(`🔔 AI MODULE: Received repoPushed event via ${eventBusSource}`);
           fastify.log.info(`📊 AI MODULE: Event payload: ${JSON.stringify(data, null, 2)}`);
           
           // Extract required data with validation

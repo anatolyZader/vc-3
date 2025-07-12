@@ -3,6 +3,7 @@
 
 module.exports = {
     $id: 'schema:wiki:fetch-page',
+    type: 'object', // Added explicit type
     params: {
       type: 'object',
       required: ['repoId', 'pageId'],

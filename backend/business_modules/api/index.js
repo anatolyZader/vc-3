@@ -14,6 +14,15 @@ module.exports = async function apiModuleIndex(fastify, opts) {
   const allFiles = fs.readdirSync(__dirname);
   fastify.log.info(`Files in ai_module: ${JSON.stringify(allFiles)}`);
   
+  // fastify.register(autoload, {
+  //   dir: path.join(__dirname, 'plugins'),
+  //   options: {
+  //   },
+  //   encapsulate: false,
+  //   maxDepth: 1,
+  //   matchFilter: (path) =>  path.includes('Plugin')    
+  // });
+
   // Load application controllers
   fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),
