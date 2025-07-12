@@ -162,10 +162,9 @@ module.exports = fp(async function authRouter(fastify, opts) {
           type: 'object',
           properties: {
             id: { type: 'string', format: 'uuid' },
-            email: { type: 'string', format: 'email' },
             username: { type: 'string' }
           },
-          required: ['id', 'email', 'username'],
+          required: ['id', 'username'],
           additionalProperties: false
         }
       }
