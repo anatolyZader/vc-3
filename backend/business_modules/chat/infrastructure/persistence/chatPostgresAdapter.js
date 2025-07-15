@@ -84,7 +84,14 @@ class ChatPostgresAdapter extends IChatPersistPort {
         const client = await pool.connect();
         try {
             const { rows } = await client.query(
-                `SELECT id, title, created_at FROM chat.conversations WHERE user_id = $1 ORDER BY created_at DESC`,
+                `SELECT 
+                    id as "conversationId", 
+                    title, 
+                    created_at as "createdAt",
+                    created_at as "updatedAt"
+                FROM chat.conversations 
+                WHERE user_id = $1 
+                ORDER BY created_at DESC`,
                 [userId]
             );
             return rows;

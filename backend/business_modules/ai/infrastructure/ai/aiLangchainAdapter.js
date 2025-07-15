@@ -1,14 +1,15 @@
 // aiLangchainAdapter.js
-'use strict';
+"use strict";
 /* eslint-disable no-unused-vars */
 
 const IAIPort = require('../../domain/ports/IAIPort');
+const Bottleneck = require("bottleneck");
 const { GithubRepoLoader } = require("@langchain/community/document_loaders/web/github");
-const { RecursiveCharacterTextSplitter, Language } = require("@langchain/textsplitters");
+const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 const { PineconeStore } = require('@langchain/pinecone');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
-const { ChatOpenAI } = require('@langchain/openai');
+
 
 class AILangchainAdapter extends IAIPort {
   constructor(options = {}) {
@@ -16,34 +17,50 @@ class AILangchainAdapter extends IAIPort {
 
     // Make userId null by default to avoid DI error
     this.userId = null;
+    console.log(`[${new Date().toISOString()}] [DEBUG] Constructor called with options:`, JSON.stringify(options));
 
     // Get provider from infraConfig or options
     this.aiProvider = options.aiProvider || 'openai';
     console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing with provider: ${this.aiProvider}`);
+    console.log(`[${new Date().toISOString()}] [DEBUG] aiProvider set to: ${this.aiProvider}`);
 
     // Get access to the event bus for status updates
     try {
       const { eventBus } = require('../../../../eventDispatcher');
       this.eventBus = eventBus;
       console.log(`[${new Date().toISOString()}] 📡 Successfully connected to shared event bus`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] Event bus connected.`);
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] ⚠️ Could not access shared event bus: ${error.message}`);
       this.eventBus = null;
+      console.log(`[${new Date().toISOString()}] [DEBUG] Event bus unavailable.`);
     }
 
-    // Rate limiting parameters
+    // Rate limiting parameters for LLM (keep for LLM calls)
     this.requestsInLastMinute = 0;
     this.lastRequestTime = Date.now();
-    this.maxRequestsPerMinute = 10; // Further reduced to avoid rate limiting
-    this.retryDelay = 10000; // Increased to 10000ms for more conservative approach
-    this.maxRetries = 5; // Keep at 5 retries
+    this.maxRequestsPerMinute = 60;
+    this.retryDelay = 5000;
+    this.maxRetries = 10;
+    console.log(`[${new Date().toISOString()}] [DEBUG] Rate limiting params: maxRequestsPerMinute=${this.maxRequestsPerMinute}, retryDelay=${this.retryDelay}, maxRetries=${this.maxRetries}`);
+
+    // Bottleneck rate limiter for Pinecone upserts
+    this.pineconeLimiter = new Bottleneck({
+      reservoir: 100, // 100 records per second
+      reservoirRefreshAmount: 100,
+      reservoirRefreshInterval: 1000,
+      maxConcurrent: 1
+    });
+    console.log(`[${new Date().toISOString()}] [DEBUG] Bottleneck limiter initialized.`);
 
     // Request queue system
     this.requestQueue = [];
     this.isProcessingQueue = false;
+    console.log(`[${new Date().toISOString()}] [DEBUG] Request queue initialized.`);
 
     // Start queue processor
     this.startQueueProcessor();
+    console.log(`[${new Date().toISOString()}] [DEBUG] Queue processor started.`);
 
     try {
       // Initialize embeddings model: converts text to vectors
@@ -51,26 +68,32 @@ class AILangchainAdapter extends IAIPort {
         model: 'text-embedding-3-large',
         apiKey: process.env.OPENAI_API_KEY
       });
+      console.log(`[${new Date().toISOString()}] [DEBUG] Embeddings model initialized.`);
 
       // Initialize Pinecone client if API key available
       if (process.env.PINECONE_API_KEY) {
         this.pinecone = new Pinecone({
           apiKey: process.env.PINECONE_API_KEY
         });
+        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone client initialized.`);
       } else {
         console.warn(`[${new Date().toISOString()}] No Pinecone API key found, vector search will be unavailable`);
         this.pinecone = null;
+        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone client unavailable.`);
       }
 
       // Initialize chat model based on provider
       this.initializeLLM();
+      console.log(`[${new Date().toISOString()}] [DEBUG] LLM initialized.`);
 
       // Don't initialize vectorStore until we have a userId
       this.vectorStore = null;
+      console.log(`[${new Date().toISOString()}] [DEBUG] Vector store set to null (will be initialized after userId).`);
 
       console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully`);
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error initializing AILangchainAdapter:`, error.message);
+      console.log(`[${new Date().toISOString()}] [DEBUG] Initialization error stack:`, error.stack);
       // We'll continue with degraded functionality and try to recover later
     }
   }
@@ -81,8 +104,10 @@ class AILangchainAdapter extends IAIPort {
       console.warn(`[${new Date().toISOString()}] Attempted to set null/undefined userId in AILangchainAdapter`);
       return this;
     }
+    console.log(`[${new Date().toISOString()}] [DEBUG] setUserId called with: ${userId}`);
 
     this.userId = userId;
+    console.log(`[${new Date().toISOString()}] [DEBUG] userId set to: ${this.userId}`);
 
     // Update vector store namespace with the user ID
     try {
@@ -92,11 +117,14 @@ class AILangchainAdapter extends IAIPort {
           namespace: this.userId
         });
         console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store initialized for userId: ${this.userId}`);
       } else {
         console.warn(`[${new Date().toISOString()}] Pinecone client not available, vectorStore not initialized for user ${userId}`);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store NOT initialized (no Pinecone client).`);
       }
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error creating vector store for user ${this.userId}:`, error.message);
+      console.log(`[${new Date().toISOString()}] [DEBUG] Vector store creation error stack:`, error.stack);
       // Still set the userId even if vectorStore creation fails
     }
 
@@ -347,7 +375,8 @@ class AILangchainAdapter extends IAIPort {
             "build/**",
             "*.min.js",
             "package-lock.json"
-          ]
+          ],
+          accessToken: process.env.GITHUB_TOKEN
         }
       );
 
@@ -451,13 +480,13 @@ class AILangchainAdapter extends IAIPort {
       );
 
       // Store in vector database with batch processing for better performance
-      const batchSize = 20; // Reduced batch size to avoid rate limits
+      const batchSize = 100; // Further increased batch size for higher throughput (watch for 429 errors)
       let storedCount = 0;
 
       for (let i = 0; i < documentsWithMetadata.length; i += batchSize) {
-        // Check rate limits before making API calls
         let retries = 0;
         let success = false;
+        let last429 = false;
 
         while (!success && retries < this.maxRetries) {
           if (await this.checkRateLimit()) {
@@ -470,10 +499,22 @@ class AILangchainAdapter extends IAIPort {
 
               console.log(`[${new Date().toISOString()}] Stored batch ${Math.ceil((i + 1) / batchSize)} - ${storedCount}/${documentsWithMetadata.length} chunks`);
               success = true;
+              last429 = false;
             } catch (error) {
               if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
                 retries++;
-                console.warn(`[${new Date().toISOString()}] Rate limit hit, retry ${retries}/${this.maxRetries}`);
+                last429 = true;
+                console.warn(`[${new Date().toISOString()}] Pinecone rate limit (429) hit, retry ${retries}/${this.maxRetries}`);
+                this.emitRagStatus('pinecone_rate_limit', {
+                  userId,
+                  repoId,
+                  error: error.message,
+                  batch: Math.ceil((i + 1) / batchSize),
+                  storedCount,
+                  batchSize,
+                  maxRequestsPerMinute: this.maxRequestsPerMinute,
+                  suggestion: 'If you see repeated 429 errors, consider reducing batch size or requesting a quota increase from Pinecone.'
+                });
                 await this.waitWithBackoff(retries);
               } else {
                 throw error; // Re-throw if it's not a rate limit issue
@@ -487,6 +528,17 @@ class AILangchainAdapter extends IAIPort {
 
         if (!success) {
           console.error(`[${new Date().toISOString()}] Failed to store batch after ${this.maxRetries} retries`);
+          if (last429) {
+            this.emitRagStatus('pinecone_rate_limit_failed', {
+              userId,
+              repoId,
+              batch: Math.ceil((i + 1) / batchSize),
+              storedCount,
+              batchSize,
+              maxRequestsPerMinute: this.maxRequestsPerMinute,
+              error: 'Persistent 429 errors from Pinecone. Consider reducing batch size or requesting a quota increase.'
+            });
+          }
         }
       }
 
@@ -574,6 +626,7 @@ class AILangchainAdapter extends IAIPort {
             conversationId: conversationId,
             reason: 'Vector database not available'
           });
+          console.log(`[${new Date().toISOString()}] [DEBUG] respondToPrompt called with userId=${userId}, conversationId=${conversationId}, prompt=${prompt}`);
           
           return await this.generateStandardResponse(prompt, conversationId);
         }
@@ -584,8 +637,10 @@ class AILangchainAdapter extends IAIPort {
         
         // Store these for later use
         this.pineconeIndex = pineconeIndex;
+    console.log(`[${new Date().toISOString()}] [DEBUG] userId confirmed in respondToPrompt: ${this.userId}`);
         this.vectorStoreNamespace = vectorStoreNamespace;
         
+    console.log(`[${new Date().toISOString()}] [DEBUG] queueRequest will be called for respondToPrompt.`);
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector store namespace: ${vectorStoreNamespace}`);
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Pinecone index name: ${pineconeIndex}`);
 
@@ -593,22 +648,29 @@ class AILangchainAdapter extends IAIPort {
         let similarDocuments = [];
         try {
           // Find relevant documents from vector database
-          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running similarity search with filter: { userId: ${this.userId} }`);
-          similarDocuments = await this.vectorStore.similaritySearch(prompt, 5, {
-            filter: { userId: this.userId }
+          console.log(`[${new Date().toISOString()}] [DEBUG] VectorStore or Pinecone not available in respondToPrompt.`);
+          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running similarity search (no filter, single-user mode)`);
+          // Retrieve more chunks for richer context
+          similarDocuments = await this.vectorStore.similaritySearch(prompt, 15);
+          // Log the first few chunks for debugging
+          similarDocuments.forEach((doc, i) => {
+            console.log(`[DEBUG] Chunk ${i}: ${doc.metadata.source || 'Unknown'} | ${doc.pageContent.substring(0, 200)}`);
           });
           console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Retrieved ${similarDocuments.length} documents from vector store`);
           
+          console.log(`[${new Date().toISOString()}] [DEBUG] Emitted retrieval_disabled status.`);
           if (similarDocuments.length > 0) {
             console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: First document metadata:`, 
               JSON.stringify(similarDocuments[0].metadata, null, 2));
             console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: First document content preview: ${similarDocuments[0].pageContent.substring(0, 100)}...`);
             
             // Log all document sources for better debugging
+        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone index: ${pineconeIndex}, VectorStore namespace: ${vectorStoreNamespace}`);
             console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: All retrieved document sources:`);
             similarDocuments.forEach((doc, index) => {
               console.log(`[${new Date().toISOString()}]   ${index + 1}. ${doc.metadata.source || 'Unknown'} (${doc.pageContent.length} chars)`);
             });
+        console.log(`[${new Date().toISOString()}] [DEBUG] Set pineconeIndex and vectorStoreNamespace properties.`);
             
             // Use our standardized emitRagStatus method
             this.emitRagStatus('retrieval_success', {
@@ -618,11 +680,14 @@ class AILangchainAdapter extends IAIPort {
               sources: similarDocuments.map(doc => doc.metadata.source || 'Unknown'),
               firstDocContentPreview: similarDocuments[0].pageContent.substring(0, 100) + '...'
             });
+            console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch called with prompt: ${prompt}`);
           }
+          console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch returned ${similarDocuments.length} documents.`);
         } catch (error) {
           // For errors, log and continue with standard response
           console.error(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector search error:`, error.message);
           
+            console.log(`[${new Date().toISOString()}] [DEBUG] Logging all retrieved document sources:`);
           // Use our standardized emitRagStatus method
           this.emitRagStatus('retrieval_error', {
             userId: this.userId,
@@ -630,7 +695,9 @@ class AILangchainAdapter extends IAIPort {
             error: error.message,
             query: prompt.substring(0, 100) // Include a preview of the query that failed
           });
+          console.log(`[${new Date().toISOString()}] [DEBUG] Emitted retrieval_error status.`);
           
+          console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch error stack:`, error.stack);
           return await this.generateStandardResponse(prompt, conversationId);
         }
 
@@ -638,11 +705,13 @@ class AILangchainAdapter extends IAIPort {
           console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: No relevant documents found, using standard response`);
           
           // Use our standardized emitRagStatus method
+          console.log(`[${new Date().toISOString()}] [DEBUG] Emitted retrieval_error status.`);
           this.emitRagStatus('retrieval_no_results', {
             userId: this.userId,
             conversationId: conversationId,
             query: prompt.substring(0, 100) // Include a preview of the query
           });
+          console.log(`[${new Date().toISOString()}] [DEBUG] No relevant documents found in similaritySearch.`);
           
           return await this.generateStandardResponse(prompt, conversationId);
         }
@@ -651,75 +720,72 @@ class AILangchainAdapter extends IAIPort {
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Found ${similarDocuments.length} relevant documents`);
 
         // Format the context from retrieved documents
+        console.log(`[${new Date().toISOString()}] [DEBUG] Formatting context from retrieved documents.`);
+        // Improved context formatting for LLM
         const context = similarDocuments.map(doc => {
           const source = doc.metadata.source || 'Unknown source';
-          return `
----
-File: ${source}
-Content:
-${doc.pageContent}
----`;
+          // Show file name and first 500 chars for each chunk
+          return `File: ${source}\n${doc.pageContent.substring(0, 500)}...`;
         }).join('\n\n');
-
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Created context with ${context.length} characters from ${similarDocuments.length} documents`);
-
-        // Prepare the message with context
+        console.log(`[${new Date().toISOString()}] [DEBUG] Context formatted. Length: ${context.length}`);
         const messages = [
           {
             role: "system",
-            content: `You are a helpful AI assistant specialized in software development. 
-            You have access to the user's code repository. 
-            Answer questions based on the context provided when possible.
-            If the question can't be answered from the context, use your general knowledge but make it clear.
-            Always provide accurate, helpful, and concise responses.`
+            content: `You are a helpful AI assistant specialized in software development. \nYou have access to the user's code repository. \nAnswer questions based on the context provided when possible.\nIf the question can't be answered from the context, use your general knowledge but make it clear.\nAlways provide accurate, helpful, and concise responses.`
           },
           {
             role: "user",
             content: `I have a question about my code repository: "${prompt}"\n\nHere are the most relevant parts of my codebase:\n${context}`
           }
         ];
-
+        console.log(`[${new Date().toISOString()}] [DEBUG] Messages prepared for LLM invoke.`);
         // Try to generate a response
         let retries = 0;
         let success = false;
         let response;
-
         while (!success && retries < this.maxRetries) {
           if (await this.checkRateLimit()) {
+            console.log(`[${new Date().toISOString()}] [DEBUG] Starting LLM invoke loop. MaxRetries: ${this.maxRetries}`);
             try {
               const result = await this.llm.invoke(messages);
               response = result.content;
               success = true;
+              console.log(`[${new Date().toISOString()}] [DEBUG] LLM invoke successful.`);
             } catch (error) {
               if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
                 retries++;
                 console.warn(`[${new Date().toISOString()}] Rate limit hit during generation, retry ${retries}/${this.maxRetries}`);
                 await this.waitWithBackoff(retries);
+                console.log(`[${new Date().toISOString()}] [DEBUG] LLM rate limit encountered. Waiting before retry.`);
               } else {
                 // Log the error and throw it for proper handling
                 console.error(`[${new Date().toISOString()}] Failed to respond to prompt:`, error);
+                console.log(`[${new Date().toISOString()}] [DEBUG] LLM invoke error stack:`, error.stack);
                 throw error;
               }
             }
           } else {
             // Wait if we're rate limited
             await this.waitWithBackoff(retries);
+            console.log(`[${new Date().toISOString()}] [DEBUG] Waiting for rate limit window in LLM invoke.`);
           }
         }
-
         if (!success) {
           // If we couldn't generate a response after all retries
           throw new Error(`Failed to generate response after ${this.maxRetries} retries due to rate limits`);
         }
-
         console.log(`[${new Date().toISOString()}] Successfully generated response for conversation ${conversationId}`);
+          console.log(`[${new Date().toISOString()}] [DEBUG] LLM invoke failed after max retries.`);
 
         // Log the full context size to help diagnose if embedding usage is working
         const contextSize = context.length;
+        console.log(`[${new Date().toISOString()}] [DEBUG] Response generated. Context size: ${context.length}, Sources used: ${similarDocuments.length}`);
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Generated response using ${similarDocuments.length} code chunks with total context size of ${contextSize} characters`);
         
         // Optionally add a small indicator in the response that RAG was used (can be commented out if not desired)
         // const enhancedResponse = `${response}\n\n[Response generated using ${similarDocuments.length} relevant code chunks from your repository]`;
+        console.log(`[${new Date().toISOString()}] [DEBUG] Returning response object from respondToPrompt.`);
         
         return {
           success: true,
@@ -736,6 +802,7 @@ ${doc.pageContent}
 
         // Handle specific error cases
         if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
+        console.log(`[${new Date().toISOString()}] [DEBUG] respondToPrompt error stack:`, error.stack);
           return {
             success: false,
             response: "I'm currently experiencing high demand. Please try again in a few moments while I optimize my resources.",
@@ -915,8 +982,8 @@ ${doc.pageContent}
   // Helper method to create an appropriate text splitter based on document content
   createSmartSplitter(documents) {
     // Default splitter settings
-    const chunkSize = 1000;
-    const chunkOverlap = 200;
+    const chunkSize = 1500; // Larger chunks for fewer requests
+    const chunkOverlap = 250; // More overlap for better context
 
     // Analyze documents to determine predominant language
     const languageCount = {};
@@ -947,28 +1014,27 @@ ${doc.pageContent}
       }
     });
 
-    // Map to LangChain Language enum
+    // Map to LangChain language string
     const langMap = {
-      javascript: Language.JS,
-      python: Language.PYTHON,
-      java: Language.JAVA,
-      ruby: Language.RUBY,
-      golang: Language.GO,
-      php: Language.PHP,
-      cpp: Language.CPP,
-      csharp: Language.CSHARP,
-      rust: Language.RUST
+      javascript: "js",
+      python: "python",
+      java: "java",
+      ruby: "ruby",
+      golang: "go",
+      php: "php",
+      cpp: "cpp",
+      csharp: "csharp",
+      rust: "rust"
     };
 
-    const language = langMap[predominantLanguage] || Language.JS;
+    const language = langMap[predominantLanguage] || "js";
 
     console.log(`[${new Date().toISOString()}] Using ${predominantLanguage} code splitter for document processing`);
 
-    // Create a language-specific splitter
-    return new RecursiveCharacterTextSplitter({
+    // Create a language-specific splitter using the new API
+    return RecursiveCharacterTextSplitter.fromLanguage(language, {
       chunkSize,
-      chunkOverlap,
-      language
+      chunkOverlap
     });
   }
 

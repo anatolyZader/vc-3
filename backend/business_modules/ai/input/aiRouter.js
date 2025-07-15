@@ -64,4 +64,73 @@ module.exports = fp(async function aiRouter(fastify, opts) {
       }
     }
   });
+
+  fastify.route({
+    method: 'POST',
+    url: '/manual-process-repo-direct',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.manualProcessRepoDirect,
+    schema: {
+      tags: ['ai'],
+      summary: 'Manually process a repository directly for RAG indexing',
+      description: 'Directly trigger repository processing for vector embedding storage without external GitHub API calls',
+      body: {
+        type: 'object',
+        required: ['repoId'],
+        properties: {
+          repoId: { 
+            type: 'string', 
+            minLength: 1,
+            description: 'Repository identifier (e.g., "owner/repo-name")'
+          },
+          githubOwner: { 
+            type: 'string',
+            description: 'GitHub repository owner/organization name (optional, will be extracted from repoId if not provided)'
+          },
+          repoName: { 
+            type: 'string',
+            description: 'GitHub repository name (optional, will be extracted from repoId if not provided)'
+          },
+          branch: { 
+            type: 'string', 
+            default: 'main',
+            description: 'Repository branch to process (defaults to "main")'
+          },
+          repoUrl: { 
+            type: 'string',
+            description: 'Full repository URL (optional, will be constructed if not provided)'
+          }
+        },
+        additionalProperties: false
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            repoId: { type: 'string' },
+            repoData: {
+              type: 'object',
+              properties: {
+                githubOwner: { type: 'string' },
+                repoName: { type: 'string' },
+                repoUrl: { type: 'string' },
+                branch: { type: 'string' },
+                description: { type: 'string' },
+                timestamp: { type: 'string' }
+              },
+              additionalProperties: false
+            },
+            data: { 
+              type: 'object',
+              additionalProperties: true
+            }
+          },
+          additionalProperties: false
+        }
+      }
+    }
+  });
+
 });

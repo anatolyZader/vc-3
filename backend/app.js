@@ -393,7 +393,7 @@ module.exports = async function (fastify, opts) {
       }
     }
   }
-} , async (req, reply) => {
+  } , async (req, reply) => {
     const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
     const googleAccessToken = token.token.access_token;
 
@@ -406,6 +406,8 @@ module.exports = async function (fastify, opts) {
       { id: googleUser.id, username: googleUser.username, jti },
       { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
     );
+
+    fastify.log.info(`DEV: JWT token for user ${googleUser.id}: ${jwt}`);
 
     reply.setCookie('authToken', jwt, {
       path: '/',
