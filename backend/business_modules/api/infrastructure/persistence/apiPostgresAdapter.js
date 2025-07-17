@@ -4,6 +4,9 @@
 
 const { Pool } = require('pg');
 const IApiPersistPort = require('../../domain/ports/IApiPersistPort');
+const UserId = require('../../domain/value_objects/userId');
+const RepoId = require('../../domain/value_objects/repoId');
+const HttpApiSpec = require('../../domain/value_objects/httpApiSpec');
 
 const isLocal = process.env.NODE_ENV !== 'staging'
 
@@ -59,21 +62,24 @@ class ApiPostgresAdapter extends IApiPersistPort {
   }
 
   async saveHttpApi(userId, repoId, httpApi) {
-   const pool = await this.getPool();
+    const userIdVO = new UserId(userId);
+    const repoIdVO = new RepoId(repoId);
+    const specVO = new HttpApiSpec(httpApi);
+    const pool = await this.getPool();
     const client = await pool.connect();
     try {
-        const specJson = JSON.stringify(httpApi);
-        const queryText = `
-            INSERT INTO http_api (user_id, repo_id, spec, updated_at)
-            VALUES ($1, $2, $3::jsonb, NOW())
-            ON CONFLICT (user_id, repo_id)
-            DO UPDATE SET
-            spec = EXCLUDED.spec,
-            updated_at = NOW();
-            `;
-      const queryValues = [userId, repoId, specJson];
+      const specJson = JSON.stringify(specVO.spec);
+      const queryText = `
+        INSERT INTO http_api (user_id, repo_id, spec, updated_at)
+        VALUES ($1, $2, $3::jsonb, NOW())
+        ON CONFLICT (user_id, repo_id)
+        DO UPDATE SET
+        spec = EXCLUDED.spec,
+        updated_at = NOW();
+      `;
+      const queryValues = [userIdVO.value, repoIdVO.value, specJson];
       await client.query(queryText, queryValues);
-      console.log(`[DB] HTTP API saved/updated for user_id='${userId}', repo_id='${repoId}'`);
+      console.log(`[DB] HTTP API saved/updated for user_id='${userIdVO.value}', repo_id='${repoIdVO.value}'`);
     } catch (error) {
       console.error('Error saving http api:', error);
       throw error;
@@ -82,7 +88,9 @@ class ApiPostgresAdapter extends IApiPersistPort {
     }
   }
 
-    async getHttpApi(userId, repoId) {
+  async getHttpApi(userId, repoId) {
+    const userIdVO = new UserId(userId);
+    const repoIdVO = new RepoId(repoId);
     const pool = await this.getPool();
     const client = await pool.connect();
     try {
@@ -92,14 +100,15 @@ class ApiPostgresAdapter extends IApiPersistPort {
         WHERE user_id = $1 AND repo_id = $2
         LIMIT 1;
       `;
-      const queryValues = [userId, repoId];
+      const queryValues = [userIdVO.value, repoIdVO.value];
       const res = await client.query(queryText, queryValues);
       if (res.rows.length === 0) {
-        console.log(`[DB] No HTTP API found for user_id='${userId}', repo_id='${repoId}'`);
+        console.log(`[DB] No HTTP API found for user_id='${userIdVO.value}', repo_id='${repoIdVO.value}'`);
         return null;
       }
       const spec = res.rows[0].spec;
-      return typeof spec === 'string' ? JSON.parse(spec) : spec;
+      const specVO = new HttpApiSpec(typeof spec === 'string' ? JSON.parse(spec) : spec);
+      return specVO.spec;
     } catch (error) {
       console.error('Error fetching http api:', error);
       throw error;

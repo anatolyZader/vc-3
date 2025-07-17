@@ -6,6 +6,16 @@ const { v4: uuidv4 } = require('uuid'); // Add this import
 const fp = require('fastify-plugin');
 
 async function chatController(fastify, options) {
+  // Helper to resolve chatService from DI scope or container
+  async function getChatService(request) {
+    if (request.diScope && typeof request.diScope.resolve === 'function') {
+      return await request.diScope.resolve('chatService');
+    }
+    if (fastify.diContainer && typeof fastify.diContainer.resolve === 'function') {
+      return await fastify.diContainer.resolve('chatService');
+    }
+    throw new Error('DI scope/container is not available');
+  }
 
     fastify.decorate('connectWebSocket', async (request, reply) => {
     try {
@@ -42,7 +52,7 @@ async function chatController(fastify, options) {
       const { title } = request.body;
       const userId = request.user.id;
       
-      const chatService = await request.diScope.resolve('chatService');
+      const chatService = await getChatService(request);
       const conversationId = await chatService.startConversation(userId, title);
       return { conversationId };
     } catch (error) {
@@ -68,7 +78,7 @@ async function chatController(fastify, options) {
       
       // Resolve chat service
       console.log('🔄 Resolving chatService...');
-      const chatService = await request.diScope.resolve('chatService');
+      const chatService = await getChatService(request);
       console.log('✅ ChatService resolved successfully');
       
       // Call the service
@@ -101,7 +111,7 @@ async function chatController(fastify, options) {
       const { conversationId } = request.params;
       const userId = request.user.id;
       
-      const chatService = await request.diScope.resolve('chatService');
+      const chatService = await getChatService(request);
       const conversation = await chatService.fetchConversation(userId, conversationId);
       return conversation;
     } catch (error) {
@@ -117,7 +127,7 @@ async function chatController(fastify, options) {
       const { newTitle } = request.body;
       const userId = request.user.id;
       
-      const chatService = await request.diScope.resolve('chatService');
+      const chatService = await getChatService(request);
       await chatService.renameConversation(userId, conversationId, newTitle);
       return { message: 'Conversation renamed successfully' };
     } catch (error) {
@@ -132,7 +142,7 @@ async function chatController(fastify, options) {
       const { conversationId } = request.params;
       const userId = request.user.id;
       
-      const chatService = await request.diScope.resolve('chatService');
+      const chatService = await getChatService(request);
       await chatService.deleteConversation(userId, conversationId);
       return { message: 'Conversation deleted successfully' };
     } catch (error) {
@@ -166,7 +176,7 @@ fastify.decorate('addQuestion', async (request, reply) => {
     
     fastify.log.info(`[${new Date().toISOString()}] Processing question for user ${userId}, conversation ${conversationId}`);
     
-    const chatService = await request.diScope.resolve('chatService');
+    const chatService = await getChatService(request);
     const questionId = await chatService.addQuestion(userId, conversationId, prompt);
     
     // Send immediate HTTP response
@@ -202,14 +212,14 @@ fastify.decorate('addQuestion', async (request, reply) => {
   fastify.decorate('addAnswer', async (request, reply) => {
     try {
       const { conversationId } = request.params;
-      const { aiResponse } = request.body;
+      const { aiResponse, fromEvent } = request.body || {};
       const userId = request.user.id;
-      
+
       // Enhanced logging with timestamps and more details
       const timestamp = new Date().toISOString();
       fastify.log.info(`[${timestamp}] Adding answer to conversation ${conversationId} for user ${userId}`);
       console.log(`[${timestamp}] Adding answer (${aiResponse?.length || 0} chars) to conversation ${conversationId} for user ${userId}`);
-      
+
       // Validate the input parameters
       if (!conversationId) {
         throw new Error('Missing conversationId parameter');
@@ -220,24 +230,26 @@ fastify.decorate('addQuestion', async (request, reply) => {
       if (!userId) {
         throw new Error('Missing userId in request user object');
       }
-      
-      const chatService = await request.diScope.resolve('chatService');
-      
+
+      const chatService = await getChatService(request);
+
       if (!chatService) {
         throw new Error('ChatService could not be resolved from DI container');
       }
-      
+
       // Log the service state to help debugging
       console.log(`📊 ChatService state:`, {
         hasAddAnswerMethod: typeof chatService.addAnswer === 'function',
         serviceType: typeof chatService
       });
-      
-      const answerId = await chatService.addAnswer(userId, conversationId, aiResponse);
-      
+
+      // If called from event handler, set fromEvent=true to prevent republishing
+      const isFromEvent = !!fromEvent || (!reply.send); // reply.send is undefined in event context
+      const answerId = await chatService.addAnswer(userId, conversationId, aiResponse, isFromEvent);
+
       console.log(`✅ Answer successfully added with ID: ${answerId}`);
-      
-      return { 
+
+      return {
         answerId,
         status: 'success',
         timestamp
@@ -249,9 +261,9 @@ fastify.decorate('addQuestion', async (request, reply) => {
         stack: error.stack,
         name: error.name
       });
-      
+
       fastify.log.error(`[${new Date().toISOString()}] Error adding answer:`, error);
-      
+
       // If this is being called via the pubsub listener, we need to be more tolerant
       if (!reply.send) {
         console.log('⚠️ Called via pubsub listener, returning error without throwing');
@@ -261,7 +273,7 @@ fastify.decorate('addQuestion', async (request, reply) => {
           timestamp: new Date().toISOString()
         };
       }
-      
+
       throw fastify.httpErrors.internalServerError('Failed to add answer', { cause: error });
     }
   });

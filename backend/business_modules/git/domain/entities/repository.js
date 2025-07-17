@@ -1,23 +1,28 @@
 // repository.js
 'use strict';
 
+const UserId = require('../value_objects/userId');
+const RepoId = require('../value_objects/repoId');
+
 class Repository {
-  constructor(userId) {
-    this.userId = userId;
+  constructor(userIdRaw) {
+    this.userId = new UserId(userIdRaw);
   }
 
-  async fetchRepo(repoId, IGitPort) {
-    const data = await IGitPort.fetchRepo(this.userId, repoId);
-    console.log(`Repository fetched: ${repoId}`);
-    return data; 
+  async fetchRepo(repoIdRaw, IGitPort) {
+    const repoId = new RepoId(repoIdRaw);
+    const data = await IGitPort.fetchRepo(this.userId.value, repoId.value);
+    console.log(`Repository fetched: ${repoId.value}`);
+    return data;
   }
 
-  async fetchWiki(repoId, IGitPort) {
-    const data = await IGitPort.fetchWiki(this.userId, repoId);
-    console.log(`Wiki fetched for repository: ${repoId}`);
-    return data; 
+  async fetchWiki(repoIdRaw, IGitPort) {
+    const repoId = new RepoId(repoIdRaw);
+    const data = await IGitPort.fetchWiki(this.userId.value, repoId.value);
+    console.log(`Wiki fetched for repository: ${repoId.value}`);
+    return data;
   }
-
 }
+
 
 module.exports = Repository;

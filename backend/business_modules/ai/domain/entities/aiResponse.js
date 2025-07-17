@@ -1,16 +1,31 @@
 // aiResponse.js
 /* eslint-disable no-unused-vars */
+
 'use strict';
+
+const AiResponseGeneratedEvent = require('../events/aiResponseGeneratedEvent');
+const UserId = require('../value_objects/userId');
+const Prompt = require('../value_objects/prompt');
 
 class AIResponse {
   constructor(userId) {
-    this.userId = userId;   
+    if (!(userId instanceof UserId)) throw new Error('userId must be a UserId value object');
+    this.userId = userId;
   }
 
   async respondToPrompt(userId, conversationId, prompt, IAIPort) {
-    const response = await IAIPort.respondToPrompt(userId, conversationId, prompt);
+    if (!(userId instanceof UserId)) throw new Error('userId must be a UserId value object');
+    if (!(prompt instanceof Prompt)) throw new Error('prompt must be a Prompt value object');
+    const response = await IAIPort.respondToPrompt(userId.value, conversationId, prompt.text);
     console.log(`AI Response received: ${response}`);
-    return response;
+    // Emit domain event
+    const event = new AiResponseGeneratedEvent({
+      userId: userId.value,
+      conversationId,
+      prompt: prompt.text,
+      response
+    });
+    return { response, event };
   }
 }
 

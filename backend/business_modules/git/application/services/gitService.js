@@ -4,6 +4,10 @@
 
 const Repository = require('../../domain/entities/repository');
 const IGitService = require('./interfaces/IGitService');
+const UserId = require('../../domain/value_objects/userId');
+const RepoId = require('../../domain/value_objects/repoId');
+const RepoFetchedEvent = require('../../domain/events/repoFetchedEvent');
+const WikiFetchedEvent = require('../../domain/events/wikiFetchedEvent');
 
 class GitService extends IGitService {
   constructor({gitMessagingAdapter, gitAdapter, gitPersistAdapter}) {
@@ -13,40 +17,25 @@ class GitService extends IGitService {
     this.gitPersistAdapter = gitPersistAdapter;  
   }
 
-  async fetchRepo(userId, repoId, correlationId) {
+  async fetchRepo(userIdRaw, repoIdRaw, correlationId) {
     try {
+      const userId = new UserId(userIdRaw);
+      const repoId = new RepoId(repoIdRaw);
       console.log(`[GitService] Starting fetchRepo: userId=${userId}, repoId=${repoId}`);
       
       // Fetch repo from GitHub
       const repository = new Repository(userId);
-      const repo = await repository.fetchRepo(repoId, this.gitAdapter);
+      const repo = await repository.fetchRepo(repoId.value, this.gitAdapter);
       console.log(`[GitService] ✅ Repository fetched from GitHub successfully`);
       
-      // Publish to Pub/Sub
-      try {
-        await this.gitMessagingAdapter.publishRepoFetchedEvent(repo, correlationId);
-        console.log(`[GitService] ✅ Event published to Pub/Sub successfully`);
-      } catch (pubsubError) {
-        console.warn(`[GitService] ⚠️ Pub/Sub publish failed:`, pubsubError.message);
-        // Don't throw - continue with persistence
-      }
+      // Publish domain event
+      const event = new RepoFetchedEvent({ userId: userId.value, repoId: repoId.value, repo });
+      await this.gitMessagingAdapter.publishRepoFetchedEvent(event, correlationId);
+      console.log(`[GitService] ✅ Event published to Pub/Sub successfully`);
       
       // Persist to database
-      try {
-        await this.gitPersistAdapter.persistRepo(userId, repoId, repo);
-        console.log(`[GitService] ✅ Repository persisted to database successfully`);
-      } catch (persistError) {
-        console.error(`[GitService] ❌ Database persistence failed:`, {
-          message: persistError.message,
-          code: persistError.code,
-          detail: persistError.detail,
-          hint: persistError.hint,
-          userId,
-          repoId,
-          stack: persistError.stack
-        });
-        throw persistError; // Re-throw database errors for now
-      }
+      await this.gitPersistAdapter.persistRepo(userId.value, repoId.value, repo);
+      console.log(`[GitService] ✅ Repository persisted to database successfully`);
       
       console.log(`[GitService] ✅ fetchRepo completed successfully`);
       return repo;
@@ -56,8 +45,8 @@ class GitService extends IGitService {
         message: error.message,
         code: error.code,
         detail: error.detail,
-        userId,
-        repoId,
+        userId: userIdRaw,
+        repoId: repoIdRaw,
         correlationId,
         stack: error.stack
       });
@@ -65,48 +54,35 @@ class GitService extends IGitService {
     }
   }
 
-  async fetchWiki(userId, repoId, correlationId) {
+  async fetchWiki(userIdRaw, repoIdRaw, correlationId) {
     try {
+      const userId = new UserId(userIdRaw);
+      const repoId = new RepoId(repoIdRaw);
       console.log(`[GitService] Starting fetchWiki: userId=${userId}, repoId=${repoId}`);
       
       const repository = new Repository(userId);
-      const wiki = await repository.fetchWiki(repoId, this.gitAdapter);
+      const wikiData = await repository.fetchWiki(repoId.value, this.gitAdapter);
       console.log(`[GitService] ✅ Wiki fetched from GitHub successfully`);
       
-      // Publish to Pub/Sub
-      try {
-        await this.gitMessagingAdapter.publishWikiFetchedEvent(wiki, correlationId);
-        console.log(`[GitService] ✅ Wiki event published to Pub/Sub successfully`);
-      } catch (pubsubError) {
-        console.warn(`[GitService] ⚠️ Pub/Sub publish failed:`, pubsubError.message);
-      }
+      // Publish domain event
+      const event = new WikiFetchedEvent({ userId: userId.value, repoId: repoId.value, wiki: wikiData });
+      await this.gitMessagingAdapter.publishWikiFetchedEvent(event, correlationId);
+      console.log(`[GitService] ✅ Wiki event published to Pub/Sub successfully`);
       
       // Persist to database
-      try {
-        await this.gitPersistAdapter.persistWiki(userId, repoId, wiki);
-        console.log(`[GitService] ✅ Wiki persisted to database successfully`);
-      } catch (persistError) {
-        console.error(`[GitService] ❌ Wiki persistence failed:`, {
-          message: persistError.message,
-          code: persistError.code,
-          detail: persistError.detail,
-          userId,
-          repoId,
-          stack: persistError.stack
-        });
-        throw persistError;
-      }
+      await this.gitPersistAdapter.persistWiki(userId.value, repoId.value, wikiData);
+      console.log(`[GitService] ✅ Wiki persisted to database successfully`);
       
       console.log(`[GitService] ✅ fetchWiki completed successfully`);
-      return wiki;
+      return wikiData;
       
     } catch (error) {
       console.error(`[GitService] ❌ fetchWiki failed:`, {
         message: error.message,
         code: error.code,
         detail: error.detail,
-        userId,
-        repoId,
+        userId: userIdRaw,
+        repoId: repoIdRaw,
         correlationId,
         stack: error.stack
       });

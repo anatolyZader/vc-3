@@ -40,12 +40,21 @@ class ChatService extends IChatService {
     return prompt;
   }
 
-  async addAnswer(userId, conversationId, answer) {
+  /**
+   * Adds an answer to a conversation. Prevents event loop by not republishing if fromEvent is true.
+   * @param {string} userId
+   * @param {string} conversationId
+   * @param {string} answer
+   * @param {boolean} [fromEvent=false] - If true, do not republish event
+   * @returns {string} answerId
+   */
+  async addAnswer(userId, conversationId, answer, fromEvent = false) {
     const conversation = new Conversation(userId, conversationId);
-    await conversation.addAnswer(conversationId, answer, this.chatPersistAdapter);
-    await this.chatMessagingAdapter.addAnswer({userId, conversationId, answer});
-    return answer;
-    
+    const answerId = await conversation.addAnswer(conversationId, answer, this.chatPersistAdapter);
+    if (!fromEvent) {
+      await this.chatMessagingAdapter.addAnswer({userId, conversationId, answer, answerId});
+    }
+    return answerId;
   }
 
   async renameConversation(userId, conversationId, newTitle) {

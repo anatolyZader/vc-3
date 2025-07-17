@@ -5,6 +5,11 @@
 const IAIService = require('./interfaces/IAIService');
 const AIResponse = require('../../domain/entities/aiResponse');
 const PushedRepo = require('../../domain/entities/pushedRepo');
+const UserId = require('../../domain/value_objects/userId');
+const RepoId = require('../../domain/value_objects/repoId');
+const Prompt = require('../../domain/value_objects/prompt');
+const AiResponseGeneratedEvent = require('../../domain/events/aiResponseGeneratedEvent');
+const RepoPushedEvent = require('../../domain/events/repoPushedEvent');
 
 class AIService extends IAIService {
   constructor({ aiAdapter, aiPersistAdapter, aiMessagingAdapter }) {
@@ -16,22 +21,34 @@ class AIService extends IAIService {
 
   async respondToPrompt(userId, conversationId, prompt) {
     try {
-      console.log(`[${new Date().toISOString()}] AI service processing prompt for user ${userId}: "${prompt.substring(0, 50)}..."`);
-      
-      // Call the domain entity to get the response
-      const aiResponse = new AIResponse(userId);
-      const response = await aiResponse.respondToPrompt(userId, conversationId, prompt, this.aiAdapter);
-      
-      console.log(`[${new Date().toISOString()}] Got response from AI adapter:`, typeof response);
-      
+      const userIdVO = new UserId(userId);
+      const promptVO = new Prompt(prompt);
+      console.log(`[${new Date().toISOString()}] AI service processing prompt for user ${userIdVO.value}: "${promptVO.text.substring(0, 50)}..."`);
+      // Call the domain entity to get the response and event
+      const aiResponse = new AIResponse(userIdVO);
+      const { response } = await aiResponse.respondToPrompt(userIdVO, conversationId, promptVO, this.aiAdapter);
+      // Create and publish domain event
+      const event = new AiResponseGeneratedEvent({
+        userId: userIdVO.value,
+        conversationId,
+        prompt: promptVO.text,
+        response
+      });
+      if (this.aiMessagingAdapter) {
+        try {
+          await this.aiMessagingAdapter.publishAiResponse('aiResponseGenerated', event);
+        } catch (messagingError) {
+          console.error('Error publishing AiResponseGeneratedEvent:', messagingError);
+        }
+      }
       // Save the response to the database - but don't block on failure
       try {
         if (this.aiPersistAdapter) {
           await this.aiPersistAdapter.saveAiResponse({
-            userId, 
+            userId: userIdVO.value, 
             conversationId, 
             repoId: null, // Optional field
-            prompt, 
+            prompt: promptVO.text, 
             response: typeof response === 'object' ? JSON.stringify(response) : response
           });
           console.log(`[${new Date().toISOString()}] Saved AI response to database`);
@@ -42,7 +59,6 @@ class AIService extends IAIService {
         console.error(`[${new Date().toISOString()}] Failed to save AI response to database:`, dbError.message);
         // Continue even if database save fails - don't rethrow
       }
-      
       // Return the response - extract content if it's an object with response property
       if (typeof response === 'object' && response !== null) {
         return response.response || response;
@@ -75,37 +91,41 @@ class AIService extends IAIService {
 
   async processPushedRepo(userId, repoId, repoData) {
     try {
-      console.log(`[${new Date().toISOString()}] Processing pushed repository for user: ${userId}, repository: ${repoId}`);
-  
-      
-      const pushedRepo = new PushedRepo(userId, repoId);
-      const response = await pushedRepo.processPushedRepo(userId, repoId, repoData, this.aiAdapter);
-
-      // Publish the event using the messaging adapter
-      try {
-        if (this.aiMessagingAdapter) {
-          await this.aiMessagingAdapter.publishAiResponse('repoPushed', {
-            userId,
-            repoId,
-            data: response 
-          });
+      const userIdVO = new UserId(userId);
+      const repoIdVO = new RepoId(repoId);
+      console.log(`[${new Date().toISOString()}] Processing pushed repository for user: ${userIdVO.value}, repository: ${repoIdVO.value}`);
+      const pushedRepo = new PushedRepo(userIdVO, repoIdVO);
+      const { response } = await pushedRepo.processPushedRepo(userIdVO, repoIdVO, repoData, this.aiAdapter);
+      // Create and publish domain event
+      const event = new RepoPushedEvent({
+        userId: userIdVO.value,
+        repoId: repoIdVO.value,
+        repoData
+      });
+      if (this.aiMessagingAdapter) {
+        try {
+          await this.aiMessagingAdapter.publishAiResponse('repoPushed', event);
+        } catch (messagingError) {
+          console.error('Error publishing RepoPushedEvent:', messagingError);
         }
-      } catch (messagingError) {
-        console.error(`[${new Date().toISOString()}] Error publishing repoPushed event:`, messagingError);
-        // Continue even if messaging fails
       }
-
       // Save the data to the database
       try {
         if (this.aiPersistAdapter) {
-          await this.aiPersistAdapter.saveGitData(userId, repoId, JSON.stringify(repoData));
-          console.log(`[${new Date().toISOString()}] Successfully processed repository ${repoId} for user ${userId}`);
+          await this.aiPersistAdapter.saveRepoPush({
+            userId: userIdVO.value,
+            repoId: repoIdVO.value,
+            repoData,
+            response: typeof response === 'object' ? JSON.stringify(response) : response
+          });
+          console.log(`[${new Date().toISOString()}] Saved pushed repo to database`);
+        } else {
+          console.warn(`[${new Date().toISOString()}] aiPersistAdapter is not available, skipping database save`);
         }
       } catch (dbError) {
-        console.error(`[${new Date().toISOString()}] Error saving repository data:`, dbError);
-        // Continue even if database save fails
+        console.error(`[${new Date().toISOString()}] Failed to save pushed repo to database:`, dbError.message);
+        // Continue even if database save fails - don't rethrow
       }
-      
       return response;
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error processing repository:`, error);
