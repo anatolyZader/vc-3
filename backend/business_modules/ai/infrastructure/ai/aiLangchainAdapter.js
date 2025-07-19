@@ -12,6 +12,113 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 
 
 class AILangchainAdapter extends IAIPort {
+  // Automate indexing of httpApiSpec.json and app_wiki.txt into Pinecone
+  async indexCoreDocsToPinecone() {
+    // Load API spec
+    const apiSpecChunk = await this.loadApiSpec('httpApiSpec.json');
+    // Load wiki file
+    const wikiChunk = await this.loadWiki('app_wiki.txt');
+
+    const documents = [];
+    if (apiSpecChunk) {
+      // Parse JSON for targeted chunking
+      let apiSpecJson;
+      try {
+        apiSpecJson = JSON.parse(apiSpecChunk.pageContent);
+      } catch (e) {
+        apiSpecJson = null;
+      }
+      if (apiSpecJson) {
+        // Tags chunk
+        if (Array.isArray(apiSpecJson.tags)) {
+          const tagsText = apiSpecJson.tags.map(tag => `- ${tag.name}: ${tag.description}`).join('\n');
+          documents.push({
+            pageContent: `API Tags:\n${tagsText}`,
+            metadata: { source: 'httpApiSpec.json', type: 'apiSpecTags' }
+          });
+        }
+        // Endpoints chunk
+        if (apiSpecJson.paths && typeof apiSpecJson.paths === 'object') {
+          const endpointsText = Object.entries(apiSpecJson.paths).map(([path, methods]) => {
+            return Object.entries(methods).map(([method, details]) => {
+              const tagList = details.tags && details.tags.length ? ` [tags: ${details.tags.join(', ')}]` : '';
+              return `- ${method.toUpperCase()} ${path}${tagList}`;
+            }).join('\n');
+          }).join('\n');
+          documents.push({
+            pageContent: `API Endpoints:\n${endpointsText}`,
+            metadata: { source: 'httpApiSpec.json', type: 'apiSpecEndpoints' }
+          });
+        }
+        // Info chunk
+        if (apiSpecJson.info) {
+          documents.push({
+            pageContent: `API Info:\nTitle: ${apiSpecJson.info.title}\nDescription: ${apiSpecJson.info.description}\nVersion: ${apiSpecJson.info.version}`,
+            metadata: { source: 'httpApiSpec.json', type: 'apiSpecInfo' }
+          });
+        }
+      }
+      // Add full spec as fallback
+      documents.push({
+        pageContent: apiSpecChunk.pageContent,
+        metadata: { source: 'httpApiSpec.json', type: 'apiSpecFull' }
+      });
+    }
+    if (wikiChunk) {
+      documents.push({
+        pageContent: wikiChunk.pageContent,
+        metadata: { source: 'app_wiki.txt', type: 'wiki' }
+      });
+    }
+
+    // Use smart splitter for chunking (for wiki only)
+    const wikiDocs = documents.filter(doc => doc.metadata.type === 'wiki');
+    let splittedDocs = [];
+    if (wikiDocs.length > 0) {
+      const splitter = this.createSmartSplitter(wikiDocs);
+      splittedDocs = await splitter.splitDocuments(wikiDocs);
+    }
+    // Add all API spec chunks (no further splitting)
+    splittedDocs = splittedDocs.concat(documents.filter(doc => doc.metadata.source === 'httpApiSpec.json'));
+
+    // Generate unique IDs for Pinecone
+    const userId = this.userId || 'system';
+    const repoId = 'core-docs';
+    const documentIds = splittedDocs.map((doc, index) =>
+      `${userId}_${repoId}_${this.sanitizeId(doc.metadata.type || doc.metadata.source || 'unknown')}_chunk_${index}`
+    );
+
+    // Store in Pinecone
+    if (this.vectorStore) {
+      await this.vectorStore.addDocuments(splittedDocs, { ids: documentIds });
+      console.log(`[${new Date().toISOString()}] ✅ Indexed core docs (API spec & wiki) to Pinecone: ${splittedDocs.length} chunks`);
+    } else {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Pinecone vectorStore not initialized, cannot index core docs.`);
+    }
+  }
+  // Helper to load JSON spec file from backend root
+  async loadApiSpec(filePath) {
+    const fs = require('fs');
+    const path = require('path');
+    const backendRoot = path.resolve(__dirname, '../../../..');
+    const absPath = path.resolve(backendRoot, filePath);
+    try {
+      const content = await fs.promises.readFile(absPath, 'utf8');
+      // Optionally parse and pretty-print JSON
+      let prettyContent = content;
+      try {
+        const json = JSON.parse(content);
+        prettyContent = JSON.stringify(json, null, 2);
+      } catch (e) {}
+      return {
+        pageContent: prettyContent,
+        metadata: { source: 'httpApiSpec.json', type: 'apiSpec' }
+      };
+    } catch (err) {
+      console.warn(`[${new Date().toISOString()}] Could not load API spec file at ${absPath}: ${err.message}`);
+      return null;
+    }
+  }
 
   // Helper to load wiki file from backend root
   async loadWiki(filePath) {
@@ -615,11 +722,32 @@ class AILangchainAdapter extends IAIPort {
   // 2. Retrieval and generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
 
+  // Helper to extract endpoints and tags from OpenAPI spec
+  formatApiSpecSummary(apiSpec) {
+    if (!apiSpec) return '';
+    let summary = 'API Endpoints and Tags from OpenAPI spec:';
+    // List tags
+    if (Array.isArray(apiSpec.tags)) {
+      summary += '\n\nTags:';
+      apiSpec.tags.forEach(tag => {
+        summary += `\n- ${tag.name}: ${tag.description}`;
+      });
+    }
+    // List endpoints
+    if (apiSpec.paths && typeof apiSpec.paths === 'object') {
+      summary += '\n\nEndpoints:';
+      Object.entries(apiSpec.paths).forEach(([path, methods]) => {
+        Object.entries(methods).forEach(([method, details]) => {
+          const tagList = details.tags && details.tags.length ? ` [tags: ${details.tags.join(', ')}]` : '';
+          summary += `\n- ${method.toUpperCase()} ${path}${tagList}`;
+        });
+      });
+    }
+    return summary;
+  }
+
   async respondToPrompt(userId, conversationId, prompt) {
-    // Set the userId from the parameter
     this.setUserId(userId);
-    
-    // Additional check to ensure userId is set properly
     if (!this.userId) {
       console.warn(`[${new Date().toISOString()}] Failed to set userId in respondToPrompt. Provided userId: ${userId}`);
       return {
@@ -635,6 +763,16 @@ class AILangchainAdapter extends IAIPort {
     // Use the queue system for all AI operations
     return this.queueRequest(async () => {
       try {
+        // Load API spec and format summary
+        const apiSpec = await this.loadApiSpec('httpApiSpec.json');
+        const apiSpecSummary = this.formatApiSpecSummary(apiSpec);
+        // Load wiki file
+        const wikiText = await this.loadWiki('app_wiki.txt');
+            // Build context: code chunks + wiki + API spec summary
+            let contextIntro = '';
+            if (typeof wikiText === 'string') contextIntro += wikiText + '\n\n';
+            if (typeof apiSpecSummary === 'string') contextIntro += apiSpecSummary + '\n\n';
+
         // If no vectorStore or pinecone client, fall back to standard mode
         if (!this.vectorStore || !this.pinecone) {
           console.warn(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector database not available, falling back to standard model response.`);
@@ -699,7 +837,7 @@ class AILangchainAdapter extends IAIPort {
               sources: similarDocuments.map(doc => doc.metadata.source || 'Unknown'),
               firstDocContentPreview: similarDocuments[0].pageContent.substring(0, 100) + '...'
             });
-            console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch called with prompt: ${prompt}`);
+            console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch called with user: ${userId}, prompt: ${prompt}`);
           }
           console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch returned ${similarDocuments.length} documents.`);
         } catch (error) {
@@ -748,9 +886,19 @@ class AILangchainAdapter extends IAIPort {
           console.log(`[${new Date().toISOString()}] [DEBUG] No app wiki file found at: ${wikiPath}`);
         }
 
+        // Load API spec file and add to context
+        const apiSpecPath = process.env.APP_API_SPEC_PATH || './httpApiSpec.json';
+        const apiSpecChunk = await this.loadApiSpec(apiSpecPath);
+        if (apiSpecChunk) {
+          similarDocuments.unshift(apiSpecChunk); // Add at the start for priority
+          console.log(`[${new Date().toISOString()}] [DEBUG] Added API spec file to context: ${apiSpecPath}`);
+        } else {
+          console.log(`[${new Date().toISOString()}] [DEBUG] No API spec file found at: ${apiSpecPath}`);
+        }
+
         // Format the context from retrieved documents (now includes wiki)
         console.log(`[${new Date().toISOString()}] [DEBUG] Formatting context from retrieved documents.`);
-        const context = similarDocuments.map(doc => {
+            const context = similarDocuments.map(doc => {
           const source = doc.metadata.source || 'Unknown source';
           return `File: ${source}\n${doc.pageContent.substring(0, 500)}...`;
         }).join('\n\n');
@@ -806,12 +954,8 @@ class AILangchainAdapter extends IAIPort {
           console.log(`[${new Date().toISOString()}] [DEBUG] LLM invoke failed after max retries.`);
 
         // Log the full context size to help diagnose if embedding usage is working
-        const contextSize = context.length;
-        console.log(`[${new Date().toISOString()}] [DEBUG] Response generated. Context size: ${context.length}, Sources used: ${similarDocuments.length}`);
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Generated response using ${similarDocuments.length} code chunks with total context size of ${contextSize} characters`);
-        
-        // Optionally add a small indicator in the response that RAG was used (can be commented out if not desired)
-        // const enhancedResponse = `${response}\n\n[Response generated using ${similarDocuments.length} relevant code chunks from your repository]`;
+            const contextSize = (typeof finalContext !== 'undefined' ? finalContext.length : (typeof context !== 'undefined' ? context.length : contextIntro.length));
+        console.log(`[${new Date().toISOString()}] [DEBUG] Response generated. Context size: ${context.length}`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Returning response object from respondToPrompt.`);
         
         return {
@@ -819,27 +963,11 @@ class AILangchainAdapter extends IAIPort {
           response,
           conversationId,
           timestamp: new Date().toISOString(),
-          sourcesUsed: similarDocuments.length,
           ragEnabled: true,
           contextSize
         };
-
       } catch (error) {
         console.error(`[${new Date().toISOString()}] Error in respondToPrompt:`, error.message);
-
-        // Handle specific error cases
-        if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
-        console.log(`[${new Date().toISOString()}] [DEBUG] respondToPrompt error stack:`, error.stack);
-          return {
-            success: false,
-            response: "I'm currently experiencing high demand. Please try again in a few moments while I optimize my resources.",
-            conversationId,
-            timestamp: new Date().toISOString(),
-            error: error.message
-          };
-        }
-
-        // Generic error response
         return {
           success: false,
           response: "I encountered an issue while processing your request. Please try again shortly.",

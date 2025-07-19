@@ -3,8 +3,8 @@
 
 const path = require('path');
 const IApiPort = require('../../domain/ports/IApiPort');
-const projectRoot = path.resolve(__dirname, './');
-const specPath = path.join(projectRoot, 'httpApiSpec.json');
+const backendRoot = path.resolve(__dirname, '../../../..');
+const specPath = path.join(backendRoot, 'httpApiSpec.json');
 
 // Load and parse the OpenAPI spec once at module load
 const openapiSpec = require(specPath);

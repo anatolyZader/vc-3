@@ -648,6 +648,10 @@
   ],
   "tags": [
     {
+      "name": "kukureku",
+      "description": "kukureku management endpoints"
+    },
+    {
       "name": "auth",
       "description": "Authentication endpoints"
     },
