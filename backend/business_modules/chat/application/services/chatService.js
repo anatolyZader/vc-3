@@ -4,6 +4,15 @@
 const Conversation = require('../../domain/aggregates/conversation');
 const ConversationsHistory = require('../../domain/entities/conversationsHistory');
 const IChatService = require('./interfaces/IChatService');
+const QuestionContent = require('../../domain/value_objects/questionContent');
+let AnswerContent;
+try {
+  AnswerContent = require('../../domain/value_objects/answerContent');
+} catch (e) {
+  AnswerContent = null;
+}
+const ConversationId = require('../../domain/value_objects/conversationId');
+const ConversationDeletedEvent = require('../../domain/events/conversationDeletedEvent');
 
 
 class ChatService extends IChatService {
@@ -33,26 +42,52 @@ class ChatService extends IChatService {
   }
 
   async addQuestion(userId, conversationId, prompt) {
-    console.log(`paylod attached in chatService to the addQuestion() call to chatMessagingAdapter: userId = ${userId}, conversationId = ${conversationId} and prompt = ${prompt}`);
+    const questionContent = new QuestionContent(prompt);
+    console.log(`paylod attached in chatService to the addQuestion() call to chatMessagingAdapter: userId = ${userId}, conversationId = ${conversationId} and prompt = ${questionContent.toString()}`);
     const conversation = new Conversation(userId);
-    await conversation.addQuestion(conversationId, prompt, this.chatPersistAdapter);
-    await this.chatMessagingAdapter.addQuestion({userId, conversationId, prompt}); // the message goes to the ai module (data.event === 'questionSent') => aiLangchainAdapter / async respondToPrompt(userId, conversationId, repoId, prompt) 
-    return prompt;
+    const questionId = await conversation.addQuestion(conversationId, questionContent, this.chatPersistAdapter);
+
+    // Publish domain event: QuestionAddedEvent
+    const QuestionAddedEvent = {
+      eventType: 'questionAdded',
+      userId,
+      conversationId,
+      questionId,
+      prompt: questionContent.toString(),
+      timestamp: new Date().toISOString()
+    };
+    if (this.chatMessagingAdapter && typeof this.chatMessagingAdapter.publishEvent === 'function') {
+      await this.chatMessagingAdapter.publishEvent('questionAdded', QuestionAddedEvent);
+    } else {
+      // fallback to legacy method
+      await this.chatMessagingAdapter.addQuestion({userId, conversationId, prompt: questionContent.toString()});
+    }
+    return questionId;
   }
 
-  /**
-   * Adds an answer to a conversation. Prevents event loop by not republishing if fromEvent is true.
-   * @param {string} userId
-   * @param {string} conversationId
-   * @param {string} answer
-   * @param {boolean} [fromEvent=false] - If true, do not republish event
-   * @returns {string} answerId
-   */
   async addAnswer(userId, conversationId, answer, fromEvent = false) {
+    // Use AnswerContent value object if available
+    let answerContent = answer;
+    if (AnswerContent) {
+      answerContent = new AnswerContent(answer);
+    }
     const conversation = new Conversation(userId, conversationId);
-    const answerId = await conversation.addAnswer(conversationId, answer, this.chatPersistAdapter);
+    const answerId = await conversation.addAnswer(conversationId, answerContent, this.chatPersistAdapter);
     if (!fromEvent) {
-      await this.chatMessagingAdapter.addAnswer({userId, conversationId, answer, answerId});
+      // Publish domain event: AnswerAddedEvent
+      const AnswerAddedEvent = {
+        eventType: 'answerAdded',
+        userId,
+        conversationId,
+        answerId,
+        answer: answerContent.toString ? answerContent.toString() : answerContent,
+        timestamp: new Date().toISOString()
+      };
+      if (this.chatMessagingAdapter && typeof this.chatMessagingAdapter.publishEvent === 'function') {
+        await this.chatMessagingAdapter.publishEvent('answerAdded', AnswerAddedEvent);
+      } else {
+        await this.chatMessagingAdapter.addAnswer({userId, conversationId, answer: answerContent.toString ? answerContent.toString() : answerContent, answerId});
+      }
     }
     return answerId;
   }
@@ -65,10 +100,19 @@ class ChatService extends IChatService {
   };
 
   async deleteConversation(userId, conversationId) {
+    const conversationIdVO = new ConversationId(conversationId);
     const conversation = new Conversation(userId);
-    await conversation.deleteConversation(conversationId, this.chatPersistAdapter);
-    await this.chatMessagingAdapter.deleteConversation({userId, conversationId});
-    return conversationId;
+    await conversation.deleteConversation(conversationIdVO.toString(), this.chatPersistAdapter);
+    // Publish domain event
+    const event = new ConversationDeletedEvent({
+      userId,
+      conversationId: conversationIdVO.toString(),
+      occurredAt: new Date()
+    });
+    if (this.chatMessagingAdapter && typeof this.chatMessagingAdapter.publishEvent === 'function') {
+      await this.chatMessagingAdapter.publishEvent('conversationDeleted', event);
+    }
+    return conversationIdVO.toString();
   }
 
 }
