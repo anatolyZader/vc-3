@@ -12,6 +12,25 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 
 
 class AILangchainAdapter extends IAIPort {
+
+  // Helper to load wiki file from backend root
+  async loadWiki(filePath) {
+    const fs = require('fs');
+    const path = require('path');
+    // Always resolve from backend root
+    const backendRoot = path.resolve(__dirname, '../../../..');
+    const absPath = path.resolve(backendRoot, filePath);
+    try {
+      const content = await fs.promises.readFile(absPath, 'utf8');
+      return {
+        pageContent: content,
+        metadata: { source: 'app_wiki.txt', type: 'wiki' }
+      };
+    } catch (err) {
+      console.warn(`[${new Date().toISOString()}] Could not load app wiki file at ${absPath}: ${err.message}`);
+      return null;
+    }
+  }
   constructor(options = {}) {
     super();
 
@@ -719,12 +738,20 @@ class AILangchainAdapter extends IAIPort {
         // Process the retrieved documents
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Found ${similarDocuments.length} relevant documents`);
 
-        // Format the context from retrieved documents
+        // Load plain-language wiki file and add to context
+        const wikiPath = process.env.APP_WIKI_PATH || './app_wiki.txt';
+        const wikiChunk = await this.loadWiki(wikiPath);
+        if (wikiChunk) {
+          similarDocuments.unshift(wikiChunk); // Add at the start for priority
+          console.log(`[${new Date().toISOString()}] [DEBUG] Added app wiki file to context: ${wikiPath}`);
+        } else {
+          console.log(`[${new Date().toISOString()}] [DEBUG] No app wiki file found at: ${wikiPath}`);
+        }
+
+        // Format the context from retrieved documents (now includes wiki)
         console.log(`[${new Date().toISOString()}] [DEBUG] Formatting context from retrieved documents.`);
-        // Improved context formatting for LLM
         const context = similarDocuments.map(doc => {
           const source = doc.metadata.source || 'Unknown source';
-          // Show file name and first 500 chars for each chunk
           return `File: ${source}\n${doc.pageContent.substring(0, 500)}...`;
         }).join('\n\n');
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Created context with ${context.length} characters from ${similarDocuments.length} documents`);
@@ -732,11 +759,11 @@ class AILangchainAdapter extends IAIPort {
         const messages = [
           {
             role: "system",
-            content: `You are a helpful AI assistant specialized in software development. \nYou have access to the user's code repository. \nAnswer questions based on the context provided when possible.\nIf the question can't be answered from the context, use your general knowledge but make it clear.\nAlways provide accurate, helpful, and concise responses.`
+            content: `You are a helpful AI assistant specialized in software development. \nYou have access to the user's code repository and a plain-language wiki style explanation of the app. \nAnswer questions based on the context provided when possible.\nIf the question can't be answered from the context, use your general knowledge but make it clear.\nAlways provide accurate, helpful, and concise responses.`
           },
           {
             role: "user",
-            content: `I have a question about my code repository: "${prompt}"\n\nHere are the most relevant parts of my codebase:\n${context}`
+            content: `I have a question about my code repository: "${prompt}"\n\nHere are the most relevant parts of my codebase and explanation:\n${context}`
           }
         ];
         console.log(`[${new Date().toISOString()}] [DEBUG] Messages prepared for LLM invoke.`);
