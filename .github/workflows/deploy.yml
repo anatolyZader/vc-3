@@ -80,7 +80,7 @@ jobs:
           --vpc-connector=cr-vpc-conn \
           --allow-unauthenticated \
           --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
-          --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance,DUMMY=MUDDYY, \
+          --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DUMMY=MUDDYY, \
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}, \
           PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}, \
           PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }}, \
