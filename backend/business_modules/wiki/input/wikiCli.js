@@ -5,8 +5,8 @@
  * CLI Command for Wiki Documentation Generation
  * 
  * This CLI tool allows manual triggering of wiki documentation generation
- * from the command line, using the same WikiLangchainAdapter that the
- * web API uses.
+ * from the command line, mocking HTTP calls to the wiki controller similar
+ * to how pubsub listeners work.
  * 
  * Usage:
  *   node wikiCli.js [options]
@@ -27,12 +27,8 @@ const backendRoot = path.resolve(__dirname, '../../../../');
 require('dotenv').config({ path: path.join(backendRoot, '.env') });
 require('dotenv').config({ path: path.join(backendRoot, '..', '.env') }); // Project root
 
-// Import the WikiLangchainAdapter
-const WikiLangchainAdapter = require('../infrastructure/ai/wikiLangchainAdapter');
-
 class WikiCLI {
   constructor() {
-    this.wikiAdapter = null;
     this.userId = 'cli-user';
   }
 
@@ -70,6 +66,9 @@ class WikiCLI {
 DESCRIPTION:
   Generate comprehensive documentation for all business modules, root files,
   and overall application architecture using AI-powered analysis.
+  
+  This CLI mocks HTTP calls to the wiki controller, similar to how pubsub
+  listeners work, ensuring consistency with the web API.
 
 USAGE:
   node wikiCli.js [options]
@@ -157,49 +156,68 @@ OUTPUT:
     }
   }
 
-  async initializeWikiAdapter() {
-    console.log('🔧 Initializing WikiLangchainAdapter...');
-    
-    try {
-      // Determine AI provider based on available environment variables
-      let aiProvider = 'openai'; // default
-      if (process.env.ANTHROPIC_API_KEY) {
-        aiProvider = 'anthropic';
-      } else if (process.env.GOOGLE_API_KEY) {
-        aiProvider = 'google';
-      }
-
-      this.wikiAdapter = new WikiLangchainAdapter({ aiProvider });
-      console.log(`✅ WikiLangchainAdapter initialized with provider: ${aiProvider}`);
-      
-    } catch (error) {
-      console.error('❌ Failed to initialize WikiLangchainAdapter:', error.message);
-      console.error('Error details:', error.stack);
-      process.exit(1);
-    }
-  }
-
   async runWikiUpdate() {
-    console.log('\n🚀 Starting wiki documentation generation...');
+    console.log('\n� Starting wiki documentation generation...');
     console.log(`📋 User ID: ${this.userId}`);
     console.log(`⏰ Started at: ${new Date().toISOString()}`);
     
     const startTime = performance.now();
     
     try {
-      const result = await this.wikiAdapter.updateWikiFiles(this.userId);
+      // Create a minimal Fastify app with the required plugins for DI
+      const fastify = require('fastify')({ 
+        logger: { level: 'warn' } // Minimize logging for CLI usage
+      });
       
-      const endTime = performance.now();
-      const duration = Math.round((endTime - startTime) / 1000);
+      // Register the required plugins for DI to work
+      await fastify.register(require('../../../../diPlugin'));
       
-      console.log('\n🎉 Wiki documentation generation completed successfully!');
-      console.log(`⏱️  Total duration: ${duration} seconds`);
-      console.log(`✅ Result:`, result);
+      // Load the wiki controller which decorates fastify with the updateWikiFiles method
+      const wikiController = require('../application/wikiController');
+      await fastify.register(wikiController);
       
-      console.log('\n📁 Generated files:');
-      console.log('   • Module documentation: [module-name].md files in each business module');
-      console.log('   • Root documentation: ROOT_DOCUMENTATION.md');
-      console.log('   • Architecture documentation: ARCHITECTURE.md');
+      // Create mock request object (same pattern as pubsub listeners)
+      const mockRequest = {
+        user: { id: this.userId },
+        userId: this.userId, // Fallback for compatibility
+        diScope: fastify.diContainer.createScope()
+      };
+
+      // Create mock reply object
+      const mockReply = {
+        code: (statusCode) => {
+          console.log(`📡 HTTP Response Code: ${statusCode}`);
+          return mockReply;
+        },
+        send: (response) => {
+          console.log(`📡 HTTP Response: ${JSON.stringify(response)}`);
+          return response;
+        }
+      };
+
+      // Call the controller method directly (same pattern as pubsub listeners)
+      if (typeof fastify.updateWikiFiles === 'function') {
+        console.log('📡 Calling updateWikiFiles controller method...');
+        const result = await fastify.updateWikiFiles(mockRequest, mockReply);
+        
+        const endTime = performance.now();
+        const duration = Math.round((endTime - startTime) / 1000);
+        
+        console.log('\n🎉 Wiki documentation generation completed successfully!');
+        console.log(`⏱️  Total duration: ${duration} seconds`);
+        console.log(`✅ Result:`, result);
+        
+        console.log('\n📁 Generated files:');
+        console.log('   • Module documentation: [module-name].md files in each business module');
+        console.log('   • Root documentation: ROOT_DOCUMENTATION.md');
+        console.log('   • Architecture documentation: ARCHITECTURE.md');
+        
+      } else {
+        throw new Error('updateWikiFiles controller method not available');
+      }
+      
+      // Clean up the fastify instance
+      await fastify.close();
       
     } catch (error) {
       const endTime = performance.now();
@@ -229,10 +247,7 @@ OUTPUT:
       // Validate environment
       await this.validateEnvironment();
       
-      // Initialize the wiki adapter
-      await this.initializeWikiAdapter();
-      
-      // Run the wiki update
+      // Run the wiki update via mock HTTP call
       await this.runWikiUpdate();
       
       console.log('\n✨ CLI execution completed successfully!');
