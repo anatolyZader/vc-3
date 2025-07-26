@@ -185,4 +185,26 @@ module.exports = fp(async function wikiRouter(fastify, opts) {
       }
     }
   });
+
+  // Route to trigger wiki files update
+  fastify.route({
+    method: 'POST',
+    url: '/update-files',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.updateWikiFiles,
+    schema: {
+      tags: ['wiki'],
+      description: 'Triggers an AI-based process to analyze all business modules and generate/update markdown documentation files for each.',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            message: { type: 'string' }
+          },
+          required: ['message'],
+          additionalProperties: false
+        }
+      }
+    }
+  });
 });

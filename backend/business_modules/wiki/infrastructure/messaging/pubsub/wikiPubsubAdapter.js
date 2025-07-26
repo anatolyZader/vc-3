@@ -5,6 +5,7 @@ const IWikiMessagingPort = require('../../../domain/ports/IWikiMessagingPort');
 
 class WikiPubsubAdapter extends IWikiMessagingPort {
   constructor({ pubSubClient }) {
+    super();
     this.pubSubClient = pubSubClient;
     this.topicName = 'wiki';
   }

@@ -27,6 +27,10 @@ class IWikiService {
   async analyzePage(userId, pageId) {
     throw new Error("Method not implemented.");
   }
+
+  async updateWikiFiles() {
+    throw new Error("Method not implemented.");
+  }
 }
 
 module.exports = IWikiService;

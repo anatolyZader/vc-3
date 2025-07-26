@@ -6,11 +6,12 @@ const IWikiService = require('./interfaces/IWikiService');
 
 class WikiService extends IWikiService {
 
-  constructor({WikiGitAdapter, WikiMessagingAdapter, WikiPersistAdapter}) {
+  constructor({ wikiMessagingAdapter, wikiPersistAdapter, wikiGitAdapter, wikiAiAdapter }) {
     super();
-    this.wikiGitAdapter = WikiGitAdapter;
-    this.wikiMessagingAdapter = WikiMessagingAdapter;
-    this.wikiPersistAdapter = WikiPersistAdapter;
+    this.wikiMessagingAdapter = wikiMessagingAdapter;
+    this.wikiPersistAdapter = wikiPersistAdapter;
+    this.wikiGitAdapter = wikiGitAdapter;
+    this.wikiAiAdapter = wikiAiAdapter;
   }
 
   async fetchWiki(userId, repoId) {
@@ -66,6 +67,20 @@ class WikiService extends IWikiService {
     const event = new WikiPageDeletedEvent({ userId, repoId, pageId });
     if (this.wikiMessagingAdapter && typeof this.wikiMessagingAdapter.publishPageDeletedEvent === 'function') {
       await this.wikiMessagingAdapter.publishPageDeletedEvent(event);
+    }
+  }
+
+  updateWikiFiles(userId) {
+    console.log(`[WikiService] Starting background wiki file update for user ${userId}.`);
+    try {
+      // The adapter's updateWikiFiles method queues the request to run in the background.
+      // We call it but don't await it, allowing the service to return immediately.
+      // The .bind() is crucial to preserve the 'this' context for the adapter.
+      this.wikiAiAdapter.updateWikiFiles.bind(this.wikiAiAdapter)(userId);
+      console.log(`[WikiService] Successfully queued wiki file update for user ${userId}.`);
+    } catch (error) {
+      console.error('[wikiService] Error queuing wiki files update:', error);
+      throw error;
     }
   }
 }

@@ -19,7 +19,9 @@
 
     "wiki": {
       "wikiMessagingAdapter": "wikiPubsubAdapter",
-      "wikiPersistAdapter": "wikiPostgresAdapter"
+      "wikiPersistAdapter": "wikiPostgresAdapter",
+      "wikiAiAdapter": "wikiLangchainAdapter",
+      "wikiGitAdapter": "wikiGithubAdapter"
     },
     "ai": {
       "aiPersistAdapter": "aiPostgresAdapter",

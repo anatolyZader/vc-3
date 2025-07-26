@@ -25,6 +25,8 @@ const GitPubsubAdapter = require('./business_modules/git/infrastructure/messagin
 const WikiService = require('./business_modules/wiki/application/services/wikiService');
 const WikiPostgresAdapter = require('./business_modules/wiki/infrastructure/persistence/wikiPostgresAdapter');
 const WikiPubsubAdapter = require('./business_modules/wiki/infrastructure/messaging/pubsub/wikiPubsubAdapter');
+const WikiLangchainAdapter = require('./business_modules/wiki/infrastructure/ai/wikiLangchainAdapter');
+const WikiGithubAdapter = require('./business_modules/wiki/infrastructure/git/wikiGithubAdapter');
 
 const ApiService = require('./business_modules/api/application/services/apiService');
 const ApiPostgresAdapter = require('./business_modules/api/infrastructure/persistence/apiPostgresAdapter');
@@ -149,6 +151,8 @@ module.exports = fp(async function (fastify, opts) {
     aiGithubWikiAdapter: asClass(AIGithubWikiAdapter).scoped(),
     wikiPubsubAdapter: asClass(WikiPubsubAdapter).scoped(),
     wikiPostgresAdapter: asClass(WikiPostgresAdapter).scoped(),
+    wikiLangchainAdapter: asClass(WikiLangchainAdapter).scoped(),
+    wikiGithubAdapter: asClass(WikiGithubAdapter).scoped(),
   };
 
   // Debug: Validate adapters
@@ -175,6 +179,8 @@ module.exports = fp(async function (fastify, opts) {
     { key: 'authPersistAdapter', config: infraConfig.aop_modules.auth.authPersistAdapter },
     { key: 'wikiMessagingAdapter', config: infraConfig.business_modules.wiki.wikiMessagingAdapter },
     { key: 'wikiPersistAdapter', config: infraConfig.business_modules.wiki.wikiPersistAdapter },
+    { key: 'wikiAiAdapter', config: infraConfig.business_modules.wiki.wikiAiAdapter },
+    { key: 'wikiGitAdapter', config: infraConfig.business_modules.wiki.wikiGitAdapter },
     { key: 'chatPersistAdapter', config: infraConfig.business_modules.chat.chatPersistAdapter },
     { key: 'chatMessagingAdapter', config: infraConfig.business_modules.chat.chatMessagingAdapter },
     { key: 'gitPersistAdapter', config: infraConfig.business_modules.git.gitPersistAdapter },
@@ -224,10 +230,12 @@ module.exports = fp(async function (fastify, opts) {
     serviceRegistrations.authPersistAdapter = adapters[infraConfig.aop_modules.auth.authPersistAdapter];
     serviceRegistrations.wikiMessagingAdapter = adapters[infraConfig.business_modules.wiki.wikiMessagingAdapter];
     serviceRegistrations.wikiPersistAdapter = adapters[infraConfig.business_modules.wiki.wikiPersistAdapter];
+    serviceRegistrations.wikiAiAdapter = adapters[infraConfig.business_modules.wiki.wikiAiAdapter];
     serviceRegistrations.chatPersistAdapter = adapters[infraConfig.business_modules.chat.chatPersistAdapter];
     serviceRegistrations.chatMessagingAdapter = adapters[infraConfig.business_modules.chat.chatMessagingAdapter];
     serviceRegistrations.gitPersistAdapter = adapters[infraConfig.business_modules.git.gitPersistAdapter];
     serviceRegistrations.gitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
+    serviceRegistrations.wikiGitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
     serviceRegistrations.gitMessagingAdapter = adapters[infraConfig.business_modules.git.gitMessagingAdapter];
     serviceRegistrations.aiAdapter = adapters[infraConfig.business_modules.ai.aiAdapter];
     serviceRegistrations.aiPersistAdapter = adapters[infraConfig.business_modules.ai.aiPersistAdapter];

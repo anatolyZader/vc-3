@@ -3,7 +3,7 @@
 'use strict';
 
 const IWikiGitPort = require('../../domain/ports/IWikiGitPort');
-const octokit = require('../../../git/plugins/octokitPlugin');
+const octokit = require('../../../../octokitPlugin');
 
 class WikiGithubAdapter extends IWikiGitPort {
   constructor(options = {}) {
