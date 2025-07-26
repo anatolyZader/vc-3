@@ -4,16 +4,13 @@
 
 The `eventstorm.me` application is a modern Node.js application that provides a comprehensive set of features for developers and teams. The main functionalities of the application include:
 
-1. **Authentication and Authorization**: Secure user authentication and role-based access control to ensure data privacy and security.
-2. **Chat Functionality with AI Integration**: Real-time chat capabilities with the ability to leverage AI-powered language models for enhanced user experience and productivity.
-3. **Git Analysis and Wiki Generation**: Integrating with Git repositories to analyze code, generate documentation, and provide a collaborative wiki platform.
-4. **API Structure and Documentation**: Exposing a well-structured and documented HTTP API for external integration and consumption.
-5. **Real-time Communication**: Leveraging WebSocket technology to enable real-time communication and collaboration features.
+1. **Authentication and Authorization**: Secure user authentication and role-based access control.
+2. **Chat Functionality with AI Integration**: Real-time chat capabilities with AI-powered features, such as natural language processing and generation.
+3. **Git Analysis and Wiki Generation**: Automated analysis of Git repositories and generation of project wikis.
+4. **API Structure and Documentation**: Robust HTTP API with comprehensive OpenAPI (Swagger) documentation.
+5. **Real-time Communication**: Leveraging WebSocket technology for real-time data updates and notifications.
 
-The target use cases for this application include:
-- Enabling developers to collaborate on projects, discuss technical topics, and share knowledge.
-- Providing teams with a centralized platform for managing project-related information, documentation, and communication.
-- Empowering users to leverage AI-powered capabilities to enhance their productivity and decision-making processes.
+The application is designed to serve a wide range of users, from individual developers to teams and organizations, providing them with a centralized platform for collaboration, knowledge sharing, and project management.
 
 ## Architecture Patterns
 
@@ -23,102 +20,94 @@ The `eventstorm.me` application follows a modular and layered architecture, inco
 
 2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
 
-3. **Modular Structure**: The application is divided into multiple business modules (e.g., chat, git, wiki, AI) and cross-cutting AOP (Aspect-Oriented Programming) modules (e.g., authentication, messaging). This modular structure promotes code reuse, scalability, and independent development and deployment.
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
 
 ## System Structure
 
-### Business Modules vs. AOP Modules
+The `eventstorm.me` application follows a layered architecture, with the following key components:
 
-The `eventstorm.me` application is structured with a clear separation between business modules and AOP modules:
+1. **Business Modules**: These modules encapsulate the core business logic of the application, such as chat, git analysis, wiki generation, and AI integration. Each business module follows the Hexagonal Architecture pattern, with a clear separation of concerns between the domain, application, and infrastructure layers.
 
-1. **Business Modules**: These modules encapsulate the core functionalities of the application, such as chat, git analysis, wiki generation, and AI integration. Each business module follows the Hexagonal Architecture pattern and consists of domain entities, application services, and infrastructure adapters.
+2. **AOP (Aspect-Oriented Programming) Modules**: These modules handle cross-cutting concerns, such as authentication and authorization, which are applied across multiple business modules. The AOP modules follow the Ports and Adapters pattern, allowing for the easy integration of different authentication and authorization mechanisms.
 
-2. **AOP Modules**: These modules provide cross-cutting concerns that are shared across multiple business modules, such as authentication, authorization, and messaging. The AOP modules are designed to be loosely coupled and easily integrated with the business modules.
+3. **Domain Layer**: This layer contains the core domain entities and the business logic that drives the application. It is independent of any technical implementation details and focuses on the problem domain.
 
-### Layers
+4. **Application Layer**: This layer bridges the gap between the domain layer and the infrastructure layer. It orchestrates the interactions between the domain entities and the external services or adapters.
 
-The application follows a layered architecture with the following main components:
+5. **Infrastructure Layer**: This layer handles the technical implementation details, such as database interactions, external API integrations, and messaging systems. It provides the necessary adapters and ports for the application layer to interact with these external dependencies.
 
-1. **Domain Layer**: This layer contains the core business entities and domain logic, which are independent of any technical implementation details.
-
-2. **Application Layer**: This layer encapsulates the application-specific use cases and orchestrates the interactions between the domain entities and the infrastructure.
-
-3. **Infrastructure Layer**: This layer provides the technical implementations and adapters for interacting with external systems, such as databases, message brokers, and AI services.
-
-### Ports and Adapters Pattern
-
-The Ports and Adapters pattern (also known as the Hexagonal Architecture) is used throughout the application to decouple the core business logic from the technical implementation details. Each module defines a set of ports (interfaces) that represent the required functionality, and the corresponding adapters implement these ports to provide the actual implementation.
-
-This approach allows the business logic to remain independent of the specific technology choices, making it easier to swap out implementations or add new ones as the application evolves.
+The Ports and Adapters pattern is used throughout the system, where the application layer defines the necessary ports (interfaces) and the infrastructure layer provides the corresponding adapters to implement these ports.
 
 ## Key Components
 
-### Authentication and Authorization
+1. **Authentication and Authorization**:
+   - The authentication and authorization functionality is implemented as an AOP module, following the Ports and Adapters pattern.
+   - The module provides secure user authentication and role-based access control, ensuring that only authorized users can access specific features and data.
+   - The module integrates with various authentication providers, such as OAuth2, to support a wide range of authentication mechanisms.
 
-The authentication and authorization functionality is implemented as an AOP module, ensuring that it can be easily integrated with the various business modules. The module uses the `@fastify/jwt` and `@fastify/oauth2` plugins to handle user authentication and authorization, leveraging a PostgreSQL database for persistent storage.
+2. **Chat Functionality with AI Integration**:
+   - The chat module is a business module that provides real-time chat capabilities, including features like message history, user presence, and typing indicators.
+   - The module integrates with an AI adapter, which leverages natural language processing and generation to provide intelligent responses, language translation, and other AI-powered features.
+   - The chat module uses a messaging adapter to handle the real-time communication, ensuring scalable and reliable message delivery.
 
-### Chat Functionality with AI Integration
+3. **Git Analysis and Wiki Generation**:
+   - The git analysis and wiki generation modules are business modules that work together to provide automated analysis of Git repositories and generate project wikis.
+   - The git analysis module fetches and processes the repository data, while the wiki generation module uses the analyzed data to create comprehensive project documentation.
+   - These modules integrate with external Git providers (e.g., GitHub) and utilize AI-powered techniques for content generation and summarization.
 
-The chat module provides real-time communication capabilities, allowing users to engage in discussions and share information. The module integrates with an AI service (powered by Langchain) to enable features such as intelligent message summarization, topic analysis, and language translation.
+4. **API Structure and Documentation**:
+   - The API module is responsible for managing the HTTP API functionality of the application, including endpoints for fetching and retrieving the OpenAPI specification (Swagger).
+   - The module follows a layered architecture, with a clear separation of concerns between the API router, API service, domain entities, and adapters.
+   - The API module publishes a `HttpApiFetchedEvent` domain event to notify other parts of the system when the API is updated, enabling features like real-time API documentation updates.
 
-The chat module uses a combination of WebSocket (for real-time communication) and a message broker (e.g., PubSub) for asynchronous communication and event-driven architecture.
-
-### Git Analysis and Wiki Generation
-
-The git module is responsible for integrating with Git repositories, analyzing the code, and generating a collaborative wiki. It uses the GitHub API to fetch repository data and the Langchain AI service to process the information and generate the wiki content.
-
-The wiki module is tightly coupled with the git module, as it relies on the data and events provided by the git module to maintain the wiki content.
-
-### API Structure and Documentation
-
-The API module is responsible for managing the HTTP API functionality of the application. It provides endpoints for fetching and retrieving the OpenAPI specification (Swagger) for a given user and repository. The API module follows a layered architecture, with a clear separation of concerns between the API router, API service, domain entities, and infrastructure adapters.
-
-### Real-time Communication (WebSocket)
-
-The application leverages WebSocket technology to enable real-time communication features, such as the chat functionality. The WebSocket implementation is integrated across multiple modules, allowing for seamless real-time interactions between users.
+5. **Real-time Communication (WebSocket)**:
+   - The application utilizes WebSocket technology for real-time communication, enabling features like live chat, real-time updates, and notifications.
+   - The WebSocket functionality is integrated across various modules, such as the chat and messaging modules, to provide a seamless real-time experience for users.
+   - The WebSocket implementation follows the Ports and Adapters pattern, allowing for the easy integration of different WebSocket providers or protocols.
 
 ## Technology Stack
 
 The `eventstorm.me` application is built using the following technology stack:
 
-- **Framework**: Fastify, a fast and low-overhead web framework for Node.js
-- **Database**: PostgreSQL for persistent data storage
-- **Message Broker**: PubSub for asynchronous communication and event-driven architecture
-- **AI Service**: Langchain, a framework for building applications with large language models
-- **Authentication**: JWT and OAuth2 for user authentication and authorization
-- **Logging**: Pino for structured logging
-- **Testing**: Jest for unit and integration testing
+- **Framework**: Fastify, a high-performance Node.js web framework
+- **Database**: PostgreSQL, a powerful and scalable relational database
+- **Messaging**: PubSub (e.g., Google Cloud Pub/Sub, RabbitMQ), for reliable and scalable message delivery
+- **AI Integration**: Langchain, a framework for building applications with large language models
+- **Authentication**: OAuth2, a widely adopted authentication and authorization protocol
+- **API Documentation**: OpenAPI (Swagger), a standard for describing RESTful APIs
 
 ## Data Flow
 
-The data flow within the `eventstorm.me` application follows a request-response pattern, with the addition of asynchronous event-driven communication:
+The data flow within the `eventstorm.me` application follows the Hexagonal Architecture pattern, where the core business logic is isolated from the technical implementation details:
 
-1. **HTTP Requests**: Users interact with the application through HTTP requests, which are handled by the API module.
-2. **Domain Logic**: The API module delegates the business logic to the appropriate application services, which interact with the domain entities and infrastructure adapters.
-3. **Asynchronous Events**: Certain actions, such as fetching the HTTP API or generating the wiki, trigger domain events that are published to the message broker. Other modules subscribe to these events and perform the necessary actions.
-4. **External Integrations**: The application integrates with external services, such as Git repositories, AI providers, and databases, through the infrastructure adapters.
+1. The client (e.g., a web application or a mobile app) sends a request to the API module.
+2. The API module's router handles the incoming request and delegates the processing to the appropriate API service.
+3. The API service interacts with the domain entities and the necessary ports (interfaces) to fulfill the request.
+4. The infrastructure layer, through the appropriate adapters, handles the interactions with external services, databases, and messaging systems.
+5. The response is then returned to the client, following the same flow in reverse.
+
+This layered approach ensures a clear separation of concerns, making the application more maintainable, testable, and adaptable to changes in requirements or technology.
 
 ## Integration Points
 
-The `eventstorm.me` application integrates with the following external systems:
+The `eventstorm.me` application integrates with the following external services and systems:
 
-1. **Git Repositories**: The git module integrates with the GitHub API to fetch and analyze repository data.
-2. **AI Services**: The chat, wiki, and AI modules integrate with the Langchain AI service to leverage language models for various functionalities.
-3. **Databases**: The application uses a PostgreSQL database for persistent data storage, with adapters for each module.
-4. **Message Broker**: The application uses a message broker (e.g., PubSub) for asynchronous communication and event-driven architecture.
+1. **Authentication Providers**: The application integrates with various authentication providers, such as OAuth2, to support a wide range of authentication mechanisms.
+2. **AI Services**: The application utilizes AI-powered services, such as Anthropic's language models, for features like natural language processing, generation, and content summarization.
+3. **Databases**: The application uses PostgreSQL as the primary database for storing user data, chat history, Git repository metadata, and other application-specific data.
+4. **Messaging Systems**: The application integrates with PubSub-based messaging systems, such as Google Cloud Pub/Sub or RabbitMQ, to enable reliable and scalable real-time communication and event-driven architecture.
+5. **Git Providers**: The application integrates with Git providers, such as GitHub, to fetch and analyze repository data for the wiki generation and other Git-related features.
 
 ## Development Practices
 
 The `eventstorm.me` application follows these development practices:
 
-1. **Module Organization**: The codebase is organized into business modules and AOP modules, promoting modularity, reusability, and independent development.
-2. **Dependency Injection**: The application uses the `@fastify/awilix` plugin to manage dependencies and enable loose coupling between components.
-3. **Testing Approach**: The application has a comprehensive test suite, including unit tests for individual components and integration tests for the overall system. The testing framework used is Jest.
-4. **Continuous Integration and Deployment**: The application is set up with a CI/CD pipeline to automate the build, test, and deployment processes, ensuring consistent and reliable releases.
-5. **Documentation**: This comprehensive architecture documentation, along with inline code comments and a well-defined README, provides a clear understanding of the application's structure and functionality.
+1. **Module Organization**: The application is organized into multiple modules, each responsible for a specific set of functionalities. This modular structure promotes code reuse, maintainability, and the ability to evolve the system independently.
 
-## Conclusion
+2. **Dependency Injection**: The application utilizes a dependency injection framework, such as Awilix, to manage the dependencies between the various components. This approach ensures loose coupling, testability, and the ability to easily swap out implementations.
 
-The `eventstorm.me` application is designed with a focus on modularity, scalability, and maintainability. By adopting architectural patterns like Hexagonal Architecture and Domain-Driven Design, the application is able to deliver a robust and flexible set of features to its users. The integration of AI capabilities, real-time communication, and comprehensive API documentation further enhances the overall user experience and value proposition of the application.
+3. **Testing Approach**: The application has a comprehensive test suite, including unit tests, integration tests, and end-to-end tests. This testing strategy helps ensure the reliability and correctness of the application, as well as facilitating refactoring and future development.
 
-As the application evolves, this architecture documentation will serve as a valuable reference for developers, architects, and stakeholders, ensuring a shared understanding of the system's structure and guiding future development efforts.
+4. **Continuous Integration and Deployment**: The application is integrated with a continuous integration (CI) and continuous deployment (CD) pipeline, which automatically builds, tests, and deploys the application to the production environment. This ensures a reliable and streamlined development and deployment process.
+
+5. **Documentation**: In addition to this comprehensive architecture documentation, the application also includes detailed documentation for the API, the

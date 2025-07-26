@@ -41,3 +41,53 @@ The `wiki` module offers the following key functionalities:
    - Enforcing access restrictions based on user roles and privileges
 
 The `wiki` module serves as the core component for managing the wiki-related data and functionality within the application.
+
+# Wiki CLI Documentation
+
+The Wiki CLI provides command-line access to the wiki documentation generation functionality, allowing you to manually trigger the comprehensive documentation generation that normally happens through the web API.
+
+## Overview
+
+The CLI tool generates three types of documentation:
+
+1. **Module Documentation** - Individual `.md` files for each business module (ai.md, chat.md, git.md, etc.)
+2. **Root Documentation** - `ROOT_DOCUMENTATION.md` covering backend plugins and core files  
+3. **Architecture Documentation** - `ARCHITECTURE.md` with overall system architecture overview
+
+## Usage
+
+### From Backend Root Directory
+
+```bash
+# Generate documentation with default settings
+npm run wiki:generate
+
+# Generate documentation with specific user ID
+npm run wiki:generate -- --user-id admin-123
+
+# Show help
+npm run wiki:help
+
+# Or run directly
+node wiki-cli.js
+node wiki-cli.js --user-id your-user-id
+```
+
+### From Wiki Module Directory
+
+```bash
+cd backend/business_modules/wiki/input
+node wikiCli.js [options]
+```
+
+## Command Line Options
+
+- `--user-id <userId>` - Specify a user ID for the operation (default: 'cli-user')
+- `--help, -h` - Show help information
+
+## Environment Requirements
+
+The following environment variables must be set:
+
+### Required
+- `PINECONE_API_KEY` - For vector storage and similarity search

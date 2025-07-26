@@ -22,5 +22,3 @@ The `chat` module provides the following key functionalities:
 
 ## Usage
 To use the `chat` module, developers can interact with the exposed API endpoints and leverage the Pub/Sub event handling mechanism to build real-time chat features within the application.
-
-The module also has the ability to register additional plugins, such as the `ragStatusPlugin`, which is currently commented out.
