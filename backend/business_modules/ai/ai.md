@@ -23,12 +23,10 @@ The `aiController.js` file contains the main logic for processing AI-related req
 
 The `ai` module provides the following key functionalities:
 
-1. **AI Request Processing**: The module is responsible for handling and processing all AI-related requests, such as those related to conversational interactions, content generation, and other AI-powered features.
+1. **AI Request Processing**: The module is responsible for handling and processing all AI-related requests, such as those related to conversational AI, natural language processing, and other AI-powered features.
+2. **API Specification Management**: The module loads and formats the API specification, making it available for use in the AI processing context.
+3. **Wiki Integration**: The module integrates with the application's wiki, loading and incorporating the relevant content into the AI processing context.
+4. **Event Handling**: The module registers the `aiPubsubListener` to listen for and process AI-related events, ensuring that the AI functionality is integrated with the rest of the application.
+5. **Dependency Management**: The module checks the availability of the `eventDispatcher` service, which is used for publishing and subscribing to events, and logs any issues with its availability.
 
-2. **API Specification and Wiki Integration**: The module loads and integrates the API specification and wiki content to provide relevant context for the AI processing.
-
-3. **Event Handling**: The module registers the `aiPubsubListener` to listen for and process AI-related events, ensuring that the AI functionality is integrated with the overall event-driven architecture of the application.
-
-4. **Dependency Management**: The module checks the availability of the `eventDispatcher` service, which is a critical dependency for the AI functionality, and logs appropriate messages based on its availability.
-
-Overall, the `ai` module serves as the central hub for all AI-related functionality within the application, providing a modular and extensible architecture for integrating AI capabilities.
+Overall, the `ai` module is a crucial component of the application, providing the necessary infrastructure and functionality for integrating AI-powered features into the overall system.

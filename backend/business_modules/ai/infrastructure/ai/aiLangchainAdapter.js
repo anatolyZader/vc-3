@@ -12,12 +12,12 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 
 
 class AILangchainAdapter extends IAIPort {
-  // Automate indexing of httpApiSpec.json and app_wiki.txt into Pinecone
+  // Automate indexing of httpApiSpec.json and markdown documentation into Pinecone
   async indexCoreDocsToPinecone() {
     // Load API spec
     const apiSpecChunk = await this.loadApiSpec('httpApiSpec.json');
-    // Load wiki file
-    const wikiChunk = await this.loadWiki('app_wiki.txt');
+    // Load markdown documentation files
+    const markdownDocs = await this.loadMarkdownFiles();
 
     const documents = [];
     if (apiSpecChunk) {
@@ -64,19 +64,22 @@ class AILangchainAdapter extends IAIPort {
         metadata: { source: 'httpApiSpec.json', type: 'apiSpecFull' }
       });
     }
-    if (wikiChunk) {
-      documents.push({
-        pageContent: wikiChunk.pageContent,
-        metadata: { source: 'app_wiki.txt', type: 'wiki' }
-      });
+
+    // Add markdown documentation files
+    if (markdownDocs.length > 0) {
+      documents.push(...markdownDocs);
+      console.log(`[${new Date().toISOString()}] Added ${markdownDocs.length} markdown documentation files to indexing`);
     }
 
-    // Use smart splitter for chunking (for wiki only)
-    const wikiDocs = documents.filter(doc => doc.metadata.type === 'wiki');
+    // Use smart splitter for chunking (for markdown docs only)
+    const docsToSplit = documents.filter(doc => 
+      doc.metadata.type === 'root_documentation' || 
+      doc.metadata.type === 'module_documentation'
+    );
     let splittedDocs = [];
-    if (wikiDocs.length > 0) {
-      const splitter = this.createSmartSplitter(wikiDocs);
-      splittedDocs = await splitter.splitDocuments(wikiDocs);
+    if (docsToSplit.length > 0) {
+      const splitter = this.createSmartSplitter(docsToSplit);
+      splittedDocs = await splitter.splitDocuments(docsToSplit);
     }
     // Add all API spec chunks (no further splitting)
     splittedDocs = splittedDocs.concat(documents.filter(doc => doc.metadata.source === 'httpApiSpec.json'));
@@ -91,7 +94,7 @@ class AILangchainAdapter extends IAIPort {
     // Store in Pinecone
     if (this.vectorStore) {
       await this.vectorStore.addDocuments(splittedDocs, { ids: documentIds });
-      console.log(`[${new Date().toISOString()}] ✅ Indexed core docs (API spec & wiki) to Pinecone: ${splittedDocs.length} chunks`);
+      console.log(`[${new Date().toISOString()}] ✅ Indexed core docs (API spec & markdown docs) to Pinecone: ${splittedDocs.length} chunks`);
     } else {
       console.warn(`[${new Date().toISOString()}] ⚠️ Pinecone vectorStore not initialized, cannot index core docs.`);
     }
@@ -120,22 +123,93 @@ class AILangchainAdapter extends IAIPort {
     }
   }
 
-  // Helper to load wiki file from backend root
-  async loadWiki(filePath) {
+  // Helper to load markdown files from root directory and business modules
+  async loadMarkdownFiles() {
     const fs = require('fs');
     const path = require('path');
-    // Always resolve from backend root
-    const backendRoot = path.resolve(__dirname, '../../../..');
-    const absPath = path.resolve(backendRoot, filePath);
+    const markdownDocs = [];
+    
     try {
-      const content = await fs.promises.readFile(absPath, 'utf8');
-      return {
-        pageContent: content,
-        metadata: { source: 'app_wiki.txt', type: 'wiki' }
-      };
+      const backendRoot = path.resolve(__dirname, '../../../..');
+      
+      // Load ROOT_DOCUMENTATION.md from backend root if it exists
+      const rootDocPath = path.join(backendRoot, 'ROOT_DOCUMENTATION.md');
+      try {
+        const rootDocContent = await fs.promises.readFile(rootDocPath, 'utf8');
+        markdownDocs.push({
+          pageContent: rootDocContent,
+          metadata: { 
+            source: 'ROOT_DOCUMENTATION.md', 
+            type: 'root_documentation',
+            priority: 'high'
+          }
+        });
+        console.log(`[${new Date().toISOString()}] [DEBUG] Loaded root documentation file`);
+      } catch (err) {
+        console.log(`[${new Date().toISOString()}] [DEBUG] No root documentation file found at ${rootDocPath}`);
+      }
+
+      // Load ARCHITECTURE.md from backend root if it exists
+      const archDocPath = path.join(backendRoot, 'ARCHITECTURE.md');
+      try {
+        const archDocContent = await fs.promises.readFile(archDocPath, 'utf8');
+        markdownDocs.push({
+          pageContent: archDocContent,
+          metadata: { 
+            source: 'ARCHITECTURE.md', 
+            type: 'architecture_documentation',
+            priority: 'high'
+          }
+        });
+        console.log(`[${new Date().toISOString()}] [DEBUG] Loaded architecture documentation file`);
+      } catch (err) {
+        console.log(`[${new Date().toISOString()}] [DEBUG] No architecture documentation file found at ${archDocPath}`);
+      }
+
+      // Load markdown files from business modules
+      const businessModulesPath = path.join(backendRoot, 'business_modules');
+      
+      try {
+        const modules = await fs.promises.readdir(businessModulesPath, { withFileTypes: true });
+        
+        for (const module of modules) {
+          if (module.isDirectory()) {
+            const modulePath = path.join(businessModulesPath, module.name);
+            const moduleMarkdownPath = path.join(modulePath, `${module.name}.md`);
+            
+            try {
+              const moduleContent = await fs.promises.readFile(moduleMarkdownPath, 'utf8');
+              markdownDocs.push({
+                pageContent: moduleContent,
+                metadata: { 
+                  source: `business_modules/${module.name}/${module.name}.md`, 
+                  type: 'module_documentation',
+                  module: module.name,
+                  priority: 'medium'
+                }
+              });
+              console.log(`[${new Date().toISOString()}] [DEBUG] Loaded ${module.name} module documentation`);
+            } catch (err) {
+              console.log(`[${new Date().toISOString()}] [DEBUG] No documentation file found for module ${module.name} at ${moduleMarkdownPath}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[${new Date().toISOString()}] Could not read business modules directory: ${err.message}`);
+      }
+
+      // Sort by priority (high priority first)
+      markdownDocs.sort((a, b) => {
+        const priorityOrder = { 'high': 0, 'medium': 1, 'low': 2 };
+        return priorityOrder[a.metadata.priority] - priorityOrder[b.metadata.priority];
+      });
+
+      console.log(`[${new Date().toISOString()}] [DEBUG] Loaded ${markdownDocs.length} total markdown documentation files`);
+      return markdownDocs;
+      
     } catch (err) {
-      console.warn(`[${new Date().toISOString()}] Could not load app wiki file at ${absPath}: ${err.message}`);
-      return null;
+      console.error(`[${new Date().toISOString()}] Error loading markdown files: ${err.message}`);
+      return [];
     }
   }
   constructor(options = {}) {
@@ -766,12 +840,10 @@ class AILangchainAdapter extends IAIPort {
         // Load API spec and format summary
         const apiSpec = await this.loadApiSpec('httpApiSpec.json');
         const apiSpecSummary = this.formatApiSpecSummary(apiSpec);
-        // Load wiki file
-        const wikiText = await this.loadWiki('app_wiki.txt');
-            // Build context: code chunks + wiki + API spec summary
-            let contextIntro = '';
-            if (typeof wikiText === 'string') contextIntro += wikiText + '\n\n';
-            if (typeof apiSpecSummary === 'string') contextIntro += apiSpecSummary + '\n\n';
+        
+        // Build context: code chunks + API spec summary
+        let contextIntro = '';
+        if (typeof apiSpecSummary === 'string') contextIntro += apiSpecSummary + '\n\n';
 
         // If no vectorStore or pinecone client, fall back to standard mode
         if (!this.vectorStore || !this.pinecone) {
@@ -835,6 +907,12 @@ class AILangchainAdapter extends IAIPort {
               conversationId: conversationId,
               documentsFound: similarDocuments.length,
               sources: similarDocuments.map(doc => doc.metadata.source || 'Unknown'),
+              sourceTypes: {
+                apiSpec: similarDocuments.filter(doc => doc.metadata.type === 'apiSpec' || doc.metadata.type === 'apiSpecFull').length,
+                rootDocs: similarDocuments.filter(doc => doc.metadata.type === 'root_documentation').length,
+                moduleDocs: similarDocuments.filter(doc => doc.metadata.type === 'module_documentation').length,
+                githubCode: similarDocuments.filter(doc => doc.metadata.repoId || doc.metadata.githubOwner).length
+              },
               firstDocContentPreview: similarDocuments[0].pageContent.substring(0, 100) + '...'
             });
             console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch called with user: ${userId}, prompt: ${prompt}`);
@@ -876,16 +954,6 @@ class AILangchainAdapter extends IAIPort {
         // Process the retrieved documents
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Found ${similarDocuments.length} relevant documents`);
 
-        // Load plain-language wiki file and add to context
-        const wikiPath = process.env.APP_WIKI_PATH || './app_wiki.txt';
-        const wikiChunk = await this.loadWiki(wikiPath);
-        if (wikiChunk) {
-          similarDocuments.unshift(wikiChunk); // Add at the start for priority
-          console.log(`[${new Date().toISOString()}] [DEBUG] Added app wiki file to context: ${wikiPath}`);
-        } else {
-          console.log(`[${new Date().toISOString()}] [DEBUG] No app wiki file found at: ${wikiPath}`);
-        }
-
         // Load API spec file and add to context
         const apiSpecPath = process.env.APP_API_SPEC_PATH || './httpApiSpec.json';
         const apiSpecChunk = await this.loadApiSpec(apiSpecPath);
@@ -896,22 +964,126 @@ class AILangchainAdapter extends IAIPort {
           console.log(`[${new Date().toISOString()}] [DEBUG] No API spec file found at: ${apiSpecPath}`);
         }
 
-        // Format the context from retrieved documents (now includes wiki)
+        // Load markdown files from root directory and business modules
+        const markdownDocs = await this.loadMarkdownFiles();
+        if (markdownDocs.length > 0) {
+          // Add markdown files to the context (after API spec but before other docs)
+          similarDocuments.splice(1, 0, ...markdownDocs);
+          console.log(`[${new Date().toISOString()}] [DEBUG] Added ${markdownDocs.length} markdown files to context`);
+        } else {
+          console.log(`[${new Date().toISOString()}] [DEBUG] No markdown files found`);
+        }
+
+        // Log comprehensive source loading summary
+        console.log(`[${new Date().toISOString()}] 📚 MULTI-SOURCE RAG CONTEXT LOADED:`);
+        console.log(`[${new Date().toISOString()}] ✅ API specification: ${apiSpecChunk ? 'Loaded' : 'Not found'}`);
+        console.log(`[${new Date().toISOString()}] ✅ Markdown documentation: ${markdownDocs.length} files loaded`);
+        if (markdownDocs.length > 0) {
+          const rootDocs = markdownDocs.filter(doc => doc.metadata.type === 'root_documentation').length;
+          const moduleDocs = markdownDocs.filter(doc => doc.metadata.type === 'module_documentation').length;
+          console.log(`[${new Date().toISOString()}]    • Root documentation: ${rootDocs} files`);
+          console.log(`[${new Date().toISOString()}]    • Module documentation: ${moduleDocs} files`);
+        }
+        console.log(`[${new Date().toISOString()}] ✅ GitHub repository code: ${similarDocuments.filter(doc => doc.metadata.repoId || doc.metadata.githubOwner).length} chunks from similarity search`);
+        console.log(`[${new Date().toISOString()}] 🎯 TOTAL CONTEXT: ${similarDocuments.length} chunks from multiple source types ready for AI processing`);
+
+        // Format the context from retrieved documents (now includes wiki, API spec, and markdown docs)
         console.log(`[${new Date().toISOString()}] [DEBUG] Formatting context from retrieved documents.`);
-            const context = similarDocuments.map(doc => {
+        
+        // Analyze and log source composition
+        const sourceAnalysis = {
+          apiSpec: 0,
+          rootDocumentation: 0,
+          moduleDocumentation: 0,
+          githubRepo: 0,
+          total: similarDocuments.length
+        };
+        
+        similarDocuments.forEach(doc => {
+          const type = doc.metadata.type || 'unknown';
+          if (type === 'apiSpec' || type === 'apiSpecFull') sourceAnalysis.apiSpec++;
+          else if (type === 'root_documentation') sourceAnalysis.rootDocumentation++;
+          else if (type === 'module_documentation') sourceAnalysis.moduleDocumentation++;
+          else if (doc.metadata.repoId || doc.metadata.githubOwner) sourceAnalysis.githubRepo++;
+        });
+        
+        console.log(`[${new Date().toISOString()}] 🔍 RAG SOURCES ANALYSIS: Chat answer will use comprehensive context from multiple sources:`);
+        console.log(`[${new Date().toISOString()}] 🌐 API Specification: ${sourceAnalysis.apiSpec} chunks`);
+        console.log(`[${new Date().toISOString()}] 📋 Root Documentation (plugins/core): ${sourceAnalysis.rootDocumentation} chunks`);
+        console.log(`[${new Date().toISOString()}] 📁 Module Documentation: ${sourceAnalysis.moduleDocumentation} chunks`);
+        console.log(`[${new Date().toISOString()}] 💻 GitHub Repository Code: ${sourceAnalysis.githubRepo} chunks`);
+        console.log(`[${new Date().toISOString()}] 📊 TOTAL CONTEXT SOURCES: ${sourceAnalysis.total} chunks from ${Object.values(sourceAnalysis).filter(v => v > 0).length - 1} different source types`);
+        
+        // Log specific module documentation being used
+        const moduleDocsUsed = similarDocuments
+          .filter(doc => doc.metadata.type === 'module_documentation')
+          .map(doc => doc.metadata.module)
+          .filter((module, index, arr) => arr.indexOf(module) === index);
+        
+        if (moduleDocsUsed.length > 0) {
+          console.log(`[${new Date().toISOString()}] 📁 Module docs included: ${moduleDocsUsed.join(', ')}`);
+        }
+        
+        // Log GitHub repositories being used
+        const reposUsed = similarDocuments
+          .filter(doc => doc.metadata.repoId)
+          .map(doc => `${doc.metadata.githubOwner}/${doc.metadata.repoId}`)
+          .filter((repo, index, arr) => arr.indexOf(repo) === index);
+        
+        if (reposUsed.length > 0) {
+          console.log(`[${new Date().toISOString()}] 💻 GitHub repos referenced: ${reposUsed.join(', ')}`);
+        }
+        
+        const context = similarDocuments.map((doc, index) => {
           const source = doc.metadata.source || 'Unknown source';
-          return `File: ${source}\n${doc.pageContent.substring(0, 500)}...`;
+          const type = doc.metadata.type || 'unknown';
+          
+          // Add section headers for different types of documentation
+          let sectionHeader = '';
+          if (type === 'apiSpec' || type === 'apiSpecFull') {
+            sectionHeader = '=== API SPECIFICATION ===\n';
+          } else if (type === 'root_documentation') {
+            sectionHeader = '=== ROOT DOCUMENTATION (Plugins & Core Files) ===\n';
+          } else if (type === 'module_documentation') {
+            sectionHeader = `=== ${doc.metadata.module?.toUpperCase() || 'MODULE'} DOCUMENTATION ===\n`;
+          } else if (doc.metadata.repoId) {
+            sectionHeader = `=== CODE REPOSITORY (${source}) ===\n`;
+          }
+          
+          // Limit content length but provide more for documentation files
+          const maxLength = type.includes('documentation') ? 1000 : 500;
+          const content = doc.pageContent.length > maxLength 
+            ? doc.pageContent.substring(0, maxLength) + '...' 
+            : doc.pageContent;
+            
+          return `${sectionHeader}File: ${source}\n${content}`;
         }).join('\n\n');
+        
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Created context with ${context.length} characters from ${similarDocuments.length} documents`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Context formatted. Length: ${context.length}`);
         const messages = [
           {
             role: "system",
-            content: `You are a helpful AI assistant specialized in software development. \nYou have access to the user's code repository and a plain-language wiki style explanation of the app. \nAnswer questions based on the context provided when possible.\nIf the question can't be answered from the context, use your general knowledge but make it clear.\nAlways provide accurate, helpful, and concise responses.`
+            content: `You are a helpful AI assistant specialized in software development. 
+
+You have access to comprehensive information about the user's application:
+- Code repository with source files and implementation details
+- API specification with endpoints and schemas
+- Root documentation covering plugins and core configuration files
+- Module-specific documentation for each business component
+
+When answering questions:
+1. Use the provided context when relevant and cite specific sources
+2. Integrate information from multiple sources when helpful
+3. If the question can't be answered from the context, use your general knowledge but make it clear
+4. Prioritize recent documentation and module-specific information for detailed questions
+5. Always provide accurate, helpful, and concise responses
+
+The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MODULE DOCUMENTATION, CODE REPOSITORY) to help you understand the source of information.`
           },
           {
             role: "user",
-            content: `I have a question about my code repository: "${prompt}"\n\nHere are the most relevant parts of my codebase and explanation:\n${context}`
+            content: `I have a question about my application: "${prompt}"\n\nHere is the relevant information from my application documentation and codebase:\n\n${context}`
           }
         ];
         console.log(`[${new Date().toISOString()}] [DEBUG] Messages prepared for LLM invoke.`);
@@ -951,10 +1123,34 @@ class AILangchainAdapter extends IAIPort {
           throw new Error(`Failed to generate response after ${this.maxRetries} retries due to rate limits`);
         }
         console.log(`[${new Date().toISOString()}] Successfully generated response for conversation ${conversationId}`);
-          console.log(`[${new Date().toISOString()}] [DEBUG] LLM invoke failed after max retries.`);
+        
+        // Log comprehensive source usage summary
+        console.log(`[${new Date().toISOString()}] ✅ CHAT RESPONSE GENERATED using MULTI-SOURCE RAG:`);
+        console.log(`[${new Date().toISOString()}] 📊 Sources Used Summary:`);
+        console.log(`[${new Date().toISOString()}]    • API spec chunks: ${sourceAnalysis.apiSpec}`);
+        console.log(`[${new Date().toISOString()}]    • Root docs chunks: ${sourceAnalysis.rootDocumentation}`);
+        console.log(`[${new Date().toISOString()}]    • Module docs chunks: ${sourceAnalysis.moduleDocumentation}`);
+        console.log(`[${new Date().toISOString()}]    • GitHub code chunks: ${sourceAnalysis.githubRepo}`);
+        console.log(`[${new Date().toISOString()}]    • TOTAL: ${sourceAnalysis.total} chunks`);
+        
+        if (moduleDocsUsed.length > 0) {
+          console.log(`[${new Date().toISOString()}] 📁 Modules referenced: ${moduleDocsUsed.join(', ')}`);
+        }
+        if (reposUsed.length > 0) {
+          console.log(`[${new Date().toISOString()}] 💻 Repositories referenced: ${reposUsed.join(', ')}`);
+        }
+        
+        const sourcesBreakdown = {
+          hasApiSpec: sourceAnalysis.apiSpec > 0,
+          hasRootDocs: sourceAnalysis.rootDocumentation > 0,
+          hasModuleDocs: sourceAnalysis.moduleDocumentation > 0,
+          hasGithubCode: sourceAnalysis.githubRepo > 0
+        };
+        
+        console.log(`[${new Date().toISOString()}] 🎯 COMPREHENSIVE CONTEXT: Answer incorporates ${Object.values(sourcesBreakdown).filter(Boolean).length}/4 available source types`);
 
         // Log the full context size to help diagnose if embedding usage is working
-            const contextSize = (typeof finalContext !== 'undefined' ? finalContext.length : (typeof context !== 'undefined' ? context.length : contextIntro.length));
+        const contextSize = (typeof finalContext !== 'undefined' ? finalContext.length : (typeof context !== 'undefined' ? context.length : contextIntro.length));
         console.log(`[${new Date().toISOString()}] [DEBUG] Response generated. Context size: ${context.length}`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Returning response object from respondToPrompt.`);
         
@@ -964,7 +1160,9 @@ class AILangchainAdapter extends IAIPort {
           conversationId,
           timestamp: new Date().toISOString(),
           ragEnabled: true,
-          contextSize
+          contextSize,
+          sourcesUsed: sourceAnalysis,
+          sourcesBreakdown
         };
       } catch (error) {
         console.error(`[${new Date().toISOString()}] Error in respondToPrompt:`, error.message);

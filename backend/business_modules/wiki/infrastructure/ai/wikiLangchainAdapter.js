@@ -100,10 +100,10 @@ class WikiLangchainAdapter extends IWikiAiPort {
   }
 
   async updateWikiFiles(userId) {
-    return this.queueRequest(() => this._executeFileUpdate(userId));
+    return this.queueRequest(() => this.executeFileUpdate(userId));
   }
 
-  async _executeFileUpdate(userId) {
+  async executeFileUpdate(userId) {
     console.log('[wikiLangchainAdapter] _executeFileUpdate started.');
     this.emitRagStatus('start', { message: 'Starting wiki file update process.', userId });
     try {
@@ -171,17 +171,24 @@ class WikiLangchainAdapter extends IWikiAiPort {
         .filter(dirent => dirent.isDirectory())
         .map(dirent => dirent.name);
 
+      // Generate documentation for business modules
       for (const moduleName of moduleDirs) {
         // Avoid trying to generate a doc for the 'reqs' directory if it's not a full module
         if (moduleName === 'reqs') continue;
         const modulePath = path.join(businessModulesPath, moduleName);
         this.emitRagStatus('generating_doc', { message: `Generating documentation for ${moduleName}...`, module: moduleName, userId });
-        await this._generateDocForModule(moduleName, modulePath);
+        await this.generateDocForModule(moduleName, modulePath);
         this.emitRagStatus('generated_doc', { message: `Successfully generated documentation for ${moduleName}.`, module: moduleName, userId });
       }
 
-      this.emitRagStatus('success', { message: 'Wiki files updated and module documentation generated successfully.', userId });
-      return { success: true, message: 'Wiki files updated and module documentation generated successfully.' };
+      // Generate documentation for root files and plugins
+      await this.generateRootFileDocumentation(userId);
+
+      // Generate overall architecture documentation
+      await this.generateArchitectureDocumentation(userId);
+
+      this.emitRagStatus('success', { message: 'Wiki files updated, module documentation, root file documentation, and architecture documentation generated successfully.', userId });
+      return { success: true, message: 'Wiki files updated and all documentation generated successfully.' };
     } catch (error) {
       console.error('[wikiLangchainAdapter] Error updating wiki files:', error);
       this.emitRagStatus('error', { message: 'An error occurred during the wiki update process.', error: error.message, userId });
@@ -190,7 +197,7 @@ class WikiLangchainAdapter extends IWikiAiPort {
     }
   }
 
-  async _generateDocForModule(moduleName, modulePath) {
+  async generateDocForModule(moduleName, modulePath) {
     console.log(`[wikiLangchainAdapter] Generating documentation for module: ${moduleName}`);
     
     // Monitor memory usage at the start
@@ -333,6 +340,415 @@ class WikiLangchainAdapter extends IWikiAiPort {
         });
         
         // Do not rethrow, so one module failing doesn't stop others.
+    }
+  }
+
+  async generateRootFileDocumentation(userId) {
+    console.log(`[wikiLangchainAdapter] Generating consolidated documentation for root files and plugins`);
+    
+    try {
+      const backendRootPath = path.resolve(__dirname, '../../../../');
+      console.log(`[wikiLangchainAdapter] Backend root path: ${backendRootPath}`);
+
+      // Initialize Pinecone components
+      const pineconeIndex = this.pinecone.index(this.pineconeIndexName);
+      const vectorStore = await PineconeStore.fromExistingIndex(this.embeddings, { pineconeIndex });
+
+      // Define root files to document
+      const rootFiles = [
+        { file: 'app.js', description: 'Main application entry point' },
+        { file: 'server.js', description: 'Fastify server configuration and startup' },
+        { file: 'fastify.config.js', description: 'Fastify server configuration' }
+      ];
+
+      // Find all plugin files
+      const allFiles = await fs.readdir(backendRootPath);
+      const pluginFiles = allFiles
+        .filter(file => file.endsWith('Plugin.js'))
+        .map(file => ({ 
+          file, 
+          description: `${file.replace('Plugin.js', '')} plugin configuration and functionality`
+        }));
+
+      // Combine root files and plugin files
+      const filesToDocument = [...rootFiles, ...pluginFiles];
+
+      console.log(`[wikiLangchainAdapter] Found ${filesToDocument.length} root files to document:`, 
+        filesToDocument.map(f => f.file));
+
+      // Collect all file contents and context
+      const fileContents = [];
+      
+      this.emitRagStatus('generating_root_doc', { 
+        message: `Generating consolidated documentation for ${filesToDocument.length} root files and plugins...`, 
+        userId 
+      });
+
+      for (const { file, description } of filesToDocument) {
+        const filePath = path.join(backendRootPath, file);
+        
+        // Check if file exists
+        try {
+          await fs.access(filePath);
+          const content = await fs.readFile(filePath, 'utf8');
+          fileContents.push({
+            file,
+            description,
+            content: content.substring(0, 6000), // Limit content to prevent token overflow
+            filePath
+          });
+          console.log(`[wikiLangchainAdapter] Collected content for ${file}: ${content.length} characters`);
+        } catch (error) {
+          console.warn(`[wikiLangchainAdapter] File ${file} not found, skipping...`);
+          continue;
+        }
+      }
+
+      // Generate consolidated documentation
+      await this.generateConsolidatedRootDocumentation(fileContents, vectorStore, backendRootPath);
+
+      this.emitRagStatus('generated_root_doc', { 
+        message: `Successfully generated consolidated root documentation covering ${fileContents.length} files.`, 
+        userId 
+      });
+
+      console.log(`[wikiLangchainAdapter] Completed consolidated root files documentation generation`);
+
+    } catch (error) {
+      console.error(`[wikiLangchainAdapter] Error generating root file documentation:`, error);
+      console.error(`[wikiLangchainAdapter] Error Stack: ${error.stack}`);
+      
+      this.emitRagStatus('root_doc_error', { 
+        message: 'Error generating root file documentation', 
+        error: error.message, 
+        userId 
+      });
+    }
+  }
+
+  async generateConsolidatedRootDocumentation(fileContents, vectorStore, backendRootPath) {
+    console.log(`[wikiLangchainAdapter] Generating consolidated documentation for ${fileContents.length} root files`);
+    
+    // Monitor memory usage
+    const memUsage = process.memoryUsage();
+    console.log(`[wikiLangchainAdapter] Memory usage at start for consolidated root docs:`, {
+      rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+      heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`
+    });
+    
+    try {
+      // Perform similarity search for related context
+      console.log(`[wikiLangchainAdapter] Performing similarity search for root files and plugins`);
+      
+      const searchTimeoutMs = 45000; // 45 seconds timeout
+      const searchQuery = `backend application configuration setup plugins fastify server startup environment`;
+      const searchPromise = vectorStore.similaritySearch(searchQuery, 20);
+      
+      const searchTimeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`Similarity search timeout for root documentation`)), searchTimeoutMs);
+      });
+      
+      const searchResults = await Promise.race([searchPromise, searchTimeoutPromise]);
+      console.log(`[wikiLangchainAdapter] Similarity search completed for root docs. Results count: ${searchResults.length}`);
+
+      // Filter for relevant context (exclude root files to avoid circular references)
+      const relevantDocs = searchResults.filter(doc => 
+        doc.metadata.source && 
+        !fileContents.some(fc => doc.metadata.source.includes(fc.file))
+      );
+      console.log(`[wikiLangchainAdapter] Filtered relevant documents for root docs. Count: ${relevantDocs.length}`);
+
+      // Create context from similar documents
+      const contextDocs = relevantDocs.slice(0, 8); // Limit to top 8 for context
+      const context = contextDocs.length > 0 
+        ? contextDocs.map(doc => `Source: ${doc.metadata.source}\n${doc.pageContent}`).join('\n\n---\n\n')
+        : 'No related context found in the codebase.';
+
+      // Prepare file contents for the prompt
+      const filesDescription = fileContents.map(fc => `
+## ${fc.file}
+**Description**: ${fc.description}
+
+\`\`\`javascript
+${fc.content}
+\`\`\`
+`).join('\n');
+
+      // Generate consolidated documentation using LLM
+      console.log(`[wikiLangchainAdapter] Creating prompt for consolidated root documentation`);
+      const template = `
+You are an expert software engineer tasked with creating comprehensive documentation for the backend application's root files and plugins.
+
+You need to document the following files as a single consolidated documentation:
+
+{filesDescription}
+
+RELATED CODEBASE CONTEXT:
+{context}
+
+Please generate a comprehensive Markdown documentation that covers all these files in a single document. Structure it as follows:
+
+# Backend Application - Root Files & Plugins Documentation
+
+## Overview
+Brief overview of the backend application architecture and how these root files and plugins work together.
+
+## Core Application Files
+
+### app.js
+- Purpose and role
+- Key configurations
+- How it initializes the application
+
+### server.js  
+- Purpose and role
+- Server startup process
+- Key configurations
+
+### fastify.config.js
+- Purpose and role
+- Configuration options
+- Integration with the application
+
+## Plugins Architecture
+
+### Plugin System Overview
+Brief explanation of how the plugin system works in this application.
+
+### Individual Plugins
+For each plugin file, provide:
+- **Purpose**: What the plugin does
+- **Key Features**: Main functionality
+- **Configuration**: Important settings or dependencies
+- **Integration**: How it integrates with the application
+
+## Application Lifecycle
+Explain how these components work together during application startup and runtime.
+
+## Development Notes
+- Important considerations for developers
+- Configuration requirements
+- Best practices
+
+Generate comprehensive, well-structured documentation that helps developers understand the backend application's root architecture and plugin system.
+      `;
+
+      const prompt = new PromptTemplate({
+        template,
+        inputVariables: ["filesDescription", "context"],
+      });
+
+      console.log(`[wikiLangchainAdapter] Invoking LLM chain for consolidated root documentation`);
+      
+      // Add timeout protection for LLM invocation
+      const timeoutMs = 120000; // 120 seconds timeout (longer for consolidated documentation)
+      const llmPromise = (async () => {
+        const chain = RunnableSequence.from([
+          {
+            filesDescription: () => filesDescription.substring(0, 15000), // Limit content to prevent token overflow
+            context: () => context.substring(0, 5000), // Limit context to prevent token overflow
+          },
+          prompt,
+          this.llm,
+          new StringOutputParser(),
+        ]);
+        return await chain.invoke();
+      })();
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`LLM invocation timeout for consolidated root documentation`)), timeoutMs);
+      });
+
+      const llmResponse = await Promise.race([llmPromise, timeoutPromise]);
+      console.log(`[wikiLangchainAdapter] LLM generated consolidated root documentation`);
+
+      // Write consolidated documentation to root folder
+      const outputPath = path.join(backendRootPath, 'ROOT_DOCUMENTATION.md');
+      await fs.writeFile(outputPath, llmResponse);
+      console.log(`[wikiLangchainAdapter] Successfully wrote consolidated documentation to ${outputPath}`);
+
+      // Monitor final memory usage
+      const memAtEnd = process.memoryUsage();
+      console.log(`[wikiLangchainAdapter] Memory at end for consolidated root docs:`, {
+        rss: `${Math.round(memAtEnd.rss / 1024 / 1024)}MB`,
+        heapUsed: `${Math.round(memAtEnd.heapUsed / 1024 / 1024)}MB`
+      });
+
+      // Force garbage collection if available
+      if (global.gc) {
+        console.log(`[wikiLangchainAdapter] Running garbage collection after consolidated root docs`);
+        global.gc();
+      }
+
+    } catch (error) {
+      console.error(`[wikiLangchainAdapter] Error generating consolidated root documentation:`, error);
+      console.error(`[wikiLangchainAdapter] Error Stack: ${error.stack}`);
+      
+      // Log memory usage at error
+      const memAtError = process.memoryUsage();
+      console.error(`[wikiLangchainAdapter] Memory at error for consolidated root docs:`, {
+        rss: `${Math.round(memAtError.rss / 1024 / 1024)}MB`,
+        heapUsed: `${Math.round(memAtError.heapUsed / 1024 / 1024)}MB`
+      });
+      
+      throw error; // Re-throw to be handled by caller
+    }
+  }
+
+  async generateArchitectureDocumentation(userId) {
+    console.log(`[wikiLangchainAdapter] Generating overall architecture documentation`);
+    
+    try {
+      const backendRootPath = path.resolve(__dirname, '../../../../');
+      
+      // Initialize Pinecone components
+      const pineconeIndex = this.pinecone.index(this.pineconeIndexName);
+      const vectorStore = await PineconeStore.fromExistingIndex(this.embeddings, { pineconeIndex });
+
+      this.emitRagStatus('generating_architecture_doc', { 
+        message: 'Generating overall application architecture documentation...', 
+        userId 
+      });
+
+      // Perform comprehensive similarity search to get context from all parts of the application
+      console.log(`[wikiLangchainAdapter] Performing comprehensive similarity search for architecture documentation`);
+      const searchResults = await vectorStore.similaritySearch(
+        "Application architecture, business modules, domain structure, ports adapters, services controllers, infrastructure setup, main functionalities, overall system design",
+        30 // Get more context for comprehensive architecture overview
+      );
+      console.log(`[wikiLangchainAdapter] Similarity search completed for architecture docs. Results count: ${searchResults.length}`);
+
+      // Get a diverse set of documents from different parts of the system
+      const businessModuleDocs = searchResults.filter(doc => 
+        doc.metadata.source && doc.metadata.source.includes('business_modules/')
+      ).slice(0, 10);
+      
+      const aopModuleDocs = searchResults.filter(doc => 
+        doc.metadata.source && doc.metadata.source.includes('aop_modules/')
+      ).slice(0, 5);
+      
+      const rootDocs = searchResults.filter(doc => 
+        doc.metadata.source && 
+        doc.metadata.source.includes('backend/') && 
+        !doc.metadata.source.includes('business_modules/') &&
+        !doc.metadata.source.includes('aop_modules/')
+      ).slice(0, 8);
+
+      const clientDocs = searchResults.filter(doc => 
+        doc.metadata.source && doc.metadata.source.includes('client/')
+      ).slice(0, 5);
+
+      // Read key configuration files for additional context
+      const configFiles = ['package.json', 'infraConfig.json'];
+      const configContents = [];
+      
+      for (const configFile of configFiles) {
+        try {
+          const configPath = path.join(backendRootPath, configFile);
+          const content = await fs.readFile(configPath, 'utf8');
+          configContents.push({
+            filename: configFile,
+            content: content
+          });
+          console.log(`[wikiLangchainAdapter] Loaded configuration file: ${configFile}`);
+        } catch (err) {
+          console.log(`[wikiLangchainAdapter] Could not load config file ${configFile}: ${err.message}`);
+        }
+      }
+
+      // Combine all contexts
+      const allRelevantDocs = [...businessModuleDocs, ...aopModuleDocs, ...rootDocs, ...clientDocs];
+      const searchContext = formatDocumentsAsString(allRelevantDocs);
+      
+      const configContext = configContents.map(({ filename, content }) => 
+        `=== ${filename} ===\n${content.substring(0, 1500)}${content.length > 1500 ? '...' : ''}`
+      ).join('\n\n');
+
+      console.log(`[wikiLangchainAdapter] Creating prompt for architecture documentation`);
+      const template = `
+You are a senior software architect tasked with creating comprehensive architecture documentation for a modern Node.js application.
+
+Based on the following codebase context and configuration, create a detailed ARCHITECTURE.md file that explains:
+
+1. **Application Overview**: Purpose, main functionalities, and target use cases
+2. **Architecture Patterns**: Hexagonal architecture, domain-driven design, modular structure
+3. **System Structure**: 
+   - Business modules vs AOP modules
+   - Domain, application, infrastructure layers
+   - Ports and adapters pattern
+4. **Key Components**:
+   - Authentication and authorization
+   - Chat functionality with AI integration
+   - Git analysis and wiki generation
+   - API structure and documentation
+   - Real-time communication (WebSocket)
+5. **Technology Stack**: Framework choices, databases, external services
+6. **Data Flow**: How requests flow through the system
+7. **Integration Points**: External APIs, AI services, databases
+8. **Development Practices**: Module organization, dependency injection, testing approach
+
+CODEBASE CONTEXT:
+---
+{searchContext}
+---
+
+CONFIGURATION CONTEXT:
+---
+{configContext}
+---
+
+Create a comprehensive, well-structured Markdown document that serves as the definitive guide to understanding this application's architecture. 
+Include diagrams in text format where helpful, and explain the reasoning behind architectural decisions.
+Focus on both the technical implementation and the business value delivered by each component.
+`;
+
+      const prompt = new PromptTemplate({
+        template,
+        inputVariables: ["searchContext", "configContext"],
+      });
+
+      console.log(`[wikiLangchainAdapter] Invoking LLM chain for architecture documentation`);
+      
+      // Add timeout protection for comprehensive documentation
+      const timeoutMs = 120000; // 2 minutes for comprehensive architecture documentation
+      const llmPromise = (async () => {
+        const chain = RunnableSequence.from([
+          {
+            searchContext: () => searchContext,
+            configContext: () => configContext,
+          },
+          prompt,
+          this.llm,
+          new StringOutputParser(),
+        ]);
+        return await chain.invoke();
+      })();
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('LLM invocation timeout for architecture documentation')), timeoutMs);
+      });
+
+      const llmResponse = await Promise.race([llmPromise, timeoutPromise]);
+      console.log(`[wikiLangchainAdapter] LLM generated architecture documentation`);
+
+      // Write to ARCHITECTURE.md
+      const outputPath = path.join(backendRootPath, 'ARCHITECTURE.md');
+      await fs.writeFile(outputPath, llmResponse);
+      console.log(`[wikiLangchainAdapter] Successfully wrote architecture documentation to ${outputPath}`);
+
+      this.emitRagStatus('generated_architecture_doc', { 
+        message: 'Successfully generated overall architecture documentation.', 
+        userId 
+      });
+
+    } catch (error) {
+      console.error(`[wikiLangchainAdapter] Error generating architecture documentation:`, error);
+      this.emitRagStatus('architecture_doc_error', { 
+        message: 'Error generating architecture documentation.', 
+        error: error.message, 
+        userId 
+      });
+      // Don't throw to avoid stopping other documentation generation
     }
   }
 
