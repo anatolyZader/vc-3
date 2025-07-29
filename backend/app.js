@@ -42,11 +42,24 @@ module.exports = async function (fastify, opts) {
   await fastify.register(loggingPlugin);
   await fastify.register(schemaLoaderPlugin);
   await fastify.register(envPlugin);
-  await fastify.register(diPlugin);
+  
+  // Skip DI plugin during build phase to prevent database connections
+  if (process.env.BUILD_MODE !== 'true' && process.env.SKIP_CONNECTIONS !== 'true') {
+    await fastify.register(diPlugin);
+  } else {
+    fastify.log.info('🚧 Build mode detected - skipping DI plugin registration');
+  }
+  
   await fastify.register(websocketPlugin);
   await fastify.register(fastifySensible);
   await fastify.register(eventDispatcher);
-  await fastify.register(pubsubPlugin);
+  
+  // Skip PubSub plugin during build phase to prevent GCP service connections
+  if (process.env.BUILD_MODE !== 'true' && process.env.SKIP_CONNECTIONS !== 'true') {
+    await fastify.register(pubsubPlugin);
+  } else {
+    fastify.log.info('🚧 Build mode detected - skipping PubSub plugin registration');
+  }
   
   // Sets security-related HTTP headers automatically
   await fastify.register(helmet, {
@@ -209,18 +222,33 @@ module.exports = async function (fastify, opts) {
   // await fastify.register(swaggerUIPlugin);
 
 
-  fastify.log.info('🔌 Registering Redis client plugin');
-  await fastify.register(redisPlugin);
-  fastify.log.info('✅ Redis client plugin registered');
-  fastify.redis.on('error', (err) => {
-    fastify.log.error({ err }, 'Redis client error');
-  });
-  fastify.log.info('⏳ Testing Redis connection with PING…');
-  try {
-    const pong = await fastify.redis.ping();
-    fastify.log.info(`✅ Redis PING response: ${pong}`);
-  } catch (err) {
-    fastify.log.error({ err }, '❌ Redis PING failed');
+  // Skip Redis connection during build phase to prevent VPC access issues
+  if (process.env.BUILD_MODE === 'true' || process.env.SKIP_CONNECTIONS === 'true') {
+    fastify.log.info('🚧 Build mode detected - skipping Redis connection');
+    
+    // Create mock Redis client for build phase
+    fastify.decorate('redis', {
+      ping: async () => 'PONG (mocked)',
+      sendCommand: () => Promise.resolve('OK'),
+      on: () => {},
+      get: () => Promise.resolve(null),
+      set: () => Promise.resolve('OK'),
+      del: () => Promise.resolve(1)
+    });
+  } else {
+    fastify.log.info('🔌 Registering Redis client plugin');
+    await fastify.register(redisPlugin);
+    fastify.log.info('✅ Redis client plugin registered');
+    fastify.redis.on('error', (err) => {
+      fastify.log.error({ err }, 'Redis client error');
+    });
+    fastify.log.info('⏳ Testing Redis connection with PING…');
+    try {
+      const pong = await fastify.redis.ping();
+      fastify.log.info(`✅ Redis PING response: ${pong}`);
+    } catch (err) {
+      fastify.log.error({ err }, '❌ Redis PING failed');
+    }
   }
 
   await fastify.register(

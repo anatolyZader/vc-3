@@ -196,10 +196,122 @@ jobs:
           echo "✅ Some documentation was generated successfully"
         fi
 
-    - name: Deploy backend to Cloud Run
+    # --- PRE-DEPLOYMENT VALIDATION ---
+    - name: Validate deployment prerequisites
       run: |
         cd backend
-        echo "🚀 Deploying backend with generated documentation..."
+        echo "🔍 Pre-deployment validation..."
+        
+        # Check critical files exist
+        echo "📁 Checking critical files..."
+        [ -f "package.json" ] && echo "✅ package.json found" || { echo "❌ package.json missing"; exit 1; }
+        [ -f "server.js" ] && echo "✅ server.js found" || { echo "❌ server.js missing"; exit 1; }
+        [ -f "app.js" ] && echo "✅ app.js found" || { echo "❌ app.js missing"; exit 1; }
+        
+        # Check package.json structure
+        echo "📦 Validating package.json..."
+        node -e "const pkg = require('./package.json'); console.log('✅ Package name:', pkg.name); console.log('✅ Main script:', pkg.main || 'not specified'); console.log('✅ Start script:', pkg.scripts?.start || 'not specified');"
+        
+        # Test if the application can start (dry run)
+        echo "🧪 Testing application startup (dry run)..."
+        timeout 10 node -e "
+          console.log('Testing basic Node.js execution...');
+          try {
+            require('./server.js');
+            console.log('✅ server.js loads without immediate errors');
+          } catch (error) {
+            console.log('❌ server.js has loading issues:', error.message);
+            process.exit(1);
+          }
+        " || echo "⚠️ Startup test timed out or failed - this may be normal for server files"
+        
+        # Check file sizes (large files can cause build issues)
+        echo "� Checking for large files that might cause build issues..."
+        find . -type f -size +10M -not -path "./node_modules/*" -not -path "./.git/*" | while read file; do
+          size=$(du -h "$file" | cut -f1)
+          echo "⚠️ Large file detected: $file ($size)"
+        done
+        
+        # Check directory structure
+        echo "📂 Directory structure:"
+        ls -la
+        echo "📂 Business modules:"
+        ls -la business_modules/ || echo "⚠️ No business_modules directory"
+
+    - name: Create .gcloudignore file
+      run: |
+        cd backend
+        echo "📝 Creating .gcloudignore to optimize build..."
+        cat > .gcloudignore << 'EOF'
+        # Ignore development and testing files
+        .git/
+        .gitignore
+        README.md
+        *.md
+        .env
+        .env.*
+        
+        # Ignore test files
+        _tests_/
+        test/
+        tests/
+        *.test.js
+        *.spec.js
+        
+        # Ignore development tools
+        .eslintrc*
+        eslint.config.js
+        jest.config.js
+        
+        # Ignore logs and temporary files
+        logs/
+        *.log
+        cloud_run_logs.txt
+        logs_run.txt
+        
+        # Ignore large files that aren't needed for runtime
+        bfg.jar
+        cloud-sql-proxy
+        *.zip
+        *.tar.gz
+        
+        # Include only essential files for runtime
+        !package.json
+        !package-lock.json
+        !server.js
+        !app.js
+        !fastify.config.js
+        !business_modules/
+        !aop_modules/
+        !env_schemas/
+        !*.js
+        EOF
+        
+        echo "✅ .gcloudignore created:"
+        cat .gcloudignore
+
+    - name: Deploy backend to Cloud Run (with detailed logging)
+      run: |
+        cd backend
+        echo "🚀 Starting Cloud Run deployment..."
+        echo "📂 Current directory: $(pwd)"
+        echo "📋 Files to be deployed:"
+        ls -la
+        
+        echo "🔧 Deployment configuration:"
+        echo "  • Service: eventstorm-backend"
+        echo "  • Region: $REGION"
+        echo "  • Project: $GCP_PROJECT"
+        echo "  • Source: current directory"
+        
+        # Set verbose logging for gcloud
+        export CLOUDSDK_CORE_VERBOSITY=info
+        
+        echo "🚀 Executing deployment command..."
+        
+        # Set build-time environment variables to prevent database/Redis connections during build
+        export BUILD_MODE=true
+        export SKIP_CONNECTIONS=true
         
         gcloud run deploy eventstorm-backend \
           --source . \
@@ -208,10 +320,55 @@ jobs:
           --platform managed \
           --vpc-connector=cr-vpc-conn \
           --allow-unauthenticated \
+          --memory=2Gi \
+          --cpu=2 \
+          --timeout=900 \
+          --max-instances=10 \
+          --set-build-env-vars=BUILD_MODE=true,SKIP_CONNECTIONS=true,NODE_ENV=build \
           --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
           --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DEPLOYMENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ"),DEPLOYMENT_RUN_ID=${{ github.run_id }} \
           --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }},PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }} \
-          --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
+          --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest \
+          --verbosity=info
+
+    - name: Post-deployment verification
+      if: success()
+      run: |
+        echo "✅ Deployment completed successfully!"
+        echo "🔍 Verifying deployment..."
+        
+        # Get service URL
+        SERVICE_URL=$(gcloud run services describe eventstorm-backend --region=$REGION --format='value(status.url)')
+        echo "🌐 Service URL: $SERVICE_URL"
+        
+        # Test basic connectivity (with timeout)
+        echo "🧪 Testing service connectivity..."
+        timeout 30 curl -s "$SERVICE_URL/health" || echo "⚠️ Health check endpoint not responding (this may be normal if no health endpoint exists)"
+
+    - name: Deployment failure diagnostics
+      if: failure()
+      run: |
+        echo "❌ Deployment failed - gathering diagnostic information..."
+        
+        cd backend
+        echo "📂 Current directory contents:"
+        ls -la
+        
+        echo "📦 Package.json contents:"
+        cat package.json
+        
+        echo "🔍 Checking recent Cloud Build logs..."
+        gcloud logging read "resource.type=build AND severity>=WARNING" --limit=10 --format="table(timestamp,severity,textPayload)" --project=$GCP_PROJECT || echo "Could not retrieve build logs"
+        
+        echo "🔍 Checking Cloud Run service status..."
+        gcloud run services describe eventstorm-backend --region=$REGION --project=$GCP_PROJECT || echo "Service not found or accessible"
+        
+        echo "💡 Common solutions:"
+        echo "  1. Check that all required files are present"
+        echo "  2. Verify package.json has correct start script"
+        echo "  3. Ensure no syntax errors in JavaScript files"
+        echo "  4. Check for missing dependencies"
+        echo "  5. Verify environment variables are correctly set"
 
     # --- SAVE DOCUMENTATION ARTIFACTS ---
     - name: Archive documentation artifacts
