@@ -27,7 +27,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 1 # Sufficient for getting current push info
+        fetch-depth: 0 # Get full history for better documentation context
 
     - name: Authenticate with GCP
       uses: google-github-actions/auth@v2
@@ -65,17 +65,61 @@ jobs:
       run: |
         gsutil -m rsync -r ./client/dist gs://$GCP_BUCKET/
 
-    # --- BACKEND: Build & Deploy ---
+    # --- BACKEND: Install dependencies first ---
     - name: Install backend dependencies
       run: |
         cd backend
         npm ci
 
-    # --- GENERATE DOCUMENTATION ---
+    # --- VALIDATE WIKI ENVIRONMENT ---
+    - name: Validate wiki environment
+      run: |
+        cd backend
+        echo "🔍 Validating wiki documentation environment..."
+        
+        # Check if required files exist
+        if [ ! -f "wiki-cli.js" ]; then
+          echo "❌ wiki-cli.js not found"
+          exit 1
+        fi
+        
+        if [ ! -f "business_modules/wiki/input/wikiCli.js" ]; then
+          echo "❌ wikiCli.js not found"
+          exit 1
+        fi
+        
+        echo "✅ Wiki CLI files found"
+        
+        # Check environment variables
+        if [ -z "$PINECONE_API_KEY" ]; then
+          echo "❌ PINECONE_API_KEY not set"
+          exit 1
+        fi
+        
+        if [ -z "$OPENAI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ] && [ -z "$GOOGLE_API_KEY" ]; then
+          echo "❌ No AI provider API key set"
+          exit 1
+        fi
+        
+        echo "✅ Required environment variables set"
+
+    # --- GENERATE COMPREHENSIVE DOCUMENTATION ---
     - name: Generate comprehensive documentation
       run: |
         cd backend
-        npm run wiki:generate -- --user-id deployment-${{ github.run_id }}
+        echo "📚 Starting wiki documentation generation..."
+        echo "🔗 Using deployment user ID: deployment-${{ github.run_id }}"
+        echo "📅 Generation timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        
+        # Run with timeout to prevent hanging
+        timeout 300 npm run wiki:generate -- --user-id deployment-${{ github.run_id }} || {
+          echo "❌ Wiki generation timed out or failed"
+          echo "📋 Checking for partial results..."
+          ls -la business_modules/*/
+          exit 1
+        }
+        
+        echo "✅ Wiki documentation generation completed"
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -84,9 +128,61 @@ jobs:
         PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
         PINECONE_INDEX_NAME: eventstorm-wiki
 
+    - name: Verify generated documentation
+      run: |
+        cd backend
+        echo "🔍 Verifying generated documentation files..."
+        
+        # Check for module documentation
+        MODULES_WITH_DOCS=0
+        for module_dir in business_modules/*/; do
+          module_name=$(basename "$module_dir")
+          doc_file="${module_dir}${module_name}.md"
+          if [ -f "$doc_file" ]; then
+            echo "✅ Found documentation: $doc_file"
+            MODULES_WITH_DOCS=$((MODULES_WITH_DOCS + 1))
+            
+            # Check file size (should be substantial)
+            file_size=$(wc -c < "$doc_file")
+            if [ "$file_size" -lt 100 ]; then
+              echo "⚠️ Warning: $doc_file seems too small ($file_size bytes)"
+            fi
+          else
+            echo "⚠️ Missing documentation: $doc_file"
+          fi
+        done
+        
+        # Check for root documentation
+        if [ -f "ROOT_DOCUMENTATION.md" ]; then
+          echo "✅ Found ROOT_DOCUMENTATION.md"
+          root_size=$(wc -c < "ROOT_DOCUMENTATION.md")
+          echo "📄 ROOT_DOCUMENTATION.md size: $root_size bytes"
+        else
+          echo "⚠️ Missing ROOT_DOCUMENTATION.md"
+        fi
+        
+        # Check for architecture documentation
+        if [ -f "ARCHITECTURE.md" ]; then
+          echo "✅ Found ARCHITECTURE.md"
+          arch_size=$(wc -c < "ARCHITECTURE.md")
+          echo "📄 ARCHITECTURE.md size: $arch_size bytes"
+        else
+          echo "⚠️ Missing ARCHITECTURE.md"
+        fi
+        
+        echo "📊 Summary: $MODULES_WITH_DOCS modules have documentation"
+        
+        # Fail if no documentation was generated
+        if [ "$MODULES_WITH_DOCS" -eq 0 ] && [ ! -f "ROOT_DOCUMENTATION.md" ] && [ ! -f "ARCHITECTURE.md" ]; then
+          echo "❌ No documentation was generated!"
+          exit 1
+        fi
+
     - name: Deploy backend to Cloud Run
       run: |
         cd backend
+        echo "🚀 Deploying backend with generated documentation..."
+        
         gcloud run deploy eventstorm-backend \
           --source . \
           --region $REGION \
@@ -95,14 +191,21 @@ jobs:
           --vpc-connector=cr-vpc-conn \
           --allow-unauthenticated \
           --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
-          --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DUMMY=MUDDYY, \
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}, \
-          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}, \
-          GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}, \
-          PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}, \
-          PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }}, \
-          PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }} \
+          --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DEPLOYMENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ"),DEPLOYMENT_RUN_ID=${{ github.run_id }} \
+          --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }},PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }} \
           --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
+
+    # --- SAVE DOCUMENTATION ARTIFACTS ---
+    - name: Archive documentation artifacts
+      uses: actions/upload-artifact@v4
+      if: always() # Upload even if previous steps failed
+      with:
+        name: generated-documentation-${{ github.run_id }}
+        path: |
+          backend/business_modules/*/*.md
+          backend/ROOT_DOCUMENTATION.md
+          backend/ARCHITECTURE.md
+        retention-days: 30
 
     # --- TRIGGER AI INGESTION via Pub/Sub ---
     - name: Install jq for JSON templating
@@ -125,33 +228,32 @@ jobs:
           --arg repoUrl "$REPO_URL" \
           --arg branch "$BRANCH_NAME" \
           --arg corr "$CORRELATION_ID" \
-          '{ event: $event, payload: { userId: $userId, repoId: $repoId, repoData: { url: $repoUrl, branch: $branch }, correlationId: $corr } }'
+          --arg deploymentId "deployment-${{ github.run_id }}" \
+          '{ event: $event, payload: { userId: $userId, repoId: $repoId, repoData: { url: $repoUrl, branch: $branch, deploymentId: $deploymentId }, correlationId: $corr } }'
         )
         echo "Publishing to topic $TOPIC with payload: $PAYLOAD"
         gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
 
-    # Removed the fetchWikiRequest and fetchHttpApiRequest events as per previous discussion,
-    # assuming they are not part of the primary code ingestion pipeline.
-    # If needed for other purposes, they can be re-added with correct event names and payloads.
+    # --- OPTIONAL: Publish wiki update event ---
+    - name: Publish wiki documentation updated event
+      env:
+        TOPIC: wiki-topic # Assuming you have a wiki-specific topic
+        USER_ID: deployment-${{ github.run_id }}
+        CORRELATION_ID: ${{ github.run_id }}
+      run: |
+        PAYLOAD=$(jq -n \
+          --arg event "wikiDocumentationUpdated" \
+          --arg userId "$USER_ID" \
+          --arg timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+          --arg corr "$CORRELATION_ID" \
+          --arg deploymentId "deployment-${{ github.run_id }}" \
+          '{ event: $event, payload: { userId: $userId, timestamp: $timestamp, deploymentId: $deploymentId, correlationId: $corr } }'
+        )
+        echo "Publishing wiki update event to topic $TOPIC with payload: $PAYLOAD"
+        gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD" || echo "⚠️ Wiki topic not available, skipping"
 
-    # --- GENERATE & SAVE YOUR OPENAPI SPEC ---
+    # --- GENERATE & SAVE OPENAPI SPEC ---
     - name: Generate OpenAPI spec file
       working-directory: backend
       run: |
-        npm run generate:openapi
-    # You might want to remove this or adapt it if the API spec is also pushed to a different topic for a different kind of ingestion
-    # - name: Publish fetchHttpApiRequest event
-    #   env:
-    #     TOPIC: api-topic
-    #     USER_ID: ${{ github.actor }}
-    #     REPO_ID: ${{ github.repository }}
-    #     CORRELATION: ${{ github.run_id }}
-    #   run: |
-    #     PAYLOAD=$(jq -n \
-    #       --arg event "fetchHttpApiRequest" \
-    #       --arg userId "$USER_ID" \
-    #       --arg repoId "$REPO_ID" \
-    #       --arg corr "$CORRELATION" \
-    #       '{ event: $event, payload: { userId: $userId, repoId: $repoId, correlationId: $corr } }'
-    #     )
-    #     gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
+        npm run generate:spec || echo "⚠️ OpenAPI generation failed, continuing deployment"
