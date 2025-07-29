@@ -169,8 +169,8 @@ OUTPUT:
         logger: { level: 'warn' } // Minimize logging for CLI usage
       });
       
-      // Register the required plugins for DI to work
-      await fastify.register(require('../../../../diPlugin'));
+      // Reggister the required plugins for DI to work
+      await fastify.register(require('../../../diPlugin'));
       
       // Load the wiki controller which decorates fastify with the updateWikiFiles method
       const wikiController = require('../application/wikiController');
