@@ -875,12 +875,32 @@ class AILangchainAdapter extends IAIPort {
 
         // Attempt retrieval with queue-based approach
         let similarDocuments = [];
+        
+        // Check if vectorStore is available before attempting search
+        if (!this.vectorStore) {
+          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector store not available, falling back to standard response`);
+          this.emitRagStatus('retrieval_disabled', {
+            userId: this.userId,
+            conversationId: conversationId,
+            reason: 'Vector store not initialized'
+          });
+          return await this.generateStandardResponse(prompt, conversationId);
+        }
+        
         try {
-          // Find relevant documents from vector database
-          console.log(`[${new Date().toISOString()}] [DEBUG] VectorStore or Pinecone not available in respondToPrompt.`);
+          // Find relevant documents from vector database with timeout
           console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running similarity search (no filter, single-user mode)`);
+          
+          // Add timeout to prevent hanging
+          const VECTOR_SEARCH_TIMEOUT = 10000; // 10 seconds
+          const searchPromise = this.vectorStore.similaritySearch(prompt, 15);
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Vector search timeout')), VECTOR_SEARCH_TIMEOUT);
+          });
+          
           // Retrieve more chunks for richer context
-          similarDocuments = await this.vectorStore.similaritySearch(prompt, 15);
+          similarDocuments = await Promise.race([searchPromise, timeoutPromise]);
+          
           // Log the first few chunks for debugging
           similarDocuments.forEach((doc, i) => {
             console.log(`[DEBUG] Chunk ${i}: ${doc.metadata.source || 'Unknown'} | ${doc.pageContent.substring(0, 200)}`);
