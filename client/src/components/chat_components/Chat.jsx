@@ -21,8 +21,7 @@ import { AuthContext } from '../auth_components/AuthContext';
 import { useChat } from './ChatContext';
 import NewConversationBtn from './NewConversationBtn';
 import LogoutBtn from './LogoutBtn'; 
-import stitch from '../stitch.jpg';
-import eventstorm_logo from '../eventstorm_logo.png';  
+import eventstorm_logo from './eventstorm_logo.png';  
 
 const Chat = () => {
   const { isAuthenticated, userProfile, authLoading } = useContext(AuthContext);
