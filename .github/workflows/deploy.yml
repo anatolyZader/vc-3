@@ -103,7 +103,7 @@ jobs:
         
         echo "✅ Required environment variables set"
 
-    # --- GENERATE COMPREHENSIVE DOCUMENTATION ---
+    # --- GENERATEE COMPREHENSIVE DOCUMENTATION ---
     - name: Generate comprehensive documentation
       run: |
         cd backend
