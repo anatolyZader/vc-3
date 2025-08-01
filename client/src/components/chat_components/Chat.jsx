@@ -22,6 +22,7 @@ import { useChat } from './ChatContext';
 import NewConversationBtn from './NewConversationBtn';
 import LogoutBtn from './LogoutBtn'; 
 import stitch from '../stitch.jpg';
+import eventstorm_logo from '../eventstorm_logo.png';  
 
 const Chat = () => {
   const { isAuthenticated, userProfile, authLoading } = useContext(AuthContext);
@@ -164,7 +165,7 @@ const Chat = () => {
 
       <ChatContainer className="chat-container">
         <ConversationHeader>
-          <Avatar src={stitch} name="AI Assistant" />
+          <Avatar src={eventstorm_logo} name="AI Assistant" />
           <ConversationHeader.Content userName="AI Assistant" />
           <ConversationHeader.Actions>
             <LogoutBtn /> 
@@ -192,7 +193,7 @@ const Chat = () => {
           {currentConversationId && messages.map((message, index) => (
             <Message key={index} model={message}>
               {message.direction === 'incoming' && (
-                <Avatar src={stitch} name="AI Assistant" />
+                <Avatar src={eventstorm_logo} name="AI Assistant" />
               )}
             </Message>
           ))}
