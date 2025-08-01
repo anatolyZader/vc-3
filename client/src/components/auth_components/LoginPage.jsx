@@ -40,9 +40,7 @@ const LoginPage = () => {
 
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Login Panel
-      </Typography>
+
       {!isAuthenticated ? (
         <Box>
           <Button

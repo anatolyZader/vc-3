@@ -203,13 +203,16 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           
           fastify.log.info(`📝 AI MODULE: Processing question from user ${userId} in conversation ${conversationId}: "${prompt}"`);
           
-                  // Create mock request object for respondToPrompt
+          // Create mock request object for respondToPrompt
           const mockRequest = {
             body: { conversationId, prompt },
-            user: { id: userId },
-            diScope: fastify.diContainer.createScope() // Add diScope
-
+            user: { id: userId }
           };
+          
+          // Add diScope if diContainer is available
+          if (fastify.diContainer && typeof fastify.diContainer.createScope === 'function') {
+            mockRequest.diScope = fastify.diContainer.createScope();
+          }
           
           // Create mock reply object
           const mockReply = {

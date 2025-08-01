@@ -33,7 +33,7 @@ async function aiController(fastify, options) {
           fastify.log.debug(`🔧 AI Controller: userId set on adapter: ${userId}`);
         }
         
-        const TIMEOUT_MS = 30000;
+        const TIMEOUT_MS = 60000; // Increased from 30s to 60s
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('AI request processing timeout')), TIMEOUT_MS);
         });

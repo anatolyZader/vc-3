@@ -891,15 +891,26 @@ class AILangchainAdapter extends IAIPort {
           // Find relevant documents from vector database with timeout
           console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running similarity search (no filter, single-user mode)`);
           
-          // Add timeout to prevent hanging
-          const VECTOR_SEARCH_TIMEOUT = 10000; // 10 seconds
+          // Add timeout to prevent hanging - increased timeout and fallback strategy
+          const VECTOR_SEARCH_TIMEOUT = 30000; // 30 seconds (increased from 10)
           const searchPromise = this.vectorStore.similaritySearch(prompt, 15);
           const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Vector search timeout')), VECTOR_SEARCH_TIMEOUT);
           });
           
-          // Retrieve more chunks for richer context
-          similarDocuments = await Promise.race([searchPromise, timeoutPromise]);
+          try {
+            // Retrieve more chunks for richer context
+            similarDocuments = await Promise.race([searchPromise, timeoutPromise]);
+          } catch (timeoutError) {
+            console.log(`[${new Date().toISOString()}] ⚠️ Vector search timed out, falling back to standard response`);
+            this.emitRagStatus('retrieval_timeout_fallback', {
+              userId: this.userId,
+              conversationId: conversationId,
+              error: timeoutError.message,
+              query: prompt.substring(0, 100)
+            });
+            return await this.generateStandardResponse(prompt, conversationId);
+          }
           
           // Log the first few chunks for debugging
           similarDocuments.forEach((doc, i) => {

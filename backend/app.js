@@ -286,6 +286,28 @@ module.exports = async function (fastify, opts) {
     }
   }, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
+  // Dedicated health check endpoint
+  fastify.get('/health', {
+    schema: {
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' },
+            version: { type: 'string' }
+          },
+          required: ['status', 'timestamp'],
+          additionalProperties: false
+        }
+      }
+    }
+  }, async () => ({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0'
+  }));
+
   // ────────────────────────────────────────────────────────────────
   // GOOGLE OAUTH + JWT 
   // ────────────────────────────────────────────────────────────────

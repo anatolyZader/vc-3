@@ -261,6 +261,7 @@ jobs:
         .eslintrc*
         eslint.config.js
         jest.config.js
+        generateSpec.js
         
         # Ignore logs and temporary files
         logs/
