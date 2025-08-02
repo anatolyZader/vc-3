@@ -308,7 +308,7 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
   try {
     const pubSubClient = await fastify.diContainer.resolve('pubSubClient');
     const topicName = 'git-topic';
-    const subscriptionName = 'ai-service-git-topic-sub';
+    const subscriptionName = 'gi-sub';
 
     const subscription = pubSubClient.topic(topicName).subscription(subscriptionName);
 
