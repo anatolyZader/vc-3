@@ -276,6 +276,8 @@ class AILangchainAdapter extends IAIPort {
           apiKey: process.env.PINECONE_API_KEY
         });
         console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone client initialized.`);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone environment: ${process.env.PINECONE_ENVIRONMENT}`);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone index name: ${process.env.PINECONE_INDEX_NAME}`);
       } else {
         console.warn(`[${new Date().toISOString()}] No Pinecone API key found, vector search will be unavailable`);
         this.pinecone = null;
@@ -940,8 +942,6 @@ class AILangchainAdapter extends IAIPort {
               sources: similarDocuments.map(doc => doc.metadata.source || 'Unknown'),
               sourceTypes: {
                 apiSpec: similarDocuments.filter(doc => doc.metadata.type === 'apiSpec' || doc.metadata.type === 'apiSpecFull').length,
-                rootDocs: similarDocuments.filter(doc => doc.metadata.type === 'root_documentation').length,
-                moduleDocs: similarDocuments.filter(doc => doc.metadata.type === 'module_documentation').length,
                 githubCode: similarDocuments.filter(doc => doc.metadata.repoId || doc.metadata.githubOwner).length
               },
               firstDocContentPreview: similarDocuments[0].pageContent.substring(0, 100) + '...'

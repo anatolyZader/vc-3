@@ -315,6 +315,7 @@ jobs:
           --project $GCP_PROJECT \
           --platform managed \
           --vpc-connector=cr-vpc-conn \
+          --vpc-egress=all-traffic \
           --allow-unauthenticated \
           --memory=2Gi \
           --cpu=2 \
