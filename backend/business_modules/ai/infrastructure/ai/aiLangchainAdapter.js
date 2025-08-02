@@ -14,6 +14,7 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 class AILangchainAdapter extends IAIPort {
   // Automate indexing of httpApiSpec.json and markdown documentation into Pinecone
   async indexCoreDocsToPinecone() {
+    console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Starting core docs indexing into 'core-docs' namespace.`);
     // Load API spec
     const apiSpecChunk = await this.loadApiSpec('httpApiSpec.json');
     // Load markdown documentation files
@@ -21,6 +22,7 @@ class AILangchainAdapter extends IAIPort {
 
     const documents = [];
     if (apiSpecChunk) {
+      console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] API Spec loaded successfully.`);
       // Parse JSON for targeted chunking
       let apiSpecJson;
       try {
@@ -67,14 +69,20 @@ class AILangchainAdapter extends IAIPort {
 
     // Add markdown documentation files
     if (markdownDocs.length > 0) {
+      console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] ${markdownDocs.length} Markdown docs loaded.`);
       documents.push(...markdownDocs);
-      console.log(`[${new Date().toISOString()}] Added ${markdownDocs.length} markdown documentation files to indexing`);
+    }
+
+    if (documents.length === 0) {
+      console.log(`[${new Date().toISOString()}] 🟡 [RAG-INDEX] No core documents found to index. Aborting.`);
+      return;
     }
 
     // Use smart splitter for chunking (for markdown docs only)
     const docsToSplit = documents.filter(doc => 
       doc.metadata.type === 'root_documentation' || 
-      doc.metadata.type === 'module_documentation'
+      doc.metadata.type === 'module_documentation' ||
+      doc.metadata.type === 'architecture_documentation'
     );
     let splittedDocs = [];
     if (docsToSplit.length > 0) {
@@ -83,20 +91,29 @@ class AILangchainAdapter extends IAIPort {
     }
     // Add all API spec chunks (no further splitting)
     splittedDocs = splittedDocs.concat(documents.filter(doc => doc.metadata.source === 'httpApiSpec.json'));
+    console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Total documents after splitting: ${splittedDocs.length}`);
 
     // Generate unique IDs for Pinecone
-    const userId = this.userId || 'system';
     const repoId = 'core-docs';
     const documentIds = splittedDocs.map((doc, index) =>
-      `${userId}_${repoId}_${this.sanitizeId(doc.metadata.type || doc.metadata.source || 'unknown')}_chunk_${index}`
+      `system_${repoId}_${this.sanitizeId(doc.metadata.type || doc.metadata.source || 'unknown')}_chunk_${index}`
     );
 
-    // Store in Pinecone
-    if (this.vectorStore) {
-      await this.vectorStore.addDocuments(splittedDocs, { ids: documentIds });
-      console.log(`[${new Date().toISOString()}] ✅ Indexed core docs (API spec & markdown docs) to Pinecone: ${splittedDocs.length} chunks`);
+    // Store in Pinecone in a GLOBAL namespace
+    if (this.pinecone) {
+        try {
+            const coreDocsIndex = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+            const coreDocsVectorStore = new PineconeStore(this.embeddings, {
+                pineconeIndex: coreDocsIndex,
+                namespace: 'core-docs' // Using a fixed, global namespace
+            });
+            await coreDocsVectorStore.addDocuments(splittedDocs, { ids: documentIds });
+            console.log(`[${new Date().toISOString()}] ✅ [RAG-INDEX] Successfully indexed ${splittedDocs.length} core doc chunks to Pinecone in 'core-docs' namespace.`);
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ [RAG-INDEX] Error indexing core docs to Pinecone:`, error);
+        }
     } else {
-      console.warn(`[${new Date().toISOString()}] ⚠️ Pinecone vectorStore not initialized, cannot index core docs.`);
+      console.warn(`[${new Date().toISOString()}] ⚠️ [RAG-INDEX] Pinecone client not initialized, cannot index core docs.`);
     }
   }
   // Helper to load JSON spec file from backend root
@@ -641,14 +658,29 @@ class AILangchainAdapter extends IAIPort {
           
           // Add timeout to prevent hanging - increased timeout and fallback strategy
           const VECTOR_SEARCH_TIMEOUT = 30000; // 30 seconds (increased from 10)
-          const searchPromise = this.vectorStore.similaritySearch(prompt, 15);
+          
+          // Search user-specific namespace
+          const userSearchPromise = this.vectorStore.similaritySearch(prompt, 10);
+
+          // Search global 'core-docs' namespace
+          const coreDocsVectorStore = new PineconeStore(this.embeddings, {
+              pineconeIndex: this.pinecone.Index(pineconeIndex),
+              namespace: 'core-docs'
+          });
+          const coreDocsSearchPromise = coreDocsVectorStore.similaritySearch(prompt, 5);
+          
           const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Vector search timeout')), VECTOR_SEARCH_TIMEOUT);
           });
           
           try {
             // Retrieve more chunks for richer context
-            similarDocuments = await Promise.race([searchPromise, timeoutPromise]);
+            const [userDocs, coreDocs] = await Promise.race([
+                Promise.all([userSearchPromise, coreDocsSearchPromise]),
+                timeoutPromise
+            ]);
+            similarDocuments = [...userDocs, ...coreDocs];
+
           } catch (timeoutError) {
             console.log(`[${new Date().toISOString()}] ⚠️ Vector search timed out, falling back to standard response`);
             this.emitRagStatus('retrieval_timeout_fallback', {
