@@ -318,10 +318,18 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
       fastify.log.info(`[GCP Pub/Sub] Received message from topic "${topicName}": ${message.id}`);
       try {
         const data = JSON.parse(message.data.toString());
-        fastify.log.info(`[GCP Pub/Sub] Parsed message data, emitting 'repoPushed' on internal event bus.`);
         
-        // Emit to the internal event bus, which the rest of this file listens to.
-        eventBus.emit('repoPushed', data);
+        // Check for the event name and emit dynamically
+        if (data && data.event) {
+          fastify.log.info(`[GCP Pub/Sub] Parsed message data, emitting '${data.event}' on internal event bus.`);
+          // Emit the specific event, passing the payload.
+          // The internal listeners expect the payload directly.
+          eventBus.emit(data.event, data.payload || data);
+        } else {
+          fastify.log.warn('[GCP Pub/Sub] Received message without a valid event property. Emitting as repoPushed for legacy support.', { messageId: message.id });
+          // Fallback for old message format
+          eventBus.emit('repoPushed', data);
+        }
         
         message.ack();
       } catch (error) {

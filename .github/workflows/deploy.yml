@@ -379,49 +379,40 @@ jobs:
         retention-days: 30
 
     # --- TRIGGER AI INGESTION via Pub/Sub ---
-    - name: Install jq for JSON templating
-      run: sudo apt-get update && sudo apt-get install -y jq
-
     - name: Publish repoPushed event for AI ingestion
       env:
-        TOPIC: git-topic # Or 'ai-topic' if that's the final designated topic where AI listener subscribes
-        USER_ID: ${{ github.actor }} # The user who triggered the push
-        REPO_NAME: ${{ github.event.repository.name }}
-        REPO_OWNER: ${{ github.event.repository.owner.login }}
-        BRANCH_NAME: ${{ github.ref_name }} # The branch name that was pushed to
-        CORRELATION_ID: ${{ github.run_id }}
+        GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
+        USER_ID: 'github-actions' # Static user for system events
+        REPO_ID: ${{ github.repository }}
+        REPO_URL: "https://github.com/${{ github.repository }}"
+        BRANCH: ${{ github.ref_name }}
       run: |
-        REPO_URL="https://github.com/$REPO_OWNER/$REPO_NAME"
-        PAYLOAD=$(jq -n \
-          --arg event "repoPushed" \
-          --arg userId "$USER_ID" \
-          --arg repoId "$REPO_NAME" \
-          --arg repoUrl "$REPO_URL" \
-          --arg branch "$BRANCH_NAME" \
-          --arg corr "$CORRELATION_ID" \
-          --arg deploymentId "deployment-${{ github.run_id }}" \
-          '{ event: $event, payload: { userId: $userId, repoId: $repoId, repoData: { url: $repoUrl, branch: $branch, deploymentId: $deploymentId }, correlationId: $corr } }'
-        )
-        echo "Publishing to topic $TOPIC with payload: $PAYLOAD"
-        gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD"
+        echo "Publishing repoPushed event to git-topic..."
+        gcloud pubsub topics publish git-topic --message '{
+          "event": "repoPushed",
+          "payload": {
+            "userId": "${USER_ID}",
+            "repoId": "${REPO_ID}",
+            "repoData": {
+              "url": "${REPO_URL}",
+              "branch": "${BRANCH}"
+            }
+          }
+        }' --project=${GCP_PROJECT_ID}
 
-    # --- OPTIONAL: Publish wiki update event ---
-    - name: Publish wiki documentation updated event
+    # --- TRIGGER CORE DOCS INGESTION ---
+    - name: Publish wikiDocsUpdated event for Core Docs Ingestion
       env:
-        TOPIC: wiki-topic # Assuming you have a wiki-specific topic
-        USER_ID: deployment-${{ github.run_id }}
-        CORRELATION_ID: ${{ github.run_id }}
+        GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
+        USER_ID: 'github-actions'
       run: |
-        PAYLOAD=$(jq -n \
-          --arg event "wikiDocumentationUpdated" \
-          --arg userId "$USER_ID" \
-          --arg timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-          --arg corr "$CORRELATION_ID" \
-          --arg deploymentId "deployment-${{ github.run_id }}" \
-          '{ event: $event, payload: { userId: $userId, timestamp: $timestamp, deploymentId: $deploymentId, correlationId: $corr } }'
-        )
-        echo "Publishing wiki update event to topic $TOPIC with payload: $PAYLOAD"
-        gcloud pubsub topics publish "$TOPIC" --message="$PAYLOAD" || echo "⚠️ Wiki topic not available, skipping"
+        echo "Publishing wikiDocsUpdated event to git-topic..."
+        gcloud pubsub topics publish git-topic --message '{
+          "event": "wikiDocsUpdated",
+          "payload": {
+            "userId": "${USER_ID}"
+          }
+        }' --project=${GCP_PROJECT_ID}
 
     # --- GENERATE & SAVE OPENAPI SPEC ---
     - name: Generate OpenAPI spec file
