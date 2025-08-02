@@ -304,7 +304,7 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
     }
   }
 
-  // --- Bridge from Google Cloud Pub/Sub to the internal eventBus ---
+  // --- Bridgee from Google Cloud Pub/Sub to the internal eventBus ---
   try {
     const pubSubClient = await fastify.diContainer.resolve('pubSubClient');
     const topicName = 'git-topic';
