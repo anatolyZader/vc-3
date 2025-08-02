@@ -304,6 +304,42 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
     }
   }
 
+  // --- Bridge from Google Cloud Pub/Sub to the internal eventBus ---
+  try {
+    const pubSubClient = await fastify.diContainer.resolve('pubSubClient');
+    const topicName = 'git-topic';
+    const subscriptionName = 'ai-service-git-topic-sub';
+
+    const subscription = pubSubClient.topic(topicName).subscription(subscriptionName);
+
+    fastify.log.info(`🔗 Subscribing to Google Cloud Pub/Sub topic: "${topicName}" with subscription: "${subscriptionName}"`);
+
+    subscription.on('message', message => {
+      fastify.log.info(`[GCP Pub/Sub] Received message from topic "${topicName}": ${message.id}`);
+      try {
+        const data = JSON.parse(message.data.toString());
+        fastify.log.info(`[GCP Pub/Sub] Parsed message data, emitting 'repoPushed' on internal event bus.`);
+        
+        // Emit to the internal event bus, which the rest of this file listens to.
+        eventBus.emit('repoPushed', data);
+        
+        message.ack();
+      } catch (error) {
+        fastify.log.error(`[GCP Pub/Sub] Error processing message ${message.id}:`, error);
+        message.nack();
+      }
+    });
+
+    subscription.on('error', error => {
+      fastify.log.error(`[GCP Pub/Sub] Error on subscription "${subscriptionName}":`, error);
+    });
+
+  } catch (error) {
+    fastify.log.error(`❌ AI MODULE: Failed to set up Google Cloud Pub/Sub subscription: ${error.message}`);
+  }
+  // --- End of bridge logic ---
+
+
   // Add a decorator to track registration (useful for debugging)
   fastify.decorate('aiPubsubListener', {
     isRegistered: true,
