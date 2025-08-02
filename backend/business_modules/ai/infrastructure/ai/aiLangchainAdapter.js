@@ -473,308 +473,54 @@ class AILangchainAdapter extends IAIPort {
       this.setUserId(userId);
     }
 
+    // Index the core documentation (API spec, markdown files)
+    await this.indexCoreDocsToPinecone();
+
     try {
-      // Check if we have the necessary clients initialized
-      if (!this.pinecone || !this.embeddings) {
-        throw new Error('Vector database or embeddings model not initialized. Please check your API keys.');
+      // Validate repoData structure
+      if (!repoData || !repoData.url || !repoData.branch) {
+        throw new Error(`Invalid repository data: ${JSON.stringify(repoData)}`);
       }
 
-      // 1. INDEXING :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+      const { url, branch } = repoData;
 
-      // Load: Document Loaders.
-      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Loading repository from GitHub...`);
-      
-      // Extract repository information with enhanced robustness and fallbacks
-      // First, try to extract from various possible structures in repoData
-      let githubOwner, repoName, repoUrl, repoBranch;
+      // Extract GitHub owner and repo name from URL
+      const urlParts = url.split('/');
+      const githubOwner = urlParts[urlParts.length - 2];
+      const repoName = urlParts[urlParts.length - 1].replace('.git', '');
 
-      this.emitRagStatus('extracting_repo_info', {
-        userId,
-        repoId,
-        repoData: repoData ? Object.keys(repoData) : 'null'
-      });
+      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Extracted GitHub owner: ${githubOwner}, repo name: ${repoName}`);
 
-      // Handle various payload structures that might come from different sources
-      if (repoData) {
-        if (repoData.repository) {
-          // Handle webhook or API response format
-          githubOwner = repoData.repository.owner?.login || 
-                       repoData.repository.owner?.name || 
-                       repoData.repository.owner;
-          repoName = repoData.repository.name;
-          repoUrl = repoData.repository.html_url || 
-                   repoData.repository.url || 
-                   `https://github.com/${githubOwner}/${repoName}`;
-          repoBranch = repoData.repository.default_branch || "main";
-          this.emitRagStatus('extracted_repo_webhook_format', { githubOwner, repoName, repoUrl, repoBranch });
-        } else if (repoData.repo) {
-          // Handle simplified custom format
-          githubOwner = repoData.repo.owner || repoData.githubOwner;
-          repoName = repoData.repo.name;
-          repoUrl = repoData.repo.url || `https://github.com/${githubOwner}/${repoName}`;
-          repoBranch = repoData.repo.branch || repoData.branch || "main";
-          this.emitRagStatus('extracted_repo_custom_format', { githubOwner, repoName, repoUrl, repoBranch });
-        } else {
-          // Handle flat structure
-          githubOwner = repoData.githubOwner || repoData.owner;
-          repoName = repoData.repoName || repoData.name;
-          repoUrl = repoData.repoUrl || repoData.url;
-          repoBranch = repoData.branch || repoData.defaultBranch || "main";
-          this.emitRagStatus('extracted_repo_flat_format', { githubOwner, repoName, repoUrl, repoBranch });
-        }
-      }
-
-      // If we still don't have the owner/name, try to extract from repoId
-      if (!githubOwner || !repoName) {
-        if (repoId && repoId.includes('/')) {
-          const parts = repoId.split('/');
-          githubOwner = githubOwner || parts[0];
-          repoName = repoName || parts[1];
-        } else {
-          // Last resort fallbacks
-          githubOwner = githubOwner || userId || 'unknown';
-          repoName = repoName || repoId || 'unknown-repo';
-        }
-      }
-
-      // Ensure we have a valid URL
-      if (!repoUrl || !repoUrl.includes('github.com')) {
-        repoUrl = `https://github.com/${githubOwner}/${repoName}`;
-      }
-
-      // Validate the extracted data
-      if (!githubOwner || !repoName || !repoUrl) {
-        console.error(`[${new Date().toISOString()}] 📥 RAG REPO: Failed to extract required repo information from payload`);
-        throw new Error('Invalid repository data: Could not determine owner or repository name');
-      }
-
-      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Extracted repository data:`);
-      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Owner: ${githubOwner}`);
-      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Name: ${repoName}`);
-      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: URL: ${repoUrl}`);
-      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Branch: ${repoBranch}`);
-
-      this.emitRagStatus('loading_repo', {
-        userId,
-        repoUrl,
-        branch: repoBranch,
-        githubOwner,
-        repoName
-      });
-
-      const repoLoader = new GithubRepoLoader(
-        repoUrl,
-        {
-          branch: repoBranch,
-          recursive: true,
-          unknown: "warn",
-          maxConcurrency: 3,
-          maxRetries: 2,
-          ignorePaths: [
-            "node_modules/**",
-            ".git/**",
-            "dist/**",
-            "build/**",
-            "*.min.js",
-            "package-lock.json"
-          ],
-          accessToken: process.env.GITHUB_TOKEN
-        }
-      );
-
-      const loadedRepo = [];
-      let loadCount = 0;
-
-      console.log(`[${new Date().toISOString()}] Starting document loading...`);
-      this.emitRagStatus('loading_documents', {
-        userId,
-        repoId,
-        repoUrl
-      });
-
-      for await (const doc of repoLoader.loadAsStream()) {
-        loadedRepo.push(doc);
-        loadCount++;
-
-        // Progress logging
-        if (loadCount % 10 === 0) {
-          console.log(`[${new Date().toISOString()}] Loaded ${loadCount} documents...`);
-          
-          // Emit progress update every 10 documents
-          if (loadCount % 50 === 0) {
-            this.emitRagStatus('loading_progress', {
-              userId,
-              repoId,
-              documentsLoaded: loadCount
-            });
-          }
-        }
-      }
-
-      console.log(`[${new Date().toISOString()}] ✅ Loaded ${loadedRepo.length} documents from repository`);
-      this.emitRagStatus('documents_loaded', {
-        userId,
-        repoId,
-        documentsLoaded: loadedRepo.length,
-        firstDocumentType: loadedRepo.length > 0 ? this.getFileType(loadedRepo[0].metadata.source || '') : 'unknown'
-      });
-
-      if (loadedRepo.length === 0) {
-        throw new Error(`No documents loaded from repository ${repoUrl}. Check repository access and branch name.`);
-      }
-
-      // Split: Text splitters
-      console.log(`[${new Date().toISOString()}] Splitting documents into chunks...`);
-      this.emitRagStatus('splitting_documents', {
-        userId,
-        repoId,
-        documentCount: loadedRepo.length
-      });
-
-      // Smart splitter selection based on repository content
-      const repoSplitter = this.createSmartSplitter(loadedRepo);
-
-      // Split documents into chunks
-      const splittedRepo = await repoSplitter.splitDocuments(loadedRepo);
-
-      console.log(`[${new Date().toISOString()}] ✅ Split into ${splittedRepo.length} chunks`);
-      this.emitRagStatus('documents_split', {
-        userId,
-        repoId,
-        chunksCreated: splittedRepo.length,
-        averageChunkSize: splittedRepo.length > 0 
-          ? Math.round(splittedRepo.reduce((sum, doc) => sum + doc.pageContent.length, 0) / splittedRepo.length) 
-          : 0
-      });
-
-      // Store: VectorStore and Embeddings model.
-      console.log(`[${new Date().toISOString()}] Storing embeddings in vector database...`);
-      this.emitRagStatus('storing_embeddings', {
-        userId,
-        repoId,
-        chunkCount: splittedRepo.length,
-        pineconeIndex: process.env.PINECONE_INDEX_NAME || 'eventstorm-index',
-        namespace: this.userId
-      });
-
-      // Add comprehensive metadata to chunks for better tracking
-      const documentsWithMetadata = splittedRepo.map((doc, index) => ({
-        ...doc,
-        metadata: {
-          ...doc.metadata,
-          userId: userId, // Ensure userId (application's internal ID) is correctly associated
-          repoId: repoId,
-          repoUrl: repoUrl,
-          branch: repoBranch,
-          githubOwner: githubOwner, // Store GitHub owner in metadata
-          chunkIndex: index,
-          totalChunks: splittedRepo.length,
-          processedAt: new Date().toISOString(), // Use current timestamp
-          processedBy: 'AI-Service', // More generic identifier
-          fileType: this.getFileType(doc.metadata.source || ''),
-          chunkSize: doc.pageContent.length
-        }
-      }));
-
-      // Generate unique IDs for the documents to avoid duplicates
-      const documentIds = documentsWithMetadata.map((doc, index) =>
-        `${userId}_${repoId}_${this.sanitizeId(doc.metadata.source || 'unknown')}_chunk_${index}`
-      );
-
-      // Store in vector database with batch processing for better performance
-      const batchSize = 100; // Further increased batch size for higher throughput (watch for 429 errors)
-      let storedCount = 0;
-
-      for (let i = 0; i < documentsWithMetadata.length; i += batchSize) {
-        let retries = 0;
-        let success = false;
-        let last429 = false;
-
-        while (!success && retries < this.maxRetries) {
-          if (await this.checkRateLimit()) {
-            try {
-              const batch = documentsWithMetadata.slice(i, i + batchSize);
-              const batchIds = documentIds.slice(i, i + batchSize);
-
-              await this.vectorStore.addDocuments(batch, { ids: batchIds });
-              storedCount += batch.length;
-
-              console.log(`[${new Date().toISOString()}] Stored batch ${Math.ceil((i + 1) / batchSize)} - ${storedCount}/${documentsWithMetadata.length} chunks`);
-              success = true;
-              last429 = false;
-            } catch (error) {
-              if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
-                retries++;
-                last429 = true;
-                console.warn(`[${new Date().toISOString()}] Pinecone rate limit (429) hit, retry ${retries}/${this.maxRetries}`);
-                this.emitRagStatus('pinecone_rate_limit', {
-                  userId,
-                  repoId,
-                  error: error.message,
-                  batch: Math.ceil((i + 1) / batchSize),
-                  storedCount,
-                  batchSize,
-                  maxRequestsPerMinute: this.maxRequestsPerMinute,
-                  suggestion: 'If you see repeated 429 errors, consider reducing batch size or requesting a quota increase from Pinecone.'
-                });
-                await this.waitWithBackoff(retries);
-              } else {
-                throw error; // Re-throw if it's not a rate limit issue
-              }
-            }
-          } else {
-            // Wait for rate limit window to reset
-            await this.waitWithBackoff(retries);
-          }
-        }
-
-        if (!success) {
-          console.error(`[${new Date().toISOString()}] Failed to store batch after ${this.maxRetries} retries`);
-          if (last429) {
-            this.emitRagStatus('pinecone_rate_limit_failed', {
-              userId,
-              repoId,
-              batch: Math.ceil((i + 1) / batchSize),
-              storedCount,
-              batchSize,
-              maxRequestsPerMinute: this.maxRequestsPerMinute,
-              error: 'Persistent 429 errors from Pinecone. Consider reducing batch size or requesting a quota increase.'
-            });
-          }
-        }
-      }
-
-      console.log(`[${new Date().toISOString()}] ✅ Successfully stored ${storedCount}/${documentsWithMetadata.length} document chunks in vector database`);
-
-      // Emit event for RAG status update
-      if (this.eventBus) {
-        this.eventBus.emit('ragStatusUpdate', {
-          userId: userId,
-          repoId: repoId,
-          status: 'completed',
-          documentsLoaded: loadedRepo.length,
-          chunksCreated: splittedRepo.length,
-          chunksStored: storedCount,
-          processedAt: new Date().toISOString()
+      // Check if the repository is already processed
+      const existingRepo = await this.findExistingRepo(userId, repoId, githubOwner, repoName);
+      if (existingRepo) {
+        console.log(`[${new Date().toISOString()}] Repository already processed, skipping: ${repoId}`);
+        this.emitRagStatus('processing_skipped', {
+          userId,
+          repoId,
+          reason: 'Repository already processed',
+          timestamp: new Date().toISOString()
         });
+        return {
+          success: true,
+          message: 'Repository already processed',
+          repoId,
+          userId
+        };
       }
 
-      return {
-        success: true,
-        userId: userId,
-        repoId: repoId,
-        repoUrl: repoUrl,
-        branch: repoBranch,
-        githubOwner: githubOwner,
-        documentsLoaded: loadedRepo.length,
-        chunksCreated: splittedRepo.length,
-        chunksStored: storedCount,
-        processedAt: new Date().toISOString(), // Use current timestamp
-        processedBy: 'AI-Service'
-      };
+      // Clone the repository to a temporary location
+      const tempDir = await this.cloneRepository(url, branch);
 
+      // Load and process documents from the cloned repository
+      const result = await this.loadAndProcessRepoDocuments(tempDir, userId, repoId, githubOwner, repoName);
+
+      // Cleanup: remove the cloned repository files
+      await this.cleanupTempDir(tempDir);
+
+      return result;
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to process repository ${repoId}:`, error.message);
+      console.error(`[${new Date().toISOString()}] ❌ Error processing repository ${repoId}:`, error.message);
       
       // Emit error status
       this.emitRagStatus('processing_error', {
