@@ -692,7 +692,7 @@ class AILangchainAdapter extends IAIPort {
             return await this.generateStandardResponse(prompt, conversationId);
           }
           
-          // Log the first few chunks for debugging
+          // Log the firstt few chunks for debugging
           similarDocuments.forEach((doc, i) => {
             console.log(`[DEBUG] Chunk ${i}: ${doc.metadata.source || 'Unknown'} | ${doc.pageContent.substring(0, 200)}`);
           });
