@@ -55,8 +55,11 @@ async function writeSpec() {
   // generate the OpenAPI spec
   const spec = fastify.swagger();
 
-  // resolve the target file
-  const out = path.resolve(
+  // resolve the target file - write to backend root for deployment
+  const out = path.resolve(__dirname, 'httpApiSpec.json');
+
+  // Also write to the business module location for runtime use
+  const businessModuleOut = path.resolve(
     __dirname,
     'business_modules',
     'api',
@@ -65,13 +68,17 @@ async function writeSpec() {
     'httpApiSpec.json'
   );
 
-  // ensure the directory exists
+  // ensure the directories exist
   fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.mkdirSync(path.dirname(businessModuleOut), { recursive: true });
 
-  // write the spec
-  fs.writeFileSync(out, JSON.stringify(spec, null, 2), 'utf8');
+  // write the spec to both locations
+  const specContent = JSON.stringify(spec, null, 2);
+  fs.writeFileSync(out, specContent, 'utf8');
+  fs.writeFileSync(businessModuleOut, specContent, 'utf8');
 
   console.log(`✔️  OpenAPI spec written to ${out}`);
+  console.log(`✔️  OpenAPI spec written to ${businessModuleOut}`);
   await fastify.close();
   process.exit(0);
 }

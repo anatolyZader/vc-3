@@ -2,6 +2,8 @@
 'use strict';
 /* eslint-disable no-unused-vars */
 
+const BUILDING_API_SPEC = process.env.GENERATING_HTTP_API_SPEC === '1';
+
 const path              = require('node:path');
 const fs                = require('fs');
 const AutoLoad          = require('@fastify/autoload');
@@ -46,7 +48,10 @@ module.exports = async function (fastify, opts) {
   await fastify.register(websocketPlugin);
   await fastify.register(fastifySensible);
   await fastify.register(eventDispatcher);
-  await fastify.register(pubsubPlugin);
+  
+  if (!BUILDING_API_SPEC) {
+    await fastify.register(pubsubPlugin);
+  }
   
   // Sets security-related HTTP headers automatically
   await fastify.register(helmet, {
@@ -208,32 +213,36 @@ module.exports = async function (fastify, opts) {
   // await fastify.register(swaggerPlugin);
   // await fastify.register(swaggerUIPlugin);
 
-
-  await fastify.register(redisPlugin);
-  fastify.redis.on('error', (err) => {
-    fastify.log.error({ err }, 'Redis client error');
-  });
-  fastify.log.info('⏳ Testing Redis connection with PING…');
-  try {
-    const pong = await fastify.redis.ping();
-    fastify.log.info(`✅ Redis PING response: ${pong}`);
-  } catch (err) {
-    fastify.log.error({ err }, '❌ Redis PING failed');
+  if (!BUILDING_API_SPEC) {
+    await fastify.register(redisPlugin);
+    fastify.redis.on('error', (err) => {
+      fastify.log.error({ err }, 'Redis client error');
+    });
+    fastify.log.info('⏳ Testing Redis connection with PING…');
+    try {
+      const pong = await fastify.redis.ping();
+      fastify.log.info(`✅ Redis PING response: ${pong}`);
+    } catch (err) {
+      fastify.log.error({ err }, '❌ Redis PING failed');
+    }
   }
 
-  await fastify.register(
-    fastifyCookie,
-    {
-      secret: fastify.secrets.COOKIE_SECRET,
-      parseOptions: { 
-        secure: true, // Only send cookies over HTTPS.
-        httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.
-        sameSite: 'None' }, // Allows cross-site cookies (e.g., for third-party integrations). Must be used with secure: true (required by modern browsers).
-    },
-    { encapsulate: false }
-  );
+  if (!BUILDING_API_SPEC) {
+    await fastify.register(
+      fastifyCookie,
+      {
+        secret: fastify.secrets.COOKIE_SECRET,
+        parseOptions: { 
+          secure: true, // Only send cookies over HTTPS.
+          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.
+          sameSite: 'None' }, // Allows cross-site cookies (e.g., for third-party integrations). Must be used with secure: true (required by modern browsers).
+      },
+      { encapsulate: false }
+    );
+  }
 
-  class RedisStore extends Store { // @fastify/session package exports a Store base class for session stores. This is the recommended way to get the session store parent class for custom session stores
+  if (!BUILDING_API_SPEC) {
+    class RedisStore extends Store { // @fastify/session package exports a Store base class for session stores. This is the recommended way to get the session store parent class for custom session stores
     constructor(sendCommand) {
       super();
       this.send = sendCommand;
@@ -266,6 +275,7 @@ module.exports = async function (fastify, opts) {
     store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)), // where session data is stored.
     saveUninitialized: false, // Do not create session until something stored in session.
   });
+  }
 
   // ────────────────────────────────────────────────────────────────
   // HEALTH ROUTE

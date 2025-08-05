@@ -290,6 +290,41 @@ jobs:
         echo "✅ .gcloudignore created:"
         cat .gcloudignore
 
+    # --- GENERATE HTTP API SPEC ---
+    - name: Generate HTTP API Specification
+      run: |
+        cd backend
+        echo "📋 Generating HTTP API specification for deployment..."
+        
+        # Set environment variable to enable spec generation mode
+        export GENERATING_HTTP_API_SPEC=1
+        
+        # Generate the API spec
+        npm run generate:spec
+        
+        # Reset environment variable after generation
+        unset GENERATING_HTTP_API_SPEC
+        
+        # Verify the spec was generated
+        if [ -f "httpApiSpec.json" ]; then
+          echo "✅ httpApiSpec.json generated successfully"
+          spec_size=$(wc -c < "httpApiSpec.json")
+          echo "📄 Spec file size: $spec_size bytes"
+          
+          # Basic validation of JSON structure
+          if node -e "JSON.parse(require('fs').readFileSync('httpApiSpec.json', 'utf8')); console.log('✅ Valid JSON structure')"; then
+            echo "✅ API spec is valid JSON"
+          else
+            echo "❌ API spec contains invalid JSON"
+            exit 1
+          fi
+        else
+          echo "❌ Failed to generate httpApiSpec.json"
+          exit 1
+        fi
+      env:
+        GENERATING_HTTP_API_SPEC: 1
+
     - name: Deploy backend to Cloud Run (with detailed logging)
       run: |
         cd backend
@@ -413,9 +448,3 @@ jobs:
             "userId": "${USER_ID}"
           }
         }' --project=${GCP_PROJECT_ID}
-
-    # --- GENERATE & SAVE OPENAPI SPEC ---
-    - name: Generate OpenAPI spec file
-      working-directory: backend
-      run: |
-        npm run generate:spec || echo "⚠️ OpenAPI generation failed, continuing deployment"
