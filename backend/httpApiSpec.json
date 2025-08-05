@@ -189,16 +189,6 @@
         }
       }
     },
-    "/api/auth/google": {
-      "get": {
-        "tags": [],
-        "responses": {
-          "200": {
-            "description": "Default Response"
-          }
-        }
-      }
-    },
     "/api/auth/google/callback": {
       "get": {
         "parameters": [

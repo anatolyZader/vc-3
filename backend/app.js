@@ -345,36 +345,55 @@ module.exports = async function (fastify, opts) {
 
   const revokedTokens = new Map();
 
-  fastify.register(fastifyJwt, {
-    secret: fastify.secrets.JWT_SECRET,
-    sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },
-    verify: { requestProperty: 'user' },
-    trusted(request, decoded) {
-      return !revokedTokens.has(decoded.jti);
-    },
-  });
+  if (!BUILDING_API_SPEC) {
+    fastify.register(fastifyJwt, {
+      secret: fastify.secrets.JWT_SECRET,
+      sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },
+      verify: { requestProperty: 'user' },
+      trusted(request, decoded) {
+        return !revokedTokens.has(decoded.jti);
+      },
+    });
+  }
 
-  fastify.decorate('verifyToken', async function (request) {
-    let token = request.cookies?.authToken;
-    if (!token && request.headers.authorization) {
-      const [scheme, value] = request.headers.authorization.split(' ');
-      if (scheme === 'Bearer') token = value;
-    }
-    if (!token) throw fastify.httpErrors.unauthorized('Missing token');
-    request.user = await fastify.jwt.verify(token);
-  });
+  if (!BUILDING_API_SPEC) {
+    fastify.decorate('verifyToken', async function (request) {
+      let token = request.cookies?.authToken;
+      if (!token && request.headers.authorization) {
+        const [scheme, value] = request.headers.authorization.split(' ');
+        if (scheme === 'Bearer') token = value;
+      }
+      if (!token) throw fastify.httpErrors.unauthorized('Missing token');
+      request.user = await fastify.jwt.verify(token);
+    });
 
-  fastify.decorateRequest('revokeToken', function () {
-    if (!this.user?.jti) throw this.httpErrors.unauthorized('Missing jti');
-    revokedTokens.set(this.user.jti, true);
-  });
+    fastify.decorateRequest('revokeToken', function () {
+      if (!this.user?.jti) throw this.httpErrors.unauthorized('Missing jti');
+      revokedTokens.set(this.user.jti, true);
+    });
 
-  fastify.decorateRequest('generateToken', async function () {
-    return fastify.jwt.sign(
-      { id: String(this.user.id), username: this.user.username },
-      { jwtid: uuidv4(), expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-    );
-  });
+    fastify.decorateRequest('generateToken', async function () {
+      return fastify.jwt.sign(
+        { id: String(this.user.id), username: this.user.username },
+        { jwtid: uuidv4(), expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
+      );
+    });
+  } else {
+    // Provide no-op versions for spec generation
+    fastify.decorate('verifyToken', async function (request) {
+      // No-op for spec generation
+      request.user = { id: 'spec-user', username: 'spec-user' };
+    });
+
+    fastify.decorateRequest('revokeToken', function () {
+      // No-op for spec generation
+    });
+
+    fastify.decorateRequest('generateToken', async function () {
+      // No-op for spec generation
+      return 'spec-token';
+    });
+  }
 
   const cookieSecure   = process.env.NODE_ENV === 'staging';
   const cookieSameSite = cookieSecure ? 'None' : 'Lax';
@@ -383,27 +402,36 @@ module.exports = async function (fastify, opts) {
       ? 'https://eventstorm.me/api/auth/google/callback'
       : 'http://localhost:3000/api/auth/google/callback';
 
-  await fastify.register(
-    fastifyOAuth2,
-    {
-      name: 'googleOAuth2',
-      scope: ['profile', 'email', 'openid'],
-      cookie: { secure: cookieSecure, sameSite: cookieSameSite, httpOnly: true },
-      credentials: {
-        client: { id: clientId, secret: clientSecret },
-        auth: fastifyOAuth2.GOOGLE_CONFIGURATION,
+  if (!BUILDING_API_SPEC) {
+    await fastify.register(
+      fastifyOAuth2,
+      {
+        name: 'googleOAuth2',
+        scope: ['profile', 'email', 'openid'],
+        cookie: { secure: cookieSecure, sameSite: cookieSameSite, httpOnly: true },
+        credentials: {
+          client: { id: clientId, secret: clientSecret },
+          auth: fastifyOAuth2.GOOGLE_CONFIGURATION,
+        },
+        startRedirectPath: '/api/auth/google',
+        callbackUri: googleCallbackUri,
       },
-      startRedirectPath: '/api/auth/google',
-      callbackUri: googleCallbackUri,
-    },
-    { encapsulate: false }
-  );
+      { encapsulate: false }
+    );
+  }
 
-  const googleClient = new OAuth2Client(clientId);
-  fastify.decorate('verifyGoogleIdToken', async (idToken) => {
-    const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });
-    return ticket.getPayload();
-  });
+  if (!BUILDING_API_SPEC) {
+    const googleClient = new OAuth2Client(clientId);
+    fastify.decorate('verifyGoogleIdToken', async (idToken) => {
+      const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });
+      return ticket.getPayload();
+    });
+  } else {
+    // Provide no-op version for spec generation
+    fastify.decorate('verifyGoogleIdToken', async (idToken) => {
+      return { sub: 'spec-user', email: 'spec@example.com', name: 'Spec User' };
+    });
+  }
 
   // await fastify.register(authSchemasPlugin);
 
