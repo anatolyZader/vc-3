@@ -246,7 +246,6 @@ jobs:
         .git/
         .gitignore
         README.md
-        *.md
         .env
         .env.*
         
@@ -285,6 +284,11 @@ jobs:
         !aop_modules/
         !env_schemas/
         !*.js
+        
+        # Include documentation files needed for RAG
+        !ARCHITECTURE.md
+        !ROOT_DOCUMENTATION.md
+        !business_modules/*/*.md
         EOF
         
         echo "✅ .gcloudignore created:"
