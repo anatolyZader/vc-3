@@ -296,7 +296,7 @@ module.exports = async function (fastify, opts) {
     }
   }, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
-  // Dedicatedd health check endpoint
+  // Dedicateddd health check endpoint
   fastify.get('/health', {
     schema: {
       response: {
