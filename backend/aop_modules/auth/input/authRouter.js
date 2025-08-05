@@ -247,7 +247,7 @@ fastify.route({
   }
 });
 
-// Terms of Service Route
+// Termss of Service Route
 fastify.route({
   method: 'GET',
   url: '/api/terms',
