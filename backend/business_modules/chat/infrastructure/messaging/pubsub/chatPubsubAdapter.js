@@ -21,7 +21,7 @@ constructor(dependencies) {
     });
 }
 
-    // Generic method to publish an eventttt
+    // Generic method to publish an eventtttt
     async publishEvent(eventName, payload) {
         try {
             console.log('🚀 ChatPubsubAdapter: Publishing event:', { eventName, payload });

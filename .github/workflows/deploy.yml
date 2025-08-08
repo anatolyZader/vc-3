@@ -34,8 +34,14 @@ jobs:
             backend/package-lock.json
             client/package-lock.json
 
+      - name: Resolve module directory
+        id: mod
+        run: |
+          if [ "${{ matrix.part }}" = "frontend" ]; then echo "dir=client" >> $GITHUB_OUTPUT; else echo "dir=${{ matrix.part }}" >> $GITHUB_OUTPUT; fi
+          echo "Resolved directory: $(grep dir= $GITHUB_OUTPUT || true)"
+
       - name: Install & Test
-        working-directory: ${{ matrix.part }}
+        working-directory: ${{ steps.mod.outputs.dir }}
         run: |
           npm ci
           if npm run test --if-present -- --coverage --watchAll=false --maxWorkers=50%; then
@@ -49,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
             name: coverage-${{ matrix.part }}
-            path: ${{ matrix.part }}/coverage/lcov.info
+            path: ${{ steps.mod.outputs.dir }}/coverage/lcov.info
             if-no-files-found: ignore
 
   sonar:
