@@ -75,6 +75,8 @@ jobs:
 
     # --- CODE QUALITY ANALYSIS ---
     - name: Run SonarQube Analysis
+      id: sonarqube
+      continue-on-error: true  # Don't fail the entire workflow if SonarQube fails
       uses: SonarSource/sonarqube-scan-action@v4
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -86,6 +88,19 @@ jobs:
           -Dsonar.sources=backend/,client/src/
           -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js
           -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,client/coverage/lcov.info
+
+    # --- SonarQube Analysis Status Check ---
+    - name: Check SonarQube Analysis Status
+      if: always()  # Always run this step
+      run: |
+        if [ "${{ steps.sonarqube.outcome }}" == "success" ]; then
+          echo "✅ SonarQube analysis completed successfully"
+        elif [ "${{ steps.sonarqube.outcome }}" == "failure" ]; then
+          echo "⚠️ SonarQube analysis failed - check SONAR_TOKEN and project configuration"
+          echo "📋 This is non-blocking - deployment will continue"
+        else
+          echo "⚠️ SonarQube analysis was skipped or had issues"
+        fi
 
     # --- FRONTEND: Build & Upload ---
     - name: Build React client

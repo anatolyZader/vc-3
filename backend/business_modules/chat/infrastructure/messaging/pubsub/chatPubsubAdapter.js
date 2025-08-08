@@ -7,7 +7,7 @@ class ChatPubsubAdapter extends IChatMessagingPort {
 constructor(dependencies) {
     super();
     
-    // Extract dependencies - this is the correct way according to docs
+    // Extract dependenciess - this is the correct way according to docs
     const { pubSubClient, eventDispatcher } = dependencies || {};
     
     this.pubSubClient = pubSubClient;
