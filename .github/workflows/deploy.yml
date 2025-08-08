@@ -57,6 +57,9 @@ jobs:
     needs: tests
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/amber' }}
+    env:
+      # mirror the secret into env so the `if` can read it even when secrets context is unavailable
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout (shallow)
         uses: actions/checkout@v4
@@ -93,10 +96,10 @@ jobs:
           key: sonar-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
 
       - name: Run SonarQube Analysis (CI mode)
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v4
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
         with:
           args: >
             -Dsonar.projectKey=ncljdsnvfalinvlifsagifsngsa8274359842759843ywoiudsfkuds__Fdfndk
@@ -106,6 +109,7 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,client/coverage/lcov.info
             -Dsonar.branch.name=${{ github.ref_name }}
             -Dsonar.scanner.forceAnalysis=true
+
 
   build-and-deploy:
     name: Build & Deploy
