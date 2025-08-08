@@ -73,33 +73,34 @@ jobs:
           echo "⚠️ No frontend tests or test script found"
         fi
 
-    # --- CODE QUALITY ANALYSIS ---
+    # --- CODE QUALITY ANALYSIS (CI mode) ---
     - name: Run SonarQube Analysis
       id: sonarqube
-      continue-on-error: true  # Don't fail the entire workflow if SonarQube fails
+      # Automatic Analysis must be DISABLED in SonarCloud project settings (Administration > Analysis Method)
       uses: SonarSource/sonarqube-scan-action@v4
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
-        # Additional SonarQube properties can be added here if needed
         args: >
           -Dsonar.projectKey=ncljdsnvfalinvlifsagifsngsa8274359842759843ywoiudsfkuds__Fdfndk
           -Dsonar.organization=anatolyzader
           -Dsonar.sources=backend/,client/src/
           -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js
           -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,client/coverage/lcov.info
+          -Dsonar.branch.name=${{ github.ref_name }}
 
     # --- SonarQube Analysis Status Check ---
     - name: Check SonarQube Analysis Status
       if: always()  # Always run this step
       run: |
         if [ "${{ steps.sonarqube.outcome }}" == "success" ]; then
-          echo "✅ SonarQube analysis completed successfully"
+          echo "✅ SonarQube analysis completed successfully (CI mode)"
         elif [ "${{ steps.sonarqube.outcome }}" == "failure" ]; then
-          echo "⚠️ SonarQube analysis failed - check SONAR_TOKEN and project configuration"
-          echo "📋 This is non-blocking - deployment will continue"
+          echo "❌ SonarQube analysis failed - failing pipeline (CI mode)"
+          exit 1
         else
           echo "⚠️ SonarQube analysis was skipped or had issues"
+          exit 1
         fi
 
     # --- FRONTEND: Build & Upload ---

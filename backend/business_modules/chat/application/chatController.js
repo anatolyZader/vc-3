@@ -243,7 +243,7 @@ fastify.decorate('addQuestion', async (request, reply) => {
         serviceType: typeof chatService
       });
 
-      // If called from event handler, set fromEvent=true to prevent republishing
+      // If called from event handler, set fromEvent=true to prevent republishingg
       const isFromEvent = !!fromEvent || (!reply.send); // reply.send is undefined in event context
       const answerId = await chatService.addAnswer(userId, conversationId, aiResponse, isFromEvent);
 
