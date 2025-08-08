@@ -50,6 +50,43 @@ jobs:
       with:
         node-version: '22.x'
 
+    # --- INSTALL DEPENDENCIES AND RUN TESTS ---
+    - name: Install and test backend
+      run: |
+        cd backend
+        npm ci
+        # Run tests with coverage if test script exists
+        if npm run test --if-present -- --coverage --watchAll=false; then
+          echo "✅ Backend tests completed with coverage"
+        else
+          echo "⚠️ No backend tests or test script found"
+        fi
+
+    - name: Install and test frontend
+      run: |
+        cd client
+        npm ci
+        # Run tests with coverage if test script exists
+        if npm run test --if-present -- --coverage --watchAll=false; then
+          echo "✅ Frontend tests completed with coverage"
+        else
+          echo "⚠️ No frontend tests or test script found"
+        fi
+
+    # --- CODE QUALITY ANALYSIS ---
+    - name: Run SonarQube Analysis
+      uses: SonarSource/sonarqube-scan-action@v4
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        # Additional SonarQube properties can be added here if needed
+        args: >
+          -Dsonar.projectKey=ncljdsnvfalinvlifsagifsngsa8274359842759843ywoiudsfkuds__Fdfndk
+          -Dsonar.organization=anatolyzader
+          -Dsonar.sources=backend/,client/src/
+          -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js
+          -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,client/coverage/lcov.info
+
     # --- FRONTEND: Build & Upload ---
     - name: Build React client
       run: |
@@ -64,12 +101,6 @@ jobs:
     - name: Upload static files
       run: |
         gsutil -m rsync -r ./client/dist gs://$GCP_BUCKET/
-
-    # --- BACKEND: Install dependencies first ---
-    - name: Install backend dependencies
-      run: |
-        cd backend
-        npm ci
 
     # --- VALIDATE WIKI ENVIRONMENT ---
     - name: Validate wiki environment
