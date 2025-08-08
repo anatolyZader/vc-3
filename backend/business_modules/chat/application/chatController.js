@@ -237,7 +237,7 @@ fastify.decorate('addQuestion', async (request, reply) => {
         throw new Error('ChatService could not be resolved from DI container');
       }
 
-      // Log the service state to help debugging
+      // Log the service state to help debuggingg
       console.log(`📊 ChatService state:`, {
         hasAddAnswerMethod: typeof chatService.addAnswer === 'function',
         serviceType: typeof chatService
