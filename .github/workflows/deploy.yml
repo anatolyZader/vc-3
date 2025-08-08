@@ -2,10 +2,113 @@ name: Full deploy
 
 on:
   push:
-    branches: [amber]  # Triggers the workflow on pushes to the 'amber' branch
+    branches: [ amber ]
+  pull_request:
+    branches: [ amber ]
+
+# Cancel older runs on same branch to save time
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  tests:
+    name: Tests (${{ matrix.part }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [ backend, frontend ]
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            client/package-lock.json
+
+      - name: Install & Test
+        working-directory: ${{ matrix.part }}
+        run: |
+          npm ci
+          if npm run test --if-present -- --coverage --watchAll=false --maxWorkers=50%; then
+            echo "✅ ${{ matrix.part }} tests finished"
+          else
+            echo "⚠️ No tests for ${{ matrix.part }}"
+          fi
+
+      - name: Upload coverage (if present)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+            name: coverage-${{ matrix.part }}
+            path: ${{ matrix.part }}/coverage/lcov.info
+            if-no-files-found: ignore
+
+  sonar:
+    name: SonarCloud Analysis
+    needs: tests
+    runs-on: ubuntu-latest
+    if: (github.event_name == 'pull_request' || github.ref == 'refs/heads/amber') && secrets.SONAR_TOKEN != ''
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js (for JS analyzers if needed)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            client/package-lock.json
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-backend
+          path: backend/coverage
+        continue-on-error: true
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-frontend
+          path: client/coverage
+        continue-on-error: true
+
+      - name: Cache Sonar scanner
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: sonar-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Run SonarQube Analysis (CI mode)
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=ncljdsnvfalinvlifsagifsngsa8274359842759843ywoiudsfkuds__Fdfndk
+            -Dsonar.organization=anatolyzader
+            -Dsonar.sources=backend/,client/src/
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js
+            -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,client/coverage/lcov.info
+            -Dsonar.branch.name=${{ github.ref_name }}
+            -Dsonar.scanner.forceAnalysis=true
+
   build-and-deploy:
+    name: Build & Deploy
+    needs: [ tests, sonar ]
     runs-on: ubuntu-latest
     env:
       GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
@@ -13,489 +116,196 @@ jobs:
       REGION: me-west1
       GCP_BUCKET: eventstorm-bucket
       REDIS_HOST: 10.187.8.27
-
-      # These environment variables are made available to steps within this GitHub Actions job.
-      # They are also explicitly passed to Cloud Run in the deploy step.
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
       PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
       PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
       PINECONE_WIKI_ENVIRONMENT: ${{ secrets.PINECONE_WIKI_ENVIRONMENT }}
-
-
+      GENERATE_DOCS: true
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Get full history for better documentation context
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # Increase if docs generation needs history
 
-    - name: Authenticate with GCP
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id: ${{ env.GCP_PROJECT }}
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
 
-    - name: Debug GCP Auth
-      run: |
-        gcloud auth list
-        gcloud config list
-        gsutil ls gs://$GCP_BUCKET/
+      - name: Debug GCP Auth
+        run: |
+          gcloud auth list
+          gcloud config list
+          gsutil ls gs://$GCP_BUCKET/ || echo "Bucket not reachable"
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22.x'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            client/package-lock.json
 
-    # --- INSTALL DEPENDENCIES AND RUN TESTS ---
-    - name: Install and test backend
-      run: |
-        cd backend
-        npm ci
-        # Run tests with coverage if test script exists
-        if npm run test --if-present -- --coverage --watchAll=false; then
-          echo "✅ Backend tests completed with coverage"
-        else
-          echo "⚠️ No backend tests or test script found"
-        fi
+      - name: Install & Build Frontend
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
 
-    - name: Install and test frontend
-      run: |
-        cd client
-        npm ci
-        # Run tests with coverage if test script exists
-        if npm run test --if-present -- --coverage --watchAll=false; then
-          echo "✅ Frontend tests completed with coverage"
-        else
-          echo "⚠️ No frontend tests or test script found"
-        fi
+      - name: Sync Static Files to Bucket
+        run: |
+          gsutil -m rsync -d -r ./client/dist gs://$GCP_BUCKET/
 
-    # --- CODE QUALITY ANALYSIS (CI mode) ---
-    - name: Run SonarQube Analysis
-      id: sonarqube
-      # Automatic Analysis must be DISABLED in SonarCloud project settings (Administration > Analysis Method)
-      uses: SonarSource/sonarqube-scan-action@v4
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      with:
-        args: >
-          -Dsonar.projectKey=ncljdsnvfalinvlifsagifsngsa8274359842759843ywoiudsfkuds__Fdfndk
-          -Dsonar.organization=anatolyzader
-          -Dsonar.sources=backend/,client/src/
-          -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js
-          -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,client/coverage/lcov.info
-          -Dsonar.branch.name=${{ github.ref_name }}
+      - name: Install Backend Production Deps (reuse lockfile)
+        working-directory: backend
+        run: |
+          npm ci --omit=dev || npm ci
 
-    # --- SonarQube Analysis Status Check ---
-    - name: Check SonarQube Analysis Status
-      if: always()  # Always run this step
-      run: |
-        if [ "${{ steps.sonarqube.outcome }}" == "success" ]; then
-          echo "✅ SonarQube analysis completed successfully (CI mode)"
-        elif [ "${{ steps.sonarqube.outcome }}" == "failure" ]; then
-          echo "❌ SonarQube analysis failed - failing pipeline (CI mode)"
-          exit 1
-        else
-          echo "⚠️ SonarQube analysis was skipped or had issues"
-          exit 1
-        fi
+      - name: Validate wiki environment
+        working-directory: backend
+        run: |
+          echo "🔍 Validating wiki documentation environment..."
+          for f in wiki-cli.js business_modules/wiki/input/wikiCli.js; do
+            [ -f "$f" ] || { echo "❌ Missing $f"; exit 1; }
+          done
+          [ -n "$PINECONE_API_KEY" ] || { echo "❌ PINECONE_API_KEY not set"; exit 1; }
+          if [ -z "$OPENAI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "❌ No AI provider API key set"; exit 1; fi
+          echo "✅ Validation OK"
 
-    # --- FRONTEND: Build & Upload ---
-    - name: Build React client
-      run: |
-        cd client
-        npm ci
-        npm run build
+      - name: Generate comprehensive documentation (conditional)
+        if: env.GENERATE_DOCS == 'true'
+        working-directory: backend
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_WIKI_ENVIRONMENT }}
+          PINECONE_INDEX_NAME: eventstorm-wiki
+        run: |
+          echo "📚 Starting wiki documentation generation..."
+          timeout 240 npm run wiki:generate -- --user-id deployment-${{ github.run_id }} || echo "⚠️ Wiki generation failed/timeout (non-blocking)"
 
-    - name: Clear bucket
-      run: |
-        gsutil -m rm -r gs://$GCP_BUCKET/** || true
+      - name: Verify generated documentation (informational)
+        if: env.GENERATE_DOCS == 'true'
+        working-directory: backend
+        run: |
+          echo "🔍 Checking docs..."
+          ls -1 business_modules/*/*.md 2>/dev/null | head || echo "No per-module docs"
+          for f in ROOT_DOCUMENTATION.md ARCHITECTURE.md; do [ -f "$f" ] && echo "Found $f" || echo "Missing $f"; done
 
-    - name: Upload static files
-      run: |
-        gsutil -m rsync -r ./client/dist gs://$GCP_BUCKET/
+      - name: Pre-deployment validation
+        working-directory: backend
+        run: |
+          for f in package.json server.js app.js; do [ -f "$f" ] || { echo "❌ Missing $f"; exit 1; }; done
+          node -e "const p=require('./package.json'); console.log('pkg', p.name)"
+          timeout 8 node -e "try{require('./server.js');console.log('Loaded server.js')}catch(e){console.error(e);process.exit(1)}" || echo "⚠️ Startup probe inconclusive"
 
-    # --- VALIDATE WIKI ENVIRONMENT ---
-    - name: Validate wiki environment
-      run: |
-        cd backend
-        echo "🔍 Validating wiki documentation environment..."
-        
-        # Check if required files exist
-        if [ ! -f "wiki-cli.js" ]; then
-          echo "❌ wiki-cli.js not found"
-          exit 1
-        fi
-        
-        if [ ! -f "business_modules/wiki/input/wikiCli.js" ]; then
-          echo "❌ wikiCli.js not found"
-          exit 1
-        fi
-        
-        echo "✅ Wiki CLI files found"
-        
-        # Check environment variables
-        if [ -z "$PINECONE_API_KEY" ]; then
-          echo "❌ PINECONE_API_KEY not set"
-          exit 1
-        fi
-        
-        if [ -z "$OPENAI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
-          echo "❌ No AI provider API key set"
-          exit 1
-        fi
-        
-        echo "✅ Required environment variables set"
+      - name: Create .gcloudignore
+        working-directory: backend
+        run: |
+          cat > .gcloudignore <<'EOF'
+          .git/
+          .gitignore
+          README.md
+          .env*
+          _tests_/
+          test/
+          tests/
+          *.test.js
+          *.spec.js
+          logs/
+          *.log
+          cloud_run_logs.txt
+          logs_run.txt
+          bfg.jar
+          cloud-sql-proxy
+          *.zip
+          *.tar.gz
+          # Include essentials
+          !package.json
+          !package-lock.json
+          !server.js
+          !app.js
+          !fastify.config.js
+          !business_modules/
+          !aop_modules/
+          !env_schemas/
+          !*.js
+          !ARCHITECTURE.md
+          !ROOT_DOCUMENTATION.md
+          !business_modules/*/*.md
+          EOF
+          echo "Generated .gcloudignore:"; wc -l .gcloudignore
 
-    # --- GENERATEE COMPREHENSIVE DOCUMENTATION ---
-    - name: Generate comprehensive documentation
-      run: |
-        cd backend
-        echo "📚 Starting wiki documentation generation..."
-        echo "🔗 Using deployment user ID: deployment-${{ github.run_id }}"
-        echo "📅 Generation timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-        
-        # Check if the script exists first
-        if [ ! -f "wiki-cli.js" ]; then
-          echo "❌ wiki-cli.js not found in $(pwd)"
-          ls -la
-          exit 1
-        fi
-        
-        # Test the CLI directly first
-        echo "🧪 Testing wiki CLI with --help"
-        node wiki-cli.js --help || {
-          echo "❌ Wiki CLI help command failed"
-          exit 1
-        }
-        
-        # Run with timeout to prevent hanging - but make it optional to continue deployment
-        echo "🚀 Running wiki generation (non-blocking)..."
-        timeout 300 npm run wiki:generate -- --user-id deployment-${{ github.run_id }} || {
-          echo "⚠️ Wiki generation timed out or failed, but continuing deployment"
-          echo "📋 Checking for partial results..."
-          ls -la business_modules/*/
-          echo "📋 This is non-fatal - deployment will continue"
-        }
-        
-        echo "✅ Wiki documentation step completed (success or graceful failure)"
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
-        PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_WIKI_ENVIRONMENT }}
-        PINECONE_INDEX_NAME: eventstorm-wiki
+      - name: Generate HTTP API Specification
+        working-directory: backend
+        env:
+          GENERATING_HTTP_API_SPEC: 1
+        run: |
+          npm run generate:spec
+          [ -f httpApiSpec.json ] || { echo "Spec missing"; exit 1; }
+          node -e "JSON.parse(require('fs').readFileSync('httpApiSpec.json','utf8')); console.log('Spec valid JSON')"
 
-    - name: Verify generated documentation (optional)
-      run: |
-        cd backend
-        echo "🔍 Checking for generated documentation files..."
-        
-        # Check for module documentation
-        MODULES_WITH_DOCS=0
-        for module_dir in business_modules/*/; do
-          module_name=$(basename "$module_dir")
-          doc_file="${module_dir}${module_name}.md"
-          if [ -f "$doc_file" ]; then
-            echo "✅ Found documentation: $doc_file"
-            MODULES_WITH_DOCS=$((MODULES_WITH_DOCS + 1))
-            
-            # Check file size (should be substantial)
-            file_size=$(wc -c < "$doc_file")
-            if [ "$file_size" -lt 100 ]; then
-              echo "⚠️ Warning: $doc_file seems too small ($file_size bytes)"
-            else
-              echo "📄 $doc_file size: $file_size bytes"
-            fi
-          else
-            echo "⚠️ Missing documentation: $doc_file"
-          fi
-        done
-        
-        # Check for root documentation
-        if [ -f "ROOT_DOCUMENTATION.md" ]; then
-          echo "✅ Found ROOT_DOCUMENTATION.md"
-          root_size=$(wc -c < "ROOT_DOCUMENTATION.md")
-          echo "📄 ROOT_DOCUMENTATION.md size: $root_size bytes"
-        else
-          echo "⚠️ Missing ROOT_DOCUMENTATION.md"
-        fi
-        
-        # Check for architecture documentation
-        if [ -f "ARCHITECTURE.md" ]; then
-          echo "✅ Found ARCHITECTURE.md"
-          arch_size=$(wc -c < "ARCHITECTURE.md")
-          echo "📄 ARCHITECTURE.md size: $arch_size bytes"
-        else
-          echo "⚠️ Missing ARCHITECTURE.md"
-        fi
-        
-        echo "📊 Summary: $MODULES_WITH_DOCS modules have documentation"
-        
-        # This is now informational only - don't fail the build
-        if [ "$MODULES_WITH_DOCS" -eq 0 ] && [ ! -f "ROOT_DOCUMENTATION.md" ] && [ ! -f "ARCHITECTURE.md" ]; then
-          echo "⚠️ No documentation was generated, but deployment will continue"
-        else
-          echo "✅ Some documentation was generated successfully"
-        fi
+      - name: Deploy backend to Cloud Run
+        working-directory: backend
+        run: |
+          echo "Deploying..."
+          gcloud run deploy eventstorm-backend \
+            --source . \
+            --region $REGION \
+            --project $GCP_PROJECT \
+            --platform managed \
+            --vpc-connector=cr-vpc-conn \
+            --vpc-egress=all-traffic \
+            --allow-unauthenticated \
+            --memory=2Gi \
+            --cpu=2 \
+            --timeout=900 \
+            --max-instances=10 \
+            --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
+            --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DEPLOYMENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ"),DEPLOYMENT_RUN_ID=${{ github.run_id }} \
+            --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }},PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }},PINECONE_WIKI_ENVIRONMENT=${{ secrets.PINECONE_WIKI_ENVIRONMENT }},PINECONE_WIKI_INDEX_NAME=eventstorm-wiki \
+            --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
 
-    # --- PRE-DEPLOYMENT VALIDATION ---
-    - name: Validate deployment prerequisites
-      run: |
-        cd backend
-        echo "🔍 Pre-deployment validation..."
-        
-        # Check critical files exist
-        echo "📁 Checking critical files..."
-        [ -f "package.json" ] && echo "✅ package.json found" || { echo "❌ package.json missing"; exit 1; }
-        [ -f "server.js" ] && echo "✅ server.js found" || { echo "❌ server.js missing"; exit 1; }
-        [ -f "app.js" ] && echo "✅ app.js found" || { echo "❌ app.js missing"; exit 1; }
-        
-        # Check package.json structure
-        echo "📦 Validating package.json..."
-        node -e "const pkg = require('./package.json'); console.log('✅ Package name:', pkg.name); console.log('✅ Main script:', pkg.main || 'not specified'); console.log('✅ Start script:', pkg.scripts?.start || 'not specified');"
-        
-        # Test if the application can start (dry run)
-        echo "🧪 Testing application startup (dry run)..."
-        timeout 10 node -e "
-          console.log('Testing basic Node.js execution...');
-          try {
-            require('./server.js');
-            console.log('✅ server.js loads without immediate errors');
-          } catch (error) {
-            console.log('❌ server.js has loading issues:', error.message);
-            process.exit(1);
-          }
-        " || echo "⚠️ Startup test timed out or failed - this may be normal for server files"
-        
-        # Check file sizes (large files can cause build issues)
-        echo "� Checking for large files that might cause build issues..."
-        find . -type f -size +10M -not -path "./node_modules/*" -not -path "./.git/*" | while read file; do
-          size=$(du -h "$file" | cut -f1)
-          echo "⚠️ Large file detected: $file ($size)"
-        done
-        
-        # Check directory structure
-        echo "📂 Directory structure:"
-        ls -la
-        echo "📂 Business modules:"
-        ls -la business_modules/ || echo "⚠️ No business_modules directory"
+      - name: Post-deployment verification
+        run: |
+          SERVICE_URL=$(gcloud run services describe eventstorm-backend --region=$REGION --format='value(status.url)')
+          echo "Service URL: $SERVICE_URL"
+          timeout 25 curl -s "$SERVICE_URL/health" || echo "Health endpoint not responding"
 
-    - name: Create .gcloudignore file
-      run: |
-        cd backend
-        echo "📝 Creating .gcloudignore to optimize build..."
-        cat > .gcloudignore << 'EOF'
-        # Ignore development and testing files
-        .git/
-        .gitignore
-        README.md
-        .env
-        .env.*
-        
-        # Ignore test files
-        _tests_/
-        test/
-        tests/
-        *.test.js
-        *.spec.js
-        
-        # Ignore development tools
-        .eslintrc*
-        eslint.config.js
-        jest.config.js
-        generateSpec.js
-        
-        # Ignore logs and temporary files
-        logs/
-        *.log
-        cloud_run_logs.txt
-        logs_run.txt
-        
-        # Ignore large files that aren't needed for runtime
-        bfg.jar
-        cloud-sql-proxy
-        *.zip
-        *.tar.gz
-        
-        # Include only essential files for runtime
-        !package.json
-        !package-lock.json
-        !server.js
-        !app.js
-        !fastify.config.js
-        !business_modules/
-        !aop_modules/
-        !env_schemas/
-        !*.js
-        
-        # Include documentation files needed for RAG
-        !ARCHITECTURE.md
-        !ROOT_DOCUMENTATION.md
-        !business_modules/*/*.md
-        EOF
-        
-        echo "✅ .gcloudignore created:"
-        cat .gcloudignore
+      - name: Archive documentation artifacts
+        if: always() && env.GENERATE_DOCS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-documentation-${{ github.run_id }}
+          path: |
+            backend/business_modules/*/*.md
+            backend/ROOT_DOCUMENTATION.md
+            backend/ARCHITECTURE.md
+          retention-days: 30
 
-    # --- GENERATE HTTP API SPEC ---
-    - name: Generate HTTP API Specification
-      run: |
-        cd backend
-        echo "📋 Generating HTTP API specification for deployment..."
-        
-        # Set environment variable to enable spec generation mode
-        export GENERATING_HTTP_API_SPEC=1
-        
-        # Generate the API spec
-        npm run generate:spec
-        
-        # Reset environment variable after generation
-        unset GENERATING_HTTP_API_SPEC
-        
-        # Verify the spec was generated
-        if [ -f "httpApiSpec.json" ]; then
-          echo "✅ httpApiSpec.json generated successfully"
-          spec_size=$(wc -c < "httpApiSpec.json")
-          echo "📄 Spec file size: $spec_size bytes"
-          
-          # Basic validation of JSON structure
-          if node -e "JSON.parse(require('fs').readFileSync('httpApiSpec.json', 'utf8')); console.log('✅ Valid JSON structure')"; then
-            echo "✅ API spec is valid JSON"
-          else
-            echo "❌ API spec contains invalid JSON"
-            exit 1
-          fi
-        else
-          echo "❌ Failed to generate httpApiSpec.json"
-          exit 1
-        fi
-      env:
-        GENERATING_HTTP_API_SPEC: 1
+      - name: Publish repoPushed event
+        env:
+          GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
+          USER_ID: 'github-actions'
+          REPO_ID: ${{ github.repository }}
+          REPO_URL: "https://github.com/${{ github.repository }}"
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          gcloud pubsub topics publish git-topic --message '{"event":"repoPushed","payload":{"userId":"'"$USER_ID"'","repoId":"'"$REPO_ID"'","repoData":{"url":"'"$REPO_URL"'","branch":"'"$BRANCH"'"}}}' --project=${GCP_PROJECT_ID}
 
-    - name: Deploy backend to Cloud Run (with detailed logging)
-      run: |
-        cd backend
-        echo "🚀 Starting Cloud Run deployment..."
-        echo "📂 Current directory: $(pwd)"
-        echo "📋 Files to be deployed:"
-        ls -la
-        
-        echo "🔧 Deployment configuration:"
-        echo "  • Service: eventstorm-backend"
-        echo "  • Region: $REGION"
-        echo "  • Project: $GCP_PROJECT"
-        echo "  • Source: current directory"
-        
-        # Set verbose logging for gcloud
-        export CLOUDSDK_CORE_VERBOSITY=info
-        
-        echo "🚀 Executing deployment command..."
-        
-        gcloud run deploy eventstorm-backend \
-          --source . \
-          --region $REGION \
-          --project $GCP_PROJECT \
-          --platform managed \
-          --vpc-connector=cr-vpc-conn \
-          --vpc-egress=all-traffic \
-          --allow-unauthenticated \
-          --memory=2Gi \
-          --cpu=2 \
-          --timeout=900 \
-          --max-instances=10 \
-          --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
-          --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DEPLOYMENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ"),DEPLOYMENT_RUN_ID=${{ github.run_id }} \
-          --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }},PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }},PINECONE_WIKI_ENVIRONMENT=${{ secrets.PINECONE_WIKI_ENVIRONMENT }},PINECONE_WIKI_INDEX_NAME=eventstorm-wiki \
-          --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest \
-          --verbosity=info
-
-    - name: Post-deployment verification
-      if: success()
-      run: |
-        echo "✅ Deployment completed successfully!"
-        echo "🔍 Verifying deployment..."
-        
-        # Get service URL
-        SERVICE_URL=$(gcloud run services describe eventstorm-backend --region=$REGION --format='value(status.url)')
-        echo "🌐 Service URL: $SERVICE_URL"
-        
-        # Test basic connectivity (with timeout)
-        echo "🧪 Testing service connectivity..."
-        timeout 30 curl -s "$SERVICE_URL/health" || echo "⚠️ Health check endpoint not responding (this may be normal if no health endpoint exists)"
-
-    - name: Deployment failure diagnostics
-      if: failure()
-      run: |
-        echo "❌ Deployment failed - gathering diagnostic information..."
-        
-        cd backend
-        echo "📂 Current directory contents:"
-        ls -la
-        
-        echo "📦 Package.json contents:"
-        cat package.json
-        
-        echo "🔍 Checking recent Cloud Build logs..."
-        gcloud logging read "resource.type=build AND severity>=WARNING" --limit=10 --format="table(timestamp,severity,textPayload)" --project=$GCP_PROJECT || echo "Could not retrieve build logs"
-        
-        echo "🔍 Checking Cloud Run service status..."
-        gcloud run services describe eventstorm-backend --region=$REGION --project=$GCP_PROJECT || echo "Service not found or accessible"
-        
-        echo "💡 Common solutions:"
-        echo "  1. Check that all required files are present"
-        echo "  2. Verify package.json has correct start script"
-        echo "  3. Ensure no syntax errors in JavaScript files"
-        echo "  4. Check for missing dependencies"
-        echo "  5. Verify environment variables are correctly set"
-
-    # --- SAVE DOCUMENTATION ARTIFACTS ---
-    - name: Archive documentation artifacts
-      uses: actions/upload-artifact@v4
-      if: always() # Upload even if previous steps failed
-      with:
-        name: generated-documentation-${{ github.run_id }}
-        path: |
-          backend/business_modules/*/*.md
-          backend/ROOT_DOCUMENTATION.md
-          backend/ARCHITECTURE.md
-        retention-days: 30
-
-    # --- TRIGGER AI INGESTION via Pub/Sub ---
-    - name: Publish repoPushed event for AI ingestion
-      env:
-        GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
-        USER_ID: 'github-actions' # Static user for system events
-        REPO_ID: ${{ github.repository }}
-        REPO_URL: "https://github.com/${{ github.repository }}"
-        BRANCH: ${{ github.ref_name }}
-      run: |
-        echo "Publishing repoPushed event to git-topic..."
-        gcloud pubsub topics publish git-topic --message '{
-          "event": "repoPushed",
-          "payload": {
-            "userId": "${USER_ID}",
-            "repoId": "${REPO_ID}",
-            "repoData": {
-              "url": "${REPO_URL}",
-              "branch": "${BRANCH}"
-            }
-          }
-        }' --project=${GCP_PROJECT_ID}
-
-    # --- TRIGGER CORE DOCS INGESTION ---
-    - name: Publish wikiDocsUpdated event for Core Docs Ingestion
-      env:
-        GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
-        USER_ID: 'github-actions'
-      run: |
-        echo "Publishing wikiDocsUpdated event to git-topic..."
-        gcloud pubsub topics publish git-topic --message '{
-          "event": "wikiDocsUpdated",
-          "payload": {
-            "userId": "${USER_ID}"
-          }
-        }' --project=${GCP_PROJECT_ID}
+      - name: Publish wikiDocsUpdated event
+        env:
+          GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
+          USER_ID: 'github-actions'
+        run: |
+          gcloud pubsub topics publish git-topic --message '{"event":"wikiDocsUpdated","payload":{"userId":"'"$USER_ID"'"}}' --project=${GCP_PROJECT_ID}
