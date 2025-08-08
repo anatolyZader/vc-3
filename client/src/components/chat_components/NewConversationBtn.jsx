@@ -25,9 +25,9 @@ const NewConversationBtn = ({ onNewConversation, disabled }) => {
             backgroundColor: 'rgba(0, 0, 0, 0.12)',
             color: 'rgba(0, 0, 0, 0.26)'
           },
-          width: '70%',
+          width: '900%',
           height: "70%",
-          margin: '0 auto' 
+          margin: '10px auto' 
         }}
       >
         New Conversation

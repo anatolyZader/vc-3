@@ -117,9 +117,64 @@ jobs:
             -Dsonar.scanner.forceAnalysis=true
 
 
+  domain-tests:
+    name: Domain Layer Tests
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Verify each domain module has tests
+        working-directory: backend
+        run: |
+          echo "🔎 Checking domain modules for tests..."
+          modules=$(ls -d business_modules/*/domain 2>/dev/null | sed 's@business_modules/@@; s@/domain@@') || true
+          if [ -z "$modules" ]; then
+            echo "❌ No domain modules found under business_modules/*/domain"; exit 1; fi
+          missing=0
+          for m in $modules; do
+            pattern="business_modules/$m/domain/**/*.test.js"
+            if compgen -G $pattern > /dev/null; then
+              count=$(ls business_modules/$m/domain/**/*.test.js 2>/dev/null | wc -l)
+              echo "✅ $m: $count test file(s)"
+            else
+              echo "❌ $m: no test files matching **/*.test.js in domain"; missing=1
+            fi
+          done
+          if [ $missing -ne 0 ]; then
+            echo "❌ One or more domain modules missing tests"; exit 1; fi
+          echo "✅ All domain modules have at least one test file"
+
+      - name: Run domain layer tests with coverage
+        working-directory: backend
+        run: |
+          echo "🧪 Running domain tests..."
+          npx jest business_modules/*/domain --coverage --coverageDirectory=coverage/domain --maxWorkers=50% || { echo "❌ Domain tests failed"; exit 1; }
+
+      - name: Upload domain coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-domain
+          path: backend/coverage/domain/lcov.info
+          if-no-files-found: ignore
+
   build-and-deploy:
     name: Build & Deploy
-    needs: [ tests, sonar ]
+    needs: [ tests, sonar, domain-tests ]
     runs-on: ubuntu-latest
     env:
       GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
