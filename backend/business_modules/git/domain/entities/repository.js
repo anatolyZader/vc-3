@@ -6,7 +6,8 @@ const RepoId = require('../value_objects/repoId');
 
 class Repository {
   constructor(userIdRaw) {
-    this.userId = new UserId(userIdRaw);
+    // Accept already constructed UserId or raw value
+    this.userId = userIdRaw instanceof UserId ? userIdRaw : new UserId(userIdRaw);
   }
 
   async fetchRepo(repoIdRaw, IGitPort) {
@@ -23,6 +24,5 @@ class Repository {
     return data;
   }
 }
-
 
 module.exports = Repository;

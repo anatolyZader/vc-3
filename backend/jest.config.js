@@ -4,6 +4,9 @@ module.exports = {
     collectCoverage: true,
     coverageDirectory: 'coverage',
     moduleFileExtensions: ['js', 'json'],
-    testMatch: ['**/__tests__/**/*.test.js', '**/?(*.)+(spec|test).js'],
-  };
-  
+    testMatch: ['<rootDir>/_tests_/**/*.test.js'],
+    testPathIgnorePatterns: [
+        '<rootDir>/business_modules/.*/__tests__/',
+        '<rootDir>/aop_modules/.*/__tests__/'
+    ],
+};

@@ -9,6 +9,8 @@ class IAIPersistPort {
     }
   }
 
+  async saveAiResponse() { throw new Error('Method not implemented.'); }
+  async saveRepoPush() { throw new Error('Method not implemented.'); }
 }
 
 module.exports = IAIPersistPort;
