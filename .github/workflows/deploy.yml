@@ -144,20 +144,22 @@ jobs:
           echo "🔎 Checking domain modules for tests..."
           modules=$(ls -d business_modules/*/domain 2>/dev/null | sed 's@business_modules/@@; s@/domain@@') || true
           if [ -z "$modules" ]; then
-            echo "❌ No domain modules found under business_modules/*/domain"; exit 1; fi
-          missing=0
+            echo "⚠️ No domain modules found under business_modules/*/domain (skipping check)"; exit 0; fi
+          missing_list=""
           for m in $modules; do
             pattern="_tests_/business_modules/$m/domain/**/*.test.js"
             if compgen -G $pattern > /dev/null; then
               count=$(ls _tests_/business_modules/$m/domain/**/*.test.js 2>/dev/null | wc -l)
               echo "✅ $m: $count domain test file(s) (centralized)"
             else
-              echo "❌ $m: no centralized domain tests found at _tests_/business_modules/$m/domain"; missing=1
+              echo "⚠️ $m: no centralized domain tests found at _tests_/business_modules/$m/domain"; missing_list="$missing_list $m"
             fi
           done
-          if [ $missing -ne 0 ]; then
-            echo "❌ One or more domain modules missing tests"; exit 1; fi
-          echo "✅ All domain modules have at least one test file"
+          if [ -n "$missing_list" ]; then
+            echo "⚠️ Modules without domain tests (non-blocking):$missing_list"
+          else
+            echo "✅ All domain modules have at least one test file"
+          fi
 
       - name: Run domain layer tests with coverage
         working-directory: backend

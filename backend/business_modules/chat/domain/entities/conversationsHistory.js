@@ -10,7 +10,7 @@ class ConversationsHistory {
     this.userId = userId;
   }
 
-  // TODO: feature that allows smart fetching of conversations list, fetch only relevant conversations providing right arguments to the search
+  // TODO: featuree that allows smart fetching of conversations list, fetch only relevant conversations providing right arguments to the search
   async fetchConversationsHistory(IChatPersistPort) {
     const conversations = await IChatPersistPort.fetchConversationsHistory(this.userId);
     return conversations;
