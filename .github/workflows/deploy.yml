@@ -147,12 +147,12 @@ jobs:
             echo "❌ No domain modules found under business_modules/*/domain"; exit 1; fi
           missing=0
           for m in $modules; do
-            pattern="business_modules/$m/domain/**/*.test.js"
+            pattern="_tests_/business_modules/$m/domain/**/*.test.js"
             if compgen -G $pattern > /dev/null; then
-              count=$(ls business_modules/$m/domain/**/*.test.js 2>/dev/null | wc -l)
-              echo "✅ $m: $count test file(s)"
+              count=$(ls _tests_/business_modules/$m/domain/**/*.test.js 2>/dev/null | wc -l)
+              echo "✅ $m: $count domain test file(s) (centralized)"
             else
-              echo "❌ $m: no test files matching **/*.test.js in domain"; missing=1
+              echo "❌ $m: no centralized domain tests found at _tests_/business_modules/$m/domain"; missing=1
             fi
           done
           if [ $missing -ne 0 ]; then
@@ -163,7 +163,8 @@ jobs:
         working-directory: backend
         run: |
           echo "🧪 Running domain tests..."
-          npx jest business_modules/*/domain --coverage --coverageDirectory=coverage/domain --maxWorkers=50% || { echo "❌ Domain tests failed"; exit 1; }
+          # Run only domain tests from centralized _tests_ tree
+          npx jest _tests_/business_modules/*/domain --coverage --coverageDirectory=coverage/domain --maxWorkers=50% || { echo "❌ Domain tests failed"; exit 1; }
 
       - name: Upload domain coverage
         uses: actions/upload-artifact@v4
