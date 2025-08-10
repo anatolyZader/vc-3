@@ -1,6 +1,7 @@
 .main-container {
   display: grid;
   grid-template-columns: 150px 1fr;
+  grid-template-rows: 1fr; /* ensure single row fills available height */
   grid-template-areas: "sidebar chat-container";
   height: 100vh;
   width: 100%;
@@ -150,4 +151,34 @@
   text-align: center;
   padding: 40px 20px;
   color: #6c757d;
+}
+
+/* Ensure chat container lays out children vertically and message list grows */
+.chat-container {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important; /* allow inner flex children to shrink */
+}
+
+/* Chatscope internal message list class override to allow flex growth */
+.chat-container .cs-message-list,
+.cs-chat-container .cs-message-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* Ensure the chat container itself has flex layout */
+.cs-chat-container {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+/* Make sure the input area stays visible with a subtle top border */
+.chat-container .message-input,
+.cs-chat-container .cs-message-input {
+  border-top: 1px solid #eee !important;
+  flex-shrink: 0 !important;
 }
