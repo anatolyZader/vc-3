@@ -103,25 +103,62 @@ class ChatPostgresAdapter extends IChatPersistPort {
         }
     }
 
-    // ✅ FIX: Removed user_id from WHERE clause and explicitly selected columns
-    async fetchConversation(userId, conversationId) { // userId is passed but not used in the query for messages table
+    // ✅ FIX: Return complete conversation object with metadata and messages
+    async fetchConversation(userId, conversationId) {
         const pool = await this.getPool();
         const client = await pool.connect();
         try {
-            const { rows } = await client.query(
-                `SELECT
-                    id,
-                    conversation_id,
-                    sender_type,     -- ✅ Use sender_type
-                    content,
-                    created_at,
-                    message_order    -- ✅ Include message_order
-                FROM chat.messages
-                WHERE conversation_id = $1
-                ORDER BY message_order ASC`, // ✅ Order by message_order
-                [conversationId] // Only conversationId is needed for this query
+            // First, get the conversation metadata
+            const conversationQuery = await client.query(
+                `SELECT id, title, created_at, updated_at 
+                 FROM chat.conversations 
+                 WHERE id = $1 AND user_id = $2`,
+                [conversationId, userId]
             );
-            return rows;
+
+            if (conversationQuery.rows.length === 0) {
+                throw new Error(`Conversation ${conversationId} not found for user ${userId}`);
+            }
+
+            const conversation = conversationQuery.rows[0];
+
+            // Then, get the messages
+      const messagesQuery = await client.query(
+        `SELECT
+          id,
+          conversation_id,
+          CASE 
+            WHEN sender_type = 'user' THEN 'user'
+            WHEN sender_type IN ('assistant','ai') THEN 'ai' -- normalize both legacy 'assistant' & any 'ai'
+            ELSE sender_type
+          END as role,
+          CASE 
+            WHEN content::text LIKE '{%}' THEN 
+              COALESCE((content::json->>'content'), content::text)
+            ELSE content::text
+          END as text,
+          created_at as timestamp,
+          message_order
+        FROM chat.messages
+        WHERE conversation_id = $1
+        ORDER BY message_order ASC`,
+        [conversationId]
+      );
+
+            // Return the complete conversation object in the format expected by the router
+      const normalizedMessages = messagesQuery.rows.map(m => ({
+        role: m.role === 'assistant' ? 'ai' : m.role, // safety: should already be 'ai' or 'user'
+        text: m.text || '',
+        timestamp: (m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp)
+      }));
+
+      return {
+        conversationId: conversation.id,
+        title: conversation.title,
+        messages: normalizedMessages,
+        createdAt: conversation.created_at instanceof Date ? conversation.created_at.toISOString() : conversation.created_at,
+        updatedAt: conversation.updated_at instanceof Date ? conversation.updated_at.toISOString() : conversation.updated_at
+      };
         } catch (error) {
             console.error('Error fetching conversation:', error);
             throw error;
@@ -263,7 +300,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
 
       // Insert message with retry logic
       try {
-        // Insert into the exact columns, using 'assistant' for sender_type
+  // Insert using canonical DB value 'assistant' (DB likely constrained to 'user' | 'assistant')
         await client.query(
           `INSERT INTO chat.messages
              (id,
@@ -272,7 +309,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
               content,
               message_order)
            VALUES
-             ($1, $2, 'assistant', $3, $4)`,
+       ($1, $2, 'assistant', $3, $4)`,
           [messageId, conversationId, answer, nextOrder]
         );
       } catch (insertError) {
@@ -289,7 +326,7 @@ class ChatPostgresAdapter extends IChatPersistPort {
                 content,
                 message_order)
              VALUES
-               ($1, $2, 'assistant', $3, $4)`,
+               ($1, $2, 'ai', $3, $4)`,
             [messageId, conversationId, answer.substring(0, 5000) + '... (truncated)', nextOrder]
           );
         } else {

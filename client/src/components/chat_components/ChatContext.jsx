@@ -201,8 +201,16 @@ export const ChatProvider = ({ children }) => {
     
     try {
       const conversations = await chatAPI.fetchConversationsHistory();
-      console.log(`[${new Date().toISOString()}] Loaded ${conversations.length} conversations for anatolyZader`);
-      dispatch({ type: 'SET_CONVERSATIONS', payload: conversations });
+      // Normalize server conversation objects to a consistent shape expected by UI
+      const normalized = (conversations || []).map(c => ({
+        id: c.id || c.conversationId, // backend returns conversationId, newly created we already store id
+        title: c.title || 'Untitled Conversation',
+        created_at: c.created_at || c.createdAt, // historical mix of snake / camel
+        updated_at: c.updated_at || c.updatedAt
+      })).filter(c => !!c.id); // drop any malformed entries
+
+      console.log(`[${new Date().toISOString()}] Loaded ${normalized.length} conversations (normalized) for anatolyZader`);
+      dispatch({ type: 'SET_CONVERSATIONS', payload: normalized });
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Failed to load conversations history:`, error);
       handleError(error, 'Failed to load conversations history');
@@ -256,12 +264,14 @@ export const ChatProvider = ({ children }) => {
     dispatch({ type: 'SET_ERROR', payload: null });
     
     try {
-      const msgs = await chatAPI.fetchConversation(conversationId);
-      const formatted = msgs.map(msg => ({
-        message: msg.content,
-        sentTime: new Date(msg.created_at).toLocaleTimeString(),
-        sender: msg.sender_type === 'user' ? 'You' : 'AI Assistant',
-        direction: msg.sender_type === 'user' ? 'outgoing' : 'incoming',
+      const conversation = await chatAPI.fetchConversation(conversationId);
+      // Some older API responses may wrap data differently (aggregate instance). Normalize.
+      const rawMessages = conversation.messages || (conversation.data && conversation.data.messages) || [];
+      const formatted = rawMessages.map(msg => ({
+        message: msg.content || msg.text || msg.message || '',
+        sentTime: new Date(msg.created_at || msg.timestamp || Date.now()).toLocaleTimeString(),
+        sender: (msg.role === 'user' ? 'You' : 'AI Assistant'),
+        direction: (msg.role === 'user' ? 'outgoing' : 'incoming'),
         position: 'single'
       }));
       
