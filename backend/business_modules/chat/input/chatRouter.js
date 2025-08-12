@@ -61,6 +61,36 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     }
   });
 
+  // generate a conversation title using AI based on first 3 user prompts
+  fastify.route({
+    method: 'POST',
+    url: '/name-conversation',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.nameConversation,
+    schema: {
+      tags: ['chat'],
+      body: {
+        type: 'object',
+        properties: {
+          conversationId: { type: 'string' }
+        },
+        required: ['conversationId'],
+        additionalProperties: false
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            conversationId: { type: 'string' },
+            title: { type: 'string' }
+          },
+          required: ['conversationId', 'title'],
+          additionalProperties: false
+        }
+      }
+    }
+  });
+
   // fetch specific conversation
   fastify.route({
     method: 'GET',

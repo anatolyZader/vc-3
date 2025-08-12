@@ -105,6 +105,28 @@ async function chatController(fastify, options) {
     }
   });
 
+  // Generate and set conversation title via AI
+  fastify.decorate('nameConversation', async (request, reply) => {
+    try {
+      const { conversationId } = request.body || {};
+      const userId = request.user && request.user.id;
+
+      if (!userId) {
+        throw fastify.httpErrors.unauthorized('User not authenticated');
+      }
+      if (!conversationId) {
+        throw fastify.httpErrors.badRequest('Missing conversationId');
+      }
+
+      const chatService = await getChatService(request);
+      const title = await chatService.nameConversation(userId, conversationId);
+      return { conversationId, title };
+    } catch (error) {
+      fastify.log.error('Error naming conversation:', error);
+      throw fastify.httpErrors.internalServerError('Failed to name conversation', { cause: error });
+    }
+  });
+
   // Fetch specific conversation
   fastify.decorate('fetchConversation', async (request, reply) => {
     try {

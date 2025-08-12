@@ -16,6 +16,7 @@ const AuthPostgresAdapter = require('./aop_modules/auth/infrastructure/persisten
 const ChatService = require('./business_modules/chat/application/services/chatService');
 const ChatPostgresAdapter = require('./business_modules/chat/infrastructure/persistence/chatPostgresAdapter');
 const ChatPubsubAdapter = require('./business_modules/chat/infrastructure/messaging/pubsub/chatPubsubAdapter');
+const ChatAiAdapter = require('./business_modules/chat/infrastructure/ai/chatAiAdapter');
 
 const GitService = require('./business_modules/git/application/services/gitService');
 const GitPostgresAdapter = require('./business_modules/git/infrastructure/persistence/gitPostgresAdapter');
@@ -138,6 +139,7 @@ module.exports = fp(async function (fastify, opts) {
     authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
     chatPostgresAdapter: asClass(ChatPostgresAdapter).scoped(),
     chatPubsubAdapter: asClass(ChatPubsubAdapter).scoped(),
+  chatAiAdapter: asClass(ChatAiAdapter).scoped(),
     apiSwaggerAdapter: asClass(ApiSwaggerAdapter).scoped(),
     apiPostgresAdapter: asClass(ApiPostgresAdapter).scoped(),
     apiPubsubAdapter: asClass(ApiPubsubAdapter).scoped(),
@@ -183,6 +185,7 @@ module.exports = fp(async function (fastify, opts) {
     { key: 'wikiGitAdapter', config: infraConfig.business_modules.wiki.wikiGitAdapter },
     { key: 'chatPersistAdapter', config: infraConfig.business_modules.chat.chatPersistAdapter },
     { key: 'chatMessagingAdapter', config: infraConfig.business_modules.chat.chatMessagingAdapter },
+    { key: 'chatAiAdapter', config: infraConfig.business_modules.chat.chatAiAdapter || infraConfig.business_modules.chat.chatAIAdapter },
     { key: 'gitPersistAdapter', config: infraConfig.business_modules.git.gitPersistAdapter },
     { key: 'gitAdapter', config: infraConfig.business_modules.git.gitAdapter },
     { key: 'gitMessagingAdapter', config: infraConfig.business_modules.git.gitMessagingAdapter },
@@ -233,6 +236,7 @@ module.exports = fp(async function (fastify, opts) {
     serviceRegistrations.wikiAiAdapter = adapters[infraConfig.business_modules.wiki.wikiAiAdapter];
     serviceRegistrations.chatPersistAdapter = adapters[infraConfig.business_modules.chat.chatPersistAdapter];
     serviceRegistrations.chatMessagingAdapter = adapters[infraConfig.business_modules.chat.chatMessagingAdapter];
+    serviceRegistrations.chatAiAdapter = adapters[infraConfig.business_modules.chat.chatAiAdapter || infraConfig.business_modules.chat.chatAIAdapter];
     serviceRegistrations.gitPersistAdapter = adapters[infraConfig.business_modules.git.gitPersistAdapter];
     serviceRegistrations.gitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
     serviceRegistrations.wikiGitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];

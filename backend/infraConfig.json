@@ -8,7 +8,7 @@
   "business_modules": {
     "chat": {
       "chatPersistAdapter": "chatPostgresAdapter",
-      "chatAIAdapter": "chatLangchainAdapter",
+  "chatAiAdapter": "chatAiAdapter",
       "chatMessagingAdapter": "chatPubsubAdapter"
     },
     "git": {

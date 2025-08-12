@@ -2,5 +2,6 @@
   display: flex;
   justify-content: center;
   margin-bottom: 2rem; 
-
+  width: 95%;
+  margin: 0 auto;
 }

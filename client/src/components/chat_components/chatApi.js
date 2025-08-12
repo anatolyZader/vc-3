@@ -308,6 +308,32 @@ class ChatAPI {
       method: 'DELETE'
     });
   }
+
+  // Name conversation via AI (server will compute from first 3 user prompts)
+  async nameConversation(conversationId, { keepalive = false } = {}) {
+    const endpoint = '/api/chat/name-conversation';
+    const url = `${this.baseURL}${endpoint}`;
+    const payload = JSON.stringify({ conversationId });
+    console.log(`[2025-06-30 11:42:00] Naming conversation ${conversationId} (keepalive=${keepalive})`);
+
+    // Try beacon for unload scenarios
+    if (keepalive && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      try {
+        const blob = new Blob([payload], { type: 'application/json' });
+        const ok = navigator.sendBeacon(url, blob);
+        return ok ? { conversationId, title: undefined, status: 'queued' } : null;
+      } catch (e) {
+        console.warn('sendBeacon failed, falling back to fetch keepalive:', e?.message || e);
+      }
+    }
+
+    // Fallback to fetch (supports keepalive)
+    return this.makeRequest(endpoint, {
+      method: 'POST',
+      body: payload,
+      keepalive
+    });
+  }
 }
 
 export default new ChatAPI();

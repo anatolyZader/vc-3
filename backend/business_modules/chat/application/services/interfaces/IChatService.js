@@ -30,6 +30,10 @@ class IChatService {
   async addAnswer(userId, conversationId, answer) {
     throw new Error("Method not implemented.");
   }
+
+  async nameConversation(userId, conversationId) {
+    throw new Error("Method not implemented.");
+  }
 }
 
 module.exports = IChatService;

@@ -70,10 +70,14 @@ export const ChatProvider = ({ children }) => {
   // Use a ref to store the currentConversationId to avoid stale closures in handleWebSocketMessage
   const currentConversationIdRef = useRef(state.currentConversationId);
 
-  // Update the ref whenever currentConversationId changes
+  // Track current and previous conversation IDs
+  const lastConversationIdRef = useRef(null);
   useEffect(() => {
     currentConversationIdRef.current = state.currentConversationId;
   }, [state.currentConversationId]);
+
+  // Track which conversations have already been named to avoid duplicate calls
+  const namedConversationsRef = useRef(new Set());
 
   const handleError = useCallback((error, customMessage) => {
     console.error(`[${new Date().toISOString()}] ${customMessage || 'Chat error'}:`, error);
@@ -286,6 +290,42 @@ export const ChatProvider = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [isAuthenticated, handleError]);
+
+  // Auto-name the previous conversation when switching to a new one
+  useEffect(() => {
+    const prevId = lastConversationIdRef.current;
+    const nextId = state.currentConversationId;
+    // Name the conversation we are leaving
+    if (prevId && prevId !== nextId && isAuthenticated && !namedConversationsRef.current.has(prevId)) {
+      namedConversationsRef.current.add(prevId);
+      chatAPI
+        .nameConversation(prevId)
+        .then(res => {
+          if (res && typeof res.title === 'string') {
+            dispatch({ type: 'UPDATE_CONVERSATION', payload: { id: prevId, title: res.title } });
+          }
+        })
+        .catch(err => {
+          console.warn('Failed to auto-name conversation on switch:', err?.message || err);
+          namedConversationsRef.current.delete(prevId);
+        });
+    }
+    // Update last seen to the current after handling
+    lastConversationIdRef.current = nextId;
+  }, [state.currentConversationId, isAuthenticated]);
+
+  // Auto-name the current conversation on page unload/close
+  useEffect(() => {
+    const handler = () => {
+      const cid = currentConversationIdRef.current;
+      if (!cid || namedConversationsRef.current.has(cid)) return;
+      namedConversationsRef.current.add(cid);
+      // Use keepalive to maximize success during unload
+      try { chatAPI.nameConversation(cid, { keepalive: true }); } catch (_) {}
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
 
   const sendMessage = useCallback(async (text) => {
     // Use the ref to get the current conversation ID

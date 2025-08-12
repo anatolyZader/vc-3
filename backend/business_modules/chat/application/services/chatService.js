@@ -16,10 +16,11 @@ const ConversationDeletedEvent = require('../../domain/events/conversationDelete
 
 
 class ChatService extends IChatService {
-  constructor({chatPersistAdapter, chatMessagingAdapter}) {
+  constructor({chatPersistAdapter, chatMessagingAdapter, chatAiAdapter}) {
     super();
     this.chatPersistAdapter = chatPersistAdapter;
     this.chatMessagingAdapter = chatMessagingAdapter;
+    this.chatAiAdapter = chatAiAdapter;
     this.topic = 'chat'; // dedicated topic for chat events
   }
 
@@ -98,6 +99,25 @@ class ChatService extends IChatService {
     await this.chatMessagingAdapter.renameConversation({userId, conversationId, newTitle});
     return newTitle;
   };
+
+  async nameConversation(userId, conversationId) {
+    const conversation = new Conversation(userId);
+    const title = await conversation.nameConversation(
+      conversationId,
+      this.chatPersistAdapter,
+      this.chatAiAdapter
+    );
+    // Publish rename event for consumers that rely on it
+    if (this.chatMessagingAdapter) {
+      const payload = { userId, conversationId, newTitle: title, timestamp: new Date().toISOString() };
+      if (typeof this.chatMessagingAdapter.publishEvent === 'function') {
+        await this.chatMessagingAdapter.publishEvent('conversationRenamed', payload);
+      } else if (typeof this.chatMessagingAdapter.renameConversation === 'function') {
+        await this.chatMessagingAdapter.renameConversation(payload);
+      }
+    }
+    return title;
+  }
 
   async deleteConversation(userId, conversationId) {
     const conversationIdVO = new ConversationId(conversationId);
