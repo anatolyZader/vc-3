@@ -56,18 +56,26 @@ const Chat = () => {
 
   // Function to get the main container element
   const getMainContainer = useCallback(() => {
-    // If ref is available, use it; otherwise, fallback to querySelector
+    // Now that we use a div, we can use the ref directly
     return mainContainerRef.current || document.querySelector('.main-container');
   }, []);
 
   const onMouseMove = useCallback((e) => {
     if (!isDraggingRef.current) return;
+    
     const totalWidth = containerWidthRef.current || 0;
     const containerLeft = containerLeftRef.current || 0;
-    let proposed = e.clientX - containerLeft; // distance from container left
-    const maxWidth = Math.max(MIN_WIDTH, totalWidth - MIN_CHAT_WIDTH - HANDLE_WIDTH);
-    if (proposed < MIN_WIDTH) proposed = MIN_WIDTH;
-    if (proposed > maxWidth) proposed = maxWidth;
+    
+    // Calculate the proposed sidebar width based on mouse position
+    let proposed = e.clientX - containerLeft;
+    
+    // Apply constraints to ensure both sidebar and chat area remain usable
+    const maxSidebarWidth = totalWidth - MIN_CHAT_WIDTH - HANDLE_WIDTH;
+    const minSidebarWidth = MIN_WIDTH;
+    
+    // Clamp the proposed width between min and max
+    proposed = Math.max(minSidebarWidth, Math.min(proposed, maxSidebarWidth));
+    
     setSidebarWidth(proposed);
   }, []);
 
@@ -136,8 +144,13 @@ const Chat = () => {
   };
 
   const handleConversationSelect = (conversationId) => {
+    console.log(`🔍 Attempting to select conversation: ${conversationId}`);
+    console.log(`🔍 Current conversation ID: ${currentConversationId}`);
     if (conversationId !== currentConversationId) {
+      console.log(`🔍 Loading conversation ${conversationId}`);
       loadConversation(conversationId);
+    } else {
+      console.log(`🔍 Conversation ${conversationId} is already selected`);
     }
   };
 
@@ -172,7 +185,8 @@ const Chat = () => {
   };
 
   return (
-    <MainContainer
+    <div
+      ref={mainContainerRef}
       className="main-container"
       style={{ gridTemplateColumns: `${sidebarWidth}px ${HANDLE_WIDTH}px 1fr` }}
     >
@@ -241,9 +255,15 @@ const Chat = () => {
           const mainContainer = getMainContainer();
           if (!mainContainer) return;
           const totalWidth = mainContainer.getBoundingClientRect().width;
-          const maxWidth = Math.max(MIN_WIDTH, totalWidth - MIN_CHAT_WIDTH - HANDLE_WIDTH);
-            if (e.key === 'ArrowLeft') setSidebarWidth(w => Math.max(MIN_WIDTH, w - 16));
-            if (e.key === 'ArrowRight') setSidebarWidth(w => Math.min(maxWidth, w + 16));
+          const maxSidebarWidth = totalWidth - MIN_CHAT_WIDTH - HANDLE_WIDTH;
+          const minSidebarWidth = MIN_WIDTH;
+          
+          if (e.key === 'ArrowLeft') {
+            setSidebarWidth(w => Math.max(minSidebarWidth, w - 16));
+          }
+          if (e.key === 'ArrowRight') {
+            setSidebarWidth(w => Math.min(maxSidebarWidth, w + 16));
+          }
         }}
         onDoubleClick={() => setSidebarWidth(320)}
         title="Drag to resize (double-click to reset)"
@@ -256,7 +276,7 @@ const Chat = () => {
         </div>
       )}
 
-      <ChatContainer className="chat-container">
+      <MainContainer className="chat-container">
         <ConversationHeader>
           <Avatar src={eventstorm_logo} name="AI Assistant" />
           <ConversationHeader.Content userName="AI Assistant" />
@@ -292,9 +312,8 @@ const Chat = () => {
                 responsive='true'
             />
         )}
-
-      </ChatContainer>
-    </MainContainer>
+      </MainContainer>
+    </div>
   );
 };
 

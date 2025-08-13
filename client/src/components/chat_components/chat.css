@@ -17,7 +17,7 @@
   position: relative;
   transition: width 0.15s ease, transform 0.3s ease;
   overflow: hidden;
-  border-right: 1px solid #d0d0d0;
+  /* Removed border-right - the resize handle will provide the visual separator */
 }
 
 /* Draggable vertical resize handle */
@@ -26,10 +26,13 @@
   width: 6px;
   cursor: col-resize;
   background: transparent;
-  position: relative; /* inside grid flow between columns */
+  position: relative;
   z-index: 15;
   transition: background-color 0.15s ease;
   height: 100%;
+  border-left: 1px solid #d0d0d0;
+  border-right: 1px solid #d0d0d0;
+  box-sizing: border-box;
 }
 
 /* Visible grab icon (dotted grip) */
