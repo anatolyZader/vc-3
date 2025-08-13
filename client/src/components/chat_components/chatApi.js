@@ -24,11 +24,13 @@ class ChatAPI {
   }
 
   // For GCP cookie-based auth, we don't need Authorization headers
-  getAuthHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      // No Authorization header needed - cookies handle this
-    };
+  getAuthHeaders(hasBody = true) {
+    const headers = {};
+    // Only set Content-Type when we actually have a body to send
+    if (hasBody) {
+      headers['Content-Type'] = 'application/json';
+    }
+    return headers;
   }
 
   connectWebSocket() {
@@ -220,8 +222,9 @@ class ChatAPI {
   // Enhanced makeRequest with better error handling
   async makeRequest(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    const hasBody = options.body !== undefined;
     const config = {
-      headers: this.getAuthHeaders(),
+      headers: this.getAuthHeaders(hasBody),
       credentials: 'include', // CRITICAL: This sends cookies with every request
       ...options
     };

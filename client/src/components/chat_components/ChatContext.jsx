@@ -384,20 +384,27 @@ export const ChatProvider = ({ children }) => {
   const deleteConversation = useCallback(async (id) => {
     if (!isAuthenticated) {
       console.error(`[${new Date().toISOString()}] Cannot delete conversation - not authenticated`);
+      handleError(new Error('Not authenticated'), 'Please log in');
       return;
     }
     
     console.log(`[${new Date().toISOString()}] anatolyZader deleting conversation ${id}`);
+    dispatch({ type: 'SET_ERROR', payload: null }); // Clear any previous errors
     
     try {
       await chatAPI.deleteConversation(id);
       dispatch({ type: 'DELETE_CONVERSATION', payload: id });
-      console.log(`[${new Date().toISOString()}] Conversation deleted successfully`);
+      console.log(`[${new Date().toISOString()}] Conversation ${id} deleted successfully`);
+      
+      // If the deleted conversation was the current one, show a message
+      if (state.currentConversationId === id) {
+        console.log(`[${new Date().toISOString()}] Deleted conversation was active, clearing chat area`);
+      }
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Failed to delete conversation:`, error);
+      console.error(`[${new Date().toISOString()}] Failed to delete conversation ${id}:`, error);
       handleError(error, 'Failed to delete conversation');
     }
-  }, [isAuthenticated, handleError]);
+  }, [isAuthenticated, handleError, state.currentConversationId]);
 
   const value = {
     ...state,

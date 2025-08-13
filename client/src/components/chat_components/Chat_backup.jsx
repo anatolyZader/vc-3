@@ -54,12 +54,6 @@ const Chat = () => {
   const HANDLE_WIDTH = 6;
   const mainContainerRef = useRef(null);
 
-  // Function to get the main container element
-  const getMainContainer = useCallback(() => {
-    // If ref is available, use it; otherwise, fallback to querySelector
-    return mainContainerRef.current || document.querySelector('.main-container');
-  }, []);
-
   const onMouseMove = useCallback((e) => {
     if (!isDraggingRef.current) return;
     const totalWidth = containerWidthRef.current || 0;
@@ -79,9 +73,8 @@ const Chat = () => {
   }, []);
 
   const startDrag = (e) => {
-    const mainContainer = getMainContainer();
-    if (!mainContainer) return;
-    const rect = mainContainer.getBoundingClientRect();
+    if (!mainContainerRef.current) return;
+    const rect = mainContainerRef.current.getBoundingClientRect();
     containerLeftRef.current = rect.left;
     containerWidthRef.current = rect.width;
     isDraggingRef.current = true;
@@ -173,6 +166,7 @@ const Chat = () => {
 
   return (
     <MainContainer
+      ref={mainContainerRef}
       className="main-container"
       style={{ gridTemplateColumns: `${sidebarWidth}px ${HANDLE_WIDTH}px 1fr` }}
     >
@@ -238,9 +232,8 @@ const Chat = () => {
         aria-label="Resize conversations sidebar"
         tabIndex={0}
         onKeyDown={(e) => {
-          const mainContainer = getMainContainer();
-          if (!mainContainer) return;
-          const totalWidth = mainContainer.getBoundingClientRect().width;
+          if (!mainContainerRef.current) return;
+          const totalWidth = mainContainerRef.current.getBoundingClientRect().width;
           const maxWidth = Math.max(MIN_WIDTH, totalWidth - MIN_CHAT_WIDTH - HANDLE_WIDTH);
             if (e.key === 'ArrowLeft') setSidebarWidth(w => Math.max(MIN_WIDTH, w - 16));
             if (e.key === 'ArrowRight') setSidebarWidth(w => Math.min(maxWidth, w + 16));
@@ -248,13 +241,6 @@ const Chat = () => {
         onDoubleClick={() => setSidebarWidth(320)}
         title="Drag to resize (double-click to reset)"
       />
-
-      {error && (
-        <div className="error-banner">
-          <span>{error}</span>
-          <button onClick={clearError}>×</button>
-        </div>
-      )}
 
       <ChatContainer className="chat-container">
         <ConversationHeader>
@@ -264,6 +250,13 @@ const Chat = () => {
             <LogoutBtn /> 
           </ConversationHeader.Actions>
         </ConversationHeader>
+
+        {error && (
+          <div className="error-banner">
+            <span>{error}</span>
+            <button onClick={clearError}>×</button>
+          </div>
+        )}
 
         <MessageList 
           typingIndicator={isTyping ? (
