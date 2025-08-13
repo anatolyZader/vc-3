@@ -304,7 +304,7 @@ class ChatAPI {
 
   async deleteConversation(conversationId) {
     console.log(`[2025-06-30 11:42:00] Deleting conversation ${conversationId} for ${this.currentUser?.id || 'unknown user'}`);
-    return this.makeRequest(`/api/chat/${conversationId}`, {
+    return this.makeRequest(`/api/chat/${conversationId}/delete`, {
       method: 'DELETE'
     });
   }

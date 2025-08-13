@@ -1,7 +1,8 @@
 .main-container {
   display: grid;
-  grid-template-columns: 320px 1fr; /* default overridden inline when resizing */
-  grid-template-areas: "sidebar chat-container";
+  /* default columns overridden inline when resizing; include handle column by default */
+  grid-template-columns: 320px 6px 1fr;
+  grid-template-areas: "sidebar handle chat";
   height: 100vh;
   width: 100%;
   transition: grid-template-columns 0.15s ease;
@@ -21,6 +22,7 @@
 
 /* Draggable vertical resize handle */
 .resize-handle {
+  grid-area: handle;
   width: 6px;
   cursor: col-resize;
   background: transparent;
@@ -70,6 +72,24 @@
 body.resizing {
   user-select: none;
   cursor: col-resize;
+}
+
+/* Chat area should be able to shrink so inner list becomes scrollable */
+.chat-container {
+  grid-area: chat;
+  min-width: 0; /* allow child to shrink inside grid */
+  min-height: 0; /* critical for scrollable children in CSS Grid */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* contain internal scrolling */
+}
+
+/* Ensure the Chatscope MessageList scrolls within the chat area */
+.chat-container .cs-message-list {
+  flex: 1 1 auto;
+  min-height: 0; /* allow internal scroll */
+  overflow-y: auto;
 }
 
 .conversations-list {

@@ -139,7 +139,7 @@ module.exports = fp(async function (fastify, opts) {
     authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
     chatPostgresAdapter: asClass(ChatPostgresAdapter).scoped(),
     chatPubsubAdapter: asClass(ChatPubsubAdapter).scoped(),
-  chatAiAdapter: asClass(ChatAiAdapter).scoped(),
+    chatAiAdapter: asClass(ChatAiAdapter),
     apiSwaggerAdapter: asClass(ApiSwaggerAdapter).scoped(),
     apiPostgresAdapter: asClass(ApiPostgresAdapter).scoped(),
     apiPubsubAdapter: asClass(ApiPubsubAdapter).scoped(),

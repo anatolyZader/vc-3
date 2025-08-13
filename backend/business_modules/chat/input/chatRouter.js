@@ -255,7 +255,7 @@ module.exports = fp(async function chatRouter(fastify, opts) {
   // delete a conversation
   fastify.route({
     method: 'DELETE',
-    url: '/:conversationId',
+    url: '/:conversationId/delete',
     preValidation: [fastify.verifyToken],
     handler: fastify.deleteConversation,
     schema: {

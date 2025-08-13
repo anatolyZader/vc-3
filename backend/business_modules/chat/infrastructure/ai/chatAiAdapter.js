@@ -5,9 +5,9 @@ const IChatAiPort = require('../../domain/ports/IChatAiPort');
 const OpenAI = require('openai');
 
 class ChatAiAdapter extends IChatAiPort {
-  constructor({ apiKey } = {}) {
+  constructor() {
     super();
-    this.apiKey = apiKey || process.env.OPENAI_API_KEY;
+    this.apiKey = process.env.OPENAI_API_KEY;
     this.client = new OpenAI({ apiKey: this.apiKey });
   }
 
