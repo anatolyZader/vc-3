@@ -176,6 +176,44 @@ module.exports = fp(async function chatRouter(fastify, opts) {
     }
   });
 
+  // add a voice question (speech-to-text + question)
+  fastify.route({
+    method: 'POST',
+    url: '/:conversationId/voice',
+    preValidation: [fastify.verifyToken],
+    handler: fastify.addVoiceQuestion,
+    schema: {
+      tags: ['chat'],
+      params: {
+        type: 'object',
+        properties: {
+          conversationId: { type: 'string' }
+        },
+        required: ['conversationId'],
+        additionalProperties: false
+      },
+      consumes: ['multipart/form-data'],
+      // Note: No body schema for multipart - handled by @fastify/multipart plugin
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            transcript: { type: 'string' },
+            confidence: { type: 'number' },
+            questionId: { type: 'string' },
+            status: { type: 'string' },
+            message: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' }
+          },
+          required: ['success', 'transcript', 'questionId', 'status', 'message', 'timestamp'],
+          additionalProperties: false
+        }
+      }
+    }
+  });
+
+
   // send an answer
   fastify.route({
     method: 'POST',

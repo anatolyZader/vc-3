@@ -47,6 +47,15 @@ module.exports = async function (fastify, opts) {
   await fastify.register(diPlugin);
   await fastify.register(websocketPlugin);
   await fastify.register(fastifySensible);
+  
+  // Register multipart plugin for file uploads (needed for voice functionality)
+  await fastify.register(require('@fastify/multipart'), {
+    // Allow files up to 10MB (for voice recordings)
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB
+    }
+  });
+  
   await fastify.register(eventDispatcher);
   
   if (!BUILDING_API_SPEC) {

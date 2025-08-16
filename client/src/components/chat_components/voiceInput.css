@@ -1,0 +1,364 @@
+/* voiceInput.css */
+
+.voice-input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Microphone button */
+.mic-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #007bff;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  position: relative;
+  outline: none;
+}
+
+.mic-button:hover:not(.disabled) {
+  background: #f8f9fa;
+  border-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.mic-button:active:not(.disabled) {
+  transform: scale(0.95);
+}
+
+.mic-button.disabled {
+  border-color: #6c757d;
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mic-button.recording {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+  animation: pulse-recording 2s infinite;
+}
+
+.mic-button.processing {
+  background: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+  cursor: not-allowed;
+}
+
+@keyframes pulse-recording {
+  0%, 100% { 
+    transform: scale(1); 
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  50% { 
+    transform: scale(1.1); 
+    box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+  }
+}
+
+/* Microphone icon */
+.mic-icon {
+  width: 18px;
+  height: 18px;
+  transition: all 0.3s ease;
+}
+
+/* Processing spinner */
+.processing-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #212529;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Recording overlay */
+.recording-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.recording-info {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.recording-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.recording-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #dc3545;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background: #dc3545;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.cancel-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6c757d;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+  background: #f8f9fa;
+  color: #dc3545;
+}
+
+.recording-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.duration {
+  font-size: 24px;
+  font-weight: 700;
+  color: #212529;
+  font-family: 'Courier New', monospace;
+}
+
+.audio-level-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.audio-level-bar {
+  flex: 1;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.audio-level-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745 0%, #ffc107 70%, #dc3545 100%);
+  transition: width 0.1s ease;
+  border-radius: 4px;
+}
+
+.audio-level-text {
+  min-width: 40px;
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.recording-hint {
+  font-size: 14px;
+  color: #6c757d;
+  margin-top: 8px;
+}
+
+.recording-hint kbd {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-family: monospace;
+  margin: 0 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Stop recording button */
+.stop-recording-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  margin: 16px 0 8px 0;
+  min-height: 48px;
+}
+
+.stop-recording-button:hover:not(:disabled) {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.stop-recording-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.stop-recording-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.stop-icon {
+  width: 16px;
+  height: 16px;
+  transition: all 0.3s ease;
+}
+
+.stop-recording-button:hover:not(:disabled) .stop-icon {
+  transform: scale(1.1);
+}
+
+/* Error message */
+.voice-error {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #dc3545;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 100;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.voice-error::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #dc3545;
+}
+
+.voice-error button {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-error button:hover {
+  opacity: 0.8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .recording-info {
+    margin: 20px;
+    min-width: unset;
+    max-width: calc(100vw - 40px);
+  }
+  
+  .recording-overlay {
+    padding: 20px;
+  }
+}
+
+/* Integration with MessageInput */
+.message-input-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.message-input-container .cs-message-input {
+  flex: 1;
+}
+
+.voice-input.inline {
+  margin-bottom: 4px;
+}
+
+.voice-input.inline .mic-button {
+  width: 36px;
+  height: 36px;
+}

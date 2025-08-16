@@ -33,6 +33,12 @@ async function aiController(fastify, options) {
           fastify.log.debug(`🔧 AI Controller: userId set on adapter: ${userId}`);
         }
         
+        // Ensure persistence adapter is available for conversation history
+        if (aiService.aiAdapter && aiService.aiPersistAdapter && typeof aiService.aiAdapter.setPersistenceAdapter === 'function') {
+          aiService.aiAdapter.setPersistenceAdapter(aiService.aiPersistAdapter);
+          fastify.log.debug(`🔧 AI Controller: persistence adapter set on AI adapter for conversation history`);
+        }
+        
         const TIMEOUT_MS = 90000; // Increased from 60s to 90s
         fastify.log.debug(`🔧 AI Controller: Timeout set to ${TIMEOUT_MS}ms`);
         const timeoutPromise = new Promise((_, reject) => {

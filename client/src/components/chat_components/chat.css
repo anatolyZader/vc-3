@@ -86,6 +86,7 @@ body.resizing {
   display: flex;
   flex-direction: column;
   overflow: hidden; /* contain internal scrolling */
+  font-size: 22px;
 }
 
 /* Ensure the Chatscope MessageList scrolls within the chat area */
@@ -204,4 +205,27 @@ body.resizing {
   text-align: center;
   padding: 40px 20px;
   color: #6c757d;
+}
+
+/* Message input container for voice integration */
+.message-input-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border-top: 1px solid #e9ecef;
+}
+
+.message-input-container .cs-message-input {
+  flex: 1;
+}
+
+.message-input-container .voice-input.inline {
+  margin-bottom: 4px;
+}
+
+.message-input-container .voice-input.inline .mic-button {
+  width: 36px;
+  height: 36px;
 }

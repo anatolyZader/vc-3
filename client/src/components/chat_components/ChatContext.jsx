@@ -363,6 +363,55 @@ export const ChatProvider = ({ children }) => {
     }
   }, [isAuthenticated, handleError]); // Now doesn't directly depend on state.currentConversationId
 
+  // Voice message functionality
+  const sendVoiceMessage = useCallback(async (audioBlob) => {
+    const currentConversationId = currentConversationIdRef.current;
+    
+    if (!currentConversationId || !audioBlob || !isAuthenticated) {
+      console.warn(`[${new Date().toISOString()}] Cannot send voice message - missing requirements:`, {
+        hasConversationId: !!currentConversationId,
+        hasAudioBlob: !!audioBlob,
+        isAuthenticated
+      });
+      throw new Error('Missing requirements for voice message');
+    }
+    
+    console.log(`[${new Date().toISOString()}] anatolyZader processing voice message for conversation ${currentConversationId}`);
+    
+    try {
+      // Send voice message directly to the voice endpoint
+      const voiceResult = await chatAPI.sendVoiceQuestion(currentConversationId, audioBlob);
+      
+      if (!voiceResult.success || !voiceResult.transcript) {
+        throw new Error('Could not understand the audio. Please try speaking more clearly.');
+      }
+
+      const transcript = voiceResult.transcript.trim();
+      
+      console.log(`[${new Date().toISOString()}] Voice transcribed and processed: "${transcript}"`);
+      
+      // Add the question message to local state (the response will come via WebSocket)
+      dispatch({
+        type: 'ADD_MESSAGE',
+        payload: {
+          role: 'user',
+          text: transcript,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      return {
+        success: true,
+        transcript,
+        confidence: voiceResult.confidence || 0,
+        questionId: voiceResult.questionId
+      };
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Failed to process voice message:`, error);
+      throw error;
+    }
+  }, [isAuthenticated, sendMessage]);
+
   const renameConversation = useCallback(async (id, newTitle) => {
     if (!isAuthenticated) {
       console.error(`[${new Date().toISOString()}] Cannot rename conversation - not authenticated`);
@@ -412,6 +461,7 @@ export const ChatProvider = ({ children }) => {
     startNewConversation,
     loadConversation,
     sendMessage,
+    sendVoiceMessage,
     renameConversation,
     deleteConversation,
     clearError,
@@ -420,7 +470,7 @@ export const ChatProvider = ({ children }) => {
     _debug: {
       timestamp: new Date().toISOString(),
       user: 'anatolyZader',
-      contextVersion: '2.2' // Updated version
+      contextVersion: '2.3' // Updated version with voice support
     }
   };
 

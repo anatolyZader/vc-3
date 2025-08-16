@@ -222,14 +222,30 @@ class ChatAPI {
   // Enhanced makeRequest with better error handling
   async makeRequest(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    const hasBody = options.body !== undefined;
+    const isFormData = options.body instanceof FormData;
+    
     const config = {
-      headers: this.getAuthHeaders(hasBody),
       credentials: 'include', // CRITICAL: This sends cookies with every request
       ...options
     };
 
-    console.log(`[2025-06-30 11:42:00] Making API call to: ${url}`);
+    // Only set headers if not FormData (browser will set correct Content-Type with boundary)
+    if (!isFormData) {
+      const hasBody = options.body !== undefined;
+      config.headers = {
+        ...this.getAuthHeaders(hasBody),
+        ...options.headers
+      };
+    } else {
+      // For FormData, only add custom headers, not Content-Type
+      config.headers = {
+        ...(options.headers || {})
+      };
+      // Remove Content-Type if it was set
+      delete config.headers['Content-Type'];
+    }
+
+    console.log(`[${new Date().toISOString()}] Making API call to: ${url}`);
 
     try {
       const response = await fetch(url, config);
@@ -337,6 +353,81 @@ class ChatAPI {
       keepalive
     });
   }
+
+  // Voice API methods - STT only for now
+  async sendVoiceQuestion(conversationId, audioBlob, options = {}) {
+    console.log(`[${new Date().toISOString()}] Sending voice question for conversation ${conversationId}`, {
+      size: audioBlob.size,
+      type: audioBlob.type
+    });
+
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.webm');
+    
+    // Add options if provided
+    if (options.languageCode) formData.append('languageCode', options.languageCode);
+    if (options.sampleRateHertz) formData.append('sampleRateHertz', options.sampleRateHertz.toString());
+
+    return this.makeRequest(`/api/chat/${conversationId}/voice`, {
+      method: 'POST',
+      body: formData
+    });
+  }
+
+  // Enhanced makeRequest to handle FormData
+  async makeRequest(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    const isFormData = options.body instanceof FormData;
+    
+    const config = {
+      credentials: 'include', // CRITICAL: This sends cookies with every request
+      ...options
+    };
+
+    // Only set headers if not FormData (browser will set correct Content-Type with boundary)
+    if (!isFormData) {
+      const hasBody = options.body !== undefined;
+      config.headers = {
+        ...this.getAuthHeaders(hasBody),
+        ...options.headers
+      };
+    } else {
+      // For FormData, only add custom headers, not Content-Type
+      config.headers = {
+        ...(options.headers || {})
+      };
+      // Remove Content-Type if it was set
+      delete config.headers['Content-Type'];
+    }
+
+    console.log(`[${new Date().toISOString()}] Making API call to: ${url}`);
+
+    try {
+      const response = await fetch(url, config);
+
+      if (!response.ok) {
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          console.log('🔐 Authentication required - redirecting to login');
+          // Cookie expired or invalid - redirect to login
+          window.location.href = '/api/auth/google';
+          return;
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        console.error(`❌ API Error for ${endpoint}:`, errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      console.log(`✅ API call successful for ${endpoint}`);
+      return data;
+    } catch (error) {
+      console.error(`❌ API Error for ${endpoint}:`, error);
+      throw error;
+    }
+  }
 }
 
-export default new ChatAPI();
+export default new ChatAPI('http://localhost:3000');

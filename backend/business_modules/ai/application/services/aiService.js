@@ -17,6 +17,12 @@ class AIService extends IAIService {
     this.aiAdapter = aiAdapter;
     this.aiPersistAdapter = aiPersistAdapter;
     this.aiMessagingAdapter = aiMessagingAdapter;
+    
+    // Set the persistence adapter on the AI adapter for conversation history
+    if (this.aiAdapter && typeof this.aiAdapter.setPersistenceAdapter === 'function') {
+      this.aiAdapter.setPersistenceAdapter(this.aiPersistAdapter);
+      console.log(`[${new Date().toISOString()}] ✅ AI Service: Persistence adapter passed to AI adapter for conversation history`);
+    }
   }
 
   async respondToPrompt(userId, conversationId, prompt) {

@@ -299,6 +299,62 @@ fastify.decorate('addQuestion', async (request, reply) => {
       throw fastify.httpErrors.internalServerError('Failed to add answer', { cause: error });
     }
   });
+
+  // Voice Question (STT + Question Processing)
+  fastify.decorate('addVoiceQuestion', async (request, reply) => {
+    try {
+      const userId = request.user.id;
+      const { conversationId } = request.params;
+
+      fastify.log.info(`[${new Date().toISOString()}] Voice question request from user ${userId} for conversation ${conversationId}`);
+
+      // Get chat service
+      const chatService = await getChatService(request);
+
+      // Handle multipart form data - extract audio file and parameters
+      const data = await request.file();
+      if (!data) {
+        throw fastify.httpErrors.badRequest('No audio file provided');
+      }
+
+      // Extract parameters
+      const languageCode = data.fields?.languageCode?.value || 'en-US';
+      const sampleRateHertz = data.fields?.sampleRateHertz?.value ? 
+        parseInt(data.fields.sampleRateHertz.value) : 16000;
+
+      // Convert audio file to buffer
+      const audioBuffer = await data.toBuffer();
+
+      fastify.log.info(`[${new Date().toISOString()}] Processing voice question:`, {
+        filename: data.filename,
+        mimetype: data.mimetype,
+        size: audioBuffer.length,
+        conversationId,
+        languageCode,
+        sampleRateHertz
+      });
+
+      // Delegate to chat service - let it handle voice processing
+      const result = await chatService.addVoiceQuestion(userId, conversationId, audioBuffer, {
+        languageCode,
+        sampleRateHertz,
+        encoding: 'WEBM_OPUS', // Default for webm files from browser
+        filename: data.filename,
+        mimetype: data.mimetype
+      });
+
+      fastify.log.info(`[${new Date().toISOString()}] Voice question completed:`, {
+        success: result.success,
+        transcript: result.transcript,
+        questionId: result.questionId
+      });
+
+      return result;
+    } catch (error) {
+      fastify.log.error(`[${new Date().toISOString()}] Voice question error:`, error);
+      throw fastify.httpErrors.internalServerError('Failed to process voice message', { cause: error });
+    }
+  });
 }
 
 module.exports = fp(chatController);

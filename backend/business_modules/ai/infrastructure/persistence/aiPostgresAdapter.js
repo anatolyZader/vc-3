@@ -186,6 +186,38 @@ class AIPostgresAdapter extends IAIPersistPort {
       return [];
     }
   }
+
+  // Retrieve conversation history for context (ordered chronologically)
+  async getConversationHistory(conversationId, limit = 10) {
+    try {
+      const pool = await this.getPool(); // Get initialized pool
+      const client = await pool.connect();
+      try {
+        const query = `
+          SELECT prompt, response, created_at 
+          FROM ai.ai_responses 
+          WHERE conversation_id = $1 
+          ORDER BY created_at ASC 
+          LIMIT $2;
+        `;
+        const result = await client.query(query, [conversationId, limit]);
+        return result.rows.map(row => ({
+          prompt: row.prompt,
+          response: row.response,
+          timestamp: row.created_at
+        }));
+      } catch (error) {
+        console.error('Error retrieving conversation history:', error);
+        throw error;
+      } finally {
+        client.release();
+      }
+    } catch (poolError) {
+      console.error('Database connection error in getConversationHistory:', poolError);
+      // Return empty array instead of throwing
+      return [];
+    }
+  }
 }
 
 module.exports = AIPostgresAdapter;

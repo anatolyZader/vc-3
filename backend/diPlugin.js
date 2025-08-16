@@ -17,6 +17,7 @@ const ChatService = require('./business_modules/chat/application/services/chatSe
 const ChatPostgresAdapter = require('./business_modules/chat/infrastructure/persistence/chatPostgresAdapter');
 const ChatPubsubAdapter = require('./business_modules/chat/infrastructure/messaging/pubsub/chatPubsubAdapter');
 const ChatAiAdapter = require('./business_modules/chat/infrastructure/ai/chatAiAdapter');
+const ChatGCPVoiceAdapter = require('./business_modules/chat/infrastructure/voice/chatGCPVoiceAdapter');
 
 const GitService = require('./business_modules/git/application/services/gitService');
 const GitPostgresAdapter = require('./business_modules/git/infrastructure/persistence/gitPostgresAdapter');
@@ -140,6 +141,7 @@ module.exports = fp(async function (fastify, opts) {
     chatPostgresAdapter: asClass(ChatPostgresAdapter).scoped(),
     chatPubsubAdapter: asClass(ChatPubsubAdapter).scoped(),
     chatAiAdapter: asClass(ChatAiAdapter),
+    chatGCPVoiceAdapter: asClass(ChatGCPVoiceAdapter).scoped(),
     apiSwaggerAdapter: asClass(ApiSwaggerAdapter).scoped(),
     apiPostgresAdapter: asClass(ApiPostgresAdapter).scoped(),
     apiPubsubAdapter: asClass(ApiPubsubAdapter).scoped(),
@@ -147,7 +149,12 @@ module.exports = fp(async function (fastify, opts) {
     gitPubsubAdapter: asClass(GitPubsubAdapter).scoped(),
     gitPostgresAdapter: asClass(GitPostgresAdapter).scoped(),
     aiPostgresAdapter: asClass(AIPostgresAdapter).scoped(),
-    aiLangchainAdapter: asClass(AILangchainAdapter).scoped(),
+    aiLangchainAdapter: asClass(AILangchainAdapter, {
+      injector: (container) => ({
+        aiProvider: container.resolve('aiProvider'),
+        aiPersistAdapter: container.resolve('aiPersistAdapter')
+      })
+    }).scoped(),
     aiPubsubAdapter: asClass(AIPubsubAdapter).scoped(),
     aiGithubAdapter: asClass(AIGithubAdapter).scoped(),
     aiGithubWikiAdapter: asClass(AIGithubWikiAdapter).scoped(),
@@ -186,6 +193,7 @@ module.exports = fp(async function (fastify, opts) {
     { key: 'chatPersistAdapter', config: infraConfig.business_modules.chat.chatPersistAdapter },
     { key: 'chatMessagingAdapter', config: infraConfig.business_modules.chat.chatMessagingAdapter },
     { key: 'chatAiAdapter', config: infraConfig.business_modules.chat.chatAiAdapter || infraConfig.business_modules.chat.chatAIAdapter },
+    { key: 'chatVoiceAdapter', config: infraConfig.business_modules.chat.chatVoiceAdapter },
     { key: 'gitPersistAdapter', config: infraConfig.business_modules.git.gitPersistAdapter },
     { key: 'gitAdapter', config: infraConfig.business_modules.git.gitAdapter },
     { key: 'gitMessagingAdapter', config: infraConfig.business_modules.git.gitMessagingAdapter },
@@ -237,6 +245,7 @@ module.exports = fp(async function (fastify, opts) {
     serviceRegistrations.chatPersistAdapter = adapters[infraConfig.business_modules.chat.chatPersistAdapter];
     serviceRegistrations.chatMessagingAdapter = adapters[infraConfig.business_modules.chat.chatMessagingAdapter];
     serviceRegistrations.chatAiAdapter = adapters[infraConfig.business_modules.chat.chatAiAdapter || infraConfig.business_modules.chat.chatAIAdapter];
+    serviceRegistrations.chatVoiceAdapter = adapters[infraConfig.business_modules.chat.chatVoiceAdapter];
     serviceRegistrations.gitPersistAdapter = adapters[infraConfig.business_modules.git.gitPersistAdapter];
     serviceRegistrations.gitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
     serviceRegistrations.wikiGitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];

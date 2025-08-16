@@ -16,11 +16,13 @@ import {
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import '../../custom-overrides.css';
 import './chat.css';
+import './voiceInput.css';
 import { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import { AuthContext } from '../auth_components/AuthContext';
 import { useChat } from './ChatContext';
 import NewConversationBtn from './NewConversationBtn';
 import LogoutBtn from './LogoutBtn'; 
+import VoiceInput from './VoiceInput';
 import eventstorm_logo from './eventstorm_logo.png';  
 
 const Chat = () => {
@@ -38,6 +40,7 @@ const Chat = () => {
     startNewConversation,
     loadConversation,
     sendMessage,
+    sendVoiceMessage,
     deleteConversation,
     clearError
   } = useChat();
@@ -129,6 +132,17 @@ const Chat = () => {
   const handleSend = (messageText) => {
     if (!messageText.trim()) return;
     sendMessage(messageText);
+  };
+
+  const handleVoiceMessage = async (audioBlob) => {
+    try {
+      const result = await sendVoiceMessage(audioBlob);
+      console.log('[Voice] Message processed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('[Voice] Failed to process voice message:', error);
+      throw error;
+    }
   };
 
   const handleNewConversation = async () => {
@@ -295,7 +309,10 @@ const Chat = () => {
           )}
           
           {currentConversationId && messages.map((message, index) => (
-            <Message key={index} model={message}>
+            <Message 
+              key={index} 
+              model={message}
+            >
               {message.direction === 'incoming' && (
                 <Avatar src={eventstorm_logo} name="AI Assistant" />
               )}
@@ -304,13 +321,20 @@ const Chat = () => {
         </MessageList>
 
         {currentConversationId && (
+          <div className="message-input-container">
             <MessageInput
-                className="message-input"
-                placeholder="Enter your message here..."
-                onSend={handleSend}
-                disabled={loading}
-                responsive='true'
+              className="message-input"
+              placeholder="Enter your message here..."
+              onSend={handleSend}
+              disabled={loading}
+              responsive='true'
             />
+            <VoiceInput
+              className="inline"
+              onVoiceMessage={handleVoiceMessage}
+              disabled={loading || !currentConversationId}
+            />
+          </div>
         )}
       </MainContainer>
     </div>

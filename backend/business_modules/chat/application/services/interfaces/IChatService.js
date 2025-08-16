@@ -34,6 +34,10 @@ class IChatService {
   async nameConversation(userId, conversationId) {
     throw new Error("Method not implemented.");
   }
+
+  async addVoiceQuestion(userId, conversationId, audioBuffer, options = {}) {
+    throw new Error("Method not implemented.");
+  }
 }
 
 module.exports = IChatService;

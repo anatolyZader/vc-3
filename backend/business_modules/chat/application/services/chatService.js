@@ -16,11 +16,12 @@ const ConversationDeletedEvent = require('../../domain/events/conversationDelete
 
 
 class ChatService extends IChatService {
-  constructor({chatPersistAdapter, chatMessagingAdapter, chatAiAdapter}) {
+  constructor({chatPersistAdapter, chatMessagingAdapter, chatAiAdapter, chatVoiceAdapter}) {
     super();
     this.chatPersistAdapter = chatPersistAdapter;
     this.chatMessagingAdapter = chatMessagingAdapter;
     this.chatAiAdapter = chatAiAdapter;
+    this.chatVoiceAdapter = chatVoiceAdapter;
     this.topic = 'chat'; // dedicated topic for chat events
   }
 
@@ -133,6 +134,61 @@ class ChatService extends IChatService {
       await this.chatMessagingAdapter.publishEvent('conversationDeleted', event);
     }
     return conversationIdVO.toString();
+  }
+
+  async addVoiceQuestion(userId, conversationId, audioBuffer, options = {}) {
+    try {
+      // Validate inputs
+      if (!userId) {
+        throw new Error('userId is required');
+      }
+      if (!conversationId) {
+        throw new Error('conversationId is required');
+      }
+      if (!audioBuffer) {
+        throw new Error('audioBuffer is required');
+      }
+      if (!this.chatVoiceAdapter) {
+        throw new Error('Voice adapter is not configured');
+      }
+
+      console.log(`[Voice] Processing voice question for user ${userId} in conversation ${conversationId}`);
+
+      // Convert speech to text using the voice adapter
+      const voiceOptions = {
+        languageCode: options.languageCode || 'en-US',
+        encoding: options.encoding || 'LINEAR16',
+        sampleRateHertz: options.sampleRateHertz || 16000,
+        enableAutomaticPunctuation: true,
+        ...options
+      };
+
+      const sttResult = await this.chatVoiceAdapter.speechToText(audioBuffer, voiceOptions);
+      
+      if (!sttResult.success || !sttResult.transcript) {
+        throw new Error('Failed to transcribe audio or no speech detected');
+      }
+
+      console.log(`[Voice] Transcribed text: "${sttResult.transcript}" (confidence: ${sttResult.confidence})`);
+
+      // Process the transcribed text as a regular question
+      const questionId = await this.addQuestion(userId, conversationId, sttResult.transcript);
+
+      // Return combined result with expected schema fields
+      return {
+        success: true,
+        transcript: sttResult.transcript,
+        confidence: sttResult.confidence,
+        questionId,
+        status: 'success',
+        message: 'Voice message processed successfully',
+        timestamp: new Date().toISOString()
+      };
+
+    } catch (error) {
+      console.error('[Voice] Error processing voice question:', error);
+      throw error;
+    }
   }
 
 }

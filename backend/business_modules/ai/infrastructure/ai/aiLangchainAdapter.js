@@ -10,8 +10,21 @@ const { PineconeStore } = require('@langchain/pinecone');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
+/**
+ * AILangchainAdapter - RAG Pipeline Architecture:
+ * 
+ * Data Preparation Phase (Heavy Operations):
+ * - processPushedRepo(): Loads, chunks, and embeds both core docs + repository code
+ * 
+ * Query Phase (Lightweight - Run Per Request):
+ * - respondToPrompt(): Retrieves relevant chunks from vector DB + generates response
+ * - generateStandardResponse(): Fallback when vector DB unavailable
+ */
 
 class AILangchainAdapter extends IAIPort {
+  // Separate method to index only core docs (can be called independently)
+  // Remove this unused method
+
   // Automate indexing of httpApiSpec.json and markdown documentation into Pinecone
   async indexCoreDocsToPinecone() {
     console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Starting core docs indexing into 'core-docs' namespace.`);
@@ -30,6 +43,7 @@ class AILangchainAdapter extends IAIPort {
       } catch (e) {
         apiSpecJson = null;
       }
+      
       if (apiSpecJson) {
         // Tags chunk
         if (Array.isArray(apiSpecJson.tags)) {
@@ -241,6 +255,13 @@ class AILangchainAdapter extends IAIPort {
     console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing with provider: ${this.aiProvider}`);
     console.log(`[${new Date().toISOString()}] [DEBUG] aiProvider set to: ${this.aiProvider}`);
 
+    // Store persistence adapter for conversation history (from constructor or setter)
+    this.aiPersistAdapter = options.aiPersistAdapter || null;
+    console.log(`[${new Date().toISOString()}] [DEBUG] aiPersistAdapter set:`, !!this.aiPersistAdapter);
+    if (this.aiPersistAdapter) {
+      console.log(`[${new Date().toISOString()}] ✅ AILangchainAdapter: Persistence adapter available for conversation history`);
+    }
+
     // Get access to the event bus for status updates
     try {
       const { eventBus } = require('../../../../eventDispatcher');
@@ -347,6 +368,18 @@ class AILangchainAdapter extends IAIPort {
       // Still set the userId even if vectorStore creation fails
     }
 
+    return this;
+  }
+
+  // Add method to set persistence adapter after construction
+  setPersistenceAdapter(aiPersistAdapter) {
+    if (!aiPersistAdapter) {
+      console.warn(`[${new Date().toISOString()}] Attempted to set null/undefined aiPersistAdapter in AILangchainAdapter`);
+      return this;
+    }
+    
+    this.aiPersistAdapter = aiPersistAdapter;
+    console.log(`[${new Date().toISOString()}] [DEBUG] aiPersistAdapter set successfully for conversation history`);
     return this;
   }
 
@@ -472,6 +505,7 @@ class AILangchainAdapter extends IAIPort {
     return new Promise(resolve => setTimeout(resolve, delay));
   }
 
+  // RAG Data Preparation Phase: Loading, chunking, and embedding (both core docs and repo code)
   async processPushedRepo(userId, repoId, repoData) {
     // userId here is the application's internal userId (e.g., UUID from JWT)
     // repoData should now contain githubOwner (e.g., "anatolyZader")
@@ -558,6 +592,55 @@ class AILangchainAdapter extends IAIPort {
     }
   }
 
+  // Helper method to retrieve and format conversation history
+  async getConversationHistory(conversationId, limit = 8) {
+    if (!this.aiPersistAdapter || !conversationId) {
+      console.log(`[${new Date().toISOString()}] [DEBUG] No conversation history available: persistAdapter=${!!this.aiPersistAdapter}, conversationId=${conversationId}`);
+      return [];
+    }
+
+    try {
+      const history = await this.aiPersistAdapter.getConversationHistory(conversationId, limit);
+      console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Retrieved ${history.length} previous messages for conversation ${conversationId}`);
+      
+      if (history.length > 0) {
+        console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Oldest message from ${history[0].timestamp}, newest from ${history[history.length - 1].timestamp}`);
+      }
+      
+      return history;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error retrieving conversation history:`, error.message);
+      return [];
+    }
+  }
+
+  // Helper method to format conversation history into messages
+  formatConversationHistory(history) {
+    if (!history || history.length === 0) {
+      return [];
+    }
+
+    const messages = [];
+    
+    // Add conversation history as alternating user/assistant messages
+    history.forEach((entry) => {
+      // Add user message
+      messages.push({
+        role: "user",
+        content: entry.prompt
+      });
+      
+      // Add assistant response
+      messages.push({
+        role: "assistant", 
+        content: entry.response
+      });
+    });
+
+    console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Formatted ${messages.length} messages (${messages.length / 2} exchanges) for context`);
+    return messages;
+  }
+
   // 2. Retrieval and generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
 
@@ -585,6 +668,7 @@ class AILangchainAdapter extends IAIPort {
     return summary;
   }
 
+  // RAG Query Phase: Retrieval and Generation only (data preparation is done in processPushedRepo/initializeCoreDocumentation)
   async respondToPrompt(userId, conversationId, prompt) {
     this.setUserId(userId);
     if (!this.userId) {
@@ -763,40 +847,14 @@ class AILangchainAdapter extends IAIPort {
         // Process the retrieved documents
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Found ${similarDocuments.length} relevant documents`);
 
-        // Load API spec file and add to context
-        const apiSpecPath = process.env.APP_API_SPEC_PATH || './httpApiSpec.json';
-        const apiSpecChunk = await this.loadApiSpec(apiSpecPath);
-        if (apiSpecChunk) {
-          similarDocuments.unshift(apiSpecChunk); // Add at the start for priority
-          console.log(`[${new Date().toISOString()}] [DEBUG] Added API spec file to context: ${apiSpecPath}`);
-        } else {
-          console.log(`[${new Date().toISOString()}] [DEBUG] No API spec file found at: ${apiSpecPath}`);
-        }
-
-        // Load markdown files from root directory and business modules
-        const markdownDocs = await this.loadMarkdownFiles();
-        if (markdownDocs.length > 0) {
-          // Add markdown files to the context (after API spec but before other docs)
-          similarDocuments.splice(1, 0, ...markdownDocs);
-          console.log(`[${new Date().toISOString()}] [DEBUG] Added ${markdownDocs.length} markdown files to context`);
-        } else {
-          console.log(`[${new Date().toISOString()}] [DEBUG] No markdown files found`);
-        }
+        // Note: API spec and markdown docs are now pre-indexed in core-docs namespace
+        // and retrieved via similarity search above, no need to load them again here
 
         // Log comprehensive source loading summary
-        console.log(`[${new Date().toISOString()}] 📚 MULTI-SOURCE RAG CONTEXT LOADED:`);
-        console.log(`[${new Date().toISOString()}] ✅ API specification: ${apiSpecChunk ? 'Loaded' : 'Not found'}`);
-        console.log(`[${new Date().toISOString()}] ✅ Markdown documentation: ${markdownDocs.length} files loaded`);
-        if (markdownDocs.length > 0) {
-          const rootDocs = markdownDocs.filter(doc => doc.metadata.type === 'root_documentation').length;
-          const moduleDocs = markdownDocs.filter(doc => doc.metadata.type === 'module_documentation').length;
-          console.log(`[${new Date().toISOString()}]    • Root documentation: ${rootDocs} files`);
-          console.log(`[${new Date().toISOString()}]    • Module documentation: ${moduleDocs} files`);
-        }
-        console.log(`[${new Date().toISOString()}] ✅ GitHub repository code: ${similarDocuments.filter(doc => doc.metadata.repoId || doc.metadata.githubOwner).length} chunks from similarity search`);
-        console.log(`[${new Date().toISOString()}] 🎯 TOTAL CONTEXT: ${similarDocuments.length} chunks from multiple source types ready for AI processing`);
+        console.log(`[${new Date().toISOString()}] 📚 MULTI-SOURCE RAG CONTEXT FROM VECTOR SEARCH:`);
+        console.log(`[${new Date().toISOString()}] 🎯 TOTAL CONTEXT: ${similarDocuments.length} chunks retrieved from vector database ready for AI processing`);
 
-        // Format the context from retrieved documents (now includes wiki, API spec, and markdown docs)
+        // Format the context from retrieved documents (includes pre-indexed API spec, markdown docs, and repo code)
         console.log(`[${new Date().toISOString()}] [DEBUG] Formatting context from retrieved documents.`);
         
         // Analyze and log source composition
@@ -870,6 +928,12 @@ class AILangchainAdapter extends IAIPort {
         
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Created context with ${context.length} characters from ${similarDocuments.length} documents`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Context formatted. Length: ${context.length}`);
+        
+        // Retrieve conversation history for context continuity
+        const conversationHistory = await this.getConversationHistory(conversationId);
+        const historyMessages = this.formatConversationHistory(conversationHistory);
+        
+        // Build comprehensive messages array with system prompt, history, and current context
         const messages = [
           {
             role: "system",
@@ -884,18 +948,25 @@ You have access to comprehensive information about the user's application:
 When answering questions:
 1. Use the provided context when relevant and cite specific sources
 2. Integrate information from multiple sources when helpful
-3. If the question can't be answered from the context, use your general knowledge but make it clear
-4. Prioritize recent documentation and module-specific information for detailed questions
-5. Always provide accurate, helpful, and concise responses
+3. Maintain conversation continuity by referencing previous exchanges when relevant
+4. If the question can't be answered from the context, use your general knowledge but make it clear
+5. Prioritize recent documentation and module-specific information for detailed questions
+6. Always provide accurate, helpful, and concise responses
 
-The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MODULE DOCUMENTATION, CODE REPOSITORY) to help you understand the source of information.`
+The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MODULE DOCUMENTATION, CODE REPOSITORY) to help you understand the source of information.
+
+${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.length} previous exchanges. Use them for context continuity.` : 'This is the start of a new conversation.'}`
           },
+          ...historyMessages, // Include conversation history
           {
             role: "user",
             content: `I have a question about my application: "${prompt}"\n\nHere is the relevant information from my application documentation and codebase:\n\n${context}`
           }
         ];
-        console.log(`[${new Date().toISOString()}] [DEBUG] Messages prepared for LLM invoke.`);
+        
+        console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION CONTEXT: Built ${messages.length} messages for LLM (1 system + ${historyMessages.length} history + 1 current)`);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Messages prepared for LLM invoke with conversation history.`);
+        
         // Try to generate a response
         let retries = 0;
         let success = false;
@@ -961,6 +1032,7 @@ The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MOD
         // Log the full context size to help diagnose if embedding usage is working
         const contextSize = (typeof finalContext !== 'undefined' ? finalContext.length : (typeof context !== 'undefined' ? context.length : contextIntro.length));
         console.log(`[${new Date().toISOString()}] [DEBUG] Response generated. Context size: ${context.length}`);
+        console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Used ${conversationHistory.length} previous exchanges for continuity`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Returning response object from respondToPrompt.`);
         
         return {
@@ -971,7 +1043,9 @@ The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MOD
           ragEnabled: true,
           contextSize,
           sourcesUsed: sourceAnalysis,
-          sourcesBreakdown
+          sourcesBreakdown,
+          conversationHistoryUsed: conversationHistory.length > 0,
+          historyMessages: conversationHistory.length
         };
       } catch (error) {
         console.error(`[${new Date().toISOString()}] Error in respondToPrompt:`, error.message);
@@ -989,17 +1063,26 @@ The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MOD
   // Helper method for generating responses without context
   async generateStandardResponse(prompt, conversationId) {
     try {
-      // Simple prompt without context
+      // Retrieve conversation history for continuity even in standard responses
+      const conversationHistory = await this.getConversationHistory(conversationId);
+      const historyMessages = this.formatConversationHistory(conversationHistory);
+      
+      // Build messages with conversation history
       const messages = [
         {
           role: "system",
-          content: "You are a helpful AI assistant specialized in software development. Provide accurate, helpful, and concise responses."
+          content: `You are a helpful AI assistant specialized in software development. Provide accurate, helpful, and concise responses.
+          
+${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.length} previous exchanges. Use them for context continuity when relevant.` : 'This is the start of a new conversation.'}`
         },
+        ...historyMessages, // Include conversation history
         {
           role: "user",
           content: prompt
         }
       ];
+
+      console.log(`[${new Date().toISOString()}] 🔍 STANDARD RESPONSE: Built ${messages.length} messages with conversation history (1 system + ${historyMessages.length} history + 1 current)`);
 
       // Rate limit checks
       let retries = 0;
@@ -1030,7 +1113,7 @@ The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MOD
         throw new Error(`Failed to generate standard response after ${this.maxRetries} retries due to rate limits`);
       }
 
-      console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Generated standard response without code context for conversation ${conversationId}`);
+      console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Generated standard response with conversation history for conversation ${conversationId}`);
       
       return {
         success: true,
@@ -1038,7 +1121,9 @@ The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MOD
         conversationId,
         timestamp: new Date().toISOString(),
         sourcesUsed: 0,
-        ragEnabled: false
+        ragEnabled: false,
+        conversationHistoryUsed: conversationHistory.length > 0,
+        historyMessages: conversationHistory.length
       };
 
     } catch (error) {
