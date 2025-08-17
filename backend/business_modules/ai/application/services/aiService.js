@@ -30,9 +30,22 @@ class AIService extends IAIService {
       const userIdVO = new UserId(userId);
       const promptVO = new Prompt(prompt);
       console.log(`[${new Date().toISOString()}] AI service processing prompt for user ${userIdVO.value}: "${promptVO.text.substring(0, 50)}..."`);
+      
+      // Retrieve conversation history from database (Clean Architecture: Service handles data access)
+      let conversationHistory = [];
+      if (this.aiPersistAdapter && conversationId) {
+        try {
+          conversationHistory = await this.aiPersistAdapter.getConversationHistory(conversationId, 8);
+          console.log(`[${new Date().toISOString()}] Retrieved ${conversationHistory.length} conversation history items`);
+        } catch (historyError) {
+          console.warn(`[${new Date().toISOString()}] Could not retrieve conversation history:`, historyError.message);
+          conversationHistory = [];
+        }
+      }
+      
       // Call the domain entity to get the response and event
       const aiResponse = new AIResponse(userIdVO);
-      const { response } = await aiResponse.respondToPrompt(userIdVO, conversationId, promptVO, this.aiAdapter);
+      const { response } = await aiResponse.respondToPrompt(userIdVO, conversationId, promptVO, this.aiAdapter, conversationHistory);
       // Create and publish domain event
       const event = new AiResponseGeneratedEvent({
         userId: userIdVO.value,

@@ -13,7 +13,7 @@ class IAIPort {
     throw new Error('Method not implemented.');
   }  
 
-  async respondToPrompt(userId, conversationId, prompt) {
+  async respondToPrompt(userId, conversationId, prompt, conversationHistory = []) {
     throw new Error('Method not implemented.');
   }
 

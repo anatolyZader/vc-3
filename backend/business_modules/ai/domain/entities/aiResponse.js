@@ -13,10 +13,10 @@ class AIResponse {
     this.userId = userId;
   }
 
-  async respondToPrompt(userId, conversationId, prompt, IAIPort) {
+  async respondToPrompt(userId, conversationId, prompt, IAIPort, conversationHistory = []) {
     if (!(userId instanceof UserId)) throw new Error('userId must be a UserId value object');
     if (!(prompt instanceof Prompt)) throw new Error('prompt must be a Prompt value object');
-    const response = await IAIPort.respondToPrompt(userId.value, conversationId, prompt.text);
+    const response = await IAIPort.respondToPrompt(userId.value, conversationId, prompt.text, conversationHistory);
     console.log(`AI Response received: ${response}`);
     // Emit domain event
     const event = new AiResponseGeneratedEvent({
