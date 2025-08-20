@@ -113,7 +113,7 @@ class AILangchainAdapter extends IAIPort {
       `system_${repoId}_${this.sanitizeId(doc.metadata.type || doc.metadata.source || 'unknown')}_chunk_${index}`
     );
 
-    // Store in Pinecone in a GLOBAL namespace
+    // Store in Pinecone in a GLOBAL namespacee
     if (this.pinecone) {
         try {
             const coreDocsIndex = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
