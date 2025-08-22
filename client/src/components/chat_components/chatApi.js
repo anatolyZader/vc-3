@@ -374,60 +374,17 @@ class ChatAPI {
     });
   }
 
-  // Enhanced makeRequest to handle FormData
-  async makeRequest(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    const isFormData = options.body instanceof FormData;
-    
-    const config = {
-      credentials: 'include', // CRITICAL: This sends cookies with every request
-      ...options
-    };
-
-    // Only set headers if not FormData (browser will set correct Content-Type with boundary)
-    if (!isFormData) {
-      const hasBody = options.body !== undefined;
-      config.headers = {
-        ...this.getAuthHeaders(hasBody),
-        ...options.headers
-      };
-    } else {
-      // For FormData, only add custom headers, not Content-Type
-      config.headers = {
-        ...(options.headers || {})
-      };
-      // Remove Content-Type if it was set
-      delete config.headers['Content-Type'];
-    }
-
-    console.log(`[${new Date().toISOString()}] Making API call to: ${url}`);
-
-    try {
-      const response = await fetch(url, config);
-
-      if (!response.ok) {
-        // Handle authentication errors specifically
-        if (response.status === 401) {
-          console.log('🔐 Authentication required - redirecting to login');
-          // Cookie expired or invalid - redirect to login
-          window.location.href = '/api/auth/google';
-          return;
-        }
-
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-        console.error(`❌ API Error for ${endpoint}:`, errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      console.log(`✅ API call successful for ${endpoint}`);
-      return data;
-    } catch (error) {
-      console.error(`❌ API Error for ${endpoint}:`, error);
-      throw error;
-    }
-  }
 }
 
-export default new ChatAPI('http://localhost:3000');
+// Environment-aware base URL configuration
+const getBaseURL = () => {
+  // In development (localhost), use the development server
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  
+  // In production, use the current origin (https://eventstorm.me)
+  return window.location.origin;
+};
+
+export default new ChatAPI(getBaseURL());
