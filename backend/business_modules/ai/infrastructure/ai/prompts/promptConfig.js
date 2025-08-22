@@ -27,7 +27,10 @@ const PromptConfig = {
       'api', 'endpoint', 'database', 'function', 'method', 'class', 
       'component', 'module', 'service', 'error', 'bug', 'code', 
       'implementation', 'configuration', 'plugin', 'middleware',
-      'route', 'controller', 'model', 'schema', 'repository'
+      'route', 'controller', 'model', 'schema', 'repository',
+      'eventstorm', 'app', 'application', 'system', 'architecture',
+      'aop', 'business modules', 'technical', 'backend', 'frontend',
+      'server', 'client', 'infrastructure', 'domain', 'port', 'adapter'
     ],
     
     api: [

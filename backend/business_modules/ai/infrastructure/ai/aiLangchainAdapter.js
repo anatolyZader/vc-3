@@ -1272,12 +1272,26 @@ class AILangchainAdapter extends IAIPort {
         // Determine if this is a general knowledge question using PromptConfig
         const questionLower = prompt.toLowerCase();
         
-        const isGeneralQuestion = PromptConfig.keywords.general.some(keyword => questionLower.includes(keyword)) && 
-                                 !PromptConfig.keywords.application.some(keyword => questionLower.includes(keyword));
+        // Check for application-specific terms
+        const hasApplicationKeywords = PromptConfig.keywords.application.some(keyword => questionLower.includes(keyword));
+        
+        // Check for general question patterns
+        const hasGeneralPattern = PromptConfig.keywords.general.some(keyword => questionLower.includes(keyword));
+        
+        // Special check for app-specific mentions
+        const mentionsApp = questionLower.includes('eventstorm') || 
+                          questionLower.includes('this app') || 
+                          questionLower.includes('the app') ||
+                          questionLower.includes('your app') ||
+                          questionLower.includes('my app');
+        
+        // Logic: It's a general question ONLY if it has general patterns AND no application context
+        const isGeneralQuestion = hasGeneralPattern && !hasApplicationKeywords && !mentionsApp;
 
         if (PromptConfig.logging.logPromptSelection) {
           console.log(`[${new Date().toISOString()}] 🎯 PROMPT SELECTION: Auto-selected intelligent system prompt based on context analysis`);
           console.log(`[${new Date().toISOString()}] 🎯 QUESTION TYPE: ${isGeneralQuestion ? 'General Knowledge' : 'Application/Technical'}`);
+          console.log(`[${new Date().toISOString()}] 🔍 Analysis: hasGeneral=${hasGeneralPattern}, hasApp=${hasApplicationKeywords}, mentionsApp=${mentionsApp}`);
         }
         
         // Build messages with appropriate content based on question type
