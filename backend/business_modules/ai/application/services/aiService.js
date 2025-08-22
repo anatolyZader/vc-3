@@ -25,7 +25,7 @@ class AIService extends IAIService {
       const promptVO = new Prompt(prompt);
       console.log(`[${new Date().toISOString()}] AI service processing prompt for user ${userIdVO.value}: "${promptVO.text.substring(0, 50)}..."`);
       
-      // Retrieve conversation history from database (Clean Architecture: Service handles data access)
+      // Retrievee conversation history from database (Clean Architecture: Service handles data access)
       let conversationHistory = [];
       if (this.aiPersistAdapter && conversationId) {
         try {
