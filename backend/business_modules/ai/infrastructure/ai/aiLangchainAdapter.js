@@ -187,6 +187,7 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 // Import the new prompt systemm
 const { SystemPrompts, PromptSelector } = require('./prompts/systemPrompts');
 const PromptConfig = require('./prompts/promptConfig');
+const PromptConfig = require('./prompts/promptConfig');
 
 class AILangchainAdapter extends IAIPort {
   // Separate method to index only core docs (can be called independently)
@@ -1269,21 +1270,43 @@ class AILangchainAdapter extends IAIPort {
           mode: 'auto' // Can be overridden for testing: 'rag', 'standard', 'code', 'api', 'general'
         });
 
+        // Determine if this is a general knowledge question using PromptConfig
+        const questionLower = prompt.toLowerCase();
+        
+        const isGeneralQuestion = PromptConfig.keywords.general.some(keyword => questionLower.includes(keyword)) && 
+                                 !PromptConfig.keywords.application.some(keyword => questionLower.includes(keyword));
+
         if (PromptConfig.logging.logPromptSelection) {
           console.log(`[${new Date().toISOString()}] 🎯 PROMPT SELECTION: Auto-selected intelligent system prompt based on context analysis`);
+          console.log(`[${new Date().toISOString()}] 🎯 QUESTION TYPE: ${isGeneralQuestion ? 'General Knowledge' : 'Application/Technical'}`);
         }
         
-        // Build comprehensive messages array with intelligent system prompt, history, and current context
+        // Build messages with appropriate content based on question type
+        let userMessage;
+        if (isGeneralQuestion) {
+          // For general questions, don't include application context
+          userMessage = {
+            role: "user",
+            content: prompt
+          };
+          console.log(`[${new Date().toISOString()}] 🔍 GENERAL QUESTION: Using clean prompt without application context`);
+        } else {
+          // For application/technical questions, include relevant context
+          userMessage = {
+            role: "user",
+            content: `I have a question: "${prompt}"\n\nHere is the relevant information:\n\n${context}`
+          };
+          console.log(`[${new Date().toISOString()}] 🔍 APPLICATION QUESTION: Including RAG context for technical assistance`);
+        }
+        
+        // Build comprehensive messages array with intelligent system prompt, history, and appropriate content
         const messages = [
           {
             role: "system",
             content: systemPrompt
           },
           ...historyMessages, // Include conversation history
-          {
-            role: "user",
-            content: `I have a question: "${prompt}"\n\nHere is the relevant information:\n\n${context}`
-          }
+          userMessage
         ];
         
         console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION CONTEXT: Built ${messages.length} messages for LLM (1 system + ${historyMessages.length} history + 1 current)`);

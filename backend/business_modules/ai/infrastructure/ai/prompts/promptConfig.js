@@ -47,7 +47,14 @@ const PromptConfig = {
     general: [
       'what is', 'how does', 'explain', 'tell me about', 'history of',
       'definition of', 'meaning of', 'concept of', 'theory', 'principle',
-      'example of', 'difference between', 'comparison', 'pros and cons'
+      'example of', 'difference between', 'comparison', 'pros and cons',
+      'when did', 'where did', 'why does', 'how was', 'who was', 'what are',
+      'who invented', 'who discovered', 'who created', 'who developed',
+      'planet', 'earth', 'universe', 'science', 'physics', 'chemistry', 'biology',
+      'literature', 'art', 'music', 'culture', 'society', 'psychology',
+      'philosophy', 'mathematics', 'geography', 'climate', 'weather',
+      'government', 'politics', 'economics', 'religion', 'mythology',
+      'ancient', 'medieval', 'modern', 'civilization', 'empire', 'dynasty'
     ]
   },
 

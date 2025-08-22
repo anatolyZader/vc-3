@@ -1,6 +1,8 @@
 // systemPrompts.js
 "use strict";
 
+const PromptConfig = require('./promptConfig');
+
 /**
  * Centralized System Prompts Configuration
  * 
@@ -158,19 +160,24 @@ const PromptSelector = {
     // Auto-selection logic
     const questionLower = question.toLowerCase();
     
-    // Check if question seems application-specific
-    const appKeywords = ['api', 'endpoint', 'database', 'function', 'method', 'class', 'component', 'module', 'service', 'error', 'bug', 'code', 'implementation'];
-    const isAppRelated = appKeywords.some(keyword => questionLower.includes(keyword)) || hasRagContext;
+    // Check for general knowledge questions first using config
+    const isGeneralQuestion = PromptConfig.keywords.general.some(keyword => questionLower.includes(keyword));
+    
+    // Check if question seems application-specific using config
+    const isAppRelated = PromptConfig.keywords.application.some(keyword => questionLower.includes(keyword));
 
     // Check for API-specific questions
-    const apiKeywords = ['rest', 'endpoint', 'http', 'get', 'post', 'put', 'delete', 'swagger', 'openapi', 'json', 'response'];
-    const isApiRelated = apiKeywords.some(keyword => questionLower.includes(keyword));
+    const isApiRelated = PromptConfig.keywords.api.some(keyword => questionLower.includes(keyword));
 
     // Check for code-specific questions
-    const codeKeywords = ['function', 'method', 'class', 'variable', 'loop', 'condition', 'syntax', 'debug', 'error', 'exception'];
-    const isCodeRelated = codeKeywords.some(keyword => questionLower.includes(keyword));
+    const isCodeRelated = PromptConfig.keywords.code.some(keyword => questionLower.includes(keyword));
 
-    // Select prompt based on context and question analysis
+    // HIGHEST PRIORITY: General questions override everything else (unless they contain app-specific terms)
+    if (isGeneralQuestion && !isAppRelated) {
+      return SystemPrompts.general(conversationCount);
+    }
+
+    // SECOND PRIORITY: App-related questions with context
     if (hasRagContext && isAppRelated) {
       if (isApiRelated && contextSources.apiSpec) {
         return SystemPrompts.apiSpecialist(conversationCount);
@@ -181,13 +188,14 @@ const PromptSelector = {
       return SystemPrompts.ragSystem(conversationCount);
     }
 
+    // THIRD PRIORITY: App-related questions without context
     if (isAppRelated) {
       if (isApiRelated) return SystemPrompts.apiSpecialist(conversationCount);
       if (isCodeRelated) return SystemPrompts.codeAnalysis(conversationCount);
       return SystemPrompts.standard(conversationCount);
     }
 
-    // For general questions, use general knowledge prompt
+    // DEFAULT: For anything else (including general questions that weren't caught above)
     return SystemPrompts.general(conversationCount);
   },
 
