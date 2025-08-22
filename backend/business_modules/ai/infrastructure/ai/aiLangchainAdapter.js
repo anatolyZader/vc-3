@@ -2,24 +2,187 @@
 "use strict";
 /* eslint-disable no-unused-vars */
 
+/**
+ * =========================================================================
+ * AI LANGCHAIN ADAPTER - COMPREHENSIVE DOCUMENTATION & INDEX
+ * =========================================================================
+ * 
+ * This file implements a Retrieval-Augmented Generation (RAG) system that:
+ * 1. Indexes repository code and documentation into vector databases
+ * 2. Provides AI-powered responses using retrieved context
+ * 3. Manages rate limiting and queue processing
+ * 4. Handles multiple LLM providers (OpenAI, Anthropic, Google)
+ * 
+ * ARCHITECTURE OVERVIEW:
+ * =====================
+ * 
+ * DATA PREPARATION PHASE (Heavy Operations - Done Once Per Repo):
+ * - processPushedRepo(): Main entry point for repository processing
+ * - indexCoreDocsToPinecone(): Indexes API specs and markdown docs
+ * - Uses GithubRepoLoader to fetch and chunk repository files
+ * - Stores embeddings in Pinecone vector database with namespaces
+ * 
+ * QUERY PHASE (Lightweight - Per User Request):
+ * - respondToPrompt(): Main AI response generation with RAG
+ * - generateStandardResponse(): Fallback without vector retrieval
+ * - Accepts conversation history from service layer (no database access)
+ * 
+ * MAIN CLASS & METHODS INDEX:
+ * ==========================
+ * 
+ * CLASS: AILangchainAdapter extends IAIPort
+ * ├── CONSTRUCTOR & SETUP
+ * │   ├── constructor(options) [Line 372] - Initialize adapter with rate limiting, LLM setup
+ * │   ├── setUserId(userId) [Line 461] - Set current user context
+ * │   └── initializeLLM() [Line 494] - Configure LLM provider (OpenAI/Anthropic/Google)
+ * │
+ * ├── CORE INDEXING METHODS (Data Preparation)
+ * │   ├── processPushedRepo(userId, repoId, repoData) [Line 616] 
+ * │   │   └── Main entry point for repository indexing pipeline
+ * │   │   └── Loads repo files, creates embeddings, stores in Pinecone
+ * │   │   └── Emits progress events via RAG status
+ * │   │
+ * │   ├── indexCoreDocsToPinecone() [Line 155]
+ * │   │   └── Indexes API specifications and markdown documentation
+ * │   │   └── Chunks API spec into tags, endpoints, info sections
+ * │   │   └── Processes markdown files from specific directories
+ * │   │
+ * │   ├── loadApiSpec(filePath) [Line 260]
+ * │   │   └── Loads and validates httpApiSpec.json file
+ * │   │   └── Returns structured document for embedding
+ * │   │
+ * │   ├── loadMarkdownFiles() [Line 295]
+ * │   │   └── Scans for .md files in root and module directories
+ * │   │   └── Categorizes docs as root/architecture/module documentation
+ * │   │
+ * │   ├── chunkApiSpecEndpoints(apiSpecJson, documents) [Line 388]
+ * │   │   └── Creates endpoint-specific chunks from OpenAPI spec
+ * │   │   └── Each endpoint becomes a detailed, searchable document
+ * │   │
+ * │   ├── chunkApiSpecSchemas(apiSpecJson, documents) [Line 448]
+ * │   │   └── Creates component schema chunks from OpenAPI spec
+ * │   │   └── Each schema definition becomes a structured document
+ * │   │
+ * │   └── splitMarkdownDocuments(markdownDocs) [Line 487]
+ * │       └── Uses header-aware splitting for markdown files
+ * │       └── Preserves document structure and section context
+ * │
+ * ├── AI RESPONSE GENERATION (Query Phase)
+ * │   ├── respondToPrompt(userId, conversationId, prompt, conversationHistory) [Line 757]
+ * │   │   └── PRIMARY METHOD: Generates AI responses using RAG
+ * │   │   └── Flow: Rate limit → Vector search → LLM generation
+ * │   │   └── Combines: passed conversation history + retrieved docs + user prompt
+ * │   │   └── Falls back to generateStandardResponse() if vector search fails
+ * │   │   └── NO DATABASE ACCESS - history passed from service layer
+ * │   │
+ * │   └── generateStandardResponse(prompt, conversationId, conversationHistory) [Line 1148]
+ * │       └── FALLBACK METHOD: AI response without vector retrieval
+ * │       └── Uses only passed conversation history + API spec summary
+ * │       └── Simpler but less context-aware than full RAG
+ * │       └── NO DATABASE ACCESS - history passed as parameter
+ * │
+ * ├── CONVERSATION MANAGEMENT
+ * │   └── formatConversationHistory(history) [Line 703]
+ * │       └── Converts database records to LangChain message format
+ * │       └── Handles user/assistant message types
+ * │       └── UTILITY ONLY - processes data passed from service layer
+ * │
+ * ├── RATE LIMITING & QUEUE MANAGEMENT
+ * │   ├── checkRateLimit() [Line 574]
+ * │   │   └── Enforces per-user request rate limits using Bottleneck
+ * │   │   └── Prevents API abuse and cost overrun
+ * │   │
+ * │   ├── waitWithBackoff(retryCount) [Line 598]
+ * │   │   └── Implements exponential backoff for retries
+ * │   │   └── Used when rate limits or API errors occur
+ * │   │
+ * │   ├── processQueue() [Line 1378]
+ * │   │   └── Background queue processor for managing concurrent requests
+ * │   │   └── Ensures orderly processing and prevents overwhelming APIs
+ * │   │
+ * │   └── queueRequest(execute) [Line 1417]
+ * │       └── Adds requests to processing queue
+ * │       └── Returns promise that resolves when request is processed
+ * │
+ * ├── UTILITY METHODS
+ * │   ├── formatApiSpecSummary(apiSpec) [Line 733]
+ * │   │   └── Extracts key info from API specification
+ * │   │   └── Used when full vector search isn't available
+ * │   │
+ * │   ├── getFileType(filePath) [Line 1236]
+ * │   │   └── Determines file category for better indexing
+ * │   │   └── Returns: code, documentation, configuration, or other
+ * │   │
+ * │   ├── sanitizeId(input) [Line 1272]
+ * │   │   └── Cleans strings for use as vector store namespaces
+ * │   │   └── Ensures valid Pinecone namespace format
+ * │   │
+ * │   ├── emitRagStatus(status, details) [Line 1278]
+ * │   │   └── Emits progress events during indexing operations
+ * │   │   └── Used for real-time status updates to clients
+ * │   │
+ * │   └── createSmartSplitter(documents) [Line 1611]
+ * │   │   └── Creates language-specific and content-aware text splitters
+ * │   │   └── Optimizes chunking based on code language and file type detection
+ * │   │
+ * │   └── getCodeAwareSeparators(language) [Line 1671]
+ * │       └── Returns language-specific separators for better code chunking
+ * │       └── Ensures chunks break at logical code boundaries
+ * │
+ * EXTERNAL DEPENDENCIES:
+ * ======================
+ * - @langchain/openai: OpenAI LLM and embeddings
+ * - @langchain/anthropic: Anthropic Claude models
+ * - @langchain/google-genai: Google Gemini models
+ * - @langchain/pinecone: Vector store integration
+ * - @langchain/community: GitHub loader and other tools
+ * - @langchain/textsplitters: Smart text chunking
+ * - bottleneck: Rate limiting implementation
+ * - @pinecone-database/pinecone: Vector database client
+ * 
+ * KEY CONFIGURATION:
+ * ==================
+ * - Vector embeddings: OpenAI text-embedding-3-large
+ * - Vector store: Pinecone with separate namespaces per repository
+ * - Text chunking: 1500 char chunks with 250 char overlap
+ * - Rate limits: 60 requests per minute default
+ * - Conversation history: Passed from service (no direct DB access)
+ * - Supported file types: .js, .ts, .md, .json, .yml, .yaml, .py, etc.
+ * 
+ * ERROR HANDLING:
+ * ===============
+ * - Graceful fallbacks when vector search fails
+ * - Rate limit handling with exponential backoff
+ * - Comprehensive logging with timestamps
+ * - Progress tracking via RAG status emissions
+ * - Timeout handling for vector operations (30s default)
+ * 
+ * PERFORMANCE CONSIDERATIONS:
+ * ===========================
+ * - Lazy initialization of LLM clients
+ * - Efficient vector similarity search with metadata filtering
+ * - Smart chunking to balance context vs. relevance
+ * - Background queue processing for concurrent requests
+ * - Namespace isolation to prevent cross-repository contamination
+ * - Language-specific text splitters for optimal code chunking
+ * 
+ * ARCHITECTURAL IMPROVEMENTS (Post-Persistence Isolation):
+ * =======================================================
+ * ✅ REMOVED: Direct database access and persistence adapter dependency
+ * ✅ IMPROVED: Clean separation between AI operations and data persistence
+ * ✅ ENHANCED: Service layer now handles all conversation history management
+ * ✅ SIMPLIFIED: Adapter focused purely on AI/RAG functionality
+ * ✅ MAINTAINED: Full functionality with better architectural boundaries
+ */
+
 const IAIPort = require('../../domain/ports/IAIPort');
 const Bottleneck = require("bottleneck");
 const { GithubRepoLoader } = require("@langchain/community/document_loaders/web/github");
 const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
+const { MarkdownHeaderTextSplitter } = require("@langchain/textsplitters");
 const { PineconeStore } = require('@langchain/pinecone');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
-
-/**
- * AILangchainAdapter - RAG Pipeline Architecture:
- * 
- * Data Preparation Phase (Heavy Operations):
- * - processPushedRepo(): Loads, chunks, and embeds both core docs + repository code
- * 
- * Query Phase (Lightweight - Run Per Request):
- * - respondToPrompt(): Retrieves relevant chunks from vector DB + generates response
- * - generateStandardResponse(): Fallback when vector DB unavailable
- */
 
 class AILangchainAdapter extends IAIPort {
   // Separate method to index only core docs (can be called independently)
@@ -45,7 +208,13 @@ class AILangchainAdapter extends IAIPort {
       }
       
       if (apiSpecJson) {
-        // Tags chunk
+        // Create endpoint-specific chunks for better retrieval
+        await this.chunkApiSpecEndpoints(apiSpecJson, documents);
+        
+        // Create schema chunks from components
+        await this.chunkApiSpecSchemas(apiSpecJson, documents);
+        
+        // Tags chunk (keep existing)
         if (Array.isArray(apiSpecJson.tags)) {
           const tagsText = apiSpecJson.tags.map(tag => `- ${tag.name}: ${tag.description}`).join('\n');
           documents.push({
@@ -53,20 +222,8 @@ class AILangchainAdapter extends IAIPort {
             metadata: { source: 'httpApiSpec.json', type: 'apiSpecTags' }
           });
         }
-        // Endpoints chunk
-        if (apiSpecJson.paths && typeof apiSpecJson.paths === 'object') {
-          const endpointsText = Object.entries(apiSpecJson.paths).map(([path, methods]) => {
-            return Object.entries(methods).map(([method, details]) => {
-              const tagList = details.tags && details.tags.length ? ` [tags: ${details.tags.join(', ')}]` : '';
-              return `- ${method.toUpperCase()} ${path}${tagList}`;
-            }).join('\n');
-          }).join('\n');
-          documents.push({
-            pageContent: `API Endpoints:\n${endpointsText}`,
-            metadata: { source: 'httpApiSpec.json', type: 'apiSpecEndpoints' }
-          });
-        }
-        // Info chunk
+        
+        // Info chunk (keep existing)
         if (apiSpecJson.info) {
           documents.push({
             pageContent: `API Info:\nTitle: ${apiSpecJson.info.title}\nDescription: ${apiSpecJson.info.description}\nVersion: ${apiSpecJson.info.version}`,
@@ -74,11 +231,6 @@ class AILangchainAdapter extends IAIPort {
           });
         }
       }
-      // Add full spec as fallback
-      documents.push({
-        pageContent: apiSpecChunk.pageContent,
-        metadata: { source: 'httpApiSpec.json', type: 'apiSpecFull' }
-      });
     }
 
     // Add markdown documentation files
@@ -92,7 +244,7 @@ class AILangchainAdapter extends IAIPort {
       return;
     }
 
-    // Use smart splitter for chunking (for markdown docs only)
+    // Use improved splitter for chunking markdown docs
     const docsToSplit = documents.filter(doc => 
       doc.metadata.type === 'root_documentation' || 
       doc.metadata.type === 'module_documentation' ||
@@ -100,10 +252,11 @@ class AILangchainAdapter extends IAIPort {
     );
     let splittedDocs = [];
     if (docsToSplit.length > 0) {
-      const splitter = this.createSmartSplitter(docsToSplit);
-      splittedDocs = await splitter.splitDocuments(docsToSplit);
+      // Use markdown-aware splitter for semantic chunking
+      splittedDocs = await this.splitMarkdownDocuments(docsToSplit);
     }
-    // Add all API spec chunks (no further splitting)
+    
+    // Add all API spec chunks (already optimally chunked)
     splittedDocs = splittedDocs.concat(documents.filter(doc => doc.metadata.source === 'httpApiSpec.json'));
     console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Total documents after splitting: ${splittedDocs.length}`);
 
@@ -243,6 +396,210 @@ class AILangchainAdapter extends IAIPort {
       return [];
     }
   }
+
+  // Enhanced API spec chunking - creates endpoint-specific chunks
+  async chunkApiSpecEndpoints(apiSpecJson, documents) {
+    if (!apiSpecJson.paths || typeof apiSpecJson.paths !== 'object') {
+      console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] No paths found in API spec`);
+      return;
+    }
+
+    let endpointCount = 0;
+    Object.entries(apiSpecJson.paths).forEach(([path, methods]) => {
+      Object.entries(methods).forEach(([method, operation]) => {
+        if (typeof operation !== 'object') return; // Skip non-operation entries
+
+        const endpoint = {
+          method: method.toUpperCase(),
+          path: path,
+          summary: operation.summary || '',
+          description: operation.description || '',
+          tags: operation.tags || [],
+          operationId: operation.operationId || ''
+        };
+
+        // Build comprehensive endpoint documentation
+        let content = `${endpoint.method} ${endpoint.path}\n`;
+        if (endpoint.summary) content += `Summary: ${endpoint.summary}\n`;
+        if (endpoint.description) content += `Description: ${endpoint.description}\n`;
+        if (endpoint.operationId) content += `Operation ID: ${endpoint.operationId}\n`;
+        if (endpoint.tags.length > 0) content += `Tags: ${endpoint.tags.join(', ')}\n`;
+
+        // Add parameters information
+        if (operation.parameters && Array.isArray(operation.parameters)) {
+          content += `\nParameters:\n`;
+          operation.parameters.forEach(param => {
+            content += `- ${param.name} (${param.in}): ${param.description || 'No description'} ${param.required ? '[Required]' : '[Optional]'}\n`;
+          });
+        }
+
+        // Add request body information
+        if (operation.requestBody) {
+          content += `\nRequest Body:\n`;
+          if (operation.requestBody.description) {
+            content += `Description: ${operation.requestBody.description}\n`;
+          }
+          if (operation.requestBody.content) {
+            Object.keys(operation.requestBody.content).forEach(mediaType => {
+              content += `Media Type: ${mediaType}\n`;
+            });
+          }
+        }
+
+        // Add response information
+        if (operation.responses && typeof operation.responses === 'object') {
+          content += `\nResponses:\n`;
+          Object.entries(operation.responses).forEach(([statusCode, response]) => {
+            if (response.description) {
+              content += `- ${statusCode}: ${response.description}\n`;
+            }
+          });
+        }
+
+        documents.push({
+          pageContent: content,
+          metadata: {
+            source: 'httpApiSpec.json',
+            type: 'api_endpoint',
+            method: method.toLowerCase(),
+            path: path,
+            tags: endpoint.tags,
+            operationId: endpoint.operationId || `${method}_${path.replace(/[^a-zA-Z0-9]/g, '_')}`
+          }
+        });
+
+        endpointCount++;
+      });
+    });
+
+    console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Created ${endpointCount} endpoint-specific chunks`);
+  }
+
+  // Enhanced API spec schema chunking - creates component schema chunks
+  async chunkApiSpecSchemas(apiSpecJson, documents) {
+    if (!apiSpecJson.components || !apiSpecJson.components.schemas) {
+      console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] No schemas found in API spec components`);
+      return;
+    }
+
+    let schemaCount = 0;
+    Object.entries(apiSpecJson.components.schemas).forEach(([schemaName, schema]) => {
+      let content = `Schema: ${schemaName}\n`;
+      if (schema.type) content += `Type: ${schema.type}\n`;
+      if (schema.description) content += `Description: ${schema.description}\n`;
+
+      // Add properties information
+      if (schema.properties && typeof schema.properties === 'object') {
+        content += `\nProperties:\n`;
+        Object.entries(schema.properties).forEach(([propName, propSchema]) => {
+          const required = schema.required && schema.required.includes(propName) ? '[Required]' : '[Optional]';
+          const type = propSchema.type || 'unknown';
+          const description = propSchema.description || 'No description';
+          content += `- ${propName} (${type}): ${description} ${required}\n`;
+        });
+      }
+
+      // Add enum values if present
+      if (schema.enum && Array.isArray(schema.enum)) {
+        content += `\nPossible Values: ${schema.enum.join(', ')}\n`;
+      }
+
+      documents.push({
+        pageContent: content,
+        metadata: {
+          source: 'httpApiSpec.json',
+          type: 'api_schema',
+          schemaName: schemaName,
+          schemaType: schema.type || 'object'
+        }
+      });
+
+      schemaCount++;
+    });
+
+    console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Created ${schemaCount} schema-specific chunks`);
+  }
+
+  // Enhanced markdown splitting using header-aware splitter
+  async splitMarkdownDocuments(markdownDocs) {
+    const splittedDocs = [];
+
+    for (const doc of markdownDocs) {
+      try {
+        // Try header-based splitting first
+        const headerSplitter = new MarkdownHeaderTextSplitter({
+          headersToSplitOn: [
+            { level: 1, name: 'h1' },
+            { level: 2, name: 'h2' },
+            { level: 3, name: 'h3' }
+          ]
+        });
+
+        const headerChunks = await headerSplitter.splitDocuments([doc]);
+        
+        if (headerChunks.length > 1) {
+          // Header splitting was successful
+          headerChunks.forEach((chunk, index) => {
+            const enhancedMetadata = {
+              ...doc.metadata,
+              chunkIndex: index,
+              splitterType: 'header-based'
+            };
+
+            // Extract section information from metadata
+            if (chunk.metadata) {
+              Object.keys(chunk.metadata).forEach(key => {
+                if (key.startsWith('h') && chunk.metadata[key]) {
+                  enhancedMetadata.section = chunk.metadata[key];
+                  enhancedMetadata.sectionLevel = key;
+                }
+              });
+            }
+
+            splittedDocs.push({
+              ...chunk,
+              metadata: enhancedMetadata
+            });
+          });
+
+          console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Split ${doc.metadata.source} into ${headerChunks.length} header-based chunks`);
+        } else {
+          // Fallback to character-based splitting
+          const charSplitter = new RecursiveCharacterTextSplitter({
+            chunkSize: 1500,
+            chunkOverlap: 250
+          });
+
+          const charChunks = await charSplitter.splitDocuments([doc]);
+          charChunks.forEach((chunk, index) => {
+            splittedDocs.push({
+              ...chunk,
+              metadata: {
+                ...doc.metadata,
+                chunkIndex: index,
+                splitterType: 'character-based'
+              }
+            });
+          });
+
+          console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Split ${doc.metadata.source} into ${charChunks.length} character-based chunks (header splitting failed)`);
+        }
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error splitting markdown doc ${doc.metadata.source}:`, error.message);
+        // Add the original document if splitting fails
+        splittedDocs.push({
+          ...doc,
+          metadata: {
+            ...doc.metadata,
+            splitterType: 'none',
+            error: 'splitting_failed'
+          }
+        });
+      }
+    }
+
+    return splittedDocs;
+  }
   constructor(options = {}) {
     super();
 
@@ -254,13 +611,6 @@ class AILangchainAdapter extends IAIPort {
     this.aiProvider = options.aiProvider || 'openai';
     console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing with provider: ${this.aiProvider}`);
     console.log(`[${new Date().toISOString()}] [DEBUG] aiProvider set to: ${this.aiProvider}`);
-
-    // Store persistence adapter for conversation history (from constructor or setter)
-    this.aiPersistAdapter = options.aiPersistAdapter || null;
-    console.log(`[${new Date().toISOString()}] [DEBUG] aiPersistAdapter set:`, !!this.aiPersistAdapter);
-    if (this.aiPersistAdapter) {
-      console.log(`[${new Date().toISOString()}] ✅ AILangchainAdapter: Persistence adapter available for conversation history`);
-    }
 
     // Get access to the event bus for status updates
     try {
@@ -368,18 +718,6 @@ class AILangchainAdapter extends IAIPort {
       // Still set the userId even if vectorStore creation fails
     }
 
-    return this;
-  }
-
-  // Add method to set persistence adapter after construction
-  setPersistenceAdapter(aiPersistAdapter) {
-    if (!aiPersistAdapter) {
-      console.warn(`[${new Date().toISOString()}] Attempted to set null/undefined aiPersistAdapter in AILangchainAdapter`);
-      return this;
-    }
-    
-    this.aiPersistAdapter = aiPersistAdapter;
-    console.log(`[${new Date().toISOString()}] [DEBUG] aiPersistAdapter set successfully for conversation history`);
     return this;
   }
 
@@ -592,28 +930,6 @@ class AILangchainAdapter extends IAIPort {
     }
   }
 
-  // Helper method to retrieve and format conversation history
-  async getConversationHistory(conversationId, limit = 8) {
-    if (!this.aiPersistAdapter || !conversationId) {
-      console.log(`[${new Date().toISOString()}] [DEBUG] No conversation history available: persistAdapter=${!!this.aiPersistAdapter}, conversationId=${conversationId}`);
-      return [];
-    }
-
-    try {
-      const history = await this.aiPersistAdapter.getConversationHistory(conversationId, limit);
-      console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Retrieved ${history.length} previous messages for conversation ${conversationId}`);
-      
-      if (history.length > 0) {
-        console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Oldest message from ${history[0].timestamp}, newest from ${history[history.length - 1].timestamp}`);
-      }
-      
-      return history;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] Error retrieving conversation history:`, error.message);
-      return [];
-    }
-  }
-
   // Helper method to format conversation history into messages
   formatConversationHistory(history) {
     if (!history || history.length === 0) {
@@ -669,7 +985,7 @@ class AILangchainAdapter extends IAIPort {
   }
 
   // RAG Query Phase: Retrieval and Generation only (data preparation is done in processPushedRepo/initializeCoreDocumentation)
-  async respondToPrompt(userId, conversationId, prompt) {
+  async respondToPrompt(userId, conversationId, prompt, conversationHistory = []) {
     this.setUserId(userId);
     if (!this.userId) {
       console.warn(`[${new Date().toISOString()}] Failed to set userId in respondToPrompt. Provided userId: ${userId}`);
@@ -706,7 +1022,7 @@ class AILangchainAdapter extends IAIPort {
           });
           console.log(`[${new Date().toISOString()}] [DEBUG] respondToPrompt called with userId=${userId}, conversationId=${conversationId}, prompt=${prompt}`);
           
-          return await this.generateStandardResponse(prompt, conversationId);
+          return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
         }
 
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Searching vector database for relevant code chunks for user ${this.userId}...`);
@@ -733,7 +1049,7 @@ class AILangchainAdapter extends IAIPort {
             conversationId: conversationId,
             reason: 'Vector store not initialized'
           });
-          return await this.generateStandardResponse(prompt, conversationId);
+          return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
         }
         
         try {
@@ -773,7 +1089,7 @@ class AILangchainAdapter extends IAIPort {
               error: timeoutError.message,
               query: prompt.substring(0, 100)
             });
-            return await this.generateStandardResponse(prompt, conversationId);
+            return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
           }
           
           // Log the firstt few chunks for debugging
@@ -826,7 +1142,7 @@ class AILangchainAdapter extends IAIPort {
           console.log(`[${new Date().toISOString()}] [DEBUG] Emitted retrieval_error status.`);
           
           console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch error stack:`, error.stack);
-          return await this.generateStandardResponse(prompt, conversationId);
+          return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
         }
 
         if (similarDocuments.length === 0) {
@@ -841,7 +1157,7 @@ class AILangchainAdapter extends IAIPort {
           });
           console.log(`[${new Date().toISOString()}] [DEBUG] No relevant documents found in similaritySearch.`);
           
-          return await this.generateStandardResponse(prompt, conversationId);
+          return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
         }
 
         // Process the retrieved documents
@@ -929,8 +1245,7 @@ class AILangchainAdapter extends IAIPort {
         console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Created context with ${context.length} characters from ${similarDocuments.length} documents`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Context formatted. Length: ${context.length}`);
         
-        // Retrieve conversation history for context continuity
-        const conversationHistory = await this.getConversationHistory(conversationId);
+        // Format passed conversation history for context continuity
         const historyMessages = this.formatConversationHistory(conversationHistory);
         
         // Build comprehensive messages array with system prompt, history, and current context
@@ -1061,10 +1376,9 @@ ${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.
   }
 
   // Helper method for generating responses without context
-  async generateStandardResponse(prompt, conversationId) {
+  async generateStandardResponse(prompt, conversationId, conversationHistory = []) {
     try {
-      // Retrieve conversation history for continuity even in standard responses
-      const conversationHistory = await this.getConversationHistory(conversationId);
+      // Format passed conversation history for continuity even in standard responses
       const historyMessages = this.formatConversationHistory(conversationHistory);
       
       // Build messages with conversation history
@@ -1232,13 +1546,25 @@ ${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.
     const chunkSize = 1500; // Larger chunks for fewer requests
     const chunkOverlap = 250; // More overlap for better context
 
-    // Analyze documents to determine predominant language
+    // Analyze documents to determine predominant language and file types
     const languageCount = {};
+    const fileTypeCount = {};
 
     documents.forEach(doc => {
-      const extension = (doc.metadata.source || '').split('.').pop().toLowerCase();
+      const source = doc.metadata.source || '';
+      const extension = source.split('.').pop().toLowerCase();
       if (!extension) return;
 
+      // Track file types
+      if (['md', 'markdown'].includes(extension)) {
+        fileTypeCount.markdown = (fileTypeCount.markdown || 0) + 1;
+      } else if (['json'].includes(extension)) {
+        fileTypeCount.json = (fileTypeCount.json || 0) + 1;
+      } else if (['yml', 'yaml'].includes(extension)) {
+        fileTypeCount.yaml = (fileTypeCount.yaml || 0) + 1;
+      }
+
+      // Track programming languages
       if (['js', 'jsx', 'ts', 'tsx'].includes(extension)) languageCount.javascript = (languageCount.javascript || 0) + 1;
       else if (['py'].includes(extension)) languageCount.python = (languageCount.python || 0) + 1;
       else if (['java'].includes(extension)) languageCount.java = (languageCount.java || 0) + 1;
@@ -1250,7 +1576,23 @@ ${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.
       else if (['rs'].includes(extension)) languageCount.rust = (languageCount.rust || 0) + 1;
     });
 
-    // Find the most common language
+    // Check for predominant file types
+    const totalDocs = documents.length;
+    const markdownRatio = (fileTypeCount.markdown || 0) / totalDocs;
+
+    // If majority are markdown files, use header-based splitting
+    if (markdownRatio > 0.5) {
+      console.log(`[${new Date().toISOString()}] Using markdown header-based splitter (${Math.round(markdownRatio * 100)}% markdown files)`);
+      return new MarkdownHeaderTextSplitter({
+        headersToSplitOn: [
+          { level: 1, name: 'h1' },
+          { level: 2, name: 'h2' },
+          { level: 3, name: 'h3' }
+        ]
+      });
+    }
+
+    // Find the most common programming language
     let predominantLanguage = 'javascript'; // Default
     let maxCount = 0;
 
@@ -1276,13 +1618,68 @@ ${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.
 
     const language = langMap[predominantLanguage] || "js";
 
-    console.log(`[${new Date().toISOString()}] Using ${predominantLanguage} code splitter for document processing`);
+    console.log(`[${new Date().toISOString()}] Using ${predominantLanguage} code splitter for document processing (${maxCount}/${totalDocs} files)`);
 
-    // Create a language-specific splitter using the new API
+    // Create a language-specific splitter that respects code structure
     return RecursiveCharacterTextSplitter.fromLanguage(language, {
       chunkSize,
-      chunkOverlap
+      chunkOverlap,
+      // Add separators that respect code structure
+      separators: this.getCodeAwareSeparators(language)
     });
+  }
+
+  // Get code-aware separators for better chunking
+  getCodeAwareSeparators(language) {
+    const baseSeparators = [
+      "\n\n", // Paragraph breaks
+      "\n", // Line breaks
+      " ", // Word breaks
+      "" // Character breaks (fallback)
+    ];
+
+    switch (language) {
+      case "js":
+      case "ts":
+        return [
+          "\nexport class ", // Class declarations
+          "\nclass ", // Class declarations
+          "\nexport function ", // Function exports
+          "\nfunction ", // Function declarations
+          "\nexport const ", // Constant exports
+          "\nconst ", // Constants
+          "\nexport ", // Any exports
+          "\n// ", // Comments
+          "\n\n", // Paragraph breaks
+          "\n", // Line breaks
+          " ", // Word breaks
+          ""
+        ];
+      case "python":
+        return [
+          "\nclass ", // Class declarations
+          "\ndef ", // Function definitions
+          "\n# ", // Comments
+          "\n\n", // Paragraph breaks
+          "\n", // Line breaks
+          " ", // Word breaks
+          ""
+        ];
+      case "java":
+        return [
+          "\npublic class ", // Public classes
+          "\nclass ", // Classes
+          "\npublic ", // Public methods/fields
+          "\nprivate ", // Private methods/fields
+          "\n// ", // Comments
+          "\n\n", // Paragraph breaks
+          "\n", // Line breaks
+          " ", // Word breaks
+          ""
+        ];
+      default:
+        return baseSeparators;
+    }
   }
 
   // Queue system for rate limiting
