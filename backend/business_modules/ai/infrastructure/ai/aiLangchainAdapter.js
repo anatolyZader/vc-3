@@ -184,6 +184,10 @@ const { PineconeStore } = require('@langchain/pinecone');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
+// Import the new prompt systemm
+const { SystemPrompts, PromptSelector } = require('./prompts/systemPrompts');
+const PromptConfig = require('./prompts/promptConfig');
+
 class AILangchainAdapter extends IAIPort {
   // Separate method to index only core docs (can be called independently)
   // Remove this unused method
@@ -1248,34 +1252,37 @@ class AILangchainAdapter extends IAIPort {
         // Format passed conversation history for context continuity
         const historyMessages = this.formatConversationHistory(conversationHistory);
         
-        // Build comprehensive messages array with system prompt, history, and current context
+        // Analyze context sources for intelligent prompt selection
+        const contextSources = {
+          apiSpec: sourceAnalysis.apiSpec > 0,
+          rootDocumentation: sourceAnalysis.rootDocumentation > 0,
+          moduleDocumentation: sourceAnalysis.moduleDocumentation > 0,
+          code: sourceAnalysis.githubRepo > 0
+        };
+
+        // Select appropriate system prompt based on context and question
+        const systemPrompt = PromptSelector.selectPrompt({
+          hasRagContext: similarDocuments.length > 0,
+          conversationCount: conversationHistory.length,
+          question: prompt,
+          contextSources: contextSources,
+          mode: 'auto' // Can be overridden for testing: 'rag', 'standard', 'code', 'api', 'general'
+        });
+
+        if (PromptConfig.logging.logPromptSelection) {
+          console.log(`[${new Date().toISOString()}] 🎯 PROMPT SELECTION: Auto-selected intelligent system prompt based on context analysis`);
+        }
+        
+        // Build comprehensive messages array with intelligent system prompt, history, and current context
         const messages = [
           {
             role: "system",
-            content: `You are a helpful AI assistant specialized in software development. 
-
-You have access to comprehensive information about the user's application:
-- Code repository with source files and implementation details
-- API specification with endpoints and schemas
-- Root documentation covering plugins and core configuration files
-- Module-specific documentation for each business component
-
-When answering questions:
-1. Use the provided context when relevant and cite specific sources
-2. Integrate information from multiple sources when helpful
-3. Maintain conversation continuity by referencing previous exchanges when relevant
-4. If the question can't be answered from the context, use your general knowledge but make it clear
-5. Prioritize recent documentation and module-specific information for detailed questions
-6. Always provide accurate, helpful, and concise responses
-
-The context is organized by sections (API SPECIFICATION, ROOT DOCUMENTATION, MODULE DOCUMENTATION, CODE REPOSITORY) to help you understand the source of information.
-
-${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.length} previous exchanges. Use them for context continuity.` : 'This is the start of a new conversation.'}`
+            content: systemPrompt
           },
           ...historyMessages, // Include conversation history
           {
             role: "user",
-            content: `I have a question about my application: "${prompt}"\n\nHere is the relevant information from my application documentation and codebase:\n\n${context}`
+            content: `I have a question: "${prompt}"\n\nHere is the relevant information:\n\n${context}`
           }
         ];
         
@@ -1381,13 +1388,24 @@ ${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.
       // Format passed conversation history for continuity even in standard responses
       const historyMessages = this.formatConversationHistory(conversationHistory);
       
-      // Build messages with conversation history
+      // Use intelligent prompt selection even for standard responses
+      const systemPrompt = PromptSelector.selectPrompt({
+        hasRagContext: false,
+        conversationCount: conversationHistory.length,
+        question: prompt,
+        contextSources: {},
+        mode: 'auto'
+      });
+
+      if (PromptConfig.logging.logPromptSelection) {
+        console.log(`[${new Date().toISOString()}] 🎯 STANDARD RESPONSE: Selected intelligent prompt for non-RAG response`);
+      }
+      
+      // Build messages with intelligent conversation history
       const messages = [
         {
           role: "system",
-          content: `You are a helpful AI assistant specialized in software development. Provide accurate, helpful, and concise responses.
-          
-${conversationHistory.length > 0 ? `This conversation has ${conversationHistory.length} previous exchanges. Use them for context continuity when relevant.` : 'This is the start of a new conversation.'}`
+          content: systemPrompt
         },
         ...historyMessages, // Include conversation history
         {
