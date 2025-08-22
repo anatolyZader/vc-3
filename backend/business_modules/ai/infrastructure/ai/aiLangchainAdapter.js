@@ -223,7 +223,7 @@ class AILangchainAdapter extends IAIPort {
           });
         }
         
-        // Info chunk (keep existing)
+        // Info chunkk (keep existing)
         if (apiSpecJson.info) {
           documents.push({
             pageContent: `API Info:\nTitle: ${apiSpecJson.info.title}\nDescription: ${apiSpecJson.info.description}\nVersion: ${apiSpecJson.info.version}`,

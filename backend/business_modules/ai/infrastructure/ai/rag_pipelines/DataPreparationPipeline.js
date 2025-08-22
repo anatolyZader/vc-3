@@ -200,6 +200,16 @@ class DataPreparationPipeline {
     splittedDocs = splittedDocs.concat(documents.filter(doc => doc.metadata.source === 'httpApiSpec.json'));
     console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Total documents after splitting: ${splittedDocs.length}`);
 
+    // Log all chunks for debugging
+    console.log(`[${new Date().toISOString()}] 📋 [RAG-INDEX] CHUNK BREAKDOWN:`);
+    splittedDocs.forEach((doc, index) => {
+      const preview = doc.pageContent.substring(0, 100).replace(/\n/g, ' ').trim();
+      console.log(`[${new Date().toISOString()}] 📄 [CHUNK ${index + 1}/${splittedDocs.length}] ${doc.metadata.type || doc.metadata.source} (${doc.pageContent.length} chars)`);
+      console.log(`[${new Date().toISOString()}] 📝 Preview: ${preview}${doc.pageContent.length > 100 ? '...' : ''}`);
+      console.log(`[${new Date().toISOString()}] 🏷️  Metadata:`, JSON.stringify(doc.metadata, null, 2));
+      console.log(`[${new Date().toISOString()}] ${'─'.repeat(80)}`);
+    });
+
     // Generate unique IDs for Pinecone
     const repoId = 'core-docs';
     const documentIds = splittedDocs.map((doc, index) =>
@@ -318,6 +328,16 @@ class DataPreparationPipeline {
       const splitDocs = await splitter.splitDocuments(enhancedDocuments);
       
       console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Split into ${splitDocs.length} chunks`);
+
+      // Log chunk breakdown for repository documents
+      console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] REPOSITORY CHUNK BREAKDOWN:`);
+      splitDocs.forEach((doc, index) => {
+        const preview = doc.pageContent.substring(0, 100).replace(/\n/g, ' ').trim();
+        console.log(`[${new Date().toISOString()}] 📄 [REPO-CHUNK ${index + 1}/${splitDocs.length}] ${doc.metadata.source} (${doc.pageContent.length} chars)`);
+        console.log(`[${new Date().toISOString()}] 📝 Preview: ${preview}${doc.pageContent.length > 100 ? '...' : ''}`);
+        console.log(`[${new Date().toISOString()}] 🏷️  FileType: ${doc.metadata.fileType}, Repo: ${doc.metadata.repoName}`);
+        console.log(`[${new Date().toISOString()}] ${'─'.repeat(80)}`);
+      });
 
       // Generate unique IDs for each chunk
       const documentIds = splitDocs.map((doc, index) => {
