@@ -187,7 +187,6 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 // Import the new prompt systemm
 const { SystemPrompts, PromptSelector } = require('./prompts/systemPrompts');
 const PromptConfig = require('./prompts/promptConfig');
-const PromptConfig = require('./prompts/promptConfig');
 
 class AILangchainAdapter extends IAIPort {
   // Separate method to index only core docs (can be called independently)
