@@ -5,6 +5,7 @@ const { GithubRepoLoader } = require("@langchain/community/document_loaders/web/
 const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 const { PineconeStore } = require('@langchain/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
+const SemanticPreprocessor = require('./SemanticPreprocessor');
 
 /**
  * DataPreparationPipeline - Heavy RAG Operations
@@ -27,7 +28,10 @@ class DataPreparationPipeline {
     this.eventBus = options.eventBus;
     this.pineconeLimiter = options.pineconeLimiter;
     
-    console.log(`[${new Date().toISOString()}] DataPreparationPipeline initialized`);
+    // Initialize semantic preprocessor
+    this.semanticPreprocessor = new SemanticPreprocessor();
+    
+    console.log(`[${new Date().toISOString()}] DataPreparationPipeline initialized with semantic preprocessing`);
   }
 
   /**
@@ -321,21 +325,45 @@ class DataPreparationPipeline {
         }
       }));
 
-      // Create smart splitter based on document types
-      const splitter = this.createSmartSplitter(enhancedDocuments);
+      // Apply semantic preprocessing to enhance chunks with context
+      console.log(`[${new Date().toISOString()}] 🧠 DATA-PREP: Applying semantic preprocessing...`);
+      const semanticallyEnhancedDocs = [];
+      for (const doc of enhancedDocuments) {
+        try {
+          const enhancedDoc = await this.semanticPreprocessor.preprocessChunk(doc);
+          semanticallyEnhancedDocs.push(enhancedDoc);
+        } catch (error) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Failed to preprocess ${doc.metadata.source}: ${error.message}`);
+          // Fall back to original document if preprocessing fails
+          semanticallyEnhancedDocs.push(doc);
+        }
+      }
       
-      console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Splitting documents...`);
-      const splitDocs = await splitter.splitDocuments(enhancedDocuments);
+      console.log(`[${new Date().toISOString()}] 🧠 DATA-PREP: Semantic preprocessing completed for ${semanticallyEnhancedDocs.length} documents`);
+
+      // Log semantic analysis summary
+      this.logSemanticAnalysisSummary(semanticallyEnhancedDocs);
+
+      // Create smart splitter based on document types
+      const splitter = this.createSmartSplitter(semanticallyEnhancedDocs);
+      
+      console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Splitting semantically enhanced documents...`);
+      const splitDocs = await splitter.splitDocuments(semanticallyEnhancedDocs);
       
       console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Split into ${splitDocs.length} chunks`);
 
       // Log chunk breakdown for repository documents
-      console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] REPOSITORY CHUNK BREAKDOWN:`);
+      console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] SEMANTICALLY ENHANCED REPOSITORY CHUNK BREAKDOWN:`);
       splitDocs.forEach((doc, index) => {
         const preview = doc.pageContent.substring(0, 100).replace(/\n/g, ' ').trim();
+        const semanticInfo = doc.metadata.enhanced ? 
+          `${doc.metadata.semantic_role}|${doc.metadata.layer}|${doc.metadata.eventstorm_module}` : 
+          'not-enhanced';
+        
         console.log(`[${new Date().toISOString()}] 📄 [REPO-CHUNK ${index + 1}/${splitDocs.length}] ${doc.metadata.source} (${doc.pageContent.length} chars)`);
         console.log(`[${new Date().toISOString()}] 📝 Preview: ${preview}${doc.pageContent.length > 100 ? '...' : ''}`);
         console.log(`[${new Date().toISOString()}] 🏷️  FileType: ${doc.metadata.fileType}, Repo: ${doc.metadata.repoName}`);
+        console.log(`[${new Date().toISOString()}] 🧠 Semantic: ${semanticInfo}, EntryPoint: ${doc.metadata.is_entrypoint || false}, Complexity: ${doc.metadata.complexity || 'unknown'}`);
         console.log(`[${new Date().toISOString()}] ${'─'.repeat(80)}`);
       });
 
@@ -629,6 +657,75 @@ class DataPreparationPipeline {
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
     }
+  }
+
+  /**
+   * Log semantic analysis summary to provide insights into the processed documents
+   */
+  logSemanticAnalysisSummary(documents) {
+    const semanticStats = {
+      roles: {},
+      layers: {},
+      modules: {},
+      entryPoints: 0,
+      complexity: { high: 0, medium: 0, low: 0 },
+      enhanced: 0
+    };
+
+    documents.forEach(doc => {
+      if (doc.metadata.enhanced) {
+        semanticStats.enhanced++;
+        
+        // Count roles
+        const role = doc.metadata.semantic_role || 'unknown';
+        semanticStats.roles[role] = (semanticStats.roles[role] || 0) + 1;
+        
+        // Count layers
+        const layer = doc.metadata.layer || 'unknown';
+        semanticStats.layers[layer] = (semanticStats.layers[layer] || 0) + 1;
+        
+        // Count modules
+        const module = doc.metadata.eventstorm_module || 'unknown';
+        semanticStats.modules[module] = (semanticStats.modules[module] || 0) + 1;
+        
+        // Count entry points
+        if (doc.metadata.is_entrypoint) {
+          semanticStats.entryPoints++;
+        }
+        
+        // Count complexity
+        const complexity = doc.metadata.complexity || 'unknown';
+        if (complexity in semanticStats.complexity) {
+          semanticStats.complexity[complexity]++;
+        }
+      }
+    });
+
+    console.log(`[${new Date().toISOString()}] 🧠 SEMANTIC ANALYSIS SUMMARY:`);
+    console.log(`[${new Date().toISOString()}] 📊 Enhanced documents: ${semanticStats.enhanced}/${documents.length}`);
+    console.log(`[${new Date().toISOString()}] 📊 Entry points detected: ${semanticStats.entryPoints}`);
+    
+    console.log(`[${new Date().toISOString()}] 📊 Semantic roles:`);
+    Object.entries(semanticStats.roles).forEach(([role, count]) => {
+      console.log(`[${new Date().toISOString()}]    ${role}: ${count}`);
+    });
+    
+    console.log(`[${new Date().toISOString()}] 📊 Architectural layers:`);
+    Object.entries(semanticStats.layers).forEach(([layer, count]) => {
+      console.log(`[${new Date().toISOString()}]    ${layer}: ${count}`);
+    });
+    
+    console.log(`[${new Date().toISOString()}] 📊 EventStorm modules:`);
+    Object.entries(semanticStats.modules).forEach(([module, count]) => {
+      console.log(`[${new Date().toISOString()}]    ${module}: ${count}`);
+    });
+    
+    console.log(`[${new Date().toISOString()}] 📊 Complexity distribution:`);
+    Object.entries(semanticStats.complexity).forEach(([level, count]) => {
+      console.log(`[${new Date().toISOString()}]    ${level}: ${count}`);
+    });
+    
+    console.log(`[${new Date().toISOString()}] ${'═'.repeat(80)}`);
   }
 
   /**

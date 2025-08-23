@@ -1058,20 +1058,37 @@ class AILangchainAdapter extends IAIPort {
         
         try {
           // Find relevant documents from vector database with timeout
-          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running similarity search (no filter, single-user mode)`);
+          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running intelligent similarity search with semantic filtering`);
+          
+          // Determine search strategy based on prompt analysis
+          const searchStrategy = this.determineSearchStrategy(prompt);
+          console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: User=${searchStrategy.userResults} docs, Core=${searchStrategy.coreResults} docs`);
+          console.log(`[${new Date().toISOString()}] 🧠 SEARCH FILTERS: User=${JSON.stringify(searchStrategy.userFilters)}, Core=${JSON.stringify(searchStrategy.coreFilters)}`);
           
           // Add timeout to prevent hanging - increased timeout and fallback strategy
           const VECTOR_SEARCH_TIMEOUT = 30000; // 30 seconds (increased from 10)
           
-          // Search user-specific namespace
-          const userSearchPromise = this.vectorStore.similaritySearch(prompt, 10);
+          // Search user-specific namespace with intelligent filtering
+          const userSearchPromise = this.vectorStore.similaritySearch(
+            prompt, 
+            searchStrategy.userResults,
+            searchStrategy.userFilters && Object.keys(searchStrategy.userFilters).length > 0 ? 
+              { filter: searchStrategy.userFilters } : 
+              {}
+          );
 
-          // Search global 'core-docs' namespace
+          // Search global 'core-docs' namespace with intelligent filtering
           const coreDocsVectorStore = new PineconeStore(this.embeddings, {
               pineconeIndex: this.pinecone.Index(pineconeIndex),
               namespace: 'core-docs'
           });
-          const coreDocsSearchPromise = coreDocsVectorStore.similaritySearch(prompt, 5);
+          const coreDocsSearchPromise = coreDocsVectorStore.similaritySearch(
+            prompt, 
+            searchStrategy.coreResults,
+            searchStrategy.coreFilters && Object.keys(searchStrategy.coreFilters).length > 0 ? 
+              { filter: searchStrategy.coreFilters } : 
+              {}
+          );
           
           const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Vector search timeout')), VECTOR_SEARCH_TIMEOUT);
@@ -1805,6 +1822,139 @@ class AILangchainAdapter extends IAIPort {
         setTimeout(() => this.processQueue(), 100);
       }
     });
+  }
+
+  /**
+   * Determine intelligent search strategy based on prompt analysis
+   */
+  determineSearchStrategy(prompt) {
+    const promptLower = prompt.toLowerCase();
+    
+    // Domain/business logic questions
+    if (this.containsKeywords(promptLower, ['domain', 'entity', 'business', 'rule', 'aggregate', 'model'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Domain/Business Logic Query`);
+      return {
+        userResults: 8,
+        coreResults: 3,
+        userFilters: { layer: 'domain' },
+        coreFilters: { type: 'module_documentation' }
+      };
+    }
+    
+    // API/endpoint questions
+    if (this.containsKeywords(promptLower, ['api', 'endpoint', 'route', 'http', 'request', 'controller', 'fastify'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: API/Endpoint Query`);
+      return {
+        userResults: 6,
+        coreResults: 5,
+        userFilters: { semantic_role: 'controller' },
+        coreFilters: { type: 'api_endpoint' }
+      };
+    }
+    
+    // Error/debugging questions
+    if (this.containsKeywords(promptLower, ['error', 'bug', 'fix', 'debug', 'issue', 'problem', 'exception', 'fail'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Error/Debugging Query`);
+      return {
+        userResults: 10,
+        coreResults: 2,
+        userFilters: { is_entrypoint: true }, // Focus on entry points where errors often occur
+        coreFilters: {}
+      };
+    }
+    
+    // Chat/conversation questions
+    if (this.containsKeywords(promptLower, ['chat', 'message', 'conversation', 'websocket', 'socket'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Chat Module Query`);
+      return {
+        userResults: 8,
+        coreResults: 3,
+        userFilters: { eventstorm_module: 'chatModule' },
+        coreFilters: { type: 'module_documentation' }
+      };
+    }
+    
+    // Git/repository questions
+    if (this.containsKeywords(promptLower, ['git', 'repository', 'github', 'pull request', 'commit', 'branch'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Git Module Query`);
+      return {
+        userResults: 8,
+        coreResults: 3,
+        userFilters: { eventstorm_module: 'gitModule' },
+        coreFilters: { type: 'module_documentation' }
+      };
+    }
+    
+    // AI/RAG/embedding questions
+    if (this.containsKeywords(promptLower, ['ai', 'embedding', 'vector', 'rag', 'langchain', 'openai', 'semantic'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: AI Module Query`);
+      return {
+        userResults: 8,
+        coreResults: 3,
+        userFilters: { eventstorm_module: 'aiModule' },
+        coreFilters: { type: 'module_documentation' }
+      };
+    }
+    
+    // Wiki/documentation questions
+    if (this.containsKeywords(promptLower, ['wiki', 'documentation', 'search', 'knowledge', 'doc'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Wiki Module Query`);
+      return {
+        userResults: 8,
+        coreResults: 4,
+        userFilters: { eventstorm_module: 'wikiModule' },
+        coreFilters: { type: 'module_documentation' }
+      };
+    }
+    
+    // Test/testing questions
+    if (this.containsKeywords(promptLower, ['test', 'testing', 'spec', 'unit test', 'integration test'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Testing Query`);
+      return {
+        userResults: 8,
+        coreResults: 2,
+        userFilters: { semantic_role: 'test' },
+        coreFilters: {}
+      };
+    }
+    
+    // Configuration/setup questions
+    if (this.containsKeywords(promptLower, ['config', 'configuration', 'setup', 'environment', 'env', 'settings'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Configuration Query`);
+      return {
+        userResults: 6,
+        coreResults: 4,
+        userFilters: { semantic_role: 'config' },
+        coreFilters: { type: 'configuration' }
+      };
+    }
+    
+    // Plugin/middleware questions
+    if (this.containsKeywords(promptLower, ['plugin', 'middleware', 'interceptor', 'fastify plugin'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Plugin/Middleware Query`);
+      return {
+        userResults: 8,
+        coreResults: 3,
+        userFilters: { semantic_role: 'plugin' },
+        coreFilters: {}
+      };
+    }
+    
+    // Default strategy for general questions
+    console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: General Query (default)`);
+    return {
+      userResults: 8,
+      coreResults: 4,
+      userFilters: {},
+      coreFilters: {}
+    };
+  }
+
+  /**
+   * Check if prompt contains specific keywords
+   */
+  containsKeywords(text, keywords) {
+    return keywords.some(keyword => text.includes(keyword));
   }
 }
 
