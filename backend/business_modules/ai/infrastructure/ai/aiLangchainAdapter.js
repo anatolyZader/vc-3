@@ -1082,13 +1082,25 @@ class AILangchainAdapter extends IAIPort {
               pineconeIndex: this.pinecone.Index(pineconeIndex),
               namespace: 'core-docs'
           });
-          const coreDocsSearchPromise = coreDocsVectorStore.similaritySearch(
-            prompt, 
-            searchStrategy.coreResults,
-            searchStrategy.coreFilters && Object.keys(searchStrategy.coreFilters).length > 0 ? 
-              { filter: searchStrategy.coreFilters } : 
-              {}
-          );
+          
+          // Create resilient search promise that handles filter errors
+          const coreDocsSearchPromise = (async () => {
+            try {
+              if (searchStrategy.coreFilters && Object.keys(searchStrategy.coreFilters).length > 0) {
+                console.log(`[${new Date().toISOString()}] 🔍 CORE DOCS: Attempting filtered search with:`, JSON.stringify(searchStrategy.coreFilters));
+                return await coreDocsVectorStore.similaritySearch(
+                  prompt, 
+                  searchStrategy.coreResults,
+                  { filter: searchStrategy.coreFilters }
+                );
+              } else {
+                return await coreDocsVectorStore.similaritySearch(prompt, searchStrategy.coreResults);
+              }
+            } catch (filterError) {
+              console.log(`[${new Date().toISOString()}] ⚠️ Core docs filter error (${filterError.message}), retrying without filters`);
+              return await coreDocsVectorStore.similaritySearch(prompt, searchStrategy.coreResults);
+            }
+          })();
           
           const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Vector search timeout')), VECTOR_SEARCH_TIMEOUT);
