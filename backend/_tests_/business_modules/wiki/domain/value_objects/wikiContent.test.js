@@ -1,5 +1,4 @@
-'use strict';
-const WikiContent = require('../../../../../business_modules/wiki/domain/value_objects/wikiContent');
+const WikiContent = require('../wikiContent');
 
 describe('WikiContent Value Object', () => {
   test('stores content and toString', () => {

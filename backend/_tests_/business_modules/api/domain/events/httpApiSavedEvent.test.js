@@ -1,5 +1,5 @@
 'use strict';
-const HttpApiSavedEvent = require('../../../../../business_modules/api/domain/events/httpApiSavedEvent');
+const HttpApiSavedEvent = require('../httpApiSavedEvent');
 
 describe('HttpApiSavedEvent', () => {
   test('creates with defaults', () => {

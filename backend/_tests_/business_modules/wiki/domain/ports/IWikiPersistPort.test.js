@@ -1,5 +1,4 @@
-'use strict';
-const IWikiPostgresPort = require('../../../../../business_modules/wiki/domain/ports/IWikiPersistPort');
+const IWikiPostgresPort = require('../IWikiPersistPort');
 
 describe('IWikiPostgresPort (abstract)', () => {
   test('cannot instantiate', () => {

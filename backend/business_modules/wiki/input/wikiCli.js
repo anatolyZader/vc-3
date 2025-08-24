@@ -64,8 +64,9 @@ class WikiCLI {
 📚 Wiki Documentation Generator CLI
 
 DESCRIPTION:
-  Generate comprehensive documentation for all business modules, root files,
-  and overall application architecture using AI-powered analysis.
+  Generate comprehensive documentation for all business modules and root files
+  using AI-powered analysis. Architecture documentation (ARCHITECTURE.md) is
+  manually maintained and will be indexed for RAG queries.
   
   This CLI mocks HTTP calls to the wiki controller, similar to how pubsub
   listeners work, ensuring consistency with the web API.
@@ -97,7 +98,8 @@ OUTPUT:
   The command will generate:
   - Module-specific documentation (e.g., ai.md, chat.md, etc.)
   - ROOT_DOCUMENTATION.md (consolidated root files documentation)
-  - ARCHITECTURE.md (overall application architecture)
+  
+  Note: ARCHITECTURE.md is manually maintained and indexed for RAG queries.
 `);
   }
 
@@ -210,7 +212,7 @@ OUTPUT:
         console.log('\n📁 Generated files:');
         console.log('   • Module documentation: [module-name].md files in each business module');
         console.log('   • Root documentation: ROOT_DOCUMENTATION.md');
-        console.log('   • Architecture documentation: ARCHITECTURE.md');
+        console.log('   • Architecture documentation: ARCHITECTURE.md (manually maintained)');
         
       } else {
         throw new Error('updateWikiFiles controller method not available');

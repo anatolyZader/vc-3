@@ -1,5 +1,4 @@
-'use strict';
-const IWikiMessagingPort = require('../../../../../business_modules/wiki/domain/ports/IWikiMessagingPort');
+const IWikiMessagingPort = require('../IWikiMessagingPort');
 
 describe('IWikiMessagingPort (abstract)', () => {
   test('cannot instantiate', () => {

@@ -184,9 +184,12 @@ const { PineconeStore } = require('@langchain/pinecone');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
-// Import the new prompt systemm
+// Import the new prompt system
 const { SystemPrompts, PromptSelector } = require('./prompts/systemPrompts');
 const PromptConfig = require('./prompts/promptConfig');
+
+// Import the DataPreparationPipeline for handling repository processing
+const DataPreparationPipeline = require('./rag_pipelines/DataPreparationPipeline');
 
 class AILangchainAdapter extends IAIPort {
   // Separate method to index only core docs (can be called independently)
@@ -195,6 +198,7 @@ class AILangchainAdapter extends IAIPort {
   // Automate indexing of httpApiSpec.json and markdown documentation into Pinecone
   async indexCoreDocsToPinecone() {
     console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Starting core docs indexing into 'core-docs' namespace.`);
+    
     // Load API spec
     const apiSpecChunk = await this.loadApiSpec('httpApiSpec.json');
     // Load markdown documentation files
@@ -227,7 +231,7 @@ class AILangchainAdapter extends IAIPort {
           });
         }
         
-        // Info chunkk (keep existing)
+        // Info chunk (keep existing)
         if (apiSpecJson.info) {
           documents.push({
             pageContent: `API Info:\nTitle: ${apiSpecJson.info.title}\nDescription: ${apiSpecJson.info.description}\nVersion: ${apiSpecJson.info.version}`,
@@ -248,6 +252,33 @@ class AILangchainAdapter extends IAIPort {
       return;
     }
 
+    console.log(`[${new Date().toISOString()}] 📚 [RAG-INDEX] Processing ${documents.length} core documents through DataPreparationPipeline...`);
+
+    // Use DataPreparationPipeline for consistent processing with ubiquitous language enhancement
+    try {
+      const processedDocuments = await this.dataPreparationPipeline.processDocuments(
+        documents,
+        'core-docs', // repoId
+        'system',    // githubOwner
+        'core-docs'  // repoName
+      );
+
+      console.log(`[${new Date().toISOString()}] ✅ [RAG-INDEX] Successfully processed ${processedDocuments.length} core documents through DataPreparationPipeline`);
+      console.log(`[${new Date().toISOString()}] ✅ [RAG-INDEX] Core documents now include ubiquitous language enhancement and semantic preprocessing`);
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ [RAG-INDEX] Error processing core docs through DataPreparationPipeline:`, error);
+      
+      // Fallback to old processing method if DataPreparationPipeline fails
+      console.log(`[${new Date().toISOString()}] 🔄 [RAG-INDEX] Falling back to legacy core docs processing...`);
+      await this.legacyIndexCoreDocsToPinecone(documents);
+    }
+  }
+
+  // Legacy method for backwards compatibility
+  async legacyIndexCoreDocsToPinecone(documents) {
+    console.log(`[${new Date().toISOString()}] 🔄 [RAG-INDEX] Using legacy core docs processing...`);
+    
     // Use improved splitter for chunking markdown docs
     const docsToSplit = documents.filter(doc => 
       doc.metadata.type === 'root_documentation' || 
@@ -270,7 +301,7 @@ class AILangchainAdapter extends IAIPort {
       `system_${repoId}_${this.sanitizeId(doc.metadata.type || doc.metadata.source || 'unknown')}_chunk_${index}`
     );
 
-    // Store in Pinecone in a GLOBAL namespacee
+    // Store in Pinecone in a GLOBAL namespace
     if (this.pinecone) {
         try {
             const coreDocsIndex = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
@@ -684,6 +715,16 @@ class AILangchainAdapter extends IAIPort {
       this.vectorStore = null;
       console.log(`[${new Date().toISOString()}] [DEBUG] Vector store set to null (will be initialized after userId).`);
 
+      // Initialize DataPreparationPipeline for repository processing
+      this.dataPreparationPipeline = new DataPreparationPipeline({
+        embeddings: this.embeddings,
+        pinecone: this.pinecone,
+        eventBus: this.eventBus,
+        pineconeLimiter: this.pineconeLimiter,
+        maxChunkSize: 2000
+      });
+      console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with ubiquitous language support.`);
+
       console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully`);
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error initializing AILangchainAdapter:`, error.message);
@@ -849,8 +890,6 @@ class AILangchainAdapter extends IAIPort {
 
   // RAG Data Preparation Phase: Loading, chunking, and embedding (both core docs and repo code)
   async processPushedRepo(userId, repoId, repoData) {
-    // userId here is the application's internal userId (e.g., UUID from JWT)
-    // repoData should now contain githubOwner (e.g., "anatolyZader")
     console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Processing repo for user ${userId}: ${repoId}`);
     console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Received repoData structure:`, JSON.stringify(repoData, null, 2)); 
     
@@ -866,52 +905,27 @@ class AILangchainAdapter extends IAIPort {
       this.setUserId(userId);
     }
 
-    // Index the core documentation (API spec, markdown files)
-    await this.indexCoreDocsToPinecone();
-
     try {
-      // Validate repoData structure
-      if (!repoData || !repoData.url || !repoData.branch) {
-        throw new Error(`Invalid repository data: ${JSON.stringify(repoData)}`);
-      }
+      // Delegate to DataPreparationPipeline which handles:
+      // 1. Ubiquitous language enhancement (Step 1)
+      // 2. Semantic preprocessing (Step 2) 
+      // 3. AST-based chunking (Step 3)
+      // 4. Vector storage in Pinecone
+      console.log(`[${new Date().toISOString()}] � RAG REPO: Delegating to DataPreparationPipeline with ubiquitous language support`);
+      
+      const result = await this.dataPreparationPipeline.processPushedRepo(userId, repoId, repoData);
+      
+      // Emit success status
+      this.emitRagStatus('processing_completed', {
+        userId,
+        repoId,
+        timestamp: new Date().toISOString(),
+        result
+      });
 
-      const { url, branch } = repoData;
-
-      // Extract GitHub owner and repo name from URL
-      const urlParts = url.split('/');
-      const githubOwner = urlParts[urlParts.length - 2];
-      const repoName = urlParts[urlParts.length - 1].replace('.git', '');
-
-      console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Extracted GitHub owner: ${githubOwner}, repo name: ${repoName}`);
-
-      // Check if the repository is already processed
-      const existingRepo = await this.findExistingRepo(userId, repoId, githubOwner, repoName);
-      if (existingRepo) {
-        console.log(`[${new Date().toISOString()}] Repository already processed, skipping: ${repoId}`);
-        this.emitRagStatus('processing_skipped', {
-          userId,
-          repoId,
-          reason: 'Repository already processed',
-          timestamp: new Date().toISOString()
-        });
-        return {
-          success: true,
-          message: 'Repository already processed',
-          repoId,
-          userId
-        };
-      }
-
-      // Clone the repository to a temporary location
-      const tempDir = await this.cloneRepository(url, branch);
-
-      // Load and process documents from the cloned repository
-      const result = await this.loadAndProcessRepoDocuments(tempDir, userId, repoId, githubOwner, repoName);
-
-      // Cleanup: remove the cloned repository files
-      await this.cleanupTempDir(tempDir);
-
+      console.log(`[${new Date().toISOString()}] ✅ RAG REPO: Repository processing completed with ubiquitous language enhancement`);
       return result;
+
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Error processing repository ${repoId}:`, error.message);
       

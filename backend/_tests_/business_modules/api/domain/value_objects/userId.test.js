@@ -1,5 +1,5 @@
 'use strict';
-const UserId = require('../../../../../business_modules/api/domain/value_objects/userId');
+const UserId = require('../userId');
 
 describe('API::UserId', () => {
   test('valid id', () => {

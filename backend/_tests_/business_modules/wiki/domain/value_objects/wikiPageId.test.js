@@ -1,5 +1,4 @@
-'use strict';
-const WikiPageId = require('../../../../../business_modules/wiki/domain/value_objects/wikiPageId');
+const WikiPageId = require('../wikiPageId');
 
 describe('WikiPageId Value Object', () => {
   test('stores id and toString', () => {

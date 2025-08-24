@@ -1,5 +1,5 @@
 'use strict';
-const HttpApiFetchedEvent = require('../../../../../business_modules/api/domain/events/httpApiFetchedEvent');
+const HttpApiFetchedEvent = require('../httpApiFetchedEvent');
 
 describe('HttpApiFetchedEvent', () => {
   test('creates with defaults', () => {

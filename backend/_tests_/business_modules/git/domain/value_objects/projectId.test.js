@@ -1,5 +1,4 @@
-'use strict';
-const ProjectId = require('../../../../../business_modules/git/domain/value_objects/projectId');
+const ProjectId = require('../projectId');
 
 describe('ProjectId Value Object', () => {
   test('valid', () => {

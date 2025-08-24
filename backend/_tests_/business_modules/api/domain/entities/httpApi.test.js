@@ -1,5 +1,7 @@
 'use strict';
-const HttpApi = require('../../../../../business_modules/api/domain/entities/httpApi');
+const HttpApi = require('../httpApi');
+
+// Using simple primitives; domain layer here does not enforce VO types internally
 
 describe('HttpApi entity', () => {
   test('fetches and persists spec', async () => {

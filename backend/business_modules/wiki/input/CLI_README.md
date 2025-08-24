@@ -4,11 +4,12 @@ The Wiki CLI provides command-line access to the wiki documentation generation f
 
 ## Overview
 
-The CLI tool generates three types of documentation:
+The CLI tool generates two types of documentation:
 
 1. **Module Documentation** - Individual `.md` files for each business module (ai.md, chat.md, git.md, etc.)
 2. **Root Documentation** - `ROOT_DOCUMENTATION.md` covering backend plugins and core files  
-3. **Architecture Documentation** - `ARCHITECTURE.md` with overall system architecture overview
+
+**Note**: `ARCHITECTURE.md` is manually maintained and automatically indexed for RAG queries.
 
 ## Usage
 
@@ -82,7 +83,8 @@ The CLI will generate the following files:
 
 ### Consolidated Documentation
 - `backend/ROOT_DOCUMENTATION.md` - Backend plugins and core files
-- `backend/ARCHITECTURE.md` - Overall application architecture
+
+**Note**: `backend/ARCHITECTURE.md` is manually maintained and automatically indexed for RAG queries.
 
 ## Features
 

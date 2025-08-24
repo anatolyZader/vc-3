@@ -185,9 +185,10 @@ class WikiLangchainAdapter extends IWikiAiPort {
       await this.generateRootFileDocumentation(userId);
 
       // Generate overall architecture documentation
-      await this.generateArchitectureDocumentation(userId);
+      // NOTE: Architecture documentation is now manually maintained
+      // await this.generateArchitectureDocumentation(userId);
 
-      this.emitRagStatus('success', { message: 'Wiki files updated, module documentation, root file documentation, and architecture documentation generated successfully.', userId });
+      this.emitRagStatus('success', { message: 'Wiki files updated, module documentation and root file documentation generated successfully.', userId });
       return { success: true, message: 'Wiki files updated and all documentation generated successfully.' };
     } catch (error) {
       console.error('[wikiLangchainAdapter] Error updating wiki files:', error);

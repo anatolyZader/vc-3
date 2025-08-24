@@ -1,5 +1,4 @@
-'use strict';
-const WikiRepoId = require('../../../../../business_modules/wiki/domain/value_objects/wikiRepoId');
+const WikiRepoId = require('../wikiRepoId');
 
 describe('WikiRepoId Value Object', () => {
   test('stores id and toString', () => {

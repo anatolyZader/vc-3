@@ -1192,6 +1192,144 @@ class DataPreparationPipeline {
       chunkOverlap
     });
   }
+
+  /**
+   * Store documents to Pinecone vector database
+   */
+  async storeToPinecone(documents, namespace, githubOwner, repoName) {
+    if (!this.pinecone) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Pinecone client not initialized, cannot store documents`);
+      return;
+    }
+
+    if (!documents || documents.length === 0) {
+      console.log(`[${new Date().toISOString()}] ⚠️ DATA-PREP: No documents to store in Pinecone`);
+      return;
+    }
+
+    try {
+      const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const vectorStore = new PineconeStore(this.embeddings, {
+        pineconeIndex: index,
+        namespace: namespace // Could be userId for user docs or 'core-docs' for system docs
+      });
+
+      // Generate unique document IDs
+      const documentIds = documents.map((doc, index) => {
+        const source = this.sanitizeId(doc.metadata.source || 'unknown');
+        const repoId = this.sanitizeId(doc.metadata.repoId || 'unknown');
+        return `${githubOwner}_${repoId}_${source}_chunk_${index}`;
+      });
+
+      // Use bottleneck limiter for Pinecone operations if available
+      if (this.pineconeLimiter) {
+        await this.pineconeLimiter.schedule(async () => {
+          await vectorStore.addDocuments(documents, { ids: documentIds });
+        });
+      } else {
+        await vectorStore.addDocuments(documents, { ids: documentIds });
+      }
+
+      console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully stored ${documents.length} chunks to Pinecone namespace: ${namespace}`);
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error storing documents to Pinecone:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sanitize string for use as Pinecone document ID
+   */
+  sanitizeId(str) {
+    return str.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+  }
+
+  /**
+   * Process core documents (API specs, markdown docs) through the full pipeline
+   * This ensures consistent processing with ubiquitous language enhancement
+   */
+  async processDocuments(documents, repoId, githubOwner, repoName) {
+    console.log(`[${new Date().toISOString()}] 📚 DATA-PREP: Processing ${documents.length} core documents through full pipeline...`);
+
+    if (!documents || documents.length === 0) {
+      console.log(`[${new Date().toISOString()}] ⚠️ DATA-PREP: No documents provided for processing`);
+      return [];
+    }
+
+    try {
+      // Add metadata for consistency with repository processing
+      const enhancedDocuments = documents.map(doc => ({
+        pageContent: doc.pageContent,
+        metadata: {
+          ...doc.metadata,
+          userId: 'system', // Core docs are system-wide
+          repoId,
+          repoUrl: `https://github.com/${githubOwner}/${repoName}`,
+          githubOwner,
+          repoName: repoName,
+          processedAt: new Date().toISOString(),
+          processedBy: 'DataPreparationPipeline-CoreDocs',
+          fileType: this.getFileType(doc.metadata.source || '')
+        }
+      }));
+
+      // Step 1: Enhance with ubiquitous language context (first step in RAG pipeline)
+      console.log(`[${new Date().toISOString()}] 📚 DATA-PREP: Applying ubiquitous language enhancement to core docs...`);
+      const ubiqLanguageEnhancedDocs = [];
+      for (const doc of enhancedDocuments) {
+        try {
+          const ubiqEnhancedDoc = this.enhanceWithUbiquitousLanguage(doc);
+          ubiqLanguageEnhancedDocs.push(ubiqEnhancedDoc);
+        } catch (error) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Failed to enhance ${doc.metadata.source} with ubiquitous language: ${error.message}`);
+          // Fall back to original document if enhancement fails
+          ubiqLanguageEnhancedDocs.push(doc);
+        }
+      }
+      
+      console.log(`[${new Date().toISOString()}] 📚 DATA-PREP: Ubiquitous language enhancement completed for ${ubiqLanguageEnhancedDocs.length} core documents`);
+
+      // Step 2: Apply semantic preprocessing to enhance chunks with technical context
+      console.log(`[${new Date().toISOString()}] 🧠 DATA-PREP: Applying semantic preprocessing to core docs...`);
+      const semanticallyEnhancedDocs = [];
+      for (const doc of ubiqLanguageEnhancedDocs) {
+        try {
+          const enhancedDoc = await this.semanticPreprocessor.preprocessChunk(doc);
+          semanticallyEnhancedDocs.push(enhancedDoc);
+        } catch (error) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Failed to semantically enhance ${doc.metadata.source}: ${error.message}`);
+          // Fall back to original document if enhancement fails
+          semanticallyEnhancedDocs.push(doc);
+        }
+      }
+
+      console.log(`[${new Date().toISOString()}] 🧠 DATA-PREP: Semantic preprocessing completed for ${semanticallyEnhancedDocs.length} core documents`);
+
+      // Step 3: Apply intelligent splitting (markdown-aware for .md files, AST for code, regular for others)
+      console.log(`[${new Date().toISOString()}] ✂️ DATA-PREP: Applying intelligent splitting to core documents...`);
+      const finalChunks = await this.intelligentSplitDocuments(semanticallyEnhancedDocs, githubOwner, repoName);
+      
+      console.log(`[${new Date().toISOString()}] ✂️ DATA-PREP: Intelligent splitting completed: ${finalChunks.length} chunks created from ${semanticallyEnhancedDocs.length} documents`);
+
+      // Step 4: Store in Pinecone vector database
+      await this.storeToPinecone(finalChunks, 'core-docs', githubOwner, repoName);
+
+      // Log processing pipeline summary
+      this.logProcessingPipelineSummary('Core Documents', documents.length, finalChunks.length, {
+        ubiquitousLanguage: true,
+        semanticPreprocessing: true,
+        astBasedSplitting: true,
+        namespace: 'core-docs'
+      });
+
+      return finalChunks;
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error processing core documents:`, error);
+      throw error;
+    }
+  }
 }
 
 module.exports = DataPreparationPipeline;
