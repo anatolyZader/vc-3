@@ -7,6 +7,8 @@ const { PineconeStore } = require('@langchain/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 const SemanticPreprocessor = require('./SemanticPreprocessor');
 const ASTCodeSplitter = require('./ASTCodeSplitter');
+const path = require('path');
+const fs = require('fs');
 
 /**
  * DataPreparationPipeline - Heavy RAG Operations
@@ -39,7 +41,236 @@ class DataPreparationPipeline {
       includeImports: true
     });
     
-    console.log(`[${new Date().toISOString()}] DataPreparationPipeline initialized with semantic preprocessing and AST-based splitting`);
+    // Load ubiquitous language dictionary
+    this.ubiquitousLanguage = this.loadUbiquitousLanguage();
+    
+    console.log(`[${new Date().toISOString()}] DataPreparationPipeline initialized with semantic preprocessing, AST-based splitting, and ubiquitous language dictionary`);
+  }
+
+  /**
+   * Load EventStorm.me ubiquitous language dictionary
+   */
+  loadUbiquitousLanguage() {
+    try {
+      const dictPath = path.join(__dirname, 'ubiqLangDict.json');
+      const dictContent = fs.readFileSync(dictPath, 'utf8');
+      const dictionary = JSON.parse(dictContent);
+      console.log(`[${new Date().toISOString()}] 📚 UBIQ-LANG: Loaded dictionary with ${Object.keys(dictionary.businessModules).length} business modules`);
+      return dictionary;
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ UBIQ-LANG: Failed to load ubiquitous language dictionary:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Enhance document with ubiquitous language context
+   */
+  enhanceWithUbiquitousLanguage(document) {
+    if (!this.ubiquitousLanguage) {
+      return document;
+    }
+
+    const content = document.pageContent.toLowerCase();
+    const source = document.metadata.source || '';
+    
+    // Detect business module context
+    const detectedModule = this.detectBusinessModule(content, source);
+    
+    // Add domain-specific metadata
+    const enhancedMetadata = {
+      ...document.metadata,
+      ubiq_business_module: detectedModule,
+      ubiq_bounded_context: this.getBoundedContext(detectedModule),
+      ubiq_domain_events: this.getRelevantDomainEvents(detectedModule),
+      ubiq_terminology: this.extractRelevantTerms(content)
+    };
+
+    // Add contextual annotation
+    const contextualAnnotation = this.generateContextualAnnotation(detectedModule, content);
+    const enhancedContent = contextualAnnotation + document.pageContent;
+
+    console.log(`[${new Date().toISOString()}] 📚 UBIQ-LANG: Enhanced document with module '${detectedModule}' context`);
+
+    return {
+      pageContent: enhancedContent,
+      metadata: enhancedMetadata
+    };
+  }
+
+  /**
+   * Detect which business module this document belongs to
+   */
+  detectBusinessModule(content, source) {
+    const modules = this.ubiquitousLanguage.businessModules;
+    
+    // Check source path first - more reliable than content analysis
+    for (const [moduleName, moduleData] of Object.entries(modules)) {
+      // Check for exact module name in path
+      if (source.toLowerCase().includes(`/${moduleName}/`) || 
+          source.toLowerCase().includes(`\\${moduleName}\\`) ||
+          source.toLowerCase().includes(`_modules/${moduleName}/`) ||
+          source.toLowerCase().includes(`modules\\${moduleName}\\`)) {
+        return moduleName;
+      }
+      
+      // Check for module-specific path patterns
+      if (moduleName === 'auth' && (source.includes('aop_modules/auth') || source.includes('auth/'))) {
+        return moduleName;
+      }
+      
+      if (moduleName === 'git' && source.includes('/git/')) {
+        return moduleName;
+      }
+      
+      if (moduleName === 'api' && source.includes('/api/')) {
+        return moduleName;
+      }
+      
+      if (moduleName === 'wiki' && source.includes('/wiki/')) {
+        return moduleName;
+      }
+    }
+    
+    // Fallback: Check content for module-specific terms with higher threshold
+    let bestMatch = { module: 'unknown', score: 0 };
+    
+    for (const [moduleName, moduleData] of Object.entries(modules)) {
+      const score = this.calculateModuleRelevanceScore(content, moduleData);
+      if (score > bestMatch.score && score > 0.5) { // Higher threshold for content-based detection
+        bestMatch = { module: moduleName, score };
+      }
+    }
+    
+    return bestMatch.module;
+  }
+
+  /**
+   * Calculate relevance score for a business module
+   */
+  calculateModuleRelevanceScore(content, moduleData) {
+    let score = 0;
+    let totalTerms = 0;
+
+    // Check entities
+    if (moduleData.entities) {
+      moduleData.entities.forEach(entity => {
+        totalTerms++;
+        if (content.includes(entity.name.toLowerCase())) {
+          score += 0.3;
+        }
+        if (entity.behaviors) {
+          entity.behaviors.forEach(behavior => {
+            totalTerms++;
+            if (content.includes(behavior.toLowerCase())) {
+              score += 0.2;
+            }
+          });
+        }
+      });
+    }
+
+    // Check domain events
+    if (moduleData.domainEvents) {
+      moduleData.domainEvents.forEach(event => {
+        totalTerms++;
+        if (content.includes(event.name.toLowerCase().replace('event', ''))) {
+          score += 0.25;
+        }
+      });
+    }
+
+    // Check value objects
+    if (moduleData.valueObjects) {
+      moduleData.valueObjects.forEach(vo => {
+        totalTerms++;
+        if (content.includes(vo.name.toLowerCase())) {
+          score += 0.2;
+        }
+      });
+    }
+
+    return totalTerms > 0 ? score / totalTerms : 0;
+  }
+
+  /**
+   * Get bounded context for a business module
+   */
+  getBoundedContext(moduleName) {
+    const moduleData = this.ubiquitousLanguage.businessModules[moduleName];
+    return moduleData ? moduleData.boundedContext : 'Unknown Context';
+  }
+
+  /**
+   * Get relevant domain events for a business module
+   */
+  getRelevantDomainEvents(moduleName) {
+    const events = this.ubiquitousLanguage.domainEvents[moduleName];
+    return events ? events : [];
+  }
+
+  /**
+   * Extract relevant business terms from content
+   */
+  extractRelevantTerms(content) {
+    const relevantTerms = [];
+    
+    // Check business terms
+    for (const [term, definition] of Object.entries(this.ubiquitousLanguage.businessTerms || {})) {
+      if (content.includes(term.toLowerCase()) || content.includes(definition.name.toLowerCase())) {
+        relevantTerms.push(term);
+      }
+    }
+    
+    // Check technical terms
+    for (const [term, definition] of Object.entries(this.ubiquitousLanguage.technicalTerms || {})) {
+      if (content.includes(term.toLowerCase()) || content.includes(definition.name.toLowerCase())) {
+        relevantTerms.push(term);
+      }
+    }
+    
+    return relevantTerms;
+  }
+
+  /**
+   * Generate contextual annotation based on detected module and content
+   */
+  generateContextualAnnotation(moduleName, content) {
+    if (moduleName === 'unknown') {
+      return '// UBIQUITOUS LANGUAGE CONTEXT: Unknown module\n';
+    }
+
+    const moduleData = this.ubiquitousLanguage.businessModules[moduleName];
+    if (!moduleData) {
+      return '// UBIQUITOUS LANGUAGE CONTEXT: Unknown module\n';
+    }
+
+    let annotation = `// UBIQUITOUS LANGUAGE CONTEXT: ${moduleData.name.toUpperCase()}\n`;
+    annotation += `// BOUNDED CONTEXT: ${moduleData.boundedContext}\n`;
+    annotation += `// DOMAIN ROLE: ${moduleData.role}\n`;
+    
+    if (moduleData.type) {
+      annotation += `// MODULE TYPE: ${moduleData.type}\n`;
+    }
+    
+    // Add relevant entities if found in content
+    const relevantEntities = moduleData.entities?.filter(entity => 
+      content.toLowerCase().includes(entity.name.toLowerCase())
+    );
+    if (relevantEntities && relevantEntities.length > 0) {
+      annotation += `// RELEVANT ENTITIES: ${relevantEntities.map(e => e.name).join(', ')}\n`;
+    }
+
+    // Add relevant domain events if applicable
+    const relevantEvents = this.ubiquitousLanguage.domainEvents[moduleName]?.filter(event =>
+      content.toLowerCase().includes(event.toLowerCase().replace('event', ''))
+    );
+    if (relevantEvents && relevantEvents.length > 0) {
+      annotation += `// DOMAIN EVENTS: ${relevantEvents.join(', ')}\n`;
+    }
+
+    annotation += '//\n';
+    return annotation;
   }
 
   /**
@@ -333,10 +564,26 @@ class DataPreparationPipeline {
         }
       }));
 
-      // Apply semantic preprocessing to enhance chunks with context
+      // Step 1: Enhance with ubiquitous language context (first step in RAG pipeline)
+      console.log(`[${new Date().toISOString()}] 📚 DATA-PREP: Applying ubiquitous language enhancement...`);
+      const ubiqLanguageEnhancedDocs = [];
+      for (const doc of enhancedDocuments) {
+        try {
+          const ubiqEnhancedDoc = this.enhanceWithUbiquitousLanguage(doc);
+          ubiqLanguageEnhancedDocs.push(ubiqEnhancedDoc);
+        } catch (error) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Failed to enhance ${doc.metadata.source} with ubiquitous language: ${error.message}`);
+          // Fall back to original document if enhancement fails
+          ubiqLanguageEnhancedDocs.push(doc);
+        }
+      }
+      
+      console.log(`[${new Date().toISOString()}] 📚 DATA-PREP: Ubiquitous language enhancement completed for ${ubiqLanguageEnhancedDocs.length} documents`);
+
+      // Step 2: Apply semantic preprocessing to enhance chunks with technical context
       console.log(`[${new Date().toISOString()}] 🧠 DATA-PREP: Applying semantic preprocessing...`);
       const semanticallyEnhancedDocs = [];
-      for (const doc of enhancedDocuments) {
+      for (const doc of ubiqLanguageEnhancedDocs) {
         try {
           const enhancedDoc = await this.semanticPreprocessor.preprocessChunk(doc);
           semanticallyEnhancedDocs.push(enhancedDoc);
@@ -349,10 +596,10 @@ class DataPreparationPipeline {
       
       console.log(`[${new Date().toISOString()}] 🧠 DATA-PREP: Semantic preprocessing completed for ${semanticallyEnhancedDocs.length} documents`);
 
-      // Log semantic analysis summary
-      this.logSemanticAnalysisSummary(semanticallyEnhancedDocs);
+      // Log processing pipeline summary
+      this.logProcessingPipelineSummary(ubiqLanguageEnhancedDocs, semanticallyEnhancedDocs);
 
-      // Apply AST-based splitting for code files, regular splitting for others
+      // Step 3: Apply AST-based splitting for code files, regular splitting for others
       console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Applying intelligent splitting (AST for code, regular for docs)...`);
       const splitDocs = await this.intelligentSplitDocuments(semanticallyEnhancedDocs);
       
@@ -793,6 +1040,93 @@ class DataPreparationPipeline {
     console.log(`[${new Date().toISOString()}] 📊 Complexity distribution:`);
     Object.entries(semanticStats.complexity).forEach(([level, count]) => {
       console.log(`[${new Date().toISOString()}]    ${level}: ${count}`);
+    });
+    
+    console.log(`[${new Date().toISOString()}] ${'═'.repeat(80)}`);
+  }
+
+  /**
+   * Log processing pipeline summary to show ubiquitous language and semantic enhancements
+   */
+  logProcessingPipelineSummary(ubiqDocs, semanticDocs) {
+    // Analyze ubiquitous language enhancements
+    const ubiqStats = {
+      businessModules: {},
+      boundedContexts: {},
+      totalTermsFound: 0,
+      enhanced: 0
+    };
+
+    ubiqDocs.forEach(doc => {
+      if (doc.metadata.ubiq_business_module) {
+        const module = doc.metadata.ubiq_business_module;
+        ubiqStats.businessModules[module] = (ubiqStats.businessModules[module] || 0) + 1;
+        ubiqStats.enhanced++;
+      }
+      
+      if (doc.metadata.ubiq_bounded_context) {
+        const context = doc.metadata.ubiq_bounded_context;
+        ubiqStats.boundedContexts[context] = (ubiqStats.boundedContexts[context] || 0) + 1;
+      }
+
+      if (doc.metadata.ubiq_terminology && Array.isArray(doc.metadata.ubiq_terminology)) {
+        ubiqStats.totalTermsFound += doc.metadata.ubiq_terminology.length;
+      }
+    });
+
+    // Analyze semantic preprocessing results
+    const semanticStats = {
+      roles: {},
+      layers: {},
+      entryPoints: 0,
+      enhanced: 0
+    };
+
+    semanticDocs.forEach(doc => {
+      if (doc.metadata.enhanced) {
+        semanticStats.enhanced++;
+        
+        const role = doc.metadata.semantic_role || 'unknown';
+        semanticStats.roles[role] = (semanticStats.roles[role] || 0) + 1;
+        
+        const layer = doc.metadata.layer || 'unknown';
+        semanticStats.layers[layer] = (semanticStats.layers[layer] || 0) + 1;
+        
+        if (doc.metadata.is_entrypoint) {
+          semanticStats.entryPoints++;
+        }
+      }
+    });
+
+    console.log(`[${new Date().toISOString()}] 📊 PROCESSING PIPELINE SUMMARY:`);
+    console.log(`[${new Date().toISOString()}] ${'═'.repeat(80)}`);
+    
+    console.log(`[${new Date().toISOString()}] 📚 UBIQUITOUS LANGUAGE ENHANCEMENT:`);
+    console.log(`[${new Date().toISOString()}]    Enhanced documents: ${ubiqStats.enhanced}/${ubiqDocs.length}`);
+    console.log(`[${new Date().toISOString()}]    Domain terms found: ${ubiqStats.totalTermsFound}`);
+    
+    console.log(`[${new Date().toISOString()}]    Business modules detected:`);
+    Object.entries(ubiqStats.businessModules).forEach(([module, count]) => {
+      console.log(`[${new Date().toISOString()}]      ${module}: ${count} documents`);
+    });
+    
+    console.log(`[${new Date().toISOString()}]    Bounded contexts:`);
+    Object.entries(ubiqStats.boundedContexts).forEach(([context, count]) => {
+      console.log(`[${new Date().toISOString()}]      ${context}: ${count} documents`);
+    });
+
+    console.log(`[${new Date().toISOString()}] 🧠 SEMANTIC PREPROCESSING:`);
+    console.log(`[${new Date().toISOString()}]    Enhanced documents: ${semanticStats.enhanced}/${semanticDocs.length}`);
+    console.log(`[${new Date().toISOString()}]    Entry points: ${semanticStats.entryPoints}`);
+    
+    console.log(`[${new Date().toISOString()}]    Semantic roles:`);
+    Object.entries(semanticStats.roles).forEach(([role, count]) => {
+      console.log(`[${new Date().toISOString()}]      ${role}: ${count}`);
+    });
+    
+    console.log(`[${new Date().toISOString()}]    Architectural layers:`);
+    Object.entries(semanticStats.layers).forEach(([layer, count]) => {
+      console.log(`[${new Date().toISOString()}]      ${layer}: ${count}`);
     });
     
     console.log(`[${new Date().toISOString()}] ${'═'.repeat(80)}`);

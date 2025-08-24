@@ -1068,14 +1068,24 @@ class AILangchainAdapter extends IAIPort {
           // Add timeout to prevent hanging - increased timeout and fallback strategy
           const VECTOR_SEARCH_TIMEOUT = 30000; // 30 seconds (increased from 10)
           
-          // Search user-specific namespace with intelligent filtering
-          const userSearchPromise = this.vectorStore.similaritySearch(
-            prompt, 
-            searchStrategy.userResults,
-            searchStrategy.userFilters && Object.keys(searchStrategy.userFilters).length > 0 ? 
-              { filter: searchStrategy.userFilters } : 
-              {}
-          );
+          // Search user-specific namespace with intelligent filtering (resilient to filter errors)
+          const userSearchPromise = (async () => {
+            try {
+              if (searchStrategy.userFilters && Object.keys(searchStrategy.userFilters).length > 0) {
+                console.log(`[${new Date().toISOString()}] 🔍 USER SEARCH: Attempting filtered search with:`, JSON.stringify(searchStrategy.userFilters));
+                return await this.vectorStore.similaritySearch(
+                  prompt, 
+                  searchStrategy.userResults,
+                  { filter: searchStrategy.userFilters }
+                );
+              } else {
+                return await this.vectorStore.similaritySearch(prompt, searchStrategy.userResults);
+              }
+            } catch (filterError) {
+              console.log(`[${new Date().toISOString()}] ⚠️ User search filter error (${filterError.message}), retrying without filters`);
+              return await this.vectorStore.similaritySearch(prompt, searchStrategy.userResults);
+            }
+          })();
 
           // Search global 'core-docs' namespace with intelligent filtering
           const coreDocsVectorStore = new PineconeStore(this.embeddings, {
