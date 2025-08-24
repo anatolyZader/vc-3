@@ -6,6 +6,7 @@ const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 const { PineconeStore } = require('@langchain/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 const SemanticPreprocessor = require('./SemanticPreprocessor');
+const ASTCodeSplitter = require('./ASTCodeSplitter');
 
 /**
  * DataPreparationPipeline - Heavy RAG Operations
@@ -31,7 +32,14 @@ class DataPreparationPipeline {
     // Initialize semantic preprocessor
     this.semanticPreprocessor = new SemanticPreprocessor();
     
-    console.log(`[${new Date().toISOString()}] DataPreparationPipeline initialized with semantic preprocessing`);
+    // Initialize AST-based code splitter
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: options.maxChunkSize || 2000,
+      includeComments: true,
+      includeImports: true
+    });
+    
+    console.log(`[${new Date().toISOString()}] DataPreparationPipeline initialized with semantic preprocessing and AST-based splitting`);
   }
 
   /**
@@ -344,26 +352,29 @@ class DataPreparationPipeline {
       // Log semantic analysis summary
       this.logSemanticAnalysisSummary(semanticallyEnhancedDocs);
 
-      // Create smart splitter based on document types
-      const splitter = this.createSmartSplitter(semanticallyEnhancedDocs);
-      
-      console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Splitting semantically enhanced documents...`);
-      const splitDocs = await splitter.splitDocuments(semanticallyEnhancedDocs);
+      // Apply AST-based splitting for code files, regular splitting for others
+      console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Applying intelligent splitting (AST for code, regular for docs)...`);
+      const splitDocs = await this.intelligentSplitDocuments(semanticallyEnhancedDocs);
       
       console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Split into ${splitDocs.length} chunks`);
 
       // Log chunk breakdown for repository documents
-      console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] SEMANTICALLY ENHANCED REPOSITORY CHUNK BREAKDOWN:`);
+      console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] SEMANTICALLY ENHANCED + AST-SPLIT REPOSITORY CHUNK BREAKDOWN:`);
       splitDocs.forEach((doc, index) => {
         const preview = doc.pageContent.substring(0, 100).replace(/\n/g, ' ').trim();
         const semanticInfo = doc.metadata.enhanced ? 
           `${doc.metadata.semantic_role}|${doc.metadata.layer}|${doc.metadata.eventstorm_module}` : 
           'not-enhanced';
+        const astInfo = doc.metadata.chunk_type || 'regular';
+        const astDetails = doc.metadata.semantic_unit ? 
+          `${doc.metadata.semantic_unit}(${doc.metadata.function_name})` : 
+          'n/a';
         
         console.log(`[${new Date().toISOString()}] 📄 [REPO-CHUNK ${index + 1}/${splitDocs.length}] ${doc.metadata.source} (${doc.pageContent.length} chars)`);
         console.log(`[${new Date().toISOString()}] 📝 Preview: ${preview}${doc.pageContent.length > 100 ? '...' : ''}`);
         console.log(`[${new Date().toISOString()}] 🏷️  FileType: ${doc.metadata.fileType}, Repo: ${doc.metadata.repoName}`);
         console.log(`[${new Date().toISOString()}] 🧠 Semantic: ${semanticInfo}, EntryPoint: ${doc.metadata.is_entrypoint || false}, Complexity: ${doc.metadata.complexity || 'unknown'}`);
+        console.log(`[${new Date().toISOString()}] 🌳 AST: ${astInfo}, Unit: ${astDetails}, Lines: ${doc.metadata.start_line || '?'}-${doc.metadata.end_line || '?'}`);
         console.log(`[${new Date().toISOString()}] ${'─'.repeat(80)}`);
       });
 
@@ -657,6 +668,65 @@ class DataPreparationPipeline {
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
     }
+  }
+
+  /**
+   * Apply intelligent splitting: AST-based for code, regular for documentation
+   */
+  async intelligentSplitDocuments(documents) {
+    const allSplitDocs = [];
+    const astStats = { attempted: 0, successful: 0, failed: 0, fallback: 0 };
+    
+    for (const doc of documents) {
+      const source = doc.metadata.source || '';
+      const isCodeFile = this.astCodeSplitter.shouldUseASTSplitting(doc.metadata);
+      
+      if (isCodeFile) {
+        astStats.attempted++;
+        try {
+          console.log(`[${new Date().toISOString()}] AST: Processing ${source}`);
+          const astChunks = await this.astCodeSplitter.splitCodeDocument(doc);
+          
+          if (astChunks.length > 1 || (astChunks[0] && astChunks[0].metadata.chunk_type === 'ast_semantic')) {
+            astStats.successful++;
+            allSplitDocs.push(...astChunks);
+            console.log(`[${new Date().toISOString()}] AST: Successfully split ${source} into ${astChunks.length} semantic chunks`);
+          } else {
+            astStats.fallback++;
+            // Fallback to regular splitting
+            const regularChunks = await this.regularSplitDocument(doc);
+            allSplitDocs.push(...regularChunks);
+            console.log(`[${new Date().toISOString()}] AST: Used fallback splitting for ${source}`);
+          }
+        } catch (error) {
+          astStats.failed++;
+          console.warn(`[${new Date().toISOString()}] AST: Failed to split ${source}, using regular splitting: ${error.message}`);
+          const regularChunks = await this.regularSplitDocument(doc);
+          allSplitDocs.push(...regularChunks);
+        }
+      } else {
+        // Use regular splitting for non-code files
+        const regularChunks = await this.regularSplitDocument(doc);
+        allSplitDocs.push(...regularChunks);
+      }
+    }
+    
+    console.log(`[${new Date().toISOString()}] 📊 AST SPLITTING SUMMARY:`);
+    console.log(`[${new Date().toISOString()}] 📊 AST attempted: ${astStats.attempted}`);
+    console.log(`[${new Date().toISOString()}] 📊 AST successful: ${astStats.successful}`);
+    console.log(`[${new Date().toISOString()}] 📊 AST fallback: ${astStats.fallback}`);
+    console.log(`[${new Date().toISOString()}] 📊 AST failed: ${astStats.failed}`);
+    console.log(`[${new Date().toISOString()}] 📊 Total chunks created: ${allSplitDocs.length}`);
+    
+    return allSplitDocs;
+  }
+
+  /**
+   * Regular text splitting for non-code files
+   */
+  async regularSplitDocument(document) {
+    const splitter = this.createSmartSplitter([document]);
+    return await splitter.splitDocuments([document]);
   }
 
   /**
