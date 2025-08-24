@@ -4,7 +4,6 @@
 
 The `eventstorm.me` application is a modern Node.js application that provides a comprehensive set of features for developers and teams. The main functionalities of the application include:
 
-1. **Authentication and Authorization**: Secure user authentication and role-based access control.
 2. **Chat Functionality with AI Integration**: Real-time chat capabilities with AI-powered features, such as natural language processing and generation.
 3. **Git Analysis and Wiki Generation**: Automated analysis of Git repositories and generation of project wikis.
 4. **API Structure and Documentation**: Robust HTTP API with comprehensive OpenAPI (Swagger) documentation.

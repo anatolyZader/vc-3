@@ -1,4 +1,4 @@
-const WikiFetchedEvent = require('../../../../business_modules/wiki/domain/events/wikiFetchedEvent.js');
+const WikiFetchedEvent = require('../../../../../business_modules/wiki/domain/events/wikiFetchedEvent.js');
 
 describe('WikiFetchedEvent', () => {
   test('creates event', () => {

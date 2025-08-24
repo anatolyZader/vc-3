@@ -1,4 +1,4 @@
-const WikiPageUpdatedEvent = require('../../../../business_modules/wiki/domain/events/wikiPageUpdatedEvent.js');
+const WikiPageUpdatedEvent = require('../../../../../business_modules/wiki/domain/events/wikiPageUpdatedEvent.js');
 
 describe('WikiPageUpdatedEvent', () => {
   test('creates event', () => {

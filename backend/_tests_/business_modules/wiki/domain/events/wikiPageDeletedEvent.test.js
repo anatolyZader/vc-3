@@ -1,4 +1,4 @@
-const WikiPageDeletedEvent = require('../../../../business_modules/wiki/domain/events/wikiPageDeletedEvent.js');
+const WikiPageDeletedEvent = require('../../../../../business_modules/wiki/domain/events/wikiPageDeletedEvent.js');
 
 describe('WikiPageDeletedEvent', () => {
   test('creates event', () => {

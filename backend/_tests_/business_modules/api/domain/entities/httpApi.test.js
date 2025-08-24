@@ -1,5 +1,5 @@
 'use strict';
-const HttpApi = require('../../../../business_modules/api/domain/entities/httpApi.js');
+const HttpApi = require('../../../../../business_modules/api/domain/entities/httpApi.js');
 
 // Using simple primitives; domain layer here does not enforce VO types internally
 

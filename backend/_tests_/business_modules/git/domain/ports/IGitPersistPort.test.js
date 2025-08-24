@@ -1,4 +1,4 @@
-const IGitPersistPort = require('../../../../business_modules/git/domain/ports/IGitPersistPort.js');
+const IGitPersistPort = require('../../../../../business_modules/git/domain/ports/IGitPersistPort.js');
 
 describe('IGitPersistPort (abstract)', () => {
   test('cannot instantiate', () => {

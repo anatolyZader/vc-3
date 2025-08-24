@@ -1,5 +1,5 @@
 'use strict';
-const RepoId = require('../../../../business_modules/api/domain/value_objects/repoId.js');
+const RepoId = require('../../../../../business_modules/api/domain/value_objects/repoId.js');
 
 describe('API::RepoId', () => {
   test('valid repo id', () => {

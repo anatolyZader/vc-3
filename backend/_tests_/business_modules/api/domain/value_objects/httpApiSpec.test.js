@@ -1,5 +1,5 @@
 'use strict';
-const HttpApiSpec = require('../../../../business_modules/api/domain/value_objects/httpApiSpec.js');
+const HttpApiSpec = require('../../../../../business_modules/api/domain/value_objects/httpApiSpec.js');
 
 describe('HttpApiSpec', () => {
   test('valid spec', () => {

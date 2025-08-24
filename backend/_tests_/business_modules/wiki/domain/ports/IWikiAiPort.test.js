@@ -1,4 +1,4 @@
-const IWikiAiPort = require('../../../../business_modules/wiki/domain/ports/IWikiAiPort.js');
+const IWikiAiPort = require('../../../../../business_modules/wiki/domain/ports/IWikiAiPort.js');
 
 describe('IWikiAiPort (abstract)', () => {
   test('cannot instantiate', () => {

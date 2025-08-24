@@ -1,4 +1,4 @@
-const UserId = require('../../../../business_modules/git/domain/value_objects/userId.js');
+const UserId = require('../../../../../business_modules/git/domain/value_objects/userId.js');
 
 describe('Git UserId Value Object', () => {
   test('valid creation', () => {

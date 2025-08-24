@@ -1,4 +1,4 @@
-const IWikiGitPort = require('../../../../business_modules/wiki/domain/ports/IWikiGitPort.js');
+const IWikiGitPort = require('../../../../../business_modules/wiki/domain/ports/IWikiGitPort.js');
 
 describe('IWikiGitPort (abstract)', () => {
   test('cannot instantiate', () => {

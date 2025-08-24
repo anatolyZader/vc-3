@@ -1,4 +1,4 @@
-const WikiPage = require('../../../../business_modules/wiki/domain/entities/wikiPage.js');
+const WikiPage = require('../../../../../business_modules/wiki/domain/entities/wikiPage.js');
 
 class MockGitPort {
   async fetchPage(pageId){ this.fetched = pageId; return { id: pageId, content: 'c'}; }
