@@ -1,5 +1,5 @@
 'use strict';
-const IApiPersistPort = require('../IApiPersistPort');
+const IApiPersistPort = require('../../../../business_modules/api/domain/ports/IApiPersistPort.js');
 
 describe('IApiPersistPort abstract contract', () => {
   test('cannot instantiate', () => {

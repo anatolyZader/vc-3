@@ -1,4 +1,4 @@
-const RepoId = require('../repoId');
+const RepoId = require('../../../../business_modules/git/domain/value_objects/repoId.js');
 
 describe('RepoId Value Object', () => {
   test('valid', () => {

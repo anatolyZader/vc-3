@@ -1,4 +1,4 @@
-const WikiPageTitle = require('../wikiPageTitle');
+const WikiPageTitle = require('../../../../business_modules/wiki/domain/value_objects/wikiPageTitle.js');
 
 describe('WikiPageTitle Value Object', () => {
   test('trims title, equals works', () => {

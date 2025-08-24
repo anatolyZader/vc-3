@@ -1,4 +1,4 @@
-const IWikiPostgresPort = require('../IWikiPersistPort');
+const IWikiPostgresPort = require('../../../../business_modules/wiki/domain/ports/IWikiPersistPort.js');
 
 describe('IWikiPostgresPort (abstract)', () => {
   test('cannot instantiate', () => {

@@ -1,4 +1,4 @@
-const WikiContent = require('../wikiContent');
+const WikiContent = require('../../../../business_modules/wiki/domain/value_objects/wikiContent.js');
 
 describe('WikiContent Value Object', () => {
   test('stores content and toString', () => {

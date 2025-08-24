@@ -1,4 +1,4 @@
-const Wiki = require('../wiki');
+const Wiki = require('../../../../business_modules/wiki/domain/entities/wiki.js');
 
 class MockGitPort {
   async fetchWiki(repoId){ this.repoId = repoId; return { repoId, pages: [] }; }

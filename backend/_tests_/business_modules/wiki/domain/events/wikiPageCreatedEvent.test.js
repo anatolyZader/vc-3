@@ -1,4 +1,4 @@
-const WikiPageCreatedEvent = require('../wikiPageCreatedEvent');
+const WikiPageCreatedEvent = require('../../../../business_modules/wiki/domain/events/wikiPageCreatedEvent.js');
 
 describe('WikiPageCreatedEvent', () => {
   test('creates event', () => {
