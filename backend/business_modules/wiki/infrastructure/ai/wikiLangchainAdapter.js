@@ -211,6 +211,16 @@ class WikiLangchainAdapter extends IWikiAiPort {
     });
     
     try {
+        // Load ARCHITECTURE.md for context
+        const backendRootPath = path.resolve(__dirname, '../../../../');
+        let architectureContent = '';
+        try {
+          const architecturePath = path.join(backendRootPath, 'ARCHITECTURE.md');
+          architectureContent = await fs.readFile(architecturePath, 'utf8');
+          console.log(`[wikiLangchainAdapter] Loaded ARCHITECTURE.md for context (${architectureContent.length} chars)`);
+        } catch (error) {
+          console.log(`[wikiLangchainAdapter] Could not load ARCHITECTURE.md: ${error.message}`);
+        }
         console.log(`[wikiLangchainAdapter] Initializing Pinecone index for module: ${moduleName}`);
         const pineconeIndex = this.pinecone.index(this.pineconeIndexName);
         console.log(`[wikiLangchainAdapter] Pinecone index initialized: ${this.pineconeIndexName}`);
@@ -267,16 +277,22 @@ class WikiLangchainAdapter extends IWikiAiPort {
             Based on the following code context from files within the \"{moduleName}\" module, please generate a concise, high-level summary of the module's purpose, architecture, and key functionalities.
             The summary should be in Markdown format, suitable for a README.md file.
 
-            CONTEXT:
+            ARCHITECTURE CONTEXT (for consistency):
+            ---
+            {architectureContext}
+            ---
+
+            CODE CONTEXT:
             ---
             {context}
             ---
 
-            Based on the context, generate the Markdown summary for the \"{moduleName}\" module.
+            Based on the context and architecture reference, generate the Markdown summary for the \"{moduleName}\" module.
+            Ensure the documentation is consistent with the overall system architecture described above.
             `;
         const prompt = new PromptTemplate({
             template,
-            inputVariables: ["context", "moduleName"],
+            inputVariables: ["context", "moduleName", "architectureContext"],
         });
 
         console.log(`[wikiLangchainAdapter] Invoking LLM chain for module: ${moduleName}`);
@@ -288,6 +304,7 @@ class WikiLangchainAdapter extends IWikiAiPort {
                 {
                     context: () => formatDocumentsAsString(relevantDocs),
                     moduleName: () => moduleName,
+                    architectureContext: () => architectureContent.substring(0, 3000), // Limit to prevent token overflow
                 },
                 prompt,
                 this.llm,
@@ -430,6 +447,16 @@ class WikiLangchainAdapter extends IWikiAiPort {
   async generateConsolidatedRootDocumentation(fileContents, vectorStore, backendRootPath) {
     console.log(`[wikiLangchainAdapter] Generating consolidated documentation for ${fileContents.length} root files`);
     
+    // Load ARCHITECTURE.md for context
+    let architectureContent = '';
+    try {
+      const architecturePath = path.join(backendRootPath, 'ARCHITECTURE.md');
+      architectureContent = await fs.readFile(architecturePath, 'utf8');
+      console.log(`[wikiLangchainAdapter] Loaded ARCHITECTURE.md for context (${architectureContent.length} chars)`);
+    } catch (error) {
+      console.log(`[wikiLangchainAdapter] Could not load ARCHITECTURE.md: ${error.message}`);
+    }
+    
     // Monitor memory usage
     const memUsage = process.memoryUsage();
     console.log(`[wikiLangchainAdapter] Memory usage at start for consolidated root docs:`, {
@@ -480,6 +507,11 @@ ${fc.content}
       const template = `
 You are an expert software engineer tasked with creating comprehensive documentation for the backend application's root files and plugins.
 
+ARCHITECTURE CONTEXT (for consistency):
+---
+{architectureContext}
+---
+
 You need to document the following files as a single consolidated documentation:
 
 {filesDescription}
@@ -487,7 +519,10 @@ You need to document the following files as a single consolidated documentation:
 RELATED CODEBASE CONTEXT:
 {context}
 
-Please generate a comprehensive Markdown documentation that covers all these files in a single document. Structure it as follows:
+Please generate a comprehensive Markdown documentation that covers all these files in a single document. 
+Ensure consistency with the overall system architecture described above.
+
+Structure it as follows:
 
 # Backend Application - Root Files & Plugins Documentation
 
@@ -536,7 +571,7 @@ Generate comprehensive, well-structured documentation that helps developers unde
 
       const prompt = new PromptTemplate({
         template,
-        inputVariables: ["filesDescription", "context"],
+        inputVariables: ["filesDescription", "context", "architectureContext"],
       });
 
       console.log(`[wikiLangchainAdapter] Invoking LLM chain for consolidated root documentation`);
@@ -548,6 +583,7 @@ Generate comprehensive, well-structured documentation that helps developers unde
           {
             filesDescription: () => filesDescription.substring(0, 15000), // Limit content to prevent token overflow
             context: () => context.substring(0, 5000), // Limit context to prevent token overflow
+            architectureContext: () => architectureContent.substring(0, 3000), // Limit architecture context
           },
           prompt,
           this.llm,
@@ -596,8 +632,9 @@ Generate comprehensive, well-structured documentation that helps developers unde
     }
   }
 
-  async generateArchitectureDocumentation(userId) {
-    console.log(`[wikiLangchainAdapter] Generating overall architecture documentation`);
+  async generateArchitectureDocumentation(userId, existingArchitectureContent = null) {
+    const isUpdating = existingArchitectureContent && existingArchitectureContent.trim().length > 0;
+    console.log(`[wikiLangchainAdapter] ${isUpdating ? 'Updating' : 'Generating'} overall architecture documentation`);
     
     try {
       const backendRootPath = path.resolve(__dirname, '../../../../');
@@ -607,7 +644,7 @@ Generate comprehensive, well-structured documentation that helps developers unde
       const vectorStore = await PineconeStore.fromExistingIndex(this.embeddings, { pineconeIndex });
 
       this.emitRagStatus('generating_architecture_doc', { 
-        message: 'Generating overall application architecture documentation...', 
+        message: `${isUpdating ? 'Updating' : 'Generating'} overall application architecture documentation...`, 
         userId 
       });
 
@@ -666,7 +703,36 @@ Generate comprehensive, well-structured documentation that helps developers unde
       ).join('\n\n');
 
       console.log(`[wikiLangchainAdapter] Creating prompt for architecture documentation`);
-      const template = `
+      
+      const template = isUpdating ? `
+You are a senior software architect tasked with updating existing architecture documentation for a modern Node.js application.
+
+EXISTING ARCHITECTURE.MD CONTENT:
+---
+{existingContent}
+---
+
+Based on the current codebase context and configuration below, update the existing architecture documentation to ensure it accurately reflects the current state of the system.
+
+Preserve the existing structure and content where still accurate, but:
+- Update any outdated information
+- Add new sections for components that have been added
+- Remove or update sections for components that have changed
+- Ensure all technical details are current and accurate
+- Maintain the professional tone and comprehensive coverage
+
+CURRENT CODEBASE CONTEXT:
+---
+{searchContext}
+---
+
+CURRENT CONFIGURATION CONTEXT:
+---
+{configContext}
+---
+
+Return the updated ARCHITECTURE.md content as a comprehensive, well-structured Markdown document.
+` : `
 You are a senior software architect tasked with creating comprehensive architecture documentation for a modern Node.js application.
 
 Based on the following codebase context and configuration, create a detailed ARCHITECTURE.md file that explains:
@@ -703,9 +769,13 @@ Include diagrams in text format where helpful, and explain the reasoning behind 
 Focus on both the technical implementation and the business value delivered by each component.
 `;
 
+      const inputVariables = isUpdating ? 
+        ["existingContent", "searchContext", "configContext"] : 
+        ["searchContext", "configContext"];
+
       const prompt = new PromptTemplate({
         template,
-        inputVariables: ["searchContext", "configContext"],
+        inputVariables,
       });
 
       console.log(`[wikiLangchainAdapter] Invoking LLM chain for architecture documentation`);
@@ -713,11 +783,17 @@ Focus on both the technical implementation and the business value delivered by e
       // Add timeout protection for comprehensive documentation
       const timeoutMs = 120000; // 2 minutes for comprehensive architecture documentation
       const llmPromise = (async () => {
+        const chainInput = isUpdating ? {
+          existingContent: () => existingArchitectureContent,
+          searchContext: () => searchContext,
+          configContext: () => configContext,
+        } : {
+          searchContext: () => searchContext,
+          configContext: () => configContext,
+        };
+        
         const chain = RunnableSequence.from([
-          {
-            searchContext: () => searchContext,
-            configContext: () => configContext,
-          },
+          chainInput,
           prompt,
           this.llm,
           new StringOutputParser(),
@@ -730,15 +806,15 @@ Focus on both the technical implementation and the business value delivered by e
       });
 
       const llmResponse = await Promise.race([llmPromise, timeoutPromise]);
-      console.log(`[wikiLangchainAdapter] LLM generated architecture documentation`);
+      console.log(`[wikiLangchainAdapter] LLM ${isUpdating ? 'updated' : 'generated'} architecture documentation`);
 
       // Write to ARCHITECTURE.md
       const outputPath = path.join(backendRootPath, 'ARCHITECTURE.md');
       await fs.writeFile(outputPath, llmResponse);
-      console.log(`[wikiLangchainAdapter] Successfully wrote architecture documentation to ${outputPath}`);
+      console.log(`[wikiLangchainAdapter] Successfully ${isUpdating ? 'updated' : 'wrote'} architecture documentation to ${outputPath}`);
 
       this.emitRagStatus('generated_architecture_doc', { 
-        message: 'Successfully generated overall architecture documentation.', 
+        message: `Successfully ${isUpdating ? 'updated' : 'generated'} overall architecture documentation.`, 
         userId 
       });
 
