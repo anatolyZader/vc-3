@@ -3,7 +3,15 @@ const ChatService = require('../../../../../business_modules/chat/application/se
 class MockPersist {
   async startConversation(userId, title, conversationId){ this.started = { userId, title, conversationId }; }
   async fetchConversationsHistory(userId){ return [{ id: 'c1' }]; }
-  async fetchConversation(userId, conversationId){ return [{ id: 'm1', role: 'user', content: 'Hi'}]; }
+  async fetchConversation(userId, conversationId){ 
+    return { 
+      conversationId, 
+      title: 'Test Conversation', 
+      messages: [{ id: 'm1', role: 'user', content: 'Hi'}],
+      createdAt: '2023-01-01T00:00:00Z',
+      updatedAt: '2023-01-01T00:00:00Z'
+    }; 
+  }
   async addQuestion(userId, conversationId, prompt){ return 'q1'; }
   async addAnswer(userId, conversationId, answer){ return 'a1'; }
   async renameConversation(userId, conversationId, newTitle){ this.renamed = { userId, conversationId, newTitle }; }

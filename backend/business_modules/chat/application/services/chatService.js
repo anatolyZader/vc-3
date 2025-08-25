@@ -38,13 +38,9 @@ class ChatService extends IChatService {
 
   async fetchConversation(userId, conversationId) {
   // Fetch from persistence adapter directly for a stable, serializable payload
-  const messages = await this.chatPersistAdapter.fetchConversation(userId, conversationId);
-  // Return in a structured format that both router and tests can use
-  return {
-    conversationId,
-    userId,
-    messages
-  };
+  const conversationData = await this.chatPersistAdapter.fetchConversation(userId, conversationId);
+  // Return the complete conversation data (already includes conversationId, title, messages, createdAt, updatedAt)
+  return conversationData;
   }
 
   async addQuestion(userId, conversationId, prompt) {
