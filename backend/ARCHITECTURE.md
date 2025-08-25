@@ -13,19 +13,27 @@ Client Side
 to be added…
 
 Backend Side
+
 Modular Monolith
 
 Eventstorm.me backend is a modular monolith with two kinds of modules:
 
 AOP modules – for cross-cutting concerns
 
-Business modules – for main functional concerns
+Business modules – for main business concerns, 
+Each business module represents a bounded context in Domain-Driven Design.
+
+The Business modules represent the core business capabilities with strict boundaries and event-driven communication, while AOP modules provide shared technical services that cross module boundaries. This creates a clean separation between business concerns (what the system does) and technical concerns (how the system works), following both Domain-Driven Design and Aspect-Oriented Programming principles.
+
+This architecture allows Eventstorm.me to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.
 
 Difference in communication:
 
 Business modules are strictly isolated / encapsulated and interact with other modules only via pubsub messaging.
 
 AOP modules are not encapsulated and are accessible to other modules via direct http / method calls.
+
+AOP modules are globally accessible via Fastify decorators
 
 DDD + Hexagonal Architecture
 
