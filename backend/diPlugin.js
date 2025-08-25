@@ -8,8 +8,6 @@ const { asClass, asValue, Lifetime } = require('awilix');
 
 const infraConfig = require('./infraConfig.json');
 
-// const Account = require('./aop_modules/auth/domain/entities/account');
-// const User = require('./aop_modules/auth/domain/entities/user');
 const UserService = require('./aop_modules/auth/application/services/userService');
 const AuthPostgresAdapter = require('./aop_modules/auth/infrastructure/persistence/authPostgresAdapter');
 
