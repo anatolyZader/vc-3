@@ -7,7 +7,7 @@ const IGitService = require('./interfaces/IGitService');
 const UserId = require('../../domain/value_objects/userId');
 const RepoId = require('../../domain/value_objects/repoId');
 const RepoFetchedEvent = require('../../domain/events/repoFetchedEvent');
-const WikiFetchedEvent = require('../../domain/events/wikiFetchedEvent');
+const DocsFetchedEvent = require('../../domain/events/docsFetchedEvent');
 
 class GitService extends IGitService {
   constructor({gitMessagingAdapter, gitAdapter, gitPersistAdapter}) {
@@ -54,30 +54,30 @@ class GitService extends IGitService {
     }
   }
 
-  async fetchWiki(userIdRaw, repoIdRaw, correlationId) {
+  async fetchDocs(userIdRaw, repoIdRaw, correlationId) {
     try {
       const userId = new UserId(userIdRaw);
       const repoId = new RepoId(repoIdRaw);
-      console.log(`[GitService] Starting fetchWiki: userId=${userId}, repoId=${repoId}`);
+      console.log(`[GitService] Starting fetchDocs: userId=${userId}, repoId=${repoId}`);
       
       const repository = new Repository(userId);
-      const wikiData = await repository.fetchWiki(repoId.value, this.gitAdapter);
-      console.log(`[GitService] ✅ Wiki fetched from GitHub successfully`);
+      const docsData = await repository.fetchDocs(repoId.value, this.gitAdapter);
+      console.log(`[GitService] ✅ Docs fetched from GitHub successfully`);
       
       // Publish domain event
-      const event = new WikiFetchedEvent({ userId: userId.value, repoId: repoId.value, wiki: wikiData });
-      await this.gitMessagingAdapter.publishWikiFetchedEvent(event, correlationId);
-      console.log(`[GitService] ✅ Wiki event published to Pub/Sub successfully`);
+      const event = new DocsFetchedEvent({ userId: userId.value, repoId: repoId.value, docs: docsData });
+      await this.gitMessagingAdapter.publishDocsFetchedEvent(event, correlationId);
+      console.log(`[GitService] ✅ Docs event published to Pub/Sub successfully`);
       
       // Persist to database
-      await this.gitPersistAdapter.persistWiki(userId.value, repoId.value, wikiData);
-      console.log(`[GitService] ✅ Wiki persisted to database successfully`);
+      await this.gitPersistAdapter.persistDocs(userId.value, repoId.value, docsData);
+      console.log(`[GitService] ✅ Docs persisted to database successfully`);
       
-      console.log(`[GitService] ✅ fetchWiki completed successfully`);
-      return wikiData;
+      console.log(`[GitService] ✅ fetchDocs completed successfully`);
+      return docsData;
       
     } catch (error) {
-      console.error(`[GitService] ❌ fetchWiki failed:`, {
+      console.error(`[GitService] ❌ fetchDocs failed:`, {
         message: error.message,
         code: error.code,
         detail: error.detail,

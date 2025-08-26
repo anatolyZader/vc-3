@@ -88,7 +88,7 @@ module.exports = async function (fastify, opts) {
       openapi: '3.0.3',
       info: {
         title: 'EventStorm.me API',
-        description: 'EventStorm API – Git analysis, AI insights, wiki, chat and more',
+        description: 'EventStorm API – Git analysis, AI insights, docs, chat and more',
         version: '1.0.0',
       },
       servers: [

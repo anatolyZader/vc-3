@@ -62,7 +62,7 @@ Identifies your specific modules:
 - **Chat Module**: Conversation, messaging, WebSocket
 - **Git Module**: Repository integration, webhooks
 - **AI Module**: RAG, embeddings, LangChain
-- **Wiki Module**: Documentation, knowledge management
+- **Docs Module**: Documentation, knowledge management
 
 ### **4. Intelligent Query Routing**
 Queries are now intelligently filtered:

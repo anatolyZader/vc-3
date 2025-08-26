@@ -18,11 +18,11 @@
       "gitPersistAdapter": "gitPostgresAdapter"
     },
 
-    "wiki": {
-      "wikiMessagingAdapter": "wikiPubsubAdapter",
-      "wikiPersistAdapter": "wikiPostgresAdapter",
-      "wikiAiAdapter": "wikiLangchainAdapter",
-      "wikiGitAdapter": "wikiGithubAdapter"
+    "docs": {
+      "docsMessagingAdapter": "docsPubsubAdapter",
+      "docsPersistAdapter": "docsPostgresAdapter",
+      "docsAiAdapter": "docsLangchainAdapter",
+      "docsGitAdapter": "docsGithubAdapter"
     },
     "ai": {
       "aiPersistAdapter": "aiPostgresAdapter",
@@ -30,7 +30,7 @@
       "aiProvider": "anthropic", 
       "aiMessagingAdapter": "aiPubsubAdapter",
       "aiGitAdapter": "aiGithubAdapter",
-      "aiWikiAdapter": "aiGithubWikiAdapter"
+      "aiDocsAdapter": "aiGithubDocsAdapter"
     },
     "messaging": {
       "messagingPersistAdapter": "messagingPostgresAdapter",

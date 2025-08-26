@@ -69,7 +69,7 @@ fastify.decorate('fetchRepo', async (request, reply) => {
     }
   });
 
-  fastify.decorate('fetchWiki', async (request, reply) => {
+  fastify.decorate('fetchDocs', async (request, reply) => {
     try {
       const { repoId } = request.query;
       const userId = request.user.id; // Assuming user is set by verifyToken middleware
@@ -80,20 +80,20 @@ fastify.decorate('fetchRepo', async (request, reply) => {
     ? headerValue
     : `http-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
       
-      fastify.log.info(`Processing fetchWiki HTTP request for user: ${userId}, repo: ${repoId}`);
+      fastify.log.info(`Processing fetchDocs HTTP request for user: ${userId}, repo: ${repoId}`);
       
       const gitService = await request.diScope.resolve('gitService');
       if (!gitService) {
         throw new Error('Git service not found in DI container');
       }
       
-      const wiki = await gitService.fetchWiki(userId, repoId, correlationId);
+      const docs = await gitService.fetchDocs(userId, repoId, correlationId);
       
-      fastify.log.info(`Wiki fetched via HTTP: ${JSON.stringify(wiki)}`);
-      return wiki;
+      fastify.log.info(`Docs fetched via HTTP: ${JSON.stringify(docs)}`);
+      return docs;
     } catch (error) {
-      fastify.log.error('Error fetching wiki:', error);
-      throw fastify.httpErrors.internalServerError('Failed to fetch wiki', { cause: error });
+      fastify.log.error('Error fetching docs:', error);
+      throw fastify.httpErrors.internalServerError('Failed to fetch docs', { cause: error });
     }
   });
 }

@@ -45,7 +45,7 @@ The system now identifies:
 - **Chat Module**: Conversation, messaging, WebSocket functionality
 - **Git Module**: Repository, GitHub, pull request handling
 - **AI Module**: RAG, embeddings, LangChain functionality
-- **Wiki Module**: Documentation, knowledge management
+- **Docs Module**: Documentation, knowledge management
 
 ### **Additional Enhancements**
 - **Entry Point Detection**: Identifies main application entry points
@@ -71,7 +71,7 @@ The system now uses different search strategies based on query type:
    - Focus: Entry points where errors commonly occur
 
 4. **Module-Specific Queries**
-   - Filters: `eventstorm_module: 'chatModule|gitModule|aiModule|wikiModule'`
+   - Filters: `eventstorm_module: 'chatModule|gitModule|aiModule|docsModule'`
    - Focus: Specific functional modules
 
 5. **Testing Queries**

@@ -28,7 +28,7 @@ async function testChatModuleProcessing() {
         const pinecone = new Pinecone({
             apiKey: process.env.PINECONE_API_KEY
         });
-        const pineconeIndexName = 'eventstorm-wiki';
+        const pineconeIndexName = 'eventstorm-docs';
         
         // Test loading chat module specifically
         console.log('3. Loading chat module files...');

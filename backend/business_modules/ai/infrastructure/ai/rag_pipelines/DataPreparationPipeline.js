@@ -127,7 +127,7 @@ class DataPreparationPipeline {
         return moduleName;
       }
       
-      if (moduleName === 'wiki' && source.includes('/wiki/')) {
+      if (moduleName === 'docs' && source.includes('/docs/')) {
         return moduleName;
       }
     }

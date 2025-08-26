@@ -20,11 +20,11 @@ describe('GitPubsubAdapter', () => {
     expect(payload.repoId).toBe('owner/r');
   });
 
-  test('publishWikiFetchedEvent publishes correct payload', async () => {
+  test('publishDocsFetchedEvent publishes correct payload', async () => {
     const { adapter, publishMessage } = make();
-    await adapter.publishWikiFetchedEvent({ repoId: 'owner/r', userId: 'u1' }, 'corr-3');
+    await adapter.publishDocsFetchedEvent({ repoId: 'owner/r', userId: 'u1' }, 'corr-3');
     const payload = JSON.parse(publishMessage.mock.calls[0][0].data.toString());
-    expect(payload.event).toBe('wikiFetched');
+    expect(payload.event).toBe('docsFetched');
     expect(payload.correlationId).toBe('corr-3');
   });
 });

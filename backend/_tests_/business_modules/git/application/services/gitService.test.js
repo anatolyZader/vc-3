@@ -1,8 +1,8 @@
 const GitService = require('../../../../../business_modules/git/application/services/gitService');
 
-class MockGitAdapter { async fetchRepo(userId, repoId){ return { id: repoId, name: 'repo' }; } async fetchWiki(userId, repoId){ return { repoId, pages: [] }; } }
-class MockPersist { async persistRepo(u,r,repo){ this.repo = { u,r,repo }; } async persistWiki(u,r,wiki){ this.wiki = { u,r,wiki }; } }
-class MockMessaging { async publishRepoFetchedEvent(evt){ this.repoEvt = evt; } async publishWikiFetchedEvent(evt){ this.wikiEvt = evt; } }
+class MockGitAdapter { async fetchRepo(userId, repoId){ return { id: repoId, name: 'repo' }; } async fetchDocs(userId, repoId){ return { repoId, pages: [] }; } }
+class MockPersist { async persistRepo(u,r,repo){ this.repo = { u,r,repo }; } async persistDocs(u,r,docs){ this.docs = { u,r,docs }; } }
+class MockMessaging { async publishRepoFetchedEvent(evt){ this.repoEvt = evt; } async publishDocsFetchedEvent(evt){ this.docsEvt = evt; } }
 
 describe('GitService', () => {
   test('fetchRepo returns repo and publishes/persists', async () => {
@@ -11,9 +11,9 @@ describe('GitService', () => {
     expect(repo.id).toBe('owner/repo1');
   });
 
-  test('fetchWiki returns wiki and publishes/persists', async () => {
+  test('fetchDocs returns docs and publishes/persists', async () => {
     const svc = new GitService({ gitAdapter: new MockGitAdapter(), gitPersistAdapter: new MockPersist(), gitMessagingAdapter: new MockMessaging() });
-    const wiki = await svc.fetchWiki('user1','owner/repo1','corr-2');
-    expect(wiki.repoId).toBe('owner/repo1');
+    const docs = await svc.fetchDocs('user1','owner/repo1','corr-2');
+    expect(docs.repoId).toBe('owner/repo1');
   });
 });

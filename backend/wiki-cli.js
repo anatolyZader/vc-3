@@ -2,14 +2,14 @@
 'use strict';
 
 /**
- * Convenience script to run the Wiki CLI from the backend root directory
+ * Convenience script to run the Docs CLI from the backend root directory
  * 
- * This script allows you to run the wiki documentation generator from
+ * This script allows you to run the docs documentation generator from
  * the backend root without navigating to the specific module directory.
  * 
  * Usage from backend root:
- *   node wiki-cli.js [options]
- *   npm run wiki:generate [-- options]
+ *   node docs-cli.js [options]
+ *   npm run docs:generate [-- options]
  */
 
 const path = require('path');
@@ -21,12 +21,12 @@ require('dotenv').config({ path: path.join(__dirname, '.env') }); // Backend roo
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); // Project root
 
 // Path to the actual CLI script
-const cliScriptPath = path.join(__dirname, 'business_modules', 'wiki', 'input', 'wikiCli.js');
+const cliScriptPath = path.join(__dirname, 'business_modules', 'docs', 'input', 'docsCli.js');
 
 // Forward all arguments to the actual CLI script
 const args = process.argv.slice(2);
 
-console.log('🔗 Running Wiki CLI from backend root...');
+console.log('🔗 Running Docs CLI from backend root...');
 console.log(`📂 CLI Script: ${cliScriptPath}`);
 
 // Spawn the CLI process
@@ -42,6 +42,6 @@ cliProcess.on('exit', (code) => {
 
 // Handle errors
 cliProcess.on('error', (error) => {
-  console.error('❌ Failed to start Wiki CLI:', error.message);
+  console.error('❌ Failed to start Docs CLI:', error.message);
   process.exit(1);
 });

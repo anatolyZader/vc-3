@@ -1932,13 +1932,13 @@ class AILangchainAdapter extends IAIPort {
       };
     }
     
-    // Wiki/documentation questions
-    if (this.containsKeywords(promptLower, ['wiki', 'documentation', 'search', 'knowledge', 'doc'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Wiki Module Query`);
+    // Docs/documentation questions
+    if (this.containsKeywords(promptLower, ['docs', 'documentation', 'search', 'knowledge', 'doc'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Docs Module Query`);
       return {
         userResults: 8,
         coreResults: 4,
-        userFilters: { eventstorm_module: 'wikiModule' },
+        userFilters: { eventstorm_module: 'docsModule' },
         coreFilters: { type: 'module_documentation' }
       };
     }

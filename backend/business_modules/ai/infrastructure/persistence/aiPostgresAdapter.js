@@ -109,29 +109,29 @@ class AIPostgresAdapter extends IAIPersistPort {
     }
   }
 
-  // Save Wiki data
-  async saveWikiData(userId, repoId, content) {
+  // Save Docs data
+  async saveDocsData(userId, repoId, content) {
     try {
       const pool = await this.getPool(); // Get initialized pool
       const client = await pool.connect();
       try {
         const query = `
-          INSERT INTO wiki_data (user_id, repo_id, content)
+          INSERT INTO docs_data (user_id, repo_id, content)
           VALUES ($1, $2, $3)
           RETURNING id;
         `;
         const values = [userId, repoId, content];
         const result = await client.query(query, values);
-        console.log(`Wiki data stored with ID: ${result.rows[0].id}`);
+        console.log(`Docs data stored with ID: ${result.rows[0].id}`);
         return result.rows[0].id;
       } catch (error) {
-        console.error('Error saving Wiki data:', error);
+        console.error('Error saving Docs data:', error);
         throw error;
       } finally {
         client.release();
       }
     } catch (poolError) {
-      console.error('Database connection error in saveWikiData:', poolError);
+      console.error('Database connection error in saveDocsData:', poolError);
       // Return a default value instead of throwing
       return null;
     }

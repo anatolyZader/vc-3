@@ -14,7 +14,7 @@ const fixImports = (filePath) => {
   // Extract module and layer from file path
   // e.g., _tests_/business_modules/api/domain/ports/IApiPort.test.js
   const pathParts = filePath.split('/');
-  const module = pathParts[2]; // api, git, wiki, etc.
+  const module = pathParts[2]; // api, git, docs, etc.
   const layer = pathParts[4];  // ports, entities, events, value_objects
   
   // Replace relative imports
@@ -51,20 +51,20 @@ const testFiles = [
   '_tests_/business_modules/git/domain/value_objects/repoId.test.js',
   '_tests_/business_modules/git/domain/value_objects/userId.test.js',
   '_tests_/business_modules/git/domain/value_objects/projectId.test.js',
-  '_tests_/business_modules/wiki/domain/ports/IWikiAiPort.test.js',
-  '_tests_/business_modules/wiki/domain/ports/IWikiPersistPort.test.js',
-  '_tests_/business_modules/wiki/domain/ports/IWikiGitPort.test.js',
-  '_tests_/business_modules/wiki/domain/ports/IWikiMessagingPort.test.js',
-  '_tests_/business_modules/wiki/domain/value_objects/wikiRepoId.test.js',
-  '_tests_/business_modules/wiki/domain/value_objects/wikiPageTitle.test.js',
-  '_tests_/business_modules/wiki/domain/value_objects/wikiContent.test.js',
-  '_tests_/business_modules/wiki/domain/value_objects/wikiPageId.test.js',
-  '_tests_/business_modules/wiki/domain/events/wikiPageDeletedEvent.test.js',
-  '_tests_/business_modules/wiki/domain/events/wikiPageUpdatedEvent.test.js',
-  '_tests_/business_modules/wiki/domain/events/wikiFetchedEvent.test.js',
-  '_tests_/business_modules/wiki/domain/events/wikiPageCreatedEvent.test.js',
-  '_tests_/business_modules/wiki/domain/entities/wikiPage.test.js',
-  '_tests_/business_modules/wiki/domain/entities/wiki.test.js'
+  '_tests_/business_modules/docs/domain/ports/IDocsAiPort.test.js',
+  '_tests_/business_modules/docs/domain/ports/IDocsPersistPort.test.js',
+  '_tests_/business_modules/docs/domain/ports/IDocsGitPort.test.js',
+  '_tests_/business_modules/docs/domain/ports/IDocsMessagingPort.test.js',
+  '_tests_/business_modules/docs/domain/value_objects/docsRepoId.test.js',
+  '_tests_/business_modules/docs/domain/value_objects/docsPageTitle.test.js',
+  '_tests_/business_modules/docs/domain/value_objects/docsContent.test.js',
+  '_tests_/business_modules/docs/domain/value_objects/docsPageId.test.js',
+  '_tests_/business_modules/docs/domain/events/docsPageDeletedEvent.test.js',
+  '_tests_/business_modules/docs/domain/events/docsPageUpdatedEvent.test.js',
+  '_tests_/business_modules/docs/domain/events/docsFetchedEvent.test.js',
+  '_tests_/business_modules/docs/domain/events/docsPageCreatedEvent.test.js',
+  '_tests_/business_modules/docs/domain/entities/docsPage.test.js',
+  '_tests_/business_modules/docs/domain/entities/docs.test.js'
 ];
 
 console.log('🔧 Fixing test import paths...\n');

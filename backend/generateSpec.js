@@ -25,7 +25,7 @@ async function writeSpec() {
         { name: 'ai', description: 'AI service endpoints' },
         { name: 'chat', description: 'Chat service endpoints' },
         { name: 'git', description: 'Git service endpoints' },
-        { name: 'wiki', description: 'Wiki service endpoints' },
+        { name: 'docs', description: 'Docs service endpoints' },
         { name: 'api', description: 'API management endpoints' }
       ],
       components: {

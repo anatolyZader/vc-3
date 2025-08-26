@@ -6,7 +6,7 @@ class AIGithubAdapter {
   constructor(options = {}) {
     this.githubToken = options.githubToken;
     this.owner = options.owner; // e.g. 'my-github-username'
-    this.repoId = options.repoId;   // e.g. 'my-wiki-repo'
+    this.repoId = options.repoId;   // e.g. 'my-docs-repo'
     this.apiBaseUrl = 'https://api.github.com';
   }
 

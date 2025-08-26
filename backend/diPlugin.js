@@ -22,11 +22,11 @@ const GitPostgresAdapter = require('./business_modules/git/infrastructure/persis
 const GitGithubAdapter = require('./business_modules/git/infrastructure/git/gitGithubAdapter');
 const GitPubsubAdapter = require('./business_modules/git/infrastructure/messaging/pubsub/gitPubsubAdapter');
 
-const WikiService = require('./business_modules/wiki/application/services/wikiService');
-const WikiPostgresAdapter = require('./business_modules/wiki/infrastructure/persistence/wikiPostgresAdapter');
-const WikiPubsubAdapter = require('./business_modules/wiki/infrastructure/messaging/pubsub/wikiPubsubAdapter');
-const WikiLangchainAdapter = require('./business_modules/wiki/infrastructure/ai/wikiLangchainAdapter');
-const WikiGithubAdapter = require('./business_modules/wiki/infrastructure/git/wikiGithubAdapter');
+const DocsService = require('./business_modules/docs/application/services/docsService');
+const DocsPostgresAdapter = require('./business_modules/docs/infrastructure/persistence/docsPostgresAdapter');
+const DocsPubsubAdapter = require('./business_modules/docs/infrastructure/messaging/pubsub/docsPubsubAdapter');
+const DocsLangchainAdapter = require('./business_modules/docs/infrastructure/ai/docsLangchainAdapter');
+const DocsGithubAdapter = require('./business_modules/docs/infrastructure/git/docsGithubAdapter');
 
 const ApiService = require('./business_modules/api/application/services/apiService');
 const ApiPostgresAdapter = require('./business_modules/api/infrastructure/persistence/apiPostgresAdapter');
@@ -38,7 +38,7 @@ const AIPostgresAdapter = require('./business_modules/ai/infrastructure/persiste
 const AILangchainAdapter = require('./business_modules/ai/infrastructure/ai/aiLangchainAdapter');
 const AIPubsubAdapter = require('./business_modules/ai/infrastructure/messaging/pubsub/aiPubsubAdapter');
 const AIGithubAdapter = require('./business_modules/ai/infrastructure/git/aiGithubAdapter');
-const AIGithubWikiAdapter = require('./business_modules/ai/infrastructure/wiki/aiGithubWikiAdapter');
+const AIGithubDocsAdapter = require('./business_modules/ai/infrastructure/docs/aiGithubDocsAdapter');
 
 const { PubSub } = require('@google-cloud/pubsub');
 const eventDispatcher = require('./eventDispatcher');
@@ -155,11 +155,11 @@ module.exports = fp(async function (fastify, opts) {
     }).scoped(),
     aiPubsubAdapter: asClass(AIPubsubAdapter).scoped(),
     aiGithubAdapter: asClass(AIGithubAdapter).scoped(),
-    aiGithubWikiAdapter: asClass(AIGithubWikiAdapter).scoped(),
-    wikiPubsubAdapter: asClass(WikiPubsubAdapter).scoped(),
-    wikiPostgresAdapter: asClass(WikiPostgresAdapter).scoped(),
-    wikiLangchainAdapter: asClass(WikiLangchainAdapter).scoped(),
-    wikiGithubAdapter: asClass(WikiGithubAdapter).scoped(),
+    aiGithubDocsAdapter: asClass(AIGithubDocsAdapter).scoped(),
+    docsPubsubAdapter: asClass(DocsPubsubAdapter).scoped(),
+    docsPostgresAdapter: asClass(DocsPostgresAdapter).scoped(),
+    docsLangchainAdapter: asClass(DocsLangchainAdapter).scoped(),
+    docsGithubAdapter: asClass(DocsGithubAdapter).scoped(),
   };
 
   // Debug: Validate adapters
@@ -184,10 +184,10 @@ module.exports = fp(async function (fastify, opts) {
   
   const configMappings = [
     { key: 'authPersistAdapter', config: infraConfig.aop_modules.auth.authPersistAdapter },
-    { key: 'wikiMessagingAdapter', config: infraConfig.business_modules.wiki.wikiMessagingAdapter },
-    { key: 'wikiPersistAdapter', config: infraConfig.business_modules.wiki.wikiPersistAdapter },
-    { key: 'wikiAiAdapter', config: infraConfig.business_modules.wiki.wikiAiAdapter },
-    { key: 'wikiGitAdapter', config: infraConfig.business_modules.wiki.wikiGitAdapter },
+    { key: 'docsMessagingAdapter', config: infraConfig.business_modules.docs.docsMessagingAdapter },
+    { key: 'docsPersistAdapter', config: infraConfig.business_modules.docs.docsPersistAdapter },
+    { key: 'docsAiAdapter', config: infraConfig.business_modules.docs.docsAiAdapter },
+    { key: 'docsGitAdapter', config: infraConfig.business_modules.docs.docsGitAdapter },
     { key: 'chatPersistAdapter', config: infraConfig.business_modules.chat.chatPersistAdapter },
     { key: 'chatMessagingAdapter', config: infraConfig.business_modules.chat.chatMessagingAdapter },
     { key: 'chatAiAdapter', config: infraConfig.business_modules.chat.chatAiAdapter || infraConfig.business_modules.chat.chatAIAdapter },
@@ -199,7 +199,7 @@ module.exports = fp(async function (fastify, opts) {
     { key: 'aiPersistAdapter', config: infraConfig.business_modules.ai.aiPersistAdapter },
     { key: 'aiMessagingAdapter', config: infraConfig.business_modules.ai.aiMessagingAdapter },
     { key: 'aiGitAdapter', config: infraConfig.business_modules.ai.aiGitAdapter },
-    { key: 'aiWikiAdapter', config: infraConfig.business_modules.ai.aiWikiAdapter },
+    { key: 'aiDocsAdapter', config: infraConfig.business_modules.ai.aiDocsAdapter },
     { key: 'apiPersistAdapter', config: infraConfig.business_modules.api.apiPersistAdapter },
     { key: 'apiMessagingAdapter', config: infraConfig.business_modules.api.apiMessagingAdapter },
     { key: 'apiAdapter', config: infraConfig.business_modules.api.apiAdapter }
@@ -225,7 +225,7 @@ module.exports = fp(async function (fastify, opts) {
     // Services
     chatService: asClass(ChatService, { lifetime: Lifetime.scoped }),
     gitService: asClass(GitService, { lifetime: Lifetime.scoped }),
-    wikiService: asClass(WikiService, { lifetime: Lifetime.scoped }),
+    docsService: asClass(DocsService, { lifetime: Lifetime.scoped }),
     aiService: asClass(AIService, { lifetime: Lifetime.scoped }),
     apiService: asClass(ApiService, { lifetime: Lifetime.scoped }),
     userService: asClass(UserService, { lifetime: Lifetime.SINGLETON }),
@@ -237,22 +237,22 @@ module.exports = fp(async function (fastify, opts) {
   // Add config-based adapters
   try {
     serviceRegistrations.authPersistAdapter = adapters[infraConfig.aop_modules.auth.authPersistAdapter];
-    serviceRegistrations.wikiMessagingAdapter = adapters[infraConfig.business_modules.wiki.wikiMessagingAdapter];
-    serviceRegistrations.wikiPersistAdapter = adapters[infraConfig.business_modules.wiki.wikiPersistAdapter];
-    serviceRegistrations.wikiAiAdapter = adapters[infraConfig.business_modules.wiki.wikiAiAdapter];
+    serviceRegistrations.docsMessagingAdapter = adapters[infraConfig.business_modules.docs.docsMessagingAdapter];
+    serviceRegistrations.docsPersistAdapter = adapters[infraConfig.business_modules.docs.docsPersistAdapter];
+    serviceRegistrations.docsAiAdapter = adapters[infraConfig.business_modules.docs.docsAiAdapter];
     serviceRegistrations.chatPersistAdapter = adapters[infraConfig.business_modules.chat.chatPersistAdapter];
     serviceRegistrations.chatMessagingAdapter = adapters[infraConfig.business_modules.chat.chatMessagingAdapter];
     serviceRegistrations.chatAiAdapter = adapters[infraConfig.business_modules.chat.chatAiAdapter || infraConfig.business_modules.chat.chatAIAdapter];
     serviceRegistrations.chatVoiceAdapter = adapters[infraConfig.business_modules.chat.chatVoiceAdapter];
     serviceRegistrations.gitPersistAdapter = adapters[infraConfig.business_modules.git.gitPersistAdapter];
     serviceRegistrations.gitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
-    serviceRegistrations.wikiGitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
+    serviceRegistrations.docsGitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
     serviceRegistrations.gitMessagingAdapter = adapters[infraConfig.business_modules.git.gitMessagingAdapter];
     serviceRegistrations.aiAdapter = adapters[infraConfig.business_modules.ai.aiAdapter];
     serviceRegistrations.aiPersistAdapter = adapters[infraConfig.business_modules.ai.aiPersistAdapter];
     serviceRegistrations.aiMessagingAdapter = adapters[infraConfig.business_modules.ai.aiMessagingAdapter];
     serviceRegistrations.aiGitAdapter = adapters[infraConfig.business_modules.ai.aiGitAdapter];
-    serviceRegistrations.aiWikiAdapter = adapters[infraConfig.business_modules.ai.aiWikiAdapter];
+    serviceRegistrations.aiDocsAdapter = adapters[infraConfig.business_modules.ai.aiDocsAdapter];
     serviceRegistrations.apiPersistAdapter = adapters[infraConfig.business_modules.api.apiPersistAdapter];
     serviceRegistrations.apiMessagingAdapter = adapters[infraConfig.business_modules.api.apiMessagingAdapter];
     serviceRegistrations.apiAdapter = adapters[infraConfig.business_modules.api.apiAdapter];

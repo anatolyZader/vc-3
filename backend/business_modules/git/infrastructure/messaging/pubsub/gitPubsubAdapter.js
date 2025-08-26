@@ -26,9 +26,9 @@ class GitPubsubAdapter {
     }
   }
 
-  async publishWikiFetchedEvent(result, correlationId) {
+  async publishDocsFetchedEvent(result, correlationId) {
     const event = {
-      event: 'wikiFetched',
+      event: 'docsFetched',
       correlationId, // Include correlationId directly in the event payload
       ...result
     };
@@ -37,10 +37,10 @@ class GitPubsubAdapter {
       // Use the injected client instance to get the topic
       const topic = this.pubSubClient.topic(this.topicName);
       const messageId = await topic.publishMessage({ data: dataBuffer });
-      console.log(`Published 'wikiFetched' event with message ID: ${messageId} to topic: ${this.topicName}`);
+      console.log(`Published 'docsFetched' event with message ID: ${messageId} to topic: ${this.topicName}`);
       return messageId;
     } catch (error) {
-      console.error(`Error publishing 'wikiFetched' event to topic ${this.topicName}:`, error);
+      console.error(`Error publishing 'docsFetched' event to topic ${this.topicName}:`, error);
       throw error;
     }
   }

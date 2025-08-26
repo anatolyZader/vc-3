@@ -1504,10 +1504,10 @@
         }
       }
     },
-    "/api/wiki/repos/{repoId}/wiki": {
+    "/api/docs/repos/{repoId}/docs": {
       "get": {
         "tags": [
-          "wiki"
+          "docs"
         ],
         "parameters": [
           {
@@ -1568,10 +1568,10 @@
         }
       }
     },
-    "/api/wiki/repos/{repoId}/pages/create": {
+    "/api/docs/repos/{repoId}/pages/create": {
       "post": {
         "tags": [
-          "wiki"
+          "docs"
         ],
         "requestBody": {
           "content": {
@@ -1627,10 +1627,10 @@
         }
       }
     },
-    "/api/wiki/repos/{repoId}/pages/{pageId}": {
+    "/api/docs/repos/{repoId}/pages/{pageId}": {
       "get": {
         "tags": [
-          "wiki"
+          "docs"
         ],
         "parameters": [
           {
@@ -1689,7 +1689,7 @@
       },
       "put": {
         "tags": [
-          "wiki"
+          "docs"
         ],
         "requestBody": {
           "content": {
@@ -1755,7 +1755,7 @@
       },
       "delete": {
         "tags": [
-          "wiki"
+          "docs"
         ],
         "parameters": [
           {
@@ -1800,10 +1800,10 @@
         }
       }
     },
-    "/api/wiki/update-files": {
+    "/api/docs/update-files": {
       "post": {
         "tags": [
-          "wiki"
+          "docs"
         ],
         "description": "Triggers an AI-based process to analyze all business modules and generate/update markdown documentation files for each.",
         "responses": {
@@ -1948,8 +1948,8 @@
       "description": "Git service endpoints"
     },
     {
-      "name": "wiki",
-      "description": "Wiki service endpoints"
+      "name": "docs",
+      "description": "Docs service endpoints"
     },
     {
       "name": "api",

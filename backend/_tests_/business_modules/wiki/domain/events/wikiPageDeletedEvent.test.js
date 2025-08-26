@@ -1,9 +1,9 @@
-const WikiPageDeletedEvent = require('../../../../../business_modules/wiki/domain/events/wikiPageDeletedEvent.js');
+const DocsPageDeletedEvent = require('../../../../../business_modules/docs/domain/events/docsPageDeletedEvent.js');
 
-describe('WikiPageDeletedEvent', () => {
+describe('DocsPageDeletedEvent', () => {
   test('creates event', () => {
-    const evt = new WikiPageDeletedEvent({ userId: 'u', repoId: 'r', pageId: 'p' });
+    const evt = new DocsPageDeletedEvent({ userId: 'u', repoId: 'r', pageId: 'p' });
     expect(evt.pageId).toBe('p');
-    expect(evt.eventType).toBe('wikiPageDeleted');
+    expect(evt.eventType).toBe('docsPageDeleted');
   });
 });

@@ -190,7 +190,7 @@ jobs:
       PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
       PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
       PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
-      PINECONE_WIKI_ENVIRONMENT: ${{ secrets.PINECONE_WIKI_ENVIRONMENT }}
+      PINECONE_DOCS_ENVIRONMENT: ${{ secrets.PINECONE_DOCS_ENVIRONMENT }}
       GENERATE_DOCS: true
     steps:
       - name: Checkout (shallow)
@@ -238,11 +238,11 @@ jobs:
         run: |
           npm ci --omit=dev || npm ci
 
-      - name: Validate wiki environment
+      - name: Validate docs environment
         working-directory: backend
         run: |
-          echo "🔍 Validating wiki documentation environment..."
-          for f in wiki-cli.js business_modules/wiki/input/wikiCli.js; do
+          echo "🔍 Validating docs documentation environment..."
+          for f in docs-cli.js business_modules/docs/input/docsCli.js; do
             [ -f "$f" ] || { echo "❌ Missing $f"; exit 1; }
           done
           [ -n "$PINECONE_API_KEY" ] || { echo "❌ PINECONE_API_KEY not set"; exit 1; }
@@ -257,11 +257,11 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
-          PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_WIKI_ENVIRONMENT }}
-          PINECONE_INDEX_NAME: eventstorm-wiki
+          PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_DOCS_ENVIRONMENT }}
+          PINECONE_INDEX_NAME: eventstorm-docs
         run: |
-          echo "📚 Starting wiki documentation generation..."
-          timeout 240 npm run wiki:generate -- --user-id deployment-${{ github.run_id }} || echo "⚠️ Wiki generation failed/timeout (non-blocking)"
+          echo "📚 Starting docs documentation generation..."
+          timeout 240 npm run docs:generate -- --user-id deployment-${{ github.run_id }} || echo "⚠️ Docs generation failed/timeout (non-blocking)"
 
       - name: Verify generated documentation (informational)
         if: env.GENERATE_DOCS == 'true'
@@ -342,7 +342,7 @@ jobs:
             --max-instances=10 \
             --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
             --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DEPLOYMENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ"),DEPLOYMENT_RUN_ID=${{ github.run_id }} \
-            --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }},PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }},PINECONE_WIKI_ENVIRONMENT=${{ secrets.PINECONE_WIKI_ENVIRONMENT }},PINECONE_WIKI_INDEX_NAME=eventstorm-wiki \
+            --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }},PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }},PINECONE_DOCS_ENVIRONMENT=${{ secrets.PINECONE_DOCS_ENVIRONMENT }},PINECONE_DOCS_INDEX_NAME=eventstorm-docs \
             --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
 
       - name: Post-deployment verification
@@ -372,9 +372,9 @@ jobs:
         run: |
           gcloud pubsub topics publish git-topic --message '{"event":"repoPushed","payload":{"userId":"'"$USER_ID"'","repoId":"'"$REPO_ID"'","repoData":{"url":"'"$REPO_URL"'","branch":"'"$BRANCH"'"}}}' --project=${GCP_PROJECT_ID}
 
-      - name: Publish wikiDocsUpdated event
+      - name: Publish docsDocsUpdated event
         env:
           GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
           USER_ID: 'github-actions'
         run: |
-          gcloud pubsub topics publish git-topic --message '{"event":"wikiDocsUpdated","payload":{"userId":"'"$USER_ID"'"}}' --project=${GCP_PROJECT_ID}
+          gcloud pubsub topics publish git-topic --message '{"event":"docsDocsUpdated","payload":{"userId":"'"$USER_ID"'"}}' --project=${GCP_PROJECT_ID}

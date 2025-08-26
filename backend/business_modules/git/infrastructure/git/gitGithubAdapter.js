@@ -161,10 +161,10 @@ class GitGithubAdapter extends IGitPort {
     return 'very_complex';
   }
 
-  async fetchWiki(userId, repoId) {
-    // Keep your existing wiki method unchanged
+  async fetchDocs(userId, repoId) {
+    // Keep your existing docs method unchanged
     const [owner, repo] = repoId.split('/');
-    const wikiRepo = `${repo}.wiki`;
+    const docsRepo = `${repo}.docs`;
     try {
       const repoResponse = await this.octokit.rest.repos.get({
         owner,
@@ -178,13 +178,13 @@ class GitGithubAdapter extends IGitPort {
 
       const response = await this.octokit.rest.repos.downloadZipballArchive({
         owner,
-        repo: wikiRepo,
+        repo: docsRepo,
         ref: defaultBranch
       });
-      console.log(`Wiki for '${defaultBranch}' branch downloaded for repository: ${repoId}`);
+      console.log(`Docs for '${defaultBranch}' branch downloaded for repository: ${repoId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching wiki for repository ${repoId}:`, error.message);
+      console.error(`Error fetching docs for repository ${repoId}:`, error.message);
       throw error;
     }
   }

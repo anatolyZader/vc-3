@@ -17,10 +17,10 @@ class Repository {
     return data;
   }
 
-  async fetchWiki(repoIdRaw, IGitPort) {
+  async fetchDocs(repoIdRaw, IGitPort) {
     const repoId = new RepoId(repoIdRaw);
-    const data = await IGitPort.fetchWiki(this.userId.value, repoId.value);
-    console.log(`Wiki fetched for repository: ${repoId.value}`);
+    const data = await IGitPort.fetchDocs(this.userId.value, repoId.value);
+    console.log(`Docs fetched for repository: ${repoId.value}`);
     return data;
   }
 }

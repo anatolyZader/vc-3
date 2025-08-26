@@ -1,13 +1,13 @@
-const IWikiAiPort = require('../../../../../business_modules/wiki/domain/ports/IWikiAiPort.js');
+const IDocsAiPort = require('../../../../../business_modules/docs/domain/ports/IDocsAiPort.js');
 
-describe('IWikiAiPort (abstract)', () => {
+describe('IDocsAiPort (abstract)', () => {
   test('cannot instantiate', () => {
-    expect(() => new IWikiAiPort()).toThrow('Cannot instantiate an abstract class.');
+    expect(() => new IDocsAiPort()).toThrow('Cannot instantiate an abstract class.');
   });
 
-  test('updateWikiFiles not implemented', async () => {
-    class TestPort extends IWikiAiPort {}
+  test('updateDocsFiles not implemented', async () => {
+    class TestPort extends IDocsAiPort {}
     const port = new TestPort();
-    await expect(port.updateWikiFiles()).rejects.toThrow('Method not implemented.');
+    await expect(port.updateDocsFiles()).rejects.toThrow('Method not implemented.');
   });
 });

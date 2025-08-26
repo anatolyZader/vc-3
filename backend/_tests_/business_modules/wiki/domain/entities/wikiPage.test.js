@@ -1,4 +1,4 @@
-const WikiPage = require('../../../../../business_modules/wiki/domain/entities/wikiPage.js');
+const DocsPage = require('../../../../../business_modules/docs/domain/entities/docsPage.js');
 
 class MockGitPort {
   async fetchPage(pageId){ this.fetched = pageId; return { id: pageId, content: 'c'}; }
@@ -7,10 +7,10 @@ class MockGitPort {
   async deletePage(pageId){ this.deleted = pageId; return true; }
 }
 
-describe('WikiPage Entity', () => {
+describe('DocsPage Entity', () => {
   test('fetchPage delegates', async () => {
     const port = new MockGitPort();
-    const page = new WikiPage('u','r');
+    const page = new DocsPage('u','r');
     const data = await page.fetchPage('p1', port);
     expect(data.id).toBe('p1');
     expect(port.fetched).toBe('p1');
@@ -18,7 +18,7 @@ describe('WikiPage Entity', () => {
 
   test('createPage delegates', async () => {
     const port = new MockGitPort();
-    const page = new WikiPage('u','r');
+    const page = new DocsPage('u','r');
     const created = await page.createPage('Title', port);
     expect(created.title).toBe('Title');
     expect(port.created).toBe('Title');
@@ -26,7 +26,7 @@ describe('WikiPage Entity', () => {
 
   test('updatePage delegates', async () => {
     const port = new MockGitPort();
-    const page = new WikiPage('u','r');
+    const page = new DocsPage('u','r');
     const updated = await page.updatePage('p1', 'New', port);
     expect(updated.content).toBe('New');
     expect(port.updated).toEqual({ pageId: 'p1', newContent: 'New' });
@@ -34,7 +34,7 @@ describe('WikiPage Entity', () => {
 
   test('deletePage delegates', async () => {
     const port = new MockGitPort();
-    const page = new WikiPage('u','r');
+    const page = new DocsPage('u','r');
     const res = await page.deletePage('p1', port);
     expect(res).toBe(true);
     expect(port.deleted).toBe('p1');

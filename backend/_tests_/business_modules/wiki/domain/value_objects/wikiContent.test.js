@@ -1,8 +1,8 @@
-const WikiContent = require('../../../../../business_modules/wiki/domain/value_objects/wikiContent.js');
+const DocsContent = require('../../../../../business_modules/docs/domain/value_objects/docsContent.js');
 
-describe('WikiContent Value Object', () => {
+describe('DocsContent Value Object', () => {
   test('stores content and toString', () => {
-    const c = new WikiContent('Hello');
+    const c = new DocsContent('Hello');
     expect(c.content).toBe('Hello');
     expect(c.toString()).toBe('Hello');
   });

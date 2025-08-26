@@ -5,7 +5,7 @@ describe('IGitPersistPort (abstract)', () => {
     expect(() => new IGitPersistPort()).toThrow('Cannot instantiate an abstract class.');
   });
 
-  for (const m of ['persistRepo','persistWiki']) {
+  for (const m of ['persistRepo','persistDocs']) {
     test(`${m} not implemented`, async () => {
       class TestPort extends IGitPersistPort {}
       const port = new TestPort();

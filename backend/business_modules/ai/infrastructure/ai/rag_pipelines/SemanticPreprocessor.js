@@ -196,8 +196,8 @@ class SemanticPreprocessor {
         /vector/i,
         /rag/i
       ],
-      wikiModule: [
-        /wiki/i,
+      docsModule: [
+        /docs/i,
         /documentation/i,
         /knowledge/i,
         /search/i
@@ -419,8 +419,8 @@ class SemanticPreprocessor {
       case 'aiModule':
         annotated += `// AI/RAG/LANGCHAIN FUNCTIONALITY\n`;
         break;
-      case 'wikiModule':
-        annotated += `// WIKI/DOCUMENTATION FUNCTIONALITY\n`;
+      case 'docsModule':
+        annotated += `// DOCS/DOCUMENTATION FUNCTIONALITY\n`;
         break;
     }
 

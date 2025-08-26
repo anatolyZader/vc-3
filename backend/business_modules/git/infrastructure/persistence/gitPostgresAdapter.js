@@ -98,28 +98,28 @@ class GitPostgresAdapter extends IGitPersistPort {
   }
 
   // ✅ Fixed method name and added git schema  
-  async persistWiki(userId, repoId, wiki) {
+  async persistDocs(userId, repoId, docs) {
     const pool = await this.getPool();
     const client = await pool.connect();
     try {
-      console.log(`[DB] Attempting to persist wiki: ${repoId} for user: ${userId}`);
+      console.log(`[DB] Attempting to persist docs: ${repoId} for user: ${userId}`);
       
       const query = `
-        INSERT INTO git.wikis (user_id, repo_id, data, created_at)
+        INSERT INTO git.docss (user_id, repo_id, data, created_at)
         VALUES ($1, $2, $3, NOW())
         ON CONFLICT (user_id, repo_id)
         DO UPDATE SET data = $3, updated_at = NOW()
       `;
       
       console.log(`[DB] Query: ${query}`);
-      console.log(`[DB] Parameters: userId=${userId}, repoId=${repoId}, wikiSize=${wiki ? wiki.length : 'null'}`);
+      console.log(`[DB] Parameters: userId=${userId}, repoId=${repoId}, docsSize=${docs ? docs.length : 'null'}`);
       
-      const result = await client.query(query, [userId, repoId, wiki]);
-      console.log(`[DB] ✅ Wiki persisted successfully: ${repoId} for user: ${userId}`);
+      const result = await client.query(query, [userId, repoId, docs]);
+      console.log(`[DB] ✅ Docs persisted successfully: ${repoId} for user: ${userId}`);
       console.log(`[DB] Query result:`, result.rowCount, 'rows affected');
       
     } catch (error) {
-      console.error(`[DB] ❌ Error persisting wiki:`, {
+      console.error(`[DB] ❌ Error persisting docs:`, {
         message: error.message,
         code: error.code,
         detail: error.detail,

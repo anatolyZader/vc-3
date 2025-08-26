@@ -16,8 +16,8 @@ The `ai` module follows a modular architecture, with the main entry point being 
 The `aiController.js` file contains the main logic for processing AI-related requests, including:
 
 - Loading and formatting the API specification summary.
-- Loading and incorporating the application wiki content.
-- Building the context for the AI processing, which includes the code chunks, API specification summary, and wiki content.
+- Loading and incorporating the application docs content.
+- Building the context for the AI processing, which includes the code chunks, API specification summary, and docs content.
 
 ## Key Functionalities
 
@@ -25,7 +25,7 @@ The `ai` module provides the following key functionalities:
 
 1. **AI Request Processing**: The module is responsible for handling and processing all AI-related requests, such as those related to conversational AI, natural language processing, and other AI-powered features.
 2. **API Specification Management**: The module loads and formats the API specification, making it available for use in the AI processing context.
-3. **Wiki Integration**: The module integrates with the application's wiki, loading and incorporating the relevant content into the AI processing context.
+3. **Docs Integration**: The module integrates with the application's docs, loading and incorporating the relevant content into the AI processing context.
 4. **Event Handling**: The module registers the `aiPubsubListener` to listen for and process AI-related events, ensuring that the AI functionality is integrated with the rest of the application.
 5. **Dependency Management**: The module checks the availability of the `eventDispatcher` service, which is used for publishing and subscribing to events, and logs any issues with its availability.
 

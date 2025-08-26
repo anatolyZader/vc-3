@@ -12,7 +12,7 @@
         "chat",
         "ai",
         "git",
-        "wiki",
+        "docs",
         "api",
         "requirements",
         "monitoring",
@@ -198,7 +198,7 @@
           "name": "Repository",
           "description": "Git repository with metadata and content",
           "attributes": ["userId", "repoId", "metadata"],
-          "behaviors": ["fetchRepo", "fetchWiki", "analyzeStructure"]
+          "behaviors": ["fetchRepo", "fetchDocs", "analyzeStructure"]
         }
       ],
       "valueObjects": [
@@ -276,20 +276,20 @@
         }
       ]
     },
-    "wiki": {
-      "name": "Wiki Module",
+    "docs": {
+      "name": "Docs Module",
       "description": "Knowledge management and documentation generation",
       "role": "Documentation and knowledge base",
       "boundedContext": "Knowledge Management and Documentation",
       "entities": [
         {
-          "name": "Wiki",
+          "name": "Docs",
           "description": "Collection of documentation for a project",
-          "attributes": ["wikiId", "userId", "repoId", "pages"],
-          "behaviors": ["createWiki", "addPage", "updateContent"]
+          "attributes": ["docsId", "userId", "repoId", "pages"],
+          "behaviors": ["createDocs", "addPage", "updateContent"]
         },
         {
-          "name": "WikiPage", 
+          "name": "DocsPage", 
           "description": "Individual documentation page",
           "attributes": ["pageId", "title", "content", "metadata"],
           "behaviors": ["updateContent", "addMetadata"]
@@ -297,23 +297,23 @@
       ],
       "valueObjects": [
         {
-          "name": "WikiContent",
-          "description": "Textual content of wiki pages",
+          "name": "DocsContent",
+          "description": "Textual content of docs pages",
           "attributes": ["content"],
           "invariants": ["Must be valid text content"]
         }
       ],
-      "aggregateRoots": ["Wiki"],
+      "aggregateRoots": ["Docs"],
       "domainEvents": [
         {
-          "name": "WikiCreatedEvent",
-          "description": "New wiki created for project",
-          "attributes": ["userId", "wikiId", "repoId", "occurredAt"]
+          "name": "DocsCreatedEvent",
+          "description": "New docs created for project",
+          "attributes": ["userId", "docsId", "repoId", "occurredAt"]
         },
         {
-          "name": "WikiPageUpdatedEvent",
-          "description": "Wiki page content updated",
-          "attributes": ["wikiId", "pageId", "content", "occurredAt"]
+          "name": "DocsPageUpdatedEvent",
+          "description": "Docs page content updated",
+          "attributes": ["docsId", "pageId", "content", "occurredAt"]
         }
       ]
     },
@@ -451,9 +451,9 @@
       "HttpApiFetchedEvent",
       "HttpApiSavedEvent"
     ],
-    "wiki": [
-      "WikiCreatedEvent", 
-      "WikiPageUpdatedEvent"
+    "docs": [
+      "DocsCreatedEvent", 
+      "DocsPageUpdatedEvent"
     ],
     "auth": [
       "UserRegisteredEvent",

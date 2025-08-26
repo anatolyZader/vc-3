@@ -1,9 +1,9 @@
 // Example usage of the updated generateArchitectureDocumentation method
 
-const wikiAdapter = new WikiLangchainAdapter({ aiProvider: 'openai' });
+const docsAdapter = new DocsLangchainAdapter({ aiProvider: 'openai' });
 
 // Usage 1: Generate new documentation from scratch (original behavior)
-await wikiAdapter.generateArchitectureDocumentation('user123');
+await docsAdapter.generateArchitectureDocumentation('user123');
 
 // Usage 2: Update existing ARCHITECTURE.md content (new functionality)
 const fs = require('fs');
@@ -20,7 +20,7 @@ try {
 }
 
 // Call with existing content - will update instead of creating from scratch
-await wikiAdapter.generateArchitectureDocumentation('user123', existingContent);
+await docsAdapter.generateArchitectureDocumentation('user123', existingContent);
 
 // Usage 3: Force update with specific content
 const customArchitectureContent = `
@@ -30,4 +30,4 @@ This is our existing architecture documentation that we want to update
 based on the current codebase state...
 `;
 
-await wikiAdapter.generateArchitectureDocumentation('user123', customArchitectureContent);
+await docsAdapter.generateArchitectureDocumentation('user123', customArchitectureContent);

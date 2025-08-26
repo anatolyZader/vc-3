@@ -1,13 +1,13 @@
-const IWikiGitPort = require('../../../../../business_modules/wiki/domain/ports/IWikiGitPort.js');
+const IDocsGitPort = require('../../../../../business_modules/docs/domain/ports/IDocsGitPort.js');
 
-describe('IWikiGitPort (abstract)', () => {
+describe('IDocsGitPort (abstract)', () => {
   test('cannot instantiate', () => {
-    expect(() => new IWikiGitPort()).toThrow('Cannot instantiate an abstract class.');
+    expect(() => new IDocsGitPort()).toThrow('Cannot instantiate an abstract class.');
   });
 
-  for (const m of ['fetchWiki','fetchPage','createPage','updatePage','deletePage']) {
+  for (const m of ['fetchDocs','fetchPage','createPage','updatePage','deletePage']) {
     test(`${m} not implemented`, async () => {
-      class TestPort extends IWikiGitPort {}
+      class TestPort extends IDocsGitPort {}
       const port = new TestPort();
       await expect(port[m]()).rejects.toThrow('Method not implemented.');
     });

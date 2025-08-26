@@ -14,8 +14,8 @@ class IGitPort {
     throw new Error('Method not implemented.');
   }
 
-  // Fetches data for an existing repository's wiki.  
-  async fetchWiki(userId, repoId) {
+  // Fetches data for an existing repository's docs.  
+  async fetchDocs(userId, repoId) {
     throw new Error('Method not implemented.');
   }
 

@@ -1,13 +1,13 @@
-const IWikiPostgresPort = require('../../../../../business_modules/wiki/domain/ports/IWikiPersistPort.js');
+const IDocsPostgresPort = require('../../../../../business_modules/docs/domain/ports/IDocsPersistPort.js');
 
-describe('IWikiPostgresPort (abstract)', () => {
+describe('IDocsPostgresPort (abstract)', () => {
   test('cannot instantiate', () => {
-    expect(() => new IWikiPostgresPort()).toThrow('Cannot instantiate an abstract class.');
+    expect(() => new IDocsPostgresPort()).toThrow('Cannot instantiate an abstract class.');
   });
 
-  for (const m of ['persistWiki','readWiki','fetchPage','createPage','updatePage','deletePage']) {
+  for (const m of ['persistDocs','readDocs','fetchPage','createPage','updatePage','deletePage']) {
     test(`${m} not implemented`, async () => {
-      class TestPort extends IWikiPostgresPort {}
+      class TestPort extends IDocsPostgresPort {}
       const port = new TestPort();
       await expect(port[m]()).rejects.toThrow('Method not implemented.');
     });

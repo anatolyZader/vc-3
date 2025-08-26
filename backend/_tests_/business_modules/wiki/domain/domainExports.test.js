@@ -13,7 +13,7 @@ function collectJsFiles(dir) {
   return files;
 }
 
-describe.skip('Wiki Domain exports (disabled)', () => {
+describe.skip('Docs Domain exports (disabled)', () => {
   test('placeholder', () => {
     expect(true).toBe(true);
   });

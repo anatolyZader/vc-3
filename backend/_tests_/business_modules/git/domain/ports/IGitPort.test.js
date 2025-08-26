@@ -5,7 +5,7 @@ describe('IGitPort (abstract)', () => {
     expect(() => new IGitPort()).toThrow('Cannot instantiate an abstract class.');
   });
 
-  for (const m of ['fetchRepo','fetchWiki']) {
+  for (const m of ['fetchRepo','fetchDocs']) {
     test(`${m} not implemented`, async () => {
       class TestPort extends IGitPort {}
       const port = new TestPort();

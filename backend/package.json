@@ -14,8 +14,8 @@
     "debug": "node --inspect-brk app.js",
     "start": "fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js",
     "generate:spec": "node generateSpec.js",
-    "wiki:generate": "node wiki-cli.js",
-    "wiki:help": "node wiki-cli.js --help"
+    "docs:generate": "node docs-cli.js",
+    "docs:help": "node docs-cli.js --help"
   },
   "keywords": [],
   "author": "",

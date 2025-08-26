@@ -114,7 +114,7 @@ export class UserAuthController {
       'backend/business_modules/ai/infrastructure/aiService.js',
       'backend/business_modules/git/domain/repository.js',
       'backend/aop_modules/auth/application/authService.js',
-      'backend/business_modules/wiki/input/wikiController.js'
+      'backend/business_modules/docs/input/docsController.js'
     ];
     
     testSources.forEach(source => {

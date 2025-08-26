@@ -1,8 +1,8 @@
-const WikiRepoId = require('../../../../../business_modules/wiki/domain/value_objects/wikiRepoId.js');
+const DocsRepoId = require('../../../../../business_modules/docs/domain/value_objects/docsRepoId.js');
 
-describe('WikiRepoId Value Object', () => {
+describe('DocsRepoId Value Object', () => {
   test('stores id and toString', () => {
-    const id = new WikiRepoId('r1');
+    const id = new DocsRepoId('r1');
     expect(id.id).toBe('r1');
     expect(id.toString()).toBe('r1');
   });

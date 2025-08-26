@@ -73,7 +73,7 @@ Module	Description
 chat_module	Acts as the central façade. Handles client interaction and delegates to other modules via Pub/Sub.
 ai_module	Core intelligence unit. Utilizes LangChain and RAG pipelines to synthesize insights and responses.
 git_module	Provides Git repository analysis and embeds source context into the AI pipeline.
-wiki_module → insight_module (renamed)	Supplies textual application knowledge and architecture descriptions.
+docs_module → insight_module (renamed)	Supplies textual application knowledge and architecture descriptions.
 requirements_module	Generates and manages structured requirements derived from DDD event storming.
 pm_module	Integrates with Jira (via adapters). Supplies sprint, task, and status data.
 api_module	Feeds Swagger/OpenAPI specs into the AI pipeline for endpoint awareness.

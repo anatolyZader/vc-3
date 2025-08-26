@@ -69,12 +69,12 @@ Payload is extracted and transferred to the controller file method as a mocked R
 Example:
 
 subscription.on('message', async (message) => {
-  fastify.log.info(`Received wiki message ${message.id} on subscription ${subscriptionName}`);
+  fastify.log.info(`Received docs message ${message.id} on subscription ${subscriptionName}`);
 
   try {
     const data = JSON.parse(message.data.toString());
 
-    if (data.event === 'fetchWikiRequest') {
+    if (data.event === 'fetchDocsRequest') {
       const { userId, repoId, correlationId } = data.payload;
 
       const mockRequest = {
@@ -84,7 +84,7 @@ subscription.on('message', async (message) => {
       };
       const mockReply = {};
 
-      await fastify.fetchWiki(mockRequest, mockReply);
+      await fastify.fetchDocs(mockRequest, mockReply);
     }
   } catch (err) {
     fastify.log.error(err);
@@ -157,11 +157,11 @@ Example:
       "gitMessagingAdapter": "gitPubsubAdapter",
       "gitPersistAdapter": "gitPostgresAdapter"
     },
-    "wiki": {
-      "wikiMessagingAdapter": "wikiPubsubAdapter",
-      "wikiPersistAdapter": "wikiPostgresAdapter",
-      "wikiAiAdapter": "wikiLangchainAdapter",
-      "wikiGitAdapter": "wikiGithubAdapter"
+    "docs": {
+      "docsMessagingAdapter": "docsPubsubAdapter",
+      "docsPersistAdapter": "docsPostgresAdapter",
+      "docsAiAdapter": "docsLangchainAdapter",
+      "docsGitAdapter": "docsGithubAdapter"
     },
     "ai": {
       "aiPersistAdapter": "aiPostgresAdapter",
@@ -169,7 +169,7 @@ Example:
       "aiProvider": "anthropic",
       "aiMessagingAdapter": "aiPubsubAdapter",
       "aiGitAdapter": "aiGithubAdapter",
-      "aiWikiAdapter": "aiGithubWikiAdapter"
+      "aiDocsAdapter": "aiGithubDocsAdapter"
     },
     "messaging": {
       "messagingPersistAdapter": "messagingPostgresAdapter",

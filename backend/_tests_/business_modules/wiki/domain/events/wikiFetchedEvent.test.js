@@ -1,10 +1,10 @@
-const WikiFetchedEvent = require('../../../../../business_modules/wiki/domain/events/wikiFetchedEvent.js');
+const DocsFetchedEvent = require('../../../../../business_modules/docs/domain/events/docsFetchedEvent.js');
 
-describe('WikiFetchedEvent', () => {
+describe('DocsFetchedEvent', () => {
   test('creates event', () => {
-    const evt = new WikiFetchedEvent({ userId: 'u', repoId: 'r', wiki: { pages: [] }});
+    const evt = new DocsFetchedEvent({ userId: 'u', repoId: 'r', docs: { pages: [] }});
     expect(evt.userId).toBe('u');
     expect(evt.repoId).toBe('r');
-    expect(evt.eventType).toBe('wikiFetched');
+    expect(evt.eventType).toBe('docsFetched');
   });
 });

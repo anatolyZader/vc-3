@@ -1,9 +1,9 @@
-const WikiPageCreatedEvent = require('../../../../../business_modules/wiki/domain/events/wikiPageCreatedEvent.js');
+const DocsPageCreatedEvent = require('../../../../../business_modules/docs/domain/events/docsPageCreatedEvent.js');
 
-describe('WikiPageCreatedEvent', () => {
+describe('DocsPageCreatedEvent', () => {
   test('creates event', () => {
-    const evt = new WikiPageCreatedEvent({ userId: 'u', repoId: 'r', pageId: 'p', pageTitle: 'T' });
+    const evt = new DocsPageCreatedEvent({ userId: 'u', repoId: 'r', pageId: 'p', pageTitle: 'T' });
     expect(evt.pageTitle).toBe('T');
-    expect(evt.eventType).toBe('wikiPageCreated');
+    expect(evt.eventType).toBe('docsPageCreated');
   });
 });

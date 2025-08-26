@@ -13,7 +13,7 @@ class IGitPersistPort {
         throw new Error('Method not implemented.');
     }
 
-    async persistWiki(userId, repoId, wiki) {
+    async persistDocs(userId, repoId, docs) {
     throw new Error('Method not implemented.');
     }
 }

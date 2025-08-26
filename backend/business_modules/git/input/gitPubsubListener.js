@@ -53,12 +53,12 @@ async function gitPubsubListener(fastify, options) {
           return;
         }
 
-      } else if (data.event === 'fetchWikiRequest') {
+      } else if (data.event === 'fetchDocsRequest') {
         const { userId, repoId, correlationId } = data.payload;
-        fastify.log.info(`Processing fetchWiki event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
+        fastify.log.info(`Processing fetchDocs event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
 
-        if (typeof fastify.fetchWiki === 'function') {
-          // Create mock request object for fetchWiki
+        if (typeof fastify.fetchDocs === 'function') {
+          // Create mock request object for fetchDocs
           const mockRequest = {
             params: { repoId },
             user: { id: userId },
@@ -67,13 +67,13 @@ async function gitPubsubListener(fastify, options) {
           const mockReply = {};
 
           // Call the same HTTP handler with mock request
-          const wiki = await fastify.fetchWiki(mockRequest, mockReply);
+          const docs = await fastify.fetchDocs(mockRequest, mockReply);
           
-          fastify.log.info(`Wiki fetched via PubSub: ${JSON.stringify(wiki)}`);
+          fastify.log.info(`Docs fetched via PubSub: ${JSON.stringify(docs)}`);
           
-          fastify.log.info(`Wiki fetch result published for message ${message.id}`);
+          fastify.log.info(`Docs fetch result published for message ${message.id}`);
         } else {
-          fastify.log.error(`fastify.fetchWiki is not defined. Cannot process message ${message.id}.`);
+          fastify.log.error(`fastify.fetchDocs is not defined. Cannot process message ${message.id}.`);
           message.nack();
           return;
         }

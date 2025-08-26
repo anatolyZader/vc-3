@@ -1,13 +1,13 @@
-const IWikiMessagingPort = require('../../../../../business_modules/wiki/domain/ports/IWikiMessagingPort.js');
+const IDocsMessagingPort = require('../../../../../business_modules/docs/domain/ports/IDocsMessagingPort.js');
 
-describe('IWikiMessagingPort (abstract)', () => {
+describe('IDocsMessagingPort (abstract)', () => {
   test('cannot instantiate', () => {
-    expect(() => new IWikiMessagingPort()).toThrow('Cannot instantiate an abstract class.');
+    expect(() => new IDocsMessagingPort()).toThrow('Cannot instantiate an abstract class.');
   });
 
-  test('publishFetchWikiEvent not implemented', async () => {
-    class TestPort extends IWikiMessagingPort {}
+  test('publishFetchDocsEvent not implemented', async () => {
+    class TestPort extends IDocsMessagingPort {}
     const port = new TestPort();
-    await expect(port.publishFetchWikiEvent()).rejects.toThrow('Method not implemented.');
+    await expect(port.publishFetchDocsEvent()).rejects.toThrow('Method not implemented.');
   });
 });
