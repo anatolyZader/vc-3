@@ -8,7 +8,7 @@
 }
 
 .message-content.user-message {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .message-content.ai-message {

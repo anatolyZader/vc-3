@@ -49,6 +49,21 @@ const chatReducer = (state, action) => {
         messages:
           state.currentConversationId === action.payload ? [] : state.messages
       };
+    case 'TRUNCATE_MESSAGES':
+      // Remove all messages after and including the specified index
+      return {
+        ...state,
+        messages: state.messages.slice(0, action.payload.index)
+      };
+    case 'EDIT_MESSAGE':
+      // Replace a message at a specific index and truncate subsequent messages
+      return {
+        ...state,
+        messages: [
+          ...state.messages.slice(0, action.payload.index),
+          action.payload.message
+        ]
+      };
     default:
       return state;
   }
@@ -455,6 +470,11 @@ export const ChatProvider = ({ children }) => {
     }
   }, [isAuthenticated, handleError, state.currentConversationId]);
 
+  const truncateMessages = useCallback((fromIndex) => {
+    dispatch({ type: 'TRUNCATE_MESSAGES', payload: { index: fromIndex } });
+    console.log(`🔧 Truncated messages from index ${fromIndex}`);
+  }, []);
+
   const value = {
     ...state,
     loadConversationsHistory,
@@ -464,6 +484,7 @@ export const ChatProvider = ({ children }) => {
     sendVoiceMessage,
     renameConversation,
     deleteConversation,
+    truncateMessages,
     clearError,
     isAuthenticated,
     userProfile,

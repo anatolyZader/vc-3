@@ -43,6 +43,7 @@ const Chat = () => {
     sendMessage,
     sendVoiceMessage,
     deleteConversation,
+    truncateMessages,
     clearError
   } = useChat();
 
@@ -190,6 +191,35 @@ const Chat = () => {
     }
   };
 
+  const handleEditMessage = async (messageModel, newContent) => {
+    try {
+      // Find the message index in the current messages array
+      const messageIndex = messages.findIndex(msg => 
+        msg.message === messageModel.message && 
+        msg.sentTime === messageModel.sentTime &&
+        msg.direction === messageModel.direction
+      );
+
+      if (messageIndex === -1) {
+        console.error('Message not found for editing');
+        return;
+      }
+
+      console.log(`🔧 Editing message at index ${messageIndex}: "${newContent}"`);
+      console.log(`🔧 Current messages length: ${messages.length}, truncating from index ${messageIndex}`);
+      
+      // First truncate all messages from the edited message index onwards
+      // This removes the original message and all subsequent messages
+      truncateMessages(messageIndex);
+
+      // Then send the edited message to get AI response
+      await sendMessage(newContent);
+
+    } catch (error) {
+      console.error('Failed to edit message:', error);
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -313,6 +343,7 @@ const Chat = () => {
             <CustomMessage 
               key={index} 
               model={message}
+              onEditMessage={handleEditMessage}
             >
               {message.direction === 'incoming' && (
                 <Avatar src={eventstorm_logo} name="AI Assistant" />
