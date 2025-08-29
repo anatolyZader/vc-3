@@ -96,6 +96,26 @@ body.resizing {
   overflow-y: auto;
 }
 
+/* Custom styling for message content */
+.cs-message__content-wrapper {
+  max-width: 100% !important;
+}
+
+.cs-message__content {
+  overflow: visible !important;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Ensure code blocks don't break the layout */
+.cs-message__content pre {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
 .conversations-list {
   padding: 10px 0;
 }

@@ -9,8 +9,10 @@ export default defineConfig({
   plugins: [react()], // ✅ Only one React plugin needed
   base: '/',
   server: {
+  port: 5173,
+  strictPort: true, // Do not auto-pick a different port
     host: true, // Allow external connections
-    open: true, // Auto-open browser
+    open: false, // Don't auto-open browser
     proxy: {
       // API requests proxy (includes WebSocket at /api/ws)
       '/api': {

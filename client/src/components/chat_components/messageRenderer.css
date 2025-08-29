@@ -1,0 +1,290 @@
+/* messageRenderer.css */
+
+.message-content {
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.message-content.user-message {
+  color: #ffffff;
+}
+
+.message-content.ai-message {
+  color: #1f2937;
+}
+
+/* Code blocks styling */
+.code-block-container {
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #1f2937;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: #374151;
+  border-bottom: 1px solid #4b5563;
+}
+
+.code-language {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.copy-button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  background: #4b5563;
+  color: #ffffff;
+}
+
+.copy-button:active {
+  transform: scale(0.95);
+}
+
+/* Inline code styling - more subtle for inline mentions */
+.inline-code {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+}
+
+.user-message .inline-code {
+  background: rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Blockquote styling */
+.markdown-blockquote {
+  border-left: 4px solid #3b82f6;
+  margin: 16px 0;
+  padding: 8px 16px;
+  background: #f8fafc;
+  font-style: italic;
+  border-radius: 0 6px 6px 0;
+}
+
+.user-message .markdown-blockquote {
+  background: rgba(255, 255, 255, 0.1);
+  border-left-color: #fbbf24;
+}
+
+/* Table styling */
+.table-container {
+  overflow-x: auto;
+  margin: 16px 0;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 14px;
+}
+
+.markdown-table th,
+.markdown-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.markdown-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.markdown-table tr:hover {
+  background: #f9fafb;
+}
+
+/* List styling */
+.markdown-ul,
+.markdown-ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.markdown-ul li,
+.markdown-ol li {
+  margin: 4px 0;
+}
+
+.markdown-ul {
+  list-style-type: disc;
+}
+
+.markdown-ol {
+  list-style-type: decimal;
+}
+
+/* Link styling */
+.markdown-link {
+  color: #3b82f6;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.markdown-link:hover {
+  border-bottom-color: #3b82f6;
+}
+
+.user-message .markdown-link {
+  color: #60a5fa;
+}
+
+.user-message .markdown-link:hover {
+  border-bottom-color: #60a5fa;
+}
+
+/* Header styling */
+.markdown-h1,
+.markdown-h2,
+.markdown-h3 {
+  margin: 20px 0 12px 0;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.markdown-h1 {
+  font-size: 1.5em;
+  color: #1f2937;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.markdown-h2 {
+  font-size: 1.3em;
+  color: #374151;
+}
+
+.markdown-h3 {
+  font-size: 1.1em;
+  color: #4b5563;
+}
+
+.user-message .markdown-h1,
+.user-message .markdown-h2,
+.user-message .markdown-h3 {
+  color: #ffffff;
+}
+
+.user-message .markdown-h1 {
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Paragraph styling */
+.markdown-paragraph {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.markdown-paragraph:first-child {
+  margin-top: 0;
+}
+
+.markdown-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .code-block-container {
+    margin: 8px -8px;
+    border-radius: 0;
+  }
+  
+  .code-block-header {
+    padding: 6px 12px;
+  }
+  
+  .table-container {
+    margin: 12px -8px;
+    border-radius: 0;
+  }
+  
+  .markdown-table {
+    font-size: 12px;
+  }
+  
+  .markdown-table th,
+  .markdown-table td {
+    padding: 8px 12px;
+  }
+}
+
+/* Dark mode support for AI messages */
+@media (prefers-color-scheme: dark) {
+  .ai-message {
+    color: #f3f4f6;
+  }
+  
+  .ai-message .inline-code {
+    background: #374151;
+    color: #fbbf24;
+  }
+  
+  .ai-message .markdown-blockquote {
+    background: #1f2937;
+    border-left-color: #60a5fa;
+  }
+  
+  .ai-message .markdown-table {
+    background: #1f2937;
+  }
+  
+  .ai-message .markdown-table th {
+    background: #374151;
+    color: #f3f4f6;
+  }
+  
+  .ai-message .markdown-table td {
+    border-bottom-color: #4b5563;
+  }
+  
+  .ai-message .markdown-table tr:hover {
+    background: #374151;
+  }
+  
+  .ai-message .markdown-h1 {
+    color: #f3f4f6;
+    border-bottom-color: #4b5563;
+  }
+  
+  .ai-message .markdown-h2 {
+    color: #d1d5db;
+  }
+  
+  .ai-message .markdown-h3 {
+    color: #9ca3af;
+  }
+}

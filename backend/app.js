@@ -373,7 +373,22 @@ module.exports = async function (fastify, opts) {
         if (scheme === 'Bearer') token = value;
       }
       if (!token) throw fastify.httpErrors.unauthorized('Missing token');
-      request.user = await fastify.jwt.verify(token);
+      
+      try {
+        request.user = await fastify.jwt.verify(token);
+      } catch (error) {
+        // Handle JWT verification errors properly
+        if (error.code === 'FAST_JWT_EXPIRED') {
+          throw fastify.httpErrors.unauthorized('Token has expired');
+        } else if (error.code === 'FAST_JWT_INVALID_TOKEN') {
+          throw fastify.httpErrors.unauthorized('Invalid token');
+        } else if (error.code === 'FAST_JWT_MALFORMED_TOKEN') {
+          throw fastify.httpErrors.unauthorized('Malformed token');
+        } else {
+          // For any other JWT-related error, return unauthorized
+          throw fastify.httpErrors.unauthorized('Token verification failed');
+        }
+      }
     });
 
     fastify.decorateRequest('revokeToken', function () {
@@ -543,6 +558,31 @@ module.exports = async function (fastify, opts) {
             message: {
               type: 'string',
               description: 'Confirmation message that the state cookie was cleared.'
+            }
+          },
+          additionalProperties: false
+        }
+      }
+    }
+  });
+
+  // Debug route to clear auth cookies
+  fastify.route({
+    method: 'GET',
+    url: '/api/debug/clear-auth-cookie',
+    handler: (req, reply) => {
+      reply.clearCookie('authToken', { path: '/' });
+      reply.send({ message: 'Auth cookie cleared successfully' });
+    },
+    schema: {
+      $id: 'schema:debug:clear-auth-cookie',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            message: {
+              type: 'string',
+              description: 'Confirmation message that the auth cookie was cleared.'
             }
           },
           additionalProperties: false

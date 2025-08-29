@@ -4,7 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { useContext } from 'react';
 import LoginPage from './components/auth_components/LoginPage';
 import Chat from './components/chat_components/Chat';
-
+import MessageTest from './components/chat_components/MessageTest';
 import NotFound from './components/NotFound';
 import { AuthProvider, AuthContext } from './components/auth_components/AuthContext';
 import { ChatProvider } from './components/chat_components/ChatContext';
@@ -27,6 +27,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Chat />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/test-message" element={<MessageTest />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

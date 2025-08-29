@@ -11,18 +11,19 @@ import {
   Avatar,
   TypingIndicator,
   MessageSeparator,
-  Message,
 } from '@chatscope/chat-ui-kit-react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import '../../custom-overrides.css';
 import './chat.css';
 import './voiceInput.css';
+import './messageRenderer.css';
 import { useEffect, useState, useContext, useRef, useCallback } from 'react';
 import { AuthContext } from '../auth_components/AuthContext';
 import { useChat } from './ChatContext';
 import NewConversationBtn from './NewConversationBtn';
 import LogoutBtn from './LogoutBtn'; 
 import VoiceInput from './VoiceInput';
+import CustomMessage from './CustomMessage';
 import eventstorm_logo from './eventstorm_logo.png';  
 
 const Chat = () => {
@@ -309,14 +310,14 @@ const Chat = () => {
           )}
           
           {currentConversationId && messages.map((message, index) => (
-            <Message 
+            <CustomMessage 
               key={index} 
               model={message}
             >
               {message.direction === 'incoming' && (
                 <Avatar src={eventstorm_logo} name="AI Assistant" />
               )}
-            </Message>
+            </CustomMessage>
           ))}
         </MessageList>
 
