@@ -8,7 +8,7 @@ import { TextField, Button, Typography, Box, Alert } from '@mui/material';
 const LoginPage = () => {
   const {
     verifyCookieUpdateState,
-    googleLogin,      // Now a simple redirect-based function
+    googleLogin,      
     logout,
     userProfile,
     isAuthenticated
@@ -50,7 +50,7 @@ const LoginPage = () => {
             onClick={googleLogin}  // Redirect flow triggered here
             sx={{ mb: 2 }}
           >
-            Sign in with Google 🚀
+            Sign in with Google 
           </Button>
 
           <form onSubmit={handleManualLogin}>
