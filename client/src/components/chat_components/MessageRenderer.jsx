@@ -15,10 +15,7 @@ const MessageRenderer = ({ content, isUserMessage = false }) => {
       const match = /language-(\w+)/.exec(className || '');
       const language = match ? match[1] : 'text';
       
-      // Debug logging
-      console.log('Code element:', { inline, className, language, children: String(children) });
-      
-      // Handle multi-line code blocks with syntax highlighting
+      // Handle multi-line code blocks with syntax highlighting and copy button
       if (!inline) {
         return (
           <div className="code-block-container">
@@ -50,7 +47,28 @@ const MessageRenderer = ({ content, isUserMessage = false }) => {
         );
       }
       
-      // Handle inline code (single backticks) - no copy button, just styling
+      // Handle inline code (single backticks) - only add copy button for longer code snippets
+      const codeText = String(children);
+      const shouldShowCopyButton = codeText.length > 20 || codeText.includes(' ') || codeText.includes('.');
+      
+      if (shouldShowCopyButton) {
+        return (
+          <span className="inline-code-with-copy">
+            <code className="inline-code" {...props}>
+              {children}
+            </code>
+            <button 
+              className="inline-copy-button"
+              onClick={() => navigator.clipboard.writeText(codeText)}
+              title="Copy code"
+            >
+              📋
+            </button>
+          </span>
+        );
+      }
+      
+      // Simple inline code - just styling, no copy button
       return (
         <code className="inline-code" {...props}>
           {children}

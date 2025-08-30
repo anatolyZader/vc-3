@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Message } from '@chatscope/chat-ui-kit-react';
 import SimpleMessageRenderer from './SimpleMessageRenderer';
+import AnimatedMessageRenderer from './AnimatedMessageRenderer';
 import MessageActions from './MessageActions';
 import EditMessageModal from './EditMessageModal';
 import PropTypes from 'prop-types';
@@ -38,10 +39,19 @@ const CustomMessage = ({ model, children, onEditMessage, ...props }) => {
     ...model,
     payload: (
       <div className="message-with-actions">
-        <SimpleMessageRenderer 
-          content={model.message} 
-          isUserMessage={isUserMessage}
-        />
+        {isUserMessage ? (
+          <SimpleMessageRenderer 
+            content={model.message} 
+            isUserMessage={isUserMessage}
+          />
+        ) : (
+          <AnimatedMessageRenderer 
+            content={model.message} 
+            isUserMessage={isUserMessage}
+            enableAnimation={!model.isFromHistory} // Only animate if NOT from history
+            animationSpeed={25} // Faster animation - 25ms between words
+          />
+        )}
         {isUserMessage && (
           <MessageActions
             message={model}

@@ -1,0 +1,32 @@
+/* TypewriterText.css */
+
+.typewriter-text {
+  display: inline;
+  position: relative;
+}
+
+.typewriter-cursor {
+  display: inline-block;
+  color: #3b82f6;
+  animation: blink 1s infinite;
+  margin-left: 2px;
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Make the cursor more visible in dark themes */
+.ai-message .typewriter-cursor {
+  color: #60a5fa;
+}
+
+.user-message .typewriter-cursor {
+  color: #ffffff;
+}

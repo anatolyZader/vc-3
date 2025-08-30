@@ -73,10 +73,55 @@
   border: 1px solid #e2e8f0;
 }
 
+/* Inline code with copy button container */
+.inline-code-with-copy {
+  position: relative;
+  display: inline-block;
+}
+
+.inline-code-with-copy:hover .inline-copy-button {
+  opacity: 1;
+}
+
+.inline-copy-button {
+  position: absolute;
+  top: -2px;
+  right: -20px;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+}
+
+.inline-copy-button:hover {
+  background: #4b5563;
+  color: #ffffff;
+}
+
 .user-message .inline-code {
   background: rgba(255, 255, 255, 0.15);
   color: #e2e8f0;
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Mixed content styling */
+.mixed-content {
+  display: inline;
+}
+
+.mixed-content .typewriter-text {
+  display: inline;
+}
+
+.mixed-content .inline-code {
+  display: inline;
+  margin: 0 1px;
 }
 
 /* Blockquote styling */

@@ -119,7 +119,8 @@ export const ChatProvider = ({ children }) => {
           sentTime: new Date(msg.created_at).toLocaleTimeString(),
           sender: msg.role === 'user' ? 'You' : 'AI Assistant',
           direction: msg.role === 'user' ? 'outgoing' : 'incoming',
-          position: 'single'
+          position: 'single',
+          isFromHistory: false // This is a real-time message, should be animated
         };
         
         // Use the ref to get the most current conversation ID
@@ -291,7 +292,8 @@ export const ChatProvider = ({ children }) => {
         sentTime: new Date(msg.created_at || msg.timestamp || Date.now()).toLocaleTimeString(),
         sender: (msg.role === 'user' ? 'You' : 'AI Assistant'),
         direction: (msg.role === 'user' ? 'outgoing' : 'incoming'),
-        position: 'single'
+        position: 'single',
+        isFromHistory: true // Flag to indicate this message is loaded from history, not real-time
       }));
       
       console.log(`[${new Date().toISOString()}] Loaded ${formatted.length} messages for conversation ${conversationId}`);
@@ -362,7 +364,8 @@ export const ChatProvider = ({ children }) => {
       sentTime: new Date().toLocaleTimeString(), 
       sender: 'You', 
       direction: 'outgoing', 
-      position: 'single' 
+      position: 'single',
+      isFromHistory: false // User messages are always real-time
     };
     
     dispatch({ type: 'ADD_MESSAGE', payload: userMsg });

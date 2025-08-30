@@ -419,7 +419,7 @@ module.exports = async function (fastify, opts) {
     });
   }
 
-  const cookieSecure   = process.env.NODE_ENV === 'staging';
+  const cookieSecure   = process.env.NODE_ENV === 'production';
   const cookieSameSite = cookieSecure ? 'None' : 'Lax';
   const googleCallbackUri =
     cookieSecure
