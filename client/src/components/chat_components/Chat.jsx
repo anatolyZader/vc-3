@@ -25,6 +25,7 @@ import LogoutBtn from './LogoutBtn';
 import VoiceInput from './VoiceInput';
 import CustomMessage from './CustomMessage';
 import ConfirmationDialog from './ConfirmationDialog';
+import { scrollChatToBottom } from './scrollUtils';
 import eventstorm_logo from './eventstorm_logo.png';  
 
 const Chat = () => {
@@ -146,6 +147,20 @@ const Chat = () => {
     
     return () => window.removeEventListener('resize', checkMobile);
   }, [isMobileMenuOpen]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('Messages changed, triggering scroll. Message count:', messages.length);
+      // Small delay to ensure message is rendered
+      const timer = setTimeout(() => {
+        console.log('Executing scrollChatToBottom after delay');
+        scrollChatToBottom(true);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -429,6 +444,25 @@ const Chat = () => {
           <Avatar src={eventstorm_logo} name="AI Assistant" />
           <ConversationHeader.Content userName="AI Assistant" />
           <ConversationHeader.Actions>
+            {/* Temporary test button for scrolling */}
+            <button 
+              onClick={() => {
+                console.log('Test scroll button clicked');
+                scrollChatToBottom(true);
+              }}
+              style={{ 
+                padding: '4px 8px', 
+                marginRight: '8px', 
+                fontSize: '12px',
+                background: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Test Scroll
+            </button>
             <LogoutBtn /> 
           </ConversationHeader.Actions>
         </ConversationHeader>

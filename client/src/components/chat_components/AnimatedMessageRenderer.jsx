@@ -6,6 +6,7 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 import PropTypes from 'prop-types';
 import TypewriterText from './TypewriterText';
+import { onTypewriterScroll } from './scrollUtils';
 import './messageRenderer.css';
 import './TypewriterText.css';
 
@@ -181,6 +182,7 @@ const AnimatedMessageRenderer = ({
         text={content} 
         speed={animationSpeed}
         className="ai-message-text"
+        onScroll={onTypewriterScroll}
         onComplete={() => {
           // After typewriter completes, we could potentially re-render with full markdown
           // For now, keep it simple and let the basic markdown work

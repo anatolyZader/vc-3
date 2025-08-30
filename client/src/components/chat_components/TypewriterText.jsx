@@ -6,6 +6,7 @@ const TypewriterText = ({
   text, 
   speed = 100, // milliseconds between words
   onComplete = null,
+  onScroll = null, // callback triggered after each word is added
   className = '',
   startDelay = 0 // delay before starting animation
 }) => {
@@ -34,10 +35,16 @@ const TypewriterText = ({
     const timer = setTimeout(() => {
       setDisplayedText(prev => prev + words[currentIndex]);
       setCurrentIndex(prev => prev + 1);
+      
+      // Trigger scroll callback after text is updated
+      if (onScroll) {
+        // Use setTimeout to ensure DOM is updated before scrolling
+        setTimeout(() => onScroll(), 0);
+      }
     }, speed);
 
     return () => clearTimeout(timer);
-  }, [currentIndex, words, speed, onComplete]);
+  }, [currentIndex, words, speed, onComplete, onScroll]);
 
   // Reset when text changes
   useEffect(() => {
@@ -91,6 +98,7 @@ TypewriterText.propTypes = {
   text: PropTypes.string.isRequired,
   speed: PropTypes.number,
   onComplete: PropTypes.func,
+  onScroll: PropTypes.func,
   className: PropTypes.string,
   startDelay: PropTypes.number
 };
