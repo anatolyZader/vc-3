@@ -23,25 +23,15 @@ export const scrollChatToBottom = (smooth = true) => {
   for (const selector of possibleSelectors) {
     messageList = document.querySelector(selector);
     if (messageList) {
-      console.log(`Found message list with selector: ${selector}`);
       break;
     }
   }
   
   if (messageList) {
-    console.log('Scrolling to bottom', { 
-      scrollHeight: messageList.scrollHeight, 
-      clientHeight: messageList.clientHeight,
-      currentScrollTop: messageList.scrollTop 
-    });
-    
     messageList.scrollTo({
       top: messageList.scrollHeight,
       behavior: smooth ? 'smooth' : 'auto'
     });
-  } else {
-    console.warn('Message list container not found. Available elements:', 
-      document.querySelectorAll('*[class*="message"], *[class*="cs-"]'));
   }
 };
 
@@ -57,22 +47,11 @@ export const isUserNearBottom = (threshold = 100) => {
                      document.querySelector('.chat-container .cs-message-list');
   
   if (!messageList) {
-    console.warn('Message list not found for scroll position check');
     return true; // Default to allowing scroll if we can't find the container
   }
   
   const { scrollTop, scrollHeight, clientHeight } = messageList;
-  const isNearBottom = scrollTop + clientHeight >= scrollHeight - threshold;
-  
-  console.log('Scroll position check:', {
-    scrollTop,
-    scrollHeight,
-    clientHeight,
-    threshold,
-    isNearBottom
-  });
-  
-  return isNearBottom;
+  return scrollTop + clientHeight >= scrollHeight - threshold;
 };
 
 /**
@@ -91,7 +70,6 @@ export const autoScrollIfNeeded = (smooth = true) => {
  * Uses gentle auto-scrolling that won't interfere with user scrolling
  */
 export const onTypewriterScroll = () => {
-  console.log('TypewriterScroll callback triggered');
   // Use a small delay to ensure DOM updates are complete
   requestAnimationFrame(() => {
     autoScrollIfNeeded(true);
