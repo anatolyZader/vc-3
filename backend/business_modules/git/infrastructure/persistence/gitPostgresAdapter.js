@@ -1,4 +1,7 @@
-// gitPostgresAdapter.js
+// const { Pool } = require('pg');
+const IGitPersistPort = require('../../domain/ports/IGitPersistPort');
+
+const isLocal = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';ostgresAdapter.js
 'use strict';
 
 const { Pool } = require('pg');
