@@ -188,6 +188,10 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 const { SystemPrompts, PromptSelector } = require('./prompts/systemPrompts');
 const PromptConfig = require('./prompts/promptConfig');
 
+// Import extracted utility functions
+const AIUtils = require('./utils/AIUtils');
+const VectorSearchStrategy = require('./strategies/VectorSearchStrategy');
+
 // Import the DataPreparationPipeline for handling repository processing
 const DataPreparationPipeline = require('./rag_pipelines/DataPreparationPipeline');
 
@@ -298,7 +302,7 @@ class AILangchainAdapter extends IAIPort {
     // Generate unique IDs for Pinecone
     const repoId = 'core-docs';
     const documentIds = splittedDocs.map((doc, index) =>
-      `system_${repoId}_${this.sanitizeId(doc.metadata.type || doc.metadata.source || 'unknown')}_chunk_${index}`
+      `system_${repoId}_${AIUtils.sanitizeId(doc.metadata.type || doc.metadata.source || 'unknown')}_chunk_${index}`
     );
 
     // Store in Pinecone in a GLOBAL namespace
@@ -948,59 +952,8 @@ class AILangchainAdapter extends IAIPort {
     }
   }
 
-  // Helper method to format conversation history into messages
-  formatConversationHistory(history) {
-    if (!history || history.length === 0) {
-      return [];
-    }
-
-    const messages = [];
-    
-    // Add conversation history as alternating user/assistant messages
-    history.forEach((entry) => {
-      // Add user message
-      messages.push({
-        role: "user",
-        content: entry.prompt
-      });
-      
-      // Add assistant response
-      messages.push({
-        role: "assistant", 
-        content: entry.response
-      });
-    });
-
-    console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Formatted ${messages.length} messages (${messages.length / 2} exchanges) for context`);
-    return messages;
-  }
-
   // 2. Retrieval and generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
-
-  // Helper to extract endpoints and tags from OpenAPI spec
-  formatApiSpecSummary(apiSpec) {
-    if (!apiSpec) return '';
-    let summary = 'API Endpoints and Tags from OpenAPI spec:';
-    // List tags
-    if (Array.isArray(apiSpec.tags)) {
-      summary += '\n\nTags:';
-      apiSpec.tags.forEach(tag => {
-        summary += `\n- ${tag.name}: ${tag.description}`;
-      });
-    }
-    // List endpoints
-    if (apiSpec.paths && typeof apiSpec.paths === 'object') {
-      summary += '\n\nEndpoints:';
-      Object.entries(apiSpec.paths).forEach(([path, methods]) => {
-        Object.entries(methods).forEach(([method, details]) => {
-          const tagList = details.tags && details.tags.length ? ` [tags: ${details.tags.join(', ')}]` : '';
-          summary += `\n- ${method.toUpperCase()} ${path}${tagList}`;
-        });
-      });
-    }
-    return summary;
-  }
 
   // RAG Query Phase: Retrieval and Generation only (data preparation is done in processPushedRepo/initializeCoreDocumentation)
   async respondToPrompt(userId, conversationId, prompt, conversationHistory = []) {
@@ -1022,7 +975,7 @@ class AILangchainAdapter extends IAIPort {
       try {
         // Load API spec and format summary
         const apiSpec = await this.loadApiSpec('httpApiSpec.json');
-        const apiSpecSummary = this.formatApiSpecSummary(apiSpec);
+        const apiSpecSummary = AIUtils.formatApiSpecSummary(apiSpec);
         
         // Build context: code chunks + API spec summary
         let contextIntro = '';
@@ -1075,7 +1028,7 @@ class AILangchainAdapter extends IAIPort {
           console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running intelligent similarity search with semantic filtering`);
           
           // Determine search strategy based on prompt analysis
-          const searchStrategy = this.determineSearchStrategy(prompt);
+          const searchStrategy = VectorSearchStrategy.determineSearchStrategy(prompt);
           console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: User=${searchStrategy.userResults} docs, Core=${searchStrategy.coreResults} docs`);
           console.log(`[${new Date().toISOString()}] 🧠 SEARCH FILTERS: User=${JSON.stringify(searchStrategy.userFilters)}, Core=${JSON.stringify(searchStrategy.coreFilters)}`);
           
@@ -1303,7 +1256,7 @@ class AILangchainAdapter extends IAIPort {
         console.log(`[${new Date().toISOString()}] [DEBUG] Context formatted. Length: ${context.length}`);
         
         // Format passed conversation history for context continuity
-        const historyMessages = this.formatConversationHistory(conversationHistory);
+        const historyMessages = AIUtils.formatConversationHistory(conversationHistory);
         
         // Analyze context sources for intelligent prompt selection
         const contextSources = {
@@ -1475,7 +1428,7 @@ class AILangchainAdapter extends IAIPort {
   async generateStandardResponse(prompt, conversationId, conversationHistory = []) {
     try {
       // Format passed conversation history for continuity even in standard responses
-      const historyMessages = this.formatConversationHistory(conversationHistory);
+      const historyMessages = AIUtils.formatConversationHistory(conversationHistory);
       
       // Use intelligent prompt selection even for standard responses
       const systemPrompt = PromptSelector.selectPrompt({
@@ -1567,83 +1520,6 @@ class AILangchainAdapter extends IAIPort {
         timestamp: new Date().toISOString(),
         error: error.message
       };
-    }
-  }
-
-  // Helper method to determine file type from file path
-  getFileType(filePath) {
-    const extension = filePath.split('.').pop().toLowerCase();
-    const codeExtensions = {
-      js: 'JavaScript',
-      jsx: 'React',
-      ts: 'TypeScript',
-      tsx: 'React TypeScript',
-      py: 'Python',
-      java: 'Java',
-      rb: 'Ruby',
-      php: 'PHP',
-      c: 'C',
-      cpp: 'C++',
-      cs: 'C#',
-      go: 'Go',
-      rs: 'Rust',
-      swift: 'Swift',
-      kt: 'Kotlin',
-      html: 'HTML',
-      css: 'CSS',
-      scss: 'SCSS',
-      json: 'JSON',
-      md: 'Markdown',
-      sql: 'SQL',
-      sh: 'Shell',
-      bat: 'Batch',
-      ps1: 'PowerShell',
-      yaml: 'YAML',
-      yml: 'YAML',
-      xml: 'XML'
-    };
-
-    return codeExtensions[extension] || 'Unknown';
-  }
-
-  // Helper method to sanitize document IDs
-  sanitizeId(input) {
-    // Remove special characters and truncate if necessary
-    return input.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
-  }
-
-  // Helper method to emit RAG status updates for monitoring
-  emitRagStatus(status, details = {}) {
-    // Always log the status update
-    console.log(`[${new Date().toISOString()}] 🔍 RAG STATUS: ${status}`, 
-      Object.keys(details).length > 0 ? JSON.stringify(details, null, 2) : '');
-    
-    // Try to emit to the event bus if available
-    try {
-      // First try the instance event bus
-      if (this.eventBus) {
-        this.eventBus.emit('ragStatusUpdate', {
-          component: 'aiLangchainAdapter',
-          timestamp: new Date().toISOString(),
-          status,
-          ...details
-        });
-        return;
-      }
-      
-      // Fallback to imported event bus if instance one isn't available
-      const eventDispatcherPath = '../../../../eventDispatcher';
-      const { eventBus } = require(eventDispatcherPath);
-      if (eventBus) {
-        eventBus.emit('ragStatusUpdate', {
-          component: 'aiLangchainAdapter',
-          timestamp: new Date().toISOString(),
-          status,
-          ...details
-        });
-      }
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
     }
   }
 
@@ -1863,135 +1739,9 @@ class AILangchainAdapter extends IAIPort {
   /**
    * Determine intelligent search strategy based on prompt analysis
    */
-  determineSearchStrategy(prompt) {
-    const promptLower = prompt.toLowerCase();
-    
-    // Domain/business logic questions
-    if (this.containsKeywords(promptLower, ['domain', 'entity', 'business', 'rule', 'aggregate', 'model'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Domain/Business Logic Query`);
-      return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { layer: 'domain' },
-        coreFilters: { type: 'module_documentation' }
-      };
-    }
-    
-    // API/endpoint questions
-    if (this.containsKeywords(promptLower, ['api', 'endpoint', 'route', 'http', 'request', 'controller', 'fastify'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: API/Endpoint Query`);
-      return {
-        userResults: 6,
-        coreResults: 5,
-        userFilters: { semantic_role: 'controller' },
-        coreFilters: { type: 'api_endpoint' }
-      };
-    }
-    
-    // Error/debugging questions
-    if (this.containsKeywords(promptLower, ['error', 'bug', 'fix', 'debug', 'issue', 'problem', 'exception', 'fail'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Error/Debugging Query`);
-      return {
-        userResults: 10,
-        coreResults: 2,
-        userFilters: { is_entrypoint: true }, // Focus on entry points where errors often occur
-        coreFilters: {}
-      };
-    }
-    
-    // Chat/conversation questions
-    if (this.containsKeywords(promptLower, ['chat', 'message', 'conversation', 'websocket', 'socket'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Chat Module Query`);
-      return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { eventstorm_module: 'chatModule' },
-        coreFilters: { type: 'module_documentation' }
-      };
-    }
-    
-    // Git/repository questions
-    if (this.containsKeywords(promptLower, ['git', 'repository', 'github', 'pull request', 'commit', 'branch'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Git Module Query`);
-      return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { eventstorm_module: 'gitModule' },
-        coreFilters: { type: 'module_documentation' }
-      };
-    }
-    
-    // AI/RAG/embedding questions
-    if (this.containsKeywords(promptLower, ['ai', 'embedding', 'vector', 'rag', 'langchain', 'openai', 'semantic'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: AI Module Query`);
-      return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { eventstorm_module: 'aiModule' },
-        coreFilters: { type: 'module_documentation' }
-      };
-    }
-    
-    // Docs/documentation questions
-    if (this.containsKeywords(promptLower, ['docs', 'documentation', 'search', 'knowledge', 'doc'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Docs Module Query`);
-      return {
-        userResults: 8,
-        coreResults: 4,
-        userFilters: { eventstorm_module: 'docsModule' },
-        coreFilters: { type: 'module_documentation' }
-      };
-    }
-    
-    // Test/testing questions
-    if (this.containsKeywords(promptLower, ['test', 'testing', 'spec', 'unit test', 'integration test'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Testing Query`);
-      return {
-        userResults: 8,
-        coreResults: 2,
-        userFilters: { semantic_role: 'test' },
-        coreFilters: {}
-      };
-    }
-    
-    // Configuration/setup questions
-    if (this.containsKeywords(promptLower, ['config', 'configuration', 'setup', 'environment', 'env', 'settings'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Configuration Query`);
-      return {
-        userResults: 6,
-        coreResults: 4,
-        userFilters: { semantic_role: 'config' },
-        coreFilters: { type: 'configuration' }
-      };
-    }
-    
-    // Plugin/middleware questions
-    if (this.containsKeywords(promptLower, ['plugin', 'middleware', 'interceptor', 'fastify plugin'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Plugin/Middleware Query`);
-      return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { semantic_role: 'plugin' },
-        coreFilters: {}
-      };
-    }
-    
-    // Default strategy for general questions
-    console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: General Query (default)`);
-    return {
-      userResults: 8,
-      coreResults: 4,
-      userFilters: {},
-      coreFilters: {}
-    };
-  }
-
   /**
    * Check if prompt contains specific keywords
    */
-  containsKeywords(text, keywords) {
-    return keywords.some(keyword => text.includes(keyword));
-  }
 }
 
 module.exports = AILangchainAdapter;
