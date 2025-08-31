@@ -23,23 +23,25 @@ AOP modules – for cross-cutting concerns
 Business modules – for main business concerns, 
 Each business module represents a bounded context in Domain-Driven Design.
 
-The Business modules represent the core business capabilities with strict boundaries and event-driven communication, while AOP modules provide shared technical services that cross module boundaries. This creates a clean separation between business concerns (what the system does) and technical concerns (how the system works), following both Domain-Driven Design and Aspect-Oriented Programming principles.
+The Business modules represent the core business capabilities with strict boundaries and event-driven communication, while AOP modules provide shared technical services that cross module boundaries. This creates a clean separation between business concerns (what the system does) and technical concerns (how the system works), following both Domain-Driven Design and Aspect-Oriented Programming principles. 
 
 This architecture allows Eventstorm.me to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.
 
 Difference in communication:
 
-Business modules are strictly isolated / encapsulated and interact with other modules only via pubsub messaging.
+Business → Business: async only via Pub/Sub (domain or integration events). No direct calls. Contracts = event schemas.
 
-AOP modules are not encapsulated and are accessible to other modules via direct http / method calls.
+Business → AOP: direct method calls (e.g., permissions.check(), auth.verify(), log.info()) through well-defined interfaces.
+
+AOP → Business: never call back into business logic (prevents cycles). AOP modules are dependency sinks.
 
 AOP modules are globally accessible via Fastify decorators
 
-DDD + Hexagonal Architecture
+DDD + Hexagonal Architecture:
 
 Each module (AOP or business) is built according to DDD and Hexagonal (Ports and Adapters) multilayered architecture, with a rich domain layer and strict isolation between layers.
 
-Layers in Each Module
+Layers in Each Module:
 1. Input
 
 Incoming requests are accepted here.
@@ -126,6 +128,8 @@ Ports (persistence, messaging, AI, etc.)
 Value objects
 
 Domain events
+
+ubiqLangDict.json file includes the app's ddd ubiquitous language dictionary / glossary
 
 5. Infrastructure
 
