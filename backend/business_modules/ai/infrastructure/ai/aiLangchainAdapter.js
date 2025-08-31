@@ -24,6 +24,7 @@ const CoreDocsIndexer = require('./indexers/CoreDocsIndexer');
 
 // Import the DataPreparationPipeline for handling repository processing
 const DataPreparationPipeline = require('./rag_pipelines/DataPreparationPipeline');
+const QueryPipeline = require('./rag_pipelines/QueryPipeline');
 
 class AILangchainAdapter extends IAIPort {
   constructor(options = {}) {
@@ -139,6 +140,18 @@ class AILangchainAdapter extends IAIPort {
         });
         console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Vector store initialized for userId: ${this.userId}`);
+        
+        // Initialize QueryPipeline with the new vector store for RAG operations
+        this.queryPipeline = new QueryPipeline({
+          embeddings: this.embeddings,
+          pinecone: this.pinecone,
+          llm: this.llm,
+          eventBus: this.eventBus,
+          requestQueue: this.requestQueue,
+          coreDocsIndexer: this.coreDocsIndexer,
+          maxRetries: this.requestQueue.maxRetries
+        });
+        console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized for userId: ${this.userId}`);
       } else {
         console.warn(`[${new Date().toISOString()}] Pinecone client not available, vectorStore not initialized for user ${userId}`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Vector store NOT initialized (no Pinecone client).`);
@@ -242,444 +255,22 @@ class AILangchainAdapter extends IAIPort {
     // Use the queue system for all AI operations
     return this.requestQueue.queueRequest(async () => {
       try {
-        // Load API spec and format summary
-        const apiSpec = await this.coreDocsIndexer.loadApiSpec('httpApiSpec.json');
-        const apiSpecSummary = AIUtils.formatApiSpecSummary(apiSpec);
+        // Delegate to QueryPipeline for RAG processing
+        const result = await this.queryPipeline.respondToPrompt(
+          userId, 
+          conversationId, 
+          prompt, 
+          conversationHistory, 
+          this.vectorStore
+        );
         
-        // Build context: code chunks + API spec summary
-        let contextIntro = '';
-        if (typeof apiSpecSummary === 'string') contextIntro += apiSpecSummary + '\n\n';
-
-        // If no vectorStore or pinecone client, fall back to standard mode
-        if (!this.vectorStore || !this.pinecone) {
-          console.warn(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector database not available, falling back to standard model response.`);
-          
-          // Use our standardized emitRagStatus method instead
-          this.emitRagStatus('retrieval_disabled', {
-            userId: this.userId,
-            conversationId: conversationId,
-            reason: 'Vector database not available'
-          });
-          console.log(`[${new Date().toISOString()}] [DEBUG] respondToPrompt called with userId=${userId}, conversationId=${conversationId}, prompt=${prompt}`);
-          
-          return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
-        }
-
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Searching vector database for relevant code chunks for user ${this.userId}...`);
-        const pineconeIndex = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
-        const vectorStoreNamespace = this.userId;
-        
-        // Store these for later use
-        this.pineconeIndex = pineconeIndex;
-    console.log(`[${new Date().toISOString()}] [DEBUG] userId confirmed in respondToPrompt: ${this.userId}`);
-        this.vectorStoreNamespace = vectorStoreNamespace;
-        
-    console.log(`[${new Date().toISOString()}] [DEBUG] queueRequest will be called for respondToPrompt.`);
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector store namespace: ${vectorStoreNamespace}`);
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Pinecone index name: ${pineconeIndex}`);
-
-        // Attempt retrieval with queue-based approach
-        let similarDocuments = [];
-        
-        // Check if vectorStore is available before attempting search
-        if (!this.vectorStore) {
-          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector store not available, falling back to standard response`);
-          this.emitRagStatus('retrieval_disabled', {
-            userId: this.userId,
-            conversationId: conversationId,
-            reason: 'Vector store not initialized'
-          });
+        // If QueryPipeline indicates to use standard response, fall back
+        if (result.useStandardResponse) {
           return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
         }
         
-        try {
-          // Find relevant documents from vector database with timeout
-          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Running intelligent similarity search with semantic filtering`);
-          
-          // Determine search strategy based on prompt analysis
-          const searchStrategy = VectorSearchStrategy.determineSearchStrategy(prompt);
-          console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: User=${searchStrategy.userResults} docs, Core=${searchStrategy.coreResults} docs`);
-          console.log(`[${new Date().toISOString()}] 🧠 SEARCH FILTERS: User=${JSON.stringify(searchStrategy.userFilters)}, Core=${JSON.stringify(searchStrategy.coreFilters)}`);
-          
-          // Add timeout to prevent hanging - increased timeout and fallback strategy
-          const VECTOR_SEARCH_TIMEOUT = 30000; // 30 seconds (increased from 10)
-          
-          // Search user-specific namespace with intelligent filtering (resilient to filter errors)
-          const userSearchPromise = (async () => {
-            try {
-              if (searchStrategy.userFilters && Object.keys(searchStrategy.userFilters).length > 0) {
-                console.log(`[${new Date().toISOString()}] 🔍 USER SEARCH: Attempting filtered search with:`, JSON.stringify(searchStrategy.userFilters));
-                return await this.vectorStore.similaritySearch(
-                  prompt, 
-                  searchStrategy.userResults,
-                  { filter: searchStrategy.userFilters }
-                );
-              } else {
-                return await this.vectorStore.similaritySearch(prompt, searchStrategy.userResults);
-              }
-            } catch (filterError) {
-              console.log(`[${new Date().toISOString()}] ⚠️ User search filter error (${filterError.message}), retrying without filters`);
-              return await this.vectorStore.similaritySearch(prompt, searchStrategy.userResults);
-            }
-          })();
-
-          // Search global 'core-docs' namespace with intelligent filtering
-          const coreDocsVectorStore = new PineconeStore(this.embeddings, {
-              pineconeIndex: this.pinecone.Index(pineconeIndex),
-              namespace: 'core-docs'
-          });
-          
-          // Create resilient search promise that handles filter errors
-          const coreDocsSearchPromise = (async () => {
-            try {
-              if (searchStrategy.coreFilters && Object.keys(searchStrategy.coreFilters).length > 0) {
-                console.log(`[${new Date().toISOString()}] 🔍 CORE DOCS: Attempting filtered search with:`, JSON.stringify(searchStrategy.coreFilters));
-                return await coreDocsVectorStore.similaritySearch(
-                  prompt, 
-                  searchStrategy.coreResults,
-                  { filter: searchStrategy.coreFilters }
-                );
-              } else {
-                return await coreDocsVectorStore.similaritySearch(prompt, searchStrategy.coreResults);
-              }
-            } catch (filterError) {
-              console.log(`[${new Date().toISOString()}] ⚠️ Core docs filter error (${filterError.message}), retrying without filters`);
-              return await coreDocsVectorStore.similaritySearch(prompt, searchStrategy.coreResults);
-            }
-          })();
-          
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Vector search timeout')), VECTOR_SEARCH_TIMEOUT);
-          });
-          
-          try {
-            // Retrieve more chunks for richer context
-            const [userDocs, coreDocs] = await Promise.race([
-                Promise.all([userSearchPromise, coreDocsSearchPromise]),
-                timeoutPromise
-            ]);
-            similarDocuments = [...userDocs, ...coreDocs];
-
-          } catch (timeoutError) {
-            console.log(`[${new Date().toISOString()}] ⚠️ Vector search timed out, falling back to standard response`);
-            this.emitRagStatus('retrieval_timeout_fallback', {
-              userId: this.userId,
-              conversationId: conversationId,
-              error: timeoutError.message,
-              query: prompt.substring(0, 100)
-            });
-            return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
-          }
-          
-          // Log the firstt few chunks for debugging
-          similarDocuments.forEach((doc, i) => {
-            console.log(`[DEBUG] Chunk ${i}: ${doc.metadata.source || 'Unknown'} | ${doc.pageContent.substring(0, 200)}`);
-          });
-          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Retrieved ${similarDocuments.length} documents from vector store`);
-          
-          console.log(`[${new Date().toISOString()}] [DEBUG] Emitted retrieval_disabled status.`);
-          if (similarDocuments.length > 0) {
-            console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: First document metadata:`, 
-              JSON.stringify(similarDocuments[0].metadata, null, 2));
-            console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: First document content preview: ${similarDocuments[0].pageContent.substring(0, 100)}...`);
-            
-            // Log all document sources for better debugging
-        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone index: ${pineconeIndex}, VectorStore namespace: ${vectorStoreNamespace}`);
-            console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: All retrieved document sources:`);
-            similarDocuments.forEach((doc, index) => {
-              console.log(`[${new Date().toISOString()}]   ${index + 1}. ${doc.metadata.source || 'Unknown'} (${doc.pageContent.length} chars)`);
-            });
-        console.log(`[${new Date().toISOString()}] [DEBUG] Set pineconeIndex and vectorStoreNamespace properties.`);
-            
-            // Use our standardized emitRagStatus method
-            this.emitRagStatus('retrieval_success', {
-              userId: this.userId,
-              conversationId: conversationId,
-              documentsFound: similarDocuments.length,
-              sources: similarDocuments.map(doc => doc.metadata.source || 'Unknown'),
-              sourceTypes: {
-                apiSpec: similarDocuments.filter(doc => doc.metadata.type === 'apiSpec' || doc.metadata.type === 'apiSpecFull').length,
-                githubCode: similarDocuments.filter(doc => doc.metadata.repoId || doc.metadata.githubOwner).length
-              },
-              firstDocContentPreview: similarDocuments[0].pageContent.substring(0, 100) + '...'
-            });
-            console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch called with user: ${userId}, prompt: ${prompt}`);
-          }
-          console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch returned ${similarDocuments.length} documents.`);
-        } catch (error) {
-          // For errors, log and continue with standard response
-          console.error(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Vector search error:`, error.message);
-          
-            console.log(`[${new Date().toISOString()}] [DEBUG] Logging all retrieved document sources:`);
-          // Use our standardized emitRagStatus method
-          this.emitRagStatus('retrieval_error', {
-            userId: this.userId,
-            conversationId: conversationId,
-            error: error.message,
-            query: prompt.substring(0, 100) // Include a preview of the query that failed
-          });
-          console.log(`[${new Date().toISOString()}] [DEBUG] Emitted retrieval_error status.`);
-          
-          console.log(`[${new Date().toISOString()}] [DEBUG] similaritySearch error stack:`, error.stack);
-          return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
-        }
-
-        if (similarDocuments.length === 0) {
-          console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: No relevant documents found, using standard response`);
-          
-          // Use our standardized emitRagStatus method
-          console.log(`[${new Date().toISOString()}] [DEBUG] Emitted retrieval_error status.`);
-          this.emitRagStatus('retrieval_no_results', {
-            userId: this.userId,
-            conversationId: conversationId,
-            query: prompt.substring(0, 100) // Include a preview of the query
-          });
-          console.log(`[${new Date().toISOString()}] [DEBUG] No relevant documents found in similaritySearch.`);
-          
-          return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
-        }
-
-        // Process the retrieved documents
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Found ${similarDocuments.length} relevant documents`);
-
-        // Note: API spec and markdown docs are now pre-indexed in core-docs namespace
-        // and retrieved via similarity search above, no need to load them again here
-
-        // Log comprehensive source loading summary
-        console.log(`[${new Date().toISOString()}] 📚 MULTI-SOURCE RAG CONTEXT FROM VECTOR SEARCH:`);
-        console.log(`[${new Date().toISOString()}] 🎯 TOTAL CONTEXT: ${similarDocuments.length} chunks retrieved from vector database ready for AI processing`);
-
-        // Format the context from retrieved documents (includes pre-indexed API spec, markdown docs, and repo code)
-        console.log(`[${new Date().toISOString()}] [DEBUG] Formatting context from retrieved documents.`);
+        return result;
         
-        // Analyze and log source composition
-        const sourceAnalysis = {
-          apiSpec: 0,
-          rootDocumentation: 0,
-          moduleDocumentation: 0,
-          githubRepo: 0,
-          total: similarDocuments.length
-        };
-        
-        similarDocuments.forEach(doc => {
-          const type = doc.metadata.type || 'unknown';
-          if (type === 'apiSpec' || type === 'apiSpecFull') sourceAnalysis.apiSpec++;
-          else if (type === 'root_documentation') sourceAnalysis.rootDocumentation++;
-          else if (type === 'module_documentation') sourceAnalysis.moduleDocumentation++;
-          else if (doc.metadata.repoId || doc.metadata.githubOwner) sourceAnalysis.githubRepo++;
-        });
-        
-        console.log(`[${new Date().toISOString()}] 🔍 RAG SOURCES ANALYSIS: Chat answer will use comprehensive context from multiple sources:`);
-        console.log(`[${new Date().toISOString()}] 🌐 API Specification: ${sourceAnalysis.apiSpec} chunks`);
-        console.log(`[${new Date().toISOString()}] 📋 Root Documentation (plugins/core): ${sourceAnalysis.rootDocumentation} chunks`);
-        console.log(`[${new Date().toISOString()}] 📁 Module Documentation: ${sourceAnalysis.moduleDocumentation} chunks`);
-        console.log(`[${new Date().toISOString()}] 💻 GitHub Repository Code: ${sourceAnalysis.githubRepo} chunks`);
-        console.log(`[${new Date().toISOString()}] 📊 TOTAL CONTEXT SOURCES: ${sourceAnalysis.total} chunks from ${Object.values(sourceAnalysis).filter(v => v > 0).length - 1} different source types`);
-        
-        // Log specific module documentation being used
-        const moduleDocsUsed = similarDocuments
-          .filter(doc => doc.metadata.type === 'module_documentation')
-          .map(doc => doc.metadata.module)
-          .filter((module, index, arr) => arr.indexOf(module) === index);
-        
-        if (moduleDocsUsed.length > 0) {
-          console.log(`[${new Date().toISOString()}] 📁 Module docs included: ${moduleDocsUsed.join(', ')}`);
-        }
-        
-        // Log GitHub repositories being used
-        const reposUsed = similarDocuments
-          .filter(doc => doc.metadata.repoId)
-          .map(doc => `${doc.metadata.githubOwner}/${doc.metadata.repoId}`)
-          .filter((repo, index, arr) => arr.indexOf(repo) === index);
-        
-        if (reposUsed.length > 0) {
-          console.log(`[${new Date().toISOString()}] 💻 GitHub repos referenced: ${reposUsed.join(', ')}`);
-        }
-        
-        const context = similarDocuments.map((doc, index) => {
-          const source = doc.metadata.source || 'Unknown source';
-          const type = doc.metadata.type || 'unknown';
-          
-          // Add section headers for different types of documentation
-          let sectionHeader = '';
-          if (type === 'apiSpec' || type === 'apiSpecFull') {
-            sectionHeader = '=== API SPECIFICATION ===\n';
-          } else if (type === 'root_documentation') {
-            sectionHeader = '=== ROOT DOCUMENTATION (Plugins & Core Files) ===\n';
-          } else if (type === 'module_documentation') {
-            sectionHeader = `=== ${doc.metadata.module?.toUpperCase() || 'MODULE'} DOCUMENTATION ===\n`;
-          } else if (doc.metadata.repoId) {
-            sectionHeader = `=== CODE REPOSITORY (${source}) ===\n`;
-          }
-          
-          // Limit content length but provide more for documentation files
-          const maxLength = type.includes('documentation') ? 1000 : 500;
-          const content = doc.pageContent.length > maxLength 
-            ? doc.pageContent.substring(0, maxLength) + '...' 
-            : doc.pageContent;
-            
-          return `${sectionHeader}File: ${source}\n${content}`;
-        }).join('\n\n');
-        
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Created context with ${context.length} characters from ${similarDocuments.length} documents`);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Context formatted. Length: ${context.length}`);
-        
-        // Format passed conversation history for context continuity
-        const historyMessages = AIUtils.formatConversationHistory(conversationHistory);
-        
-        // Analyze context sources for intelligent prompt selection
-        const contextSources = {
-          apiSpec: sourceAnalysis.apiSpec > 0,
-          rootDocumentation: sourceAnalysis.rootDocumentation > 0,
-          moduleDocumentation: sourceAnalysis.moduleDocumentation > 0,
-          code: sourceAnalysis.githubRepo > 0
-        };
-
-        // Select appropriate system prompt based on context and question
-        const systemPrompt = PromptSelector.selectPrompt({
-          hasRagContext: similarDocuments.length > 0,
-          conversationCount: conversationHistory.length,
-          question: prompt,
-          contextSources: contextSources,
-          mode: 'auto' // Can be overridden for testing: 'rag', 'standard', 'code', 'api', 'general'
-        });
-
-        // Determine if this is a general knowledge question using PromptConfig
-        const questionLower = prompt.toLowerCase();
-        
-        // Check for application-specific terms
-        const hasApplicationKeywords = PromptConfig.keywords.application.some(keyword => questionLower.includes(keyword));
-        
-        // Check for general question patterns
-        const hasGeneralPattern = PromptConfig.keywords.general.some(keyword => questionLower.includes(keyword));
-        
-        // Special check for app-specific mentions
-        const mentionsApp = questionLower.includes('eventstorm') || 
-                          questionLower.includes('this app') || 
-                          questionLower.includes('the app') ||
-                          questionLower.includes('your app') ||
-                          questionLower.includes('my app');
-        
-        // Logic: It's a general question ONLY if it has general patterns AND no application context
-        const isGeneralQuestion = hasGeneralPattern && !hasApplicationKeywords && !mentionsApp;
-
-        if (PromptConfig.logging.logPromptSelection) {
-          console.log(`[${new Date().toISOString()}] 🎯 PROMPT SELECTION: Auto-selected intelligent system prompt based on context analysis`);
-          console.log(`[${new Date().toISOString()}] 🎯 QUESTION TYPE: ${isGeneralQuestion ? 'General Knowledge' : 'Application/Technical'}`);
-          console.log(`[${new Date().toISOString()}] 🔍 Analysis: hasGeneral=${hasGeneralPattern}, hasApp=${hasApplicationKeywords}, mentionsApp=${mentionsApp}`);
-        }
-        
-        // Build messages with appropriate content based on question type
-        let userMessage;
-        if (isGeneralQuestion) {
-          // For general questions, don't include application context
-          userMessage = {
-            role: "user",
-            content: prompt
-          };
-          console.log(`[${new Date().toISOString()}] 🔍 GENERAL QUESTION: Using clean prompt without application context`);
-        } else {
-          // For application/technical questions, include relevant context
-          userMessage = {
-            role: "user",
-            content: `I have a question: "${prompt}"\n\nHere is the relevant information:\n\n${context}`
-          };
-          console.log(`[${new Date().toISOString()}] 🔍 APPLICATION QUESTION: Including RAG context for technical assistance`);
-        }
-        
-        // Build comprehensive messages array with intelligent system prompt, history, and appropriate content
-        const messages = [
-          {
-            role: "system",
-            content: systemPrompt
-          },
-          ...historyMessages, // Include conversation history
-          userMessage
-        ];
-        
-        console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION CONTEXT: Built ${messages.length} messages for LLM (1 system + ${historyMessages.length} history + 1 current)`);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Messages prepared for LLM invoke with conversation history.`);
-        
-        // Try to generate a response
-        let retries = 0;
-        let success = false;
-        let response;
-        while (!success && retries < this.requestQueue.maxRetries) {
-          if (await this.requestQueue.checkRateLimit()) {
-            console.log(`[${new Date().toISOString()}] [DEBUG] Starting LLM invoke loop. MaxRetries: ${this.requestQueue.maxRetries}`);
-            try {
-              const result = await this.llm.invoke(messages);
-              response = result.content;
-              success = true;
-              console.log(`[${new Date().toISOString()}] [DEBUG] LLM invoke successful.`);
-            } catch (error) {
-              if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
-                retries++;
-                console.warn(`[${new Date().toISOString()}] Rate limit hit during generation, retry ${retries}/${this.requestQueue.maxRetries}`);
-                await this.requestQueue.waitWithBackoff(retries);
-                console.log(`[${new Date().toISOString()}] [DEBUG] LLM rate limit encountered. Waiting before retry.`);
-              } else {
-                // Log the error and throw it for proper handling
-                console.error(`[${new Date().toISOString()}] Failed to respond to prompt:`, error);
-                console.log(`[${new Date().toISOString()}] [DEBUG] LLM invoke error stack:`, error.stack);
-                throw error;
-              }
-            }
-          } else {
-            // Wait if we're rate limited
-            await this.waitWithBackoff(retries);
-            console.log(`[${new Date().toISOString()}] [DEBUG] Waiting for rate limit window in LLM invoke.`);
-          }
-        }
-        if (!success) {
-          // If we couldn't generate a response after all retries
-          throw new Error(`Failed to generate response after ${this.requestQueue.maxRetries} retries due to rate limits`);
-        }
-        console.log(`[${new Date().toISOString()}] Successfully generated response for conversation ${conversationId}`);
-        
-        // Log comprehensive source usage summary
-        console.log(`[${new Date().toISOString()}] ✅ CHAT RESPONSE GENERATED using MULTI-SOURCE RAG:`);
-        console.log(`[${new Date().toISOString()}] 📊 Sources Used Summary:`);
-        console.log(`[${new Date().toISOString()}]    • API spec chunks: ${sourceAnalysis.apiSpec}`);
-        console.log(`[${new Date().toISOString()}]    • Root docs chunks: ${sourceAnalysis.rootDocumentation}`);
-        console.log(`[${new Date().toISOString()}]    • Module docs chunks: ${sourceAnalysis.moduleDocumentation}`);
-        console.log(`[${new Date().toISOString()}]    • GitHub code chunks: ${sourceAnalysis.githubRepo}`);
-        console.log(`[${new Date().toISOString()}]    • TOTAL: ${sourceAnalysis.total} chunks`);
-        
-        if (moduleDocsUsed.length > 0) {
-          console.log(`[${new Date().toISOString()}] 📁 Modules referenced: ${moduleDocsUsed.join(', ')}`);
-        }
-        if (reposUsed.length > 0) {
-          console.log(`[${new Date().toISOString()}] 💻 Repositories referenced: ${reposUsed.join(', ')}`);
-        }
-        
-        const sourcesBreakdown = {
-          hasApiSpec: sourceAnalysis.apiSpec > 0,
-          hasRootDocs: sourceAnalysis.rootDocumentation > 0,
-          hasModuleDocs: sourceAnalysis.moduleDocumentation > 0,
-          hasGithubCode: sourceAnalysis.githubRepo > 0
-        };
-        
-        console.log(`[${new Date().toISOString()}] 🎯 COMPREHENSIVE CONTEXT: Answer incorporates ${Object.values(sourcesBreakdown).filter(Boolean).length}/4 available source types`);
-
-        // Log the full context size to help diagnose if embedding usage is working
-        const contextSize = (typeof finalContext !== 'undefined' ? finalContext.length : (typeof context !== 'undefined' ? context.length : contextIntro.length));
-        console.log(`[${new Date().toISOString()}] [DEBUG] Response generated. Context size: ${context.length}`);
-        console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Used ${conversationHistory.length} previous exchanges for continuity`);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Returning response object from respondToPrompt.`);
-        
-        return {
-          success: true,
-          response,
-          conversationId,
-          timestamp: new Date().toISOString(),
-          ragEnabled: true,
-          contextSize,
-          sourcesUsed: sourceAnalysis,
-          sourcesBreakdown,
-          conversationHistoryUsed: conversationHistory.length > 0,
-          historyMessages: conversationHistory.length
-        };
       } catch (error) {
         console.error(`[${new Date().toISOString()}] Error in respondToPrompt:`, error.message);
         return {
@@ -933,13 +524,6 @@ class AILangchainAdapter extends IAIPort {
         return baseSeparators;
     }
   }
-
-  /**
-   * Determine intelligent search strategy based on prompt analysis
-   */
-  /**
-   * Check if prompt contains specific keywords
-   */
 }
 
 module.exports = AILangchainAdapter;
