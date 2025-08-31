@@ -6,7 +6,7 @@ const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const IChatPersistPort = require('../../domain/ports/IChatPersistPort');
 
-const isLocal = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+const isLocal = process.env.NODE_ENV !== 'staging';
 
 class ChatPostgresAdapter extends IChatPersistPort {
     constructor({ cloudSqlConnector }) {

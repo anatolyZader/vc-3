@@ -93,10 +93,10 @@ module.exports = async function (fastify, opts) {
       },
       servers: [
         {
-          url: process.env.NODE_ENV === 'production'
+          url: process.env.NODE_ENV === 'staging'
             ? 'https://eventstorm.me'
             : 'http://localhost:3000',
-          description: process.env.NODE_ENV === 'production'
+          description: process.env.NODE_ENV === 'staging'
             ? 'Production server'
             : 'Development server',
         },
@@ -419,7 +419,7 @@ module.exports = async function (fastify, opts) {
     });
   }
 
-  const cookieSecure   = process.env.NODE_ENV === 'production';
+  const cookieSecure   = process.env.NODE_ENV === 'staging';
   const cookieSameSite = cookieSecure ? 'None' : 'Lax';
   const googleCallbackUri =
     cookieSecure

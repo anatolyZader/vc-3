@@ -8,7 +8,7 @@ const UserId = require('../../domain/value_objects/userId');
 const RepoId = require('../../domain/value_objects/repoId');
 const HttpApiSpec = require('../../domain/value_objects/httpApiSpec');
 
-const isLocal = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+const isLocal = process.env.NODE_ENV !== 'staging';
 
 class ApiPostgresAdapter extends IApiPersistPort {
   constructor({ cloudSqlConnector }) {
