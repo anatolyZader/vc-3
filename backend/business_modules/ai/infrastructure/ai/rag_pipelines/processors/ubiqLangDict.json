@@ -1,0 +1,101 @@
+{
+  "businessModules": {
+    "auth": {
+      "name": "Authentication",
+      "boundedContext": "User Management",
+      "role": "Identity & Access Management",
+      "type": "Core",
+      "entities": [
+        {
+          "name": "User",
+          "behaviors": ["login", "logout", "authenticate", "authorize"]
+        },
+        {
+          "name": "Session",
+          "behaviors": ["create", "validate", "expire"]
+        }
+      ],
+      "domainEvents": [
+        {"name": "UserLoggedIn"},
+        {"name": "UserLoggedOut"},
+        {"name": "SessionExpired"}
+      ],
+      "valueObjects": [
+        {"name": "Email"},
+        {"name": "Password"},
+        {"name": "Token"}
+      ]
+    },
+    "chat": {
+      "name": "Chat",
+      "boundedContext": "Communication",
+      "role": "Real-time Messaging",
+      "type": "Core",
+      "entities": [
+        {
+          "name": "Message",
+          "behaviors": ["send", "receive", "edit", "delete"]
+        },
+        {
+          "name": "Conversation",
+          "behaviors": ["create", "join", "leave", "archive"]
+        }
+      ],
+      "domainEvents": [
+        {"name": "MessageSent"},
+        {"name": "MessageReceived"},
+        {"name": "ConversationStarted"}
+      ],
+      "valueObjects": [
+        {"name": "MessageId"},
+        {"name": "ConversationId"},
+        {"name": "Timestamp"}
+      ]
+    },
+    "docs": {
+      "name": "Documentation",
+      "boundedContext": "Knowledge Management",
+      "role": "Information Storage & Retrieval",
+      "type": "Supporting",
+      "entities": [
+        {
+          "name": "Document",
+          "behaviors": ["create", "update", "index", "search"]
+        }
+      ],
+      "domainEvents": [
+        {"name": "DocumentCreated"},
+        {"name": "DocumentIndexed"}
+      ],
+      "valueObjects": [
+        {"name": "DocumentId"},
+        {"name": "Content"}
+      ]
+    }
+  },
+  "businessTerms": {
+    "repository": {
+      "name": "Code Repository",
+      "definition": "A storage location for source code and related files"
+    },
+    "embedding": {
+      "name": "Vector Embedding",
+      "definition": "High-dimensional vector representation of text for semantic search"
+    }
+  },
+  "technicalTerms": {
+    "ast": {
+      "name": "Abstract Syntax Tree",
+      "definition": "Tree representation of the syntactic structure of source code"
+    },
+    "rag": {
+      "name": "Retrieval-Augmented Generation",
+      "definition": "AI technique combining information retrieval with text generation"
+    }
+  },
+  "domainEvents": {
+    "auth": ["UserLoggedIn", "UserLoggedOut", "SessionExpired"],
+    "chat": ["MessageSent", "MessageReceived", "ConversationStarted"],
+    "docs": ["DocumentCreated", "DocumentIndexed"]
+  }
+}

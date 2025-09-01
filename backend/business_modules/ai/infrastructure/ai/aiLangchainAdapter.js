@@ -94,23 +94,23 @@ class AILangchainAdapter extends IAIPort {
       this.vectorStore = null;
       console.log(`[${new Date().toISOString()}] [DEBUG] Vector store set to null (will be initialized after userId).`);
 
+      // Initialize CoreDocsIndexer for API specs and markdown documentation
+      this.coreDocsIndexer = new CoreDocsIndexer(
+        this.embeddings,
+        this.pinecone
+      );
+      console.log(`[${new Date().toISOString()}] [DEBUG] CoreDocsIndexer initialized for API and markdown documentation.`);
+
       // Initialize DataPreparationPipeline for repository processing
       this.dataPreparationPipeline = new DataPreparationPipeline({
         embeddings: this.embeddings,
         pinecone: this.pinecone,
         eventBus: this.eventBus,
         pineconeLimiter: this.pineconeLimiter,
+        coreDocsIndexer: this.coreDocsIndexer,
         maxChunkSize: 2000
       });
       console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with ubiquitous language support.`);
-
-      // Initialize CoreDocsIndexer for API specs and markdown documentation
-      this.coreDocsIndexer = new CoreDocsIndexer(
-        this.embeddings,
-        this.pinecone,
-        this.dataPreparationPipeline
-      );
-      console.log(`[${new Date().toISOString()}] [DEBUG] CoreDocsIndexer initialized for API and markdown documentation.`);
 
       console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully`);
     } catch (error) {

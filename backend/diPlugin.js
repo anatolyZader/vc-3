@@ -150,7 +150,10 @@ module.exports = fp(async function (fastify, opts) {
     aiLangchainAdapter: asClass(AILangchainAdapter, {
       injector: (container) => ({
         aiProvider: container.resolve('aiProvider'),
-        aiPersistAdapter: container.resolve('aiPersistAdapter')
+        aiPersistAdapter: container.resolve('aiPersistAdapter'),
+        maxRequestsPerMinute: 60,
+        retryDelay: 5000,
+        maxRetries: 10
       })
     }).scoped(),
     aiPubsubAdapter: asClass(AIPubsubAdapter).scoped(),

@@ -1,14 +1,14 @@
 const { MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
+const { PineconeStore } = require('@langchain/pinecone');
 
 /**
  * CoreDocsIndexer handles the indexing of core documentation to Pinecone
  * Includes API specs, markdown files, and specialized chunking strategies
  */
 class CoreDocsIndexer {
-  constructor(embeddings, pinecone, dataPreparationPipeline) {
+  constructor(embeddings, pinecone) {
     this.embeddings = embeddings;
     this.pinecone = pinecone;
-    this.dataPreparationPipeline = dataPreparationPipeline;
   }
 
   /**
@@ -65,8 +65,26 @@ class CoreDocsIndexer {
 
         console.log(`[${new Date().toISOString()}] 🔵 [RAG-INDEX] Preparing to index ${documents.length} core documents...`);
 
-        // Use data preparation pipeline to process and index
-        await this.dataPreparationPipeline.processDocuments(documents, namespace);
+        // Generate unique IDs for Pinecone
+        const documentIds = documents.map((doc, index) =>
+          `system_core_docs_${this.sanitizeId(doc.metadata.type || doc.metadata.source || 'unknown')}_chunk_${index}`
+        );
+
+        // Store documents directly to Pinecone
+        try {
+          const coreDocsIndex = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+          const vectorStore = new PineconeStore(this.embeddings, {
+            pineconeIndex: coreDocsIndex,
+            namespace: namespace
+          });
+          
+          await vectorStore.addDocuments(documents, { ids: documentIds });
+          console.log(`[${new Date().toISOString()}] ✅ [RAG-INDEX] Successfully stored ${documents.length} core documents to Pinecone namespace: ${namespace}`);
+          
+        } catch (storageError) {
+          console.error(`[${new Date().toISOString()}] ❌ [RAG-INDEX] Error storing documents to Pinecone:`, storageError.message);
+          throw storageError;
+        }
 
         console.log(`[${new Date().toISOString()}] ✅ [RAG-INDEX] Successfully indexed ${documents.length} core documents to Pinecone namespace: ${namespace}`);
       } catch (error) {
@@ -415,6 +433,15 @@ class CoreDocsIndexer {
     }
 
     return splittedDocs;
+  }
+
+  /**
+   * Sanitize string for use as Pinecone document ID
+   * @param {string} input - Input string to sanitize
+   * @returns {string} Sanitized string safe for use as document ID
+   */
+  sanitizeId(input) {
+    return input.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
   }
 }
 

@@ -4,19 +4,17 @@ const CoreDocsIndexer = require('../../../../business_modules/ai/infrastructure/
 // Mock dependencies
 const mockEmbeddings = { embed: jest.fn() };
 const mockPinecone = { deleteMany: jest.fn() };
-const mockDataPreparationPipeline = { processDocuments: jest.fn() };
 
 describe('CoreDocsIndexer', () => {
   let indexer;
 
   beforeEach(() => {
-    indexer = new CoreDocsIndexer(mockEmbeddings, mockPinecone, mockDataPreparationPipeline);
+    indexer = new CoreDocsIndexer(mockEmbeddings, mockPinecone);
   });
 
   test('should initialize with required dependencies', () => {
     expect(indexer.embeddings).toBe(mockEmbeddings);
     expect(indexer.pinecone).toBe(mockPinecone);
-    expect(indexer.dataPreparationPipeline).toBe(mockDataPreparationPipeline);
   });
 
   test('should have all required methods', () => {
@@ -26,5 +24,6 @@ describe('CoreDocsIndexer', () => {
     expect(typeof indexer.chunkApiSpecEndpoints).toBe('function');
     expect(typeof indexer.chunkApiSpecSchemas).toBe('function');
     expect(typeof indexer.splitMarkdownDocuments).toBe('function');
+    expect(typeof indexer.sanitizeId).toBe('function');
   });
 });
