@@ -1,7 +1,7 @@
 // test_ubiquitous_language.js
 "use strict";
 
-const DataPreparationPipeline = require('./rag_pipelines/DataPreparationPipeline');
+const DataPreparationPipeline = require('./rag_pipelines/data_preparation/DataPreparationPipeline');
 
 async function testUbiquitousLanguage() {
   console.log('🔄 Testing Ubiquitous Language Dictionary Integration\n');

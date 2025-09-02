@@ -1,8 +1,8 @@
 const { PineconeStore } = require('@langchain/pinecone');
-const VectorSearchStrategy = require('../strategies/VectorSearchStrategy');
-const AIUtils = require('../utils/AIUtils');
-const PromptSelector = require('../prompts/index').PromptSelector;
-const PromptConfig = require('../prompts/promptConfig');
+const VectorSearchStrategy = require('./VectorSearchStrategy');
+const AIUtils = require('../../utils/AIUtils');
+const PromptSelector = require('../../prompts/index').PromptSelector;
+const PromptConfig = require('../../prompts/promptConfig');
 
 /**
  * Consolidated QueryPipeline that handles all RAG query processing

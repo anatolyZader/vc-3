@@ -3,7 +3,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const SemanticPreprocessor = require('./rag_pipelines/SemanticPreprocessor');
+const SemanticPreprocessor = require('./rag_pipelines/data_preparation/processors/SemanticPreprocessor');
 
 /**
  * Test semantic preprocessing on actual files found in the repository

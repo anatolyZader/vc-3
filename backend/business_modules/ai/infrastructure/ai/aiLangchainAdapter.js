@@ -3,28 +3,17 @@
 /* eslint-disable no-unused-vars */
 
 const IAIPort = require('../../domain/ports/IAIPort');
-const Bottleneck = require("bottleneck");
-const { GithubRepoLoader } = require("@langchain/community/document_loaders/web/github");
-const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
-const { MarkdownHeaderTextSplitter } = require("@langchain/textsplitters");
 const { PineconeStore } = require('@langchain/pinecone');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
-// Import the new prompt system
-const { SystemPrompts, PromptSelector } = require('./prompts/systemPrompts');
-const PromptConfig = require('./prompts/promptConfig');
-
 // Import extracted utility functions
-const AIUtils = require('./utils/AIUtils');
 const RequestQueue = require('./utils/RequestQueue');
-const VectorSearchStrategy = require('./strategies/VectorSearchStrategy');
 const LLMProviderManager = require('./providers/LLMProviderManager');
-const CoreDocsIndexer = require('./indexers/CoreDocsIndexer');
 
 // Import the DataPreparationPipeline for handling repository processing
-const DataPreparationPipeline = require('./rag_pipelines/DataPreparationPipeline');
-const QueryPipeline = require('./rag_pipelines/QueryPipeline');
+const DataPreparationPipeline = require('./rag_pipelines/data_preparation/DataPreparationPipeline');
+const QueryPipeline = require('./rag_pipelines/query/QueryPipeline');
 
 class AILangchainAdapter extends IAIPort {
   constructor(options = {}) {
@@ -94,23 +83,15 @@ class AILangchainAdapter extends IAIPort {
       this.vectorStore = null;
       console.log(`[${new Date().toISOString()}] [DEBUG] Vector store set to null (will be initialized after userId).`);
 
-      // Initialize CoreDocsIndexer for API specs and markdown documentation
-      this.coreDocsIndexer = new CoreDocsIndexer(
-        this.embeddings,
-        this.pinecone
-      );
-      console.log(`[${new Date().toISOString()}] [DEBUG] CoreDocsIndexer initialized for API and markdown documentation.`);
-
       // Initialize DataPreparationPipeline for repository processing
       this.dataPreparationPipeline = new DataPreparationPipeline({
         embeddings: this.embeddings,
         pinecone: this.pinecone,
         eventBus: this.eventBus,
         pineconeLimiter: this.pineconeLimiter,
-        coreDocsIndexer: this.coreDocsIndexer,
         maxChunkSize: 2000
       });
-      console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with ubiquitous language support.`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with specialized processors for all core documentation.`);
 
       console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully`);
     } catch (error) {
@@ -148,7 +129,6 @@ class AILangchainAdapter extends IAIPort {
           llm: this.llm,
           eventBus: this.eventBus,
           requestQueue: this.requestQueue,
-          coreDocsIndexer: this.coreDocsIndexer,
           maxRetries: this.requestQueue.maxRetries
         });
         console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized for userId: ${this.userId}`);
@@ -163,15 +143,6 @@ class AILangchainAdapter extends IAIPort {
     }
 
     return this;
-  }
-
-  /**
-   * Index core documentation to Pinecone (API specs and markdown files)
-   * @param {string} namespace - Pinecone namespace (defaults to 'core-docs')
-   * @param {boolean} clearFirst - Whether to clear existing core docs first
-   */
-  async indexCoreDocsToPinecone(namespace = 'core-docs', clearFirst = false) {
-    return await this.coreDocsIndexer.indexCoreDocsToPinecone(namespace, clearFirst);
   }
 
   // RAG Data Preparation Phase: Loading, chunking, and embedding (both core docs and repo code)
@@ -192,11 +163,6 @@ class AILangchainAdapter extends IAIPort {
     }
 
     try {
-      // Delegate to DataPreparationPipeline which handles:
-      // 1. Ubiquitous language enhancement (Step 1)
-      // 2. Semantic preprocessing (Step 2) 
-      // 3. AST-based chunking (Step 3)
-      // 4. Vector storage in Pinecone
       console.log(`[${new Date().toISOString()}] � RAG REPO: Delegating to DataPreparationPipeline with ubiquitous language support`);
       
       const result = await this.dataPreparationPipeline.processPushedRepo(userId, repoId, repoData);
@@ -235,9 +201,7 @@ class AILangchainAdapter extends IAIPort {
   }
 
   // 2. Retrieval and generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  // The actual RAG chain, which takes the user query at run time and retrieves the relevant data from the index, then passes it to the model
 
-  // RAG Query Phase: Retrieval and Generation only (data preparation is done in processPushedRepo/initializeCoreDocumentation)
   async respondToPrompt(userId, conversationId, prompt, conversationHistory = []) {
     this.setUserId(userId);
     if (!this.userId) {
@@ -264,11 +228,6 @@ class AILangchainAdapter extends IAIPort {
           this.vectorStore
         );
         
-        // If QueryPipeline indicates to use standard response, fall back
-        if (result.useStandardResponse) {
-          return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
-        }
-        
         return result;
         
       } catch (error) {
@@ -284,244 +243,40 @@ class AILangchainAdapter extends IAIPort {
     });
   }
 
-  // Helper method for generating responses without context
-  async generateStandardResponse(prompt, conversationId, conversationHistory = []) {
+  /**
+   * Emit RAG status events for monitoring
+   */
+  emitRagStatus(status, details = {}) {
+    // Always log the status update
+    console.log(`[${new Date().toISOString()}] 🔍 RAG STATUS: ${status}`, 
+      Object.keys(details).length > 0 ? JSON.stringify(details, null, 2) : '');
+    
+    // Try to emit to the event bus if available
     try {
-      // Format passed conversation history for continuity even in standard responses
-      const historyMessages = AIUtils.formatConversationHistory(conversationHistory);
-      
-      // Use intelligent prompt selection even for standard responses
-      const systemPrompt = PromptSelector.selectPrompt({
-        hasRagContext: false,
-        conversationCount: conversationHistory.length,
-        question: prompt,
-        contextSources: {},
-        mode: 'auto'
-      });
-
-      if (PromptConfig.logging.logPromptSelection) {
-        console.log(`[${new Date().toISOString()}] 🎯 STANDARD RESPONSE: Selected intelligent prompt for non-RAG response`);
-      }
-      
-      // Build messages with intelligent conversation history
-      const messages = [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        ...historyMessages, // Include conversation history
-        {
-          role: "user",
-          content: prompt
-        }
-      ];
-
-      console.log(`[${new Date().toISOString()}] 🔍 STANDARD RESPONSE: Built ${messages.length} messages with conversation history (1 system + ${historyMessages.length} history + 1 current)`);
-
-      // Rate limit checks
-      let retries = 0;
-      let success = false;
-      let response;
-
-      while (!success && retries < this.requestQueue.maxRetries) {
-        if (await this.requestQueue.checkRateLimit()) {
-          try {
-            const result = await this.llm.invoke(messages);
-            response = result.content;
-            success = true;
-          } catch (error) {
-            if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
-              retries++;
-              console.warn(`[${new Date().toISOString()}] Rate limit hit during standard generation, retry ${retries}/${this.requestQueue.maxRetries}`);
-              await this.requestQueue.waitWithBackoff(retries);
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          await this.requestQueue.waitWithBackoff(retries);
-        }
-      }
-
-      if (!success) {
-        throw new Error(`Failed to generate standard response after ${this.requestQueue.maxRetries} retries due to rate limits`);
-      }
-
-      console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Generated standard response with conversation history for conversation ${conversationId}`);
-      
-      return {
-        success: true,
-        response,
-        conversationId,
-        timestamp: new Date().toISOString(),
-        sourcesUsed: 0,
-        ragEnabled: false,
-        conversationHistoryUsed: conversationHistory.length > 0,
-        historyMessages: conversationHistory.length
-      };
-
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] Error in generateStandardResponse:`, error.message);
-
-      if (error.message && (error.message.includes('429') || error.message.includes('quota') || error.message.includes('rate limit'))) {
-        return {
-          success: false,
-          response: "I'm currently experiencing high demand. Please try again in a few moments.",
-          conversationId,
+      // First try the instance event bus
+      if (this.eventBus) {
+        this.eventBus.emit('ragStatusUpdate', {
+          component: 'aiLangchainAdapter',
           timestamp: new Date().toISOString(),
-          error: error.message
-        };
+          status,
+          ...details
+        });
+        return;
       }
-
-      return {
-        success: false,
-        response: "I encountered an issue while generating a response. Please try again shortly.",
-        conversationId,
-        timestamp: new Date().toISOString(),
-        error: error.message
-      };
-    }
-  }
-
-  // Helper method to create an appropriate text splitter based on document content
-  createSmartSplitter(documents) {
-    // Default splitter settings
-    const chunkSize = 1500; // Larger chunks for fewer requests
-    const chunkOverlap = 250; // More overlap for better context
-
-    // Analyze documents to determine predominant language and file types
-    const languageCount = {};
-    const fileTypeCount = {};
-
-    documents.forEach(doc => {
-      const source = doc.metadata.source || '';
-      const extension = source.split('.').pop().toLowerCase();
-      if (!extension) return;
-
-      // Track file types
-      if (['md', 'markdown'].includes(extension)) {
-        fileTypeCount.markdown = (fileTypeCount.markdown || 0) + 1;
-      } else if (['json'].includes(extension)) {
-        fileTypeCount.json = (fileTypeCount.json || 0) + 1;
-      } else if (['yml', 'yaml'].includes(extension)) {
-        fileTypeCount.yaml = (fileTypeCount.yaml || 0) + 1;
+      
+      // Fallback to imported event bus if instance one isn't available
+      const eventDispatcherPath = '../../../../eventDispatcher';
+      const { eventBus } = require(eventDispatcherPath);
+      if (eventBus) {
+        eventBus.emit('ragStatusUpdate', {
+          component: 'aiLangchainAdapter',
+          timestamp: new Date().toISOString(),
+          status,
+          ...details
+        });
       }
-
-      // Track programming languages
-      if (['js', 'jsx', 'ts', 'tsx'].includes(extension)) languageCount.javascript = (languageCount.javascript || 0) + 1;
-      else if (['py'].includes(extension)) languageCount.python = (languageCount.python || 0) + 1;
-      else if (['java'].includes(extension)) languageCount.java = (languageCount.java || 0) + 1;
-      else if (['rb'].includes(extension)) languageCount.ruby = (languageCount.ruby || 0) + 1;
-      else if (['go'].includes(extension)) languageCount.golang = (languageCount.golang || 0) + 1;
-      else if (['php'].includes(extension)) languageCount.php = (languageCount.php || 0) + 1;
-      else if (['c', 'cpp', 'h', 'hpp'].includes(extension)) languageCount.cpp = (languageCount.cpp || 0) + 1;
-      else if (['cs'].includes(extension)) languageCount.csharp = (languageCount.csharp || 0) + 1;
-      else if (['rs'].includes(extension)) languageCount.rust = (languageCount.rust || 0) + 1;
-    });
-
-    // Check for predominant file types
-    const totalDocs = documents.length;
-    const markdownRatio = (fileTypeCount.markdown || 0) / totalDocs;
-
-    // If majority are markdown files, use header-based splitting
-    if (markdownRatio > 0.5) {
-      console.log(`[${new Date().toISOString()}] Using markdown header-based splitter (${Math.round(markdownRatio * 100)}% markdown files)`);
-      return new MarkdownHeaderTextSplitter({
-        headersToSplitOn: [
-          { level: 1, name: 'h1' },
-          { level: 2, name: 'h2' },
-          { level: 3, name: 'h3' }
-        ]
-      });
-    }
-
-    // Find the most common programming language
-    let predominantLanguage = 'javascript'; // Default
-    let maxCount = 0;
-
-    Object.entries(languageCount).forEach(([lang, count]) => {
-      if (count > maxCount) {
-        predominantLanguage = lang;
-        maxCount = count;
-      }
-    });
-
-    // Map to LangChain language string
-    const langMap = {
-      javascript: "js",
-      python: "python",
-      java: "java",
-      ruby: "ruby",
-      golang: "go",
-      php: "php",
-      cpp: "cpp",
-      csharp: "csharp",
-      rust: "rust"
-    };
-
-    const language = langMap[predominantLanguage] || "js";
-
-    console.log(`[${new Date().toISOString()}] Using ${predominantLanguage} code splitter for document processing (${maxCount}/${totalDocs} files)`);
-
-    // Create a language-specific splitter that respects code structure
-    return RecursiveCharacterTextSplitter.fromLanguage(language, {
-      chunkSize,
-      chunkOverlap,
-      // Add separators that respect code structure
-      separators: this.getCodeAwareSeparators(language)
-    });
-  }
-
-  // Get code-aware separators for better chunking
-  getCodeAwareSeparators(language) {
-    const baseSeparators = [
-      "\n\n", // Paragraph breaks
-      "\n", // Line breaks
-      " ", // Word breaks
-      "" // Character breaks (fallback)
-    ];
-
-    switch (language) {
-      case "js":
-      case "ts":
-        return [
-          "\nexport class ", // Class declarations
-          "\nclass ", // Class declarations
-          "\nexport function ", // Function exports
-          "\nfunction ", // Function declarations
-          "\nexport const ", // Constant exports
-          "\nconst ", // Constants
-          "\nexport ", // Any exports
-          "\n// ", // Comments
-          "\n\n", // Paragraph breaks
-          "\n", // Line breaks
-          " ", // Word breaks
-          ""
-        ];
-      case "python":
-        return [
-          "\nclass ", // Class declarations
-          "\ndef ", // Function definitions
-          "\n# ", // Comments
-          "\n\n", // Paragraph breaks
-          "\n", // Line breaks
-          " ", // Word breaks
-          ""
-        ];
-      case "java":
-        return [
-          "\npublic class ", // Public classes
-          "\nclass ", // Classes
-          "\npublic ", // Public methods/fields
-          "\nprivate ", // Private methods/fields
-          "\n// ", // Comments
-          "\n\n", // Paragraph breaks
-          "\n", // Line breaks
-          " ", // Word breaks
-          ""
-        ];
-      default:
-        return baseSeparators;
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
     }
   }
 }

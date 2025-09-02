@@ -1,7 +1,7 @@
 // test_end_to_end_simulation.js
 "use strict";
 
-const SemanticPreprocessor = require('./rag_pipelines/SemanticPreprocessor');
+const SemanticPreprocessor = require('./rag_pipelines/data_preparation/processors/SemanticPreprocessor');
 
 /**
  * Simulate end-to-end semantic preprocessing and intelligent retrieval

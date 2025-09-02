@@ -1,7 +1,7 @@
 // debug_ast_splitting.js
 "use strict";
 
-const ASTCodeSplitter = require('./rag_pipelines/ASTCodeSplitter');
+const ASTCodeSplitter = require('./rag_pipelines/data_preparation/processors/ASTCodeSplitter');
 
 async function debugAST() {
   console.log('🔍 Debug AST Splitting');

@@ -1,8 +1,8 @@
 // test_combined_processing.js
 "use strict";
 
-const SemanticPreprocessor = require('./rag_pipelines/SemanticPreprocessor');
-const ASTCodeSplitter = require('./rag_pipelines/ASTCodeSplitter');
+const SemanticPreprocessor = require('./rag_pipelines/data_preparation/processors/SemanticPreprocessor');
+const ASTCodeSplitter = require('./rag_pipelines/data_preparation/processors/ASTCodeSplitter');
 
 /**
  * Test the combination of semantic preprocessing and AST-based splitting

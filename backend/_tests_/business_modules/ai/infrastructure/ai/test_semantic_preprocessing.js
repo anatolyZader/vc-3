@@ -1,7 +1,7 @@
 // test_semantic_preprocessing.js
 "use strict";
 
-const SemanticPreprocessor = require('./rag_pipelines/SemanticPreprocessor');
+const SemanticPreprocessor = require('./rag_pipelines/data_preparation/processors/SemanticPreprocessor');
 
 async function testSemanticPreprocessing() {
   console.log('🧪 Testing Semantic Preprocessing...\n');

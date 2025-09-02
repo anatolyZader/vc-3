@@ -1,7 +1,7 @@
 // RepositoryProcessor.js
 "use strict";
 
-const { GithubRepoLoader } = require('langchain/document_loaders/web/github');
+const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { PineconeStore } = require('@langchain/pinecone');
 
@@ -313,6 +313,96 @@ class RepositoryProcessor {
 
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ REPOSITORY STORAGE: Error storing documents:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Process only specific changed files for incremental processing
+   */
+  async processChangedFiles(repoPath, changedFiles, namespace, githubOwner, repoName) {
+    console.log(`[${new Date().toISOString()}] 🔄 INCREMENTAL REPOSITORY: Processing ${changedFiles.length} changed files`);
+    
+    if (changedFiles.length === 0) {
+      return { success: true, documentsProcessed: 0, chunksGenerated: 0 };
+    }
+
+    try {
+      const fs = require('fs').promises;
+      const path = require('path');
+      const processedDocuments = [];
+
+      // Process each changed file
+      for (const filePath of changedFiles) {
+        const fullPath = path.join(repoPath, filePath);
+        
+        try {
+          // Check if file exists (might have been deleted)
+          const stats = await fs.stat(fullPath);
+          if (!stats.isFile()) continue;
+
+          // Read file content
+          const content = await fs.readFile(fullPath, 'utf-8');
+          
+          // Create document object
+          const document = {
+            pageContent: content,
+            metadata: {
+              source: filePath,
+              githubOwner,
+              repoName,
+              fileType: this.repositoryManager.getFileType(filePath),
+              size: stats.size,
+              lastModified: stats.mtime.toISOString(),
+              incremental: true,
+              processedAt: new Date().toISOString()
+            }
+          };
+
+          // Apply ubiquitous language enhancement if available
+          if (this.ubiquitousLanguageProcessor) {
+            const enhancedDoc = this.ubiquitousLanguageProcessor.enhanceWithUbiquitousLanguage(document);
+            processedDocuments.push(enhancedDoc);
+          } else {
+            processedDocuments.push(document);
+          }
+
+          console.log(`[${new Date().toISOString()}] ✅ INCREMENTAL: Processed ${filePath} (${content.length} chars)`);
+
+        } catch (fileError) {
+          if (fileError.code === 'ENOENT') {
+            console.log(`[${new Date().toISOString()}] 🗑️ INCREMENTAL: File deleted - ${filePath}`);
+            // TODO: Handle file deletion by removing vectors from Pinecone
+          } else {
+            console.warn(`[${new Date().toISOString()}] ⚠️ INCREMENTAL: Error processing ${filePath}:`, fileError.message);
+          }
+        }
+      }
+
+      if (processedDocuments.length === 0) {
+        console.log(`[${new Date().toISOString()}] 📭 INCREMENTAL: No processable documents found in changed files`);
+        return { success: true, documentsProcessed: 0, chunksGenerated: 0 };
+      }
+
+      // Apply intelligent splitting
+      const splitDocuments = await this.intelligentSplitDocuments(processedDocuments);
+      
+      // Store in Pinecone
+      await this.storeRepositoryDocuments(splitDocuments, namespace);
+
+      console.log(`[${new Date().toISOString()}] ✅ INCREMENTAL COMPLETE: Processed ${processedDocuments.length} files into ${splitDocuments.length} chunks`);
+      
+      return {
+        success: true,
+        documentsProcessed: processedDocuments.length,
+        chunksGenerated: splitDocuments.length,
+        changedFiles: changedFiles.length,
+        processedFiles: processedDocuments.map(doc => doc.metadata.source),
+        namespace
+      };
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ INCREMENTAL: Error processing changed files:`, error.message);
       throw error;
     }
   }

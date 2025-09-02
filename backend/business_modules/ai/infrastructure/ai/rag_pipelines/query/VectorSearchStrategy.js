@@ -1,4 +1,4 @@
-const AIUtils = require('../utils/AIUtils');
+const AIUtils = require('../../utils/AIUtils');
 
 /**
  * Intelligent vector search strategy selector

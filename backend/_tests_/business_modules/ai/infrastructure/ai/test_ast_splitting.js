@@ -1,7 +1,7 @@
 // test_ast_splitting.js
 "use strict";
 
-const ASTCodeSplitter = require('./rag_pipelines/ASTCodeSplitter');
+const ASTCodeSplitter = require('./rag_pipelines/data_preparation/processors/ASTCodeSplitter');
 
 /**
  * Test AST-based code splitting functionality

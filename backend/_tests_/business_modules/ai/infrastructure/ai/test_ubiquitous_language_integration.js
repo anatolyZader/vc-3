@@ -1,7 +1,7 @@
 // test_ubiquitous_language_integration.js
 "use strict";
 
-const DataPreparationPipeline = require('./rag_pipelines/DataPreparationPipeline');
+const DataPreparationPipeline = require('./rag_pipelines/data_preparation/DataPreparationPipeline');
 
 /**
  * Test the ubiquitous language dictionary integration
