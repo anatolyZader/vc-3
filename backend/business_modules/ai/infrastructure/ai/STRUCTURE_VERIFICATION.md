@@ -5,7 +5,6 @@
 ```
 /business_modules/ai/infrastructure/ai/
 ├── aiLangchainAdapter.js ✅ (imports updated)
-├── improvements/
 ├── prompts/
 ├── providers/
 ├── utils/
