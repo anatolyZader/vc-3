@@ -1,12 +1,18 @@
-# Production RAG Pipeline Implementation Guide
+# Production RAG Pipeline Implementation Guide (ARCHIVED)
+
+## Notice
+
+⚠️ **This guide is archived.** The ProductionRAGAdapter referenced in this documentation has been removed from the codebase. 
+
+The project currently uses `aiLangchainAdapter` as the active AI adapter (as configured in `infraConfig.json`). This document remains for historical reference only.
 
 ## Overview
 
-This guide provides detailed instructions for implementing and improving your RAG (Retrieval-Augmented Generation) pipeline to production-level standards using LangChain best practices.
+This archived guide provided instructions for implementing a production-level RAG (Retrieval-Augmented Generation) pipeline using LangChain best practices.
 
 ## Architecture Overview
 
-The production RAG pipeline consists of five main components:
+The proposed production RAG pipeline consisted of five main components:
 
 1. **QueryProcessor** - Advanced query understanding and expansion
 2. **AdvancedRetriever** - Hybrid retrieval strategies with multiple sources
@@ -14,25 +20,13 @@ The production RAG pipeline consists of five main components:
 4. **ResponseGenerator** - Enhanced response generation with post-processing
 5. **RAGAnalytics** - Comprehensive monitoring and quality tracking
 
-## Implementation Steps
+## Implementation Steps (ARCHIVED)
 
-### Step 1: Replace Your Current Implementation
+### ~~Step 1: Replace Your Current Implementation~~
 
-Replace your current `aiLangchainAdapter.js` usage with the new `ProductionRAGAdapter`:
+~~Replace your current `aiLangchainAdapter.js` usage with the new `ProductionRAGAdapter`:~~
 
-```javascript
-// In your service initialization
-const ProductionRAGAdapter = require('./infrastructure/ai/improvements/productionRAGAdapter');
-
-const aiAdapter = new ProductionRAGAdapter({
-  aiProvider: 'openai', // or 'anthropic', 'google'
-  aiPersistAdapter: persistenceAdapter // Your existing persistence adapter
-});
-
-// Set user ID and start using
-aiAdapter.setUserId(userId);
-const response = await aiAdapter.respondToPrompt(userId, conversationId, prompt);
-```
+**Note: This implementation has been removed. The active adapter is `aiLangchainAdapter`.**
 
 ### Step 2: Environment Configuration
 
@@ -174,10 +168,10 @@ CREATE INDEX idx_rag_errors_signature ON rag_errors(error_signature);
 Implement caching at multiple levels:
 
 ```javascript
-// Add to your ProductionRAGAdapter
+// Example caching strategy (archived implementation)
 const NodeCache = require('node-cache');
 
-class ProductionRAGAdapter extends IAIPort {
+class RAGAdapter extends IAIPort {
   constructor(options = {}) {
     super();
     
@@ -329,14 +323,14 @@ Track these key metrics:
 ### 1. Automated Testing
 
 ```javascript
-// Test suite for RAG pipeline
+// Test suite for RAG pipeline (archived implementation)
 const { expect } = require('chai');
 
-describe('Production RAG Pipeline', () => {
+describe('RAG Pipeline', () => {
   let ragAdapter;
 
   beforeEach(() => {
-    ragAdapter = new ProductionRAGAdapter({ aiProvider: 'openai' });
+    ragAdapter = new RAGAdapter({ aiProvider: 'openai' });
     ragAdapter.setUserId('test-user');
   });
 
@@ -383,12 +377,12 @@ describe('Production RAG Pipeline', () => {
 ### 2. A/B Testing
 
 ```javascript
-// A/B test different RAG configurations
+// A/B test different RAG configurations (archived implementation)
 class RAGTester {
   constructor() {
     this.configurations = {
-      'current': new ProductionRAGAdapter({ /* current config */ }),
-      'experimental': new ProductionRAGAdapter({ /* new config */ })
+      'current': new RAGAdapter({ /* current config */ }),
+      'experimental': new RAGAdapter({ /* new config */ })
     };
   }
 
@@ -419,14 +413,14 @@ class RAGTester {
 ### 2. Rollback Strategy
 
 ```javascript
-// Feature flag for easy rollback
+// Feature flag for easy rollback (archived implementation)
 const USE_PRODUCTION_RAG = process.env.USE_PRODUCTION_RAG === 'true';
 
 async function respondToPrompt(userId, conversationId, prompt) {
   if (USE_PRODUCTION_RAG) {
-    return await productionRAGAdapter.respondToPrompt(userId, conversationId, prompt);
-  } else {
     return await legacyRAGAdapter.respondToPrompt(userId, conversationId, prompt);
+  } else {
+    return await aiLangchainAdapter.respondToPrompt(userId, conversationId, prompt);
   }
 }
 ```
