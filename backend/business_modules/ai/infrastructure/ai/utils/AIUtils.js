@@ -2,8 +2,6 @@
  * Utility functions for AI operations
  */
 class AIUtils {
-
-
   /**
    * Format conversation history for LangChain
    */
@@ -36,8 +34,6 @@ class AIUtils {
   static containsKeywords(text, keywords) {
     return keywords.some(keyword => text.includes(keyword));
   }
-
-
 }
 
 module.exports = AIUtils;
