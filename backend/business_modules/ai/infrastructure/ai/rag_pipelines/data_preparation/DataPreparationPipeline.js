@@ -18,7 +18,6 @@ const DocumentProcessingOrchestrator = require('./managers/DocumentProcessingOrc
 const ProcessingStrategyManager = require('./managers/ProcessingStrategyManager');
 const CoreDocumentationIndexer = require('./managers/CoreDocumentationIndexer');
 const EventManager = require('./managers/EventManager');
-const LegacyCompatibilityLayer = require('./managers/LegacyCompatibilityLayer');
 
 /**
  * REFACTORED DataPreparationPipeline - Now uses modular managers for better organization
@@ -29,7 +28,6 @@ const LegacyCompatibilityLayer = require('./managers/LegacyCompatibilityLayer');
  * - ProcessingStrategyManager: Manages processing strategies and workflows
  * - CoreDocumentationIndexer: Handles core documentation indexing
  * - EventManager: Manages event emission and status reporting
- * - LegacyCompatibilityLayer: Provides backward compatibility
  */
 class DataPreparationPipeline {
   constructor(options = {}) {
@@ -115,15 +113,6 @@ class DataPreparationPipeline {
 
     this.eventManager = new EventManager({
       eventBus: this.eventBus
-    });
-
-    this.legacyLayer = new LegacyCompatibilityLayer({
-      repositoryManager: this.repositoryManager,
-      ubiquitousLanguageProcessor: this.ubiquitousLanguageProcessor,
-      vectorStorageManager: this.vectorStorageManager,
-      semanticPreprocessor: this.semanticPreprocessor,
-      repositoryProcessor: this.repositoryProcessor,
-      pinecone: this.pinecone
     });
 
     // Enhanced processing strategy
@@ -255,50 +244,8 @@ class DataPreparationPipeline {
     return await this.coreDocIndexer.indexCoreDocsToPinecone(namespace, clearFirst);
   }
 
-  // LEGACY COMPATIBILITY METHODS - Delegate to LegacyCompatibilityLayer
-  
-  async processDocuments(documents, repoId, githubOwner, repoName) {
-    return await this.legacyLayer.processDocuments(documents, repoId, githubOwner, repoName);
-  }
-
   emitRagStatus(status, details = {}) {
     return this.eventManager.emitRagStatus(status, details);
-  }
-
-  sanitizeId(input) { 
-    return this.legacyLayer.sanitizeId(input); 
-  }
-  
-  getFileType(filePath) { 
-    return this.legacyLayer.getFileType(filePath); 
-  }
-  
-  enhanceWithUbiquitousLanguage(document) { 
-    return this.legacyLayer.enhanceWithUbiquitousLanguage(document); 
-  }
-  
-  async storeToPinecone(documents, namespace, githubOwner, repoName) { 
-    return await this.legacyLayer.storeToPinecone(documents, namespace, githubOwner, repoName); 
-  }
-  
-  async intelligentSplitDocuments(documents) { 
-    return await this.legacyLayer.intelligentSplitDocuments(documents); 
-  }
-  
-  async cloneRepository(url, branch) { 
-    return await this.legacyLayer.cloneRepository(url, branch); 
-  }
-  
-  async cleanupTempDir(tempDir) { 
-    return await this.legacyLayer.cleanupTempDir(tempDir); 
-  }
-  
-  async findExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash = null) { 
-    return await this.legacyLayer.findExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash); 
-  }
-  
-  async loadAndProcessRepoDocuments(tempDir, userId, repoId, githubOwner, repoName) { 
-    return await this.legacyLayer.loadAndProcessRepoDocuments(tempDir, userId, repoId, githubOwner, repoName); 
   }
 }
 

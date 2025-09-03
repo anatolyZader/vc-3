@@ -1,15 +1,13 @@
 // test_ubiquitous_language.js
 "use strict";
 
-const DataPreparationPipeline = require('./rag_pipelines/data_preparation/DataPreparationPipeline');
+const UbiquitousLanguageProcessor = require('./rag_pipelines/data_preparation/processors/UbiquitousLanguageProcessor');
 
 async function testUbiquitousLanguage() {
   console.log('🔄 Testing Ubiquitous Language Dictionary Integration\n');
   
-  // Create a pipeline instance
-  const pipeline = new DataPreparationPipeline({
-    maxChunkSize: 2000
-  });
+  // Create a UbiquitousLanguageProcessor instance directly
+  const ubiquitousLanguageProcessor = new UbiquitousLanguageProcessor();
   
   // Test documents representing different business modules
   const testDocuments = [
@@ -159,7 +157,7 @@ class Account {
     
     try {
       // Apply ubiquitous language enhancement
-      const enhanced = pipeline.enhanceWithUbiquitousLanguage(doc);
+      const enhanced = ubiquitousLanguageProcessor.enhanceWithUbiquitousLanguage(doc);
       
       console.log(`   🏷️  Business Module: ${enhanced.metadata.ubiq_business_module}`);
       console.log(`   🎯 Bounded Context: ${enhanced.metadata.ubiq_bounded_context}`);

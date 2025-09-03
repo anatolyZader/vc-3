@@ -1,7 +1,7 @@
 // test_ubiquitous_language_integration.js
 "use strict";
 
-const DataPreparationPipeline = require('./rag_pipelines/data_preparation/DataPreparationPipeline');
+const UbiquitousLanguageProcessor = require('./rag_pipelines/data_preparation/processors/UbiquitousLanguageProcessor');
 
 /**
  * Test the ubiquitous language dictionary integration
@@ -11,30 +11,22 @@ async function testUbiquitousLanguageIntegration() {
   console.log('🧪 Testing Ubiquitous Language Dictionary Integration');
   console.log('═'.repeat(60));
 
-  // Mock options for pipeline
-  const mockOptions = {
-    embeddings: null, // Not needed for this test
-    pinecone: null,   // Not needed for this test
-    eventBus: null,   // Not needed for this test
-    maxChunkSize: 2000
-  };
-
   try {
-    // Initialize pipeline (this should load the ubiqLangDict.json)
-    console.log('📚 Step 1: Initializing DataPreparationPipeline...');
-    const pipeline = new DataPreparationPipeline(mockOptions);
+    // Initialize UbiquitousLanguageProcessor directly (this should load the ubiqLangDict.json)
+    console.log('📚 Step 1: Initializing UbiquitousLanguageProcessor...');
+    const ubiquitousLanguageProcessor = new UbiquitousLanguageProcessor();
     
     // Check if ubiquitous language dictionary was loaded
-    if (pipeline.ubiquitousLanguage) {
+    if (ubiquitousLanguageProcessor.ubiquitousLanguage) {
       console.log('✅ Ubiquitous Language Dictionary loaded successfully!');
-      console.log(`   📊 Business Modules: ${Object.keys(pipeline.ubiquitousLanguage.businessModules || {}).length}`);
-      console.log(`   📊 Architecture Patterns: ${(pipeline.ubiquitousLanguage.architecture?.patterns || []).length}`);
-      console.log(`   📊 Technical Terms: ${Object.keys(pipeline.ubiquitousLanguage.technicalTerms || {}).length}`);
+      console.log(`   📊 Business Modules: ${Object.keys(ubiquitousLanguageProcessor.ubiquitousLanguage.businessModules || {}).length}`);
+      console.log(`   📊 Architecture Patterns: ${(ubiquitousLanguageProcessor.ubiquitousLanguage.architecture?.patterns || []).length}`);
+      console.log(`   📊 Technical Terms: ${Object.keys(ubiquitousLanguageProcessor.ubiquitousLanguage.technicalTerms || {}).length}`);
       
       // List available modules
       console.log('\n🏢 Available Business Modules:');
-      Object.keys(pipeline.ubiquitousLanguage.businessModules || {}).forEach(module => {
-        const moduleData = pipeline.ubiquitousLanguage.businessModules[module];
+      Object.keys(ubiquitousLanguageProcessor.ubiquitousLanguage.businessModules || {}).forEach(module => {
+        const moduleData = ubiquitousLanguageProcessor.ubiquitousLanguage.businessModules[module];
         console.log(`   • ${moduleData.name}: ${moduleData.description}`);
       });
       
@@ -88,7 +80,7 @@ export class UserAuthController {
       const doc = testDocuments[i];
       console.log(`\n   📄 Testing document ${i + 1}: ${doc.metadata.source}`);
       
-      const enhanced = pipeline.enhanceWithUbiquitousLanguage(doc);
+      const enhanced = ubiquitousLanguageProcessor.enhanceWithUbiquitousLanguage(doc);
       
       console.log(`      🔍 Original source: ${doc.metadata.source}`);
       console.log(`      🔍 Detected module: ${enhanced.metadata.ubiq_business_module || 'Unknown'}`);
@@ -118,7 +110,7 @@ export class UserAuthController {
     ];
     
     testSources.forEach(source => {
-      const detectedModule = pipeline.detectBusinessModule('', source);
+      const detectedModule = ubiquitousLanguageProcessor.detectBusinessModule('', source);
       console.log(`   📁 ${source} → ${detectedModule || 'Unknown'}`);
     });
     
