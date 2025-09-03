@@ -1,7 +1,7 @@
 // test_ubiquitous_language.js
 "use strict";
 
-const UbiquitousLanguageProcessor = require('./rag_pipelines/data_preparation/processors/UbiquitousLanguageProcessor');
+const UbiquitousLanguageProcessor = require('../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/UbiquitousLanguageProcessor');
 
 async function testUbiquitousLanguage() {
   console.log('🔄 Testing Ubiquitous Language Dictionary Integration\n');
