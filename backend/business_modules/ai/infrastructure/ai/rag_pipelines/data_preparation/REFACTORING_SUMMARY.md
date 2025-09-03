@@ -66,11 +66,14 @@ The `DataPreparationPipeline.js` file has been refactored to improve modularity,
 - `emitProcessingSkipped()` - Processing skip events
 - `emitProcessingError()` - Error events
 
-#### 6. LegacyCompatibilityLayer (`managers/LegacyCompatibilityLayer.js`)
-**Responsibility**: Backward compatibility for existing code
-- `processDocuments()` - Legacy document processing
-- All utility method delegates for backward compatibility
-- Ensures existing code continues to work without changes
+#### 6. **Deprecated Components**
+
+**Note**: The `LegacyCompatibilityLayer` has been **removed** as of this version. All legacy utility methods have been migrated to their respective managers. Developers should use managers directly:
+
+- Use `RepositoryManager.sanitizeId()` instead of legacy `sanitizeId()`
+- Use `UbiquitousLanguageProcessor.enhanceWithUbiquitousLanguage()` instead of legacy method
+- Use `VectorStorageManager.storeToPinecone()` instead of legacy method
+- Use other manager methods directly as documented above
 
 ## Benefits of Refactoring
 
@@ -101,22 +104,34 @@ The `DataPreparationPipeline.js` file has been refactored to improve modularity,
 
 ## Migration Guide
 
-### For Existing Code
-**No changes required!** The refactored `DataPreparationPipeline` maintains the exact same public API through delegation to the appropriate managers.
+### **Breaking Changes**
+**The legacy compatibility layer has been removed.** Legacy utility methods are no longer available on the `DataPreparationPipeline`. Developers must now use the specialized managers directly.
 
-### Example Usage (unchanged)
+### **Updated Usage**
 ```javascript
 const pipeline = new DataPreparationPipeline(options);
 
-// All existing methods work exactly the same
+// Main orchestration methods still work
 await pipeline.processPushedRepo(userId, repoId, repoData);
 await pipeline.indexCoreDocsToPinecone();
-await pipeline.processDocuments(documents, repoId, owner, name);
 
-// Legacy utility methods still work
-const sanitized = pipeline.sanitizeId(input);
-const fileType = pipeline.getFileType(path);
+// Use managers directly for utility methods
+const sanitized = pipeline.repositoryManager.sanitizeId(input);
+const fileType = pipeline.repositoryManager.getFileType(path);
+const enhanced = pipeline.ubiquitousLanguageProcessor.enhanceWithUbiquitousLanguage(doc);
+await pipeline.vectorStorageManager.storeToPinecone(documents, namespace, owner, name);
 ```
+
+### **Migration Mappings**
+- `pipeline.sanitizeId()` → `pipeline.repositoryManager.sanitizeId()`
+- `pipeline.getFileType()` → `pipeline.repositoryManager.getFileType()`
+- `pipeline.enhanceWithUbiquitousLanguage()` → `pipeline.ubiquitousLanguageProcessor.enhanceWithUbiquitousLanguage()`
+- `pipeline.storeToPinecone()` → `pipeline.vectorStorageManager.storeToPinecone()`
+- `pipeline.intelligentSplitDocuments()` → `pipeline.repositoryProcessor.intelligentSplitDocuments()`
+- `pipeline.cloneRepository()` → `pipeline.repositoryManager.cloneRepository()`
+- `pipeline.cleanupTempDir()` → `pipeline.repositoryManager.cleanupTempDir()`
+- `pipeline.findExistingRepo()` → `pipeline.repositoryManager.findExistingRepo()`
+- `pipeline.loadAndProcessRepoDocuments()` → `pipeline.repositoryProcessor.loadRepositoryDocuments()`
 
 ### For Future Development
 Use the specialized managers directly for new features:
