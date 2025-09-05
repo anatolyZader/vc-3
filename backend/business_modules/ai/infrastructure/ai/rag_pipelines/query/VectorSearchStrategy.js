@@ -1,4 +1,4 @@
-const AIUtils = require('../../utils/AIUtils');
+const { TextMatcher } = require('../../utils');
 
 /**
  * Intelligent vector search strategy selector
@@ -12,7 +12,7 @@ class VectorSearchStrategy {
     const promptLower = prompt.toLowerCase();
     
     // Domain/business logic questions
-    if (AIUtils.containsKeywords(promptLower, ['domain', 'entity', 'business', 'rule', 'aggregate', 'model'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['domain', 'entity', 'business', 'rule', 'aggregate', 'model'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Domain/Business Logic Query`);
       return {
         userResults: 8,
@@ -23,7 +23,7 @@ class VectorSearchStrategy {
     }
     
     // API/endpoint questions
-    if (AIUtils.containsKeywords(promptLower, ['api', 'endpoint', 'route', 'http', 'request', 'controller', 'fastify'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['api', 'endpoint', 'route', 'http', 'request', 'controller', 'fastify'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: API/Endpoint Query`);
       return {
         userResults: 6,
@@ -34,7 +34,7 @@ class VectorSearchStrategy {
     }
     
     // Error/debugging questions
-    if (AIUtils.containsKeywords(promptLower, ['error', 'bug', 'fix', 'debug', 'issue', 'problem', 'exception', 'fail'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['error', 'bug', 'fix', 'debug', 'issue', 'problem', 'exception', 'fail'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Error/Debugging Query`);
       return {
         userResults: 10,
@@ -45,7 +45,7 @@ class VectorSearchStrategy {
     }
     
     // Chat/conversation questions
-    if (AIUtils.containsKeywords(promptLower, ['chat', 'message', 'conversation', 'websocket', 'socket'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['chat', 'message', 'conversation', 'websocket', 'socket'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Chat Module Query`);
       return {
         userResults: 8,
@@ -56,7 +56,7 @@ class VectorSearchStrategy {
     }
     
     // Git/repository questions
-    if (AIUtils.containsKeywords(promptLower, ['git', 'repository', 'github', 'pull request', 'commit', 'branch'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['git', 'repository', 'github', 'pull request', 'commit', 'branch'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Git Module Query`);
       return {
         userResults: 8,
@@ -67,7 +67,7 @@ class VectorSearchStrategy {
     }
     
     // AI/RAG/embedding questions
-    if (AIUtils.containsKeywords(promptLower, ['ai', 'embedding', 'vector', 'rag', 'langchain', 'openai', 'semantic'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['ai', 'embedding', 'vector', 'rag', 'langchain', 'openai', 'semantic'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: AI Module Query`);
       return {
         userResults: 8,
@@ -78,7 +78,7 @@ class VectorSearchStrategy {
     }
     
     // Docs/documentation questions
-    if (AIUtils.containsKeywords(promptLower, ['docs', 'documentation', 'search', 'knowledge', 'doc'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['docs', 'documentation', 'search', 'knowledge', 'doc'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Docs Module Query`);
       return {
         userResults: 8,
@@ -89,7 +89,7 @@ class VectorSearchStrategy {
     }
     
     // Test/testing questions
-    if (AIUtils.containsKeywords(promptLower, ['test', 'testing', 'spec', 'unit test', 'integration test'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['test', 'testing', 'spec', 'unit test', 'integration test'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Testing Query`);
       return {
         userResults: 8,
@@ -100,7 +100,7 @@ class VectorSearchStrategy {
     }
     
     // Configuration/setup questions
-    if (AIUtils.containsKeywords(promptLower, ['config', 'configuration', 'setup', 'environment', 'env', 'settings'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['config', 'configuration', 'setup', 'environment', 'env', 'settings'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Configuration Query`);
       return {
         userResults: 6,
@@ -111,7 +111,7 @@ class VectorSearchStrategy {
     }
     
     // Plugin/middleware questions
-    if (AIUtils.containsKeywords(promptLower, ['plugin', 'middleware', 'interceptor', 'fastify plugin'])) {
+    if (TextMatcher.containsKeywords(promptLower, ['plugin', 'middleware', 'interceptor', 'fastify plugin'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Plugin/Middleware Query`);
       return {
         userResults: 8,

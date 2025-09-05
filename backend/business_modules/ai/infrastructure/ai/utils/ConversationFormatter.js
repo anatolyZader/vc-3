@@ -1,9 +1,11 @@
 /**
- * Utility functions for AI operations
+ * Utility functions for conversation formatting operations
  */
-class AIUtils {
+class ConversationFormatter {
   /**
    * Format conversation history for LangChain
+   * @param {Array} history - Array of conversation entries with prompt and response
+   * @returns {Array} Formatted messages array for LangChain
    */
   static formatConversationHistory(history) {
     if (!history || history.length === 0) {
@@ -27,13 +29,6 @@ class AIUtils {
     console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION HISTORY: Formatted ${messages.length} messages (${messages.length / 2} exchanges) for context`);
     return messages;
   }
-
-  /**
-   * Check if text contains specific keywords
-   */
-  static containsKeywords(text, keywords) {
-    return keywords.some(keyword => text.includes(keyword));
-  }
 }
 
-module.exports = AIUtils;
+module.exports = ConversationFormatter;

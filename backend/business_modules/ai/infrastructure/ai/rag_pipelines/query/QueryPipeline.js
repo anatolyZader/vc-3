@@ -1,6 +1,6 @@
 const { PineconeStore } = require('@langchain/pinecone');
 const VectorSearchStrategy = require('./VectorSearchStrategy');
-const AIUtils = require('../../utils/AIUtils');
+const { ConversationFormatter } = require('../../utils');
 const PromptSelector = require('../../prompts/index').PromptSelector;
 const PromptConfig = require('../../prompts/promptConfig');
 
@@ -300,7 +300,7 @@ class QueryPipeline {
    */
   async generateLLMResponse(prompt, contextData, conversationHistory = []) {
     // Format conversation history for context continuity
-    const historyMessages = AIUtils.formatConversationHistory(conversationHistory);
+    const historyMessages = ConversationFormatter.formatConversationHistory(conversationHistory);
     
     // Analyze context sources for intelligent prompt selection
     const contextSources = {
@@ -424,7 +424,7 @@ class QueryPipeline {
   async generateStandardResponse(prompt, conversationId, conversationHistory = []) {
     try {
       // Format conversation history for continuity even in standard responses
-      const historyMessages = AIUtils.formatConversationHistory(conversationHistory);
+      const historyMessages = ConversationFormatter.formatConversationHistory(conversationHistory);
       
       // Use intelligent prompt selection even for standard responses
       const systemPrompt = PromptSelector.selectPrompt({

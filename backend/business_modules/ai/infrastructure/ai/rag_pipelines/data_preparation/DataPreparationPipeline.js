@@ -1,4 +1,4 @@
-// DataPreparationPipeline.js - REFACTORED WITH MODULAR MANAGERS
+// DataPreparationPipeline.js - REFACTORED WITH MODULAR ORCHESTRATORS
 "use strict";
 
 const SemanticPreprocessor = require('./processors/SemanticPreprocessor');
@@ -12,27 +12,25 @@ const ApiSpecProcessor = require('./processors/ApiSpecProcessor');
 const MarkdownDocumentationProcessor = require('./processors/MarkdownDocumentationProcessor');
 const RepositoryProcessor = require('./processors/RepositoryProcessor');
 
-// Import modular managers
-const CommitManager = require('./managers/CommitManager');
-const DocumentProcessingOrchestrator = require('./managers/DocumentProcessingOrchestrator');
-const ProcessingStrategyManager = require('./managers/ProcessingStrategyManager');
-const CoreDocumentationIndexer = require('./managers/CoreDocumentationIndexer');
-const EventManager = require('./managers/EventManager');
+// Import modular orchestrators
+const CommitManager = require('./orchestrators/CommitManager');
+const DocumentProcessingOrchestrator = require('./orchestrators/DocumentProcessingOrchestrator');
+const ProcessingStrategyManager = require('./orchestrators/ProcessingStrategyManager');
+const EventManager = require('./orchestrators/EventManager');
 
 /**
- * REFACTORED DataPreparationPipeline - Now uses modular managers for better organization
+ * REFACTORED DataPreparationPipeline - Now uses modular orchestrators for better organization
  * 
- * This pipeline serves as a coordination hub with modular managers:
+ * This pipeline serves as a coordination hub with modular orchestrators:
  * - CommitManager: Handles commit operations and change detection
  * - DocumentProcessingOrchestrator: Coordinates specialized processors
  * - ProcessingStrategyManager: Manages processing strategies and workflows
- * - CoreDocumentationIndexer: Handles core documentation indexing
  * - EventManager: Manages event emission and status reporting
  */
 class DataPreparationPipeline {
   constructor(options = {}) {
     console.log(`[${new Date().toISOString()}] 🎯 INITIALIZING DataPreparationPipeline with modular architecture`);
-    console.log(`[${new Date().toISOString()}] 🎯 Using specialized managers for better code organization`);
+    console.log(`[${new Date().toISOString()}] 🎯 Using specialized orchestrators for better code organization`);
     
     // Store dependencies passed from the adapter
     this.embeddings = options.embeddings;
@@ -102,12 +100,6 @@ class DataPreparationPipeline {
       documentOrchestrator: this.documentOrchestrator,
       repositoryManager: this.repositoryManager,
       repositoryProcessor: this.repositoryProcessor,
-      pinecone: this.pinecone
-    });
-
-    this.coreDocIndexer = new CoreDocumentationIndexer({
-      apiSpecProcessor: this.apiSpecProcessor,
-      markdownDocumentationProcessor: this.markdownDocumentationProcessor,
       pinecone: this.pinecone
     });
 
@@ -238,10 +230,69 @@ class DataPreparationPipeline {
   }
 
   /**
-   * Index core documentation - delegates to CoreDocumentationIndexer
+   * Index core documentation - directly coordinates specialized processors
    */
   async indexCoreDocsToPinecone(namespace = 'core-docs', clearFirst = false) {
-    return await this.coreDocIndexer.indexCoreDocsToPinecone(namespace, clearFirst);
+    console.log(`[${new Date().toISOString()}] 🎯 CORE DOCS: Starting comprehensive core documentation processing`);
+    console.log(`[${new Date().toISOString()}] 🎯 Using specialized processors: API specs + markdown documentation`);
+    
+    try {
+      // Clear namespace if requested
+      if (clearFirst && this.pinecone) {
+        console.log(`[${new Date().toISOString()}] 🧹 CORE DOCS: Clearing existing docs in namespace '${namespace}'`);
+        try {
+          const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+          await index.namespace(namespace).deleteAll();
+          console.log(`[${new Date().toISOString()}] ✅ CORE DOCS: Successfully cleared namespace '${namespace}'`);
+        } catch (clearError) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ CORE DOCS: Could not clear namespace:`, clearError.message);
+        }
+      }
+
+      const results = {
+        success: true,
+        apiSpecResults: null,
+        markdownResults: null,
+        totalDocuments: 0,
+        totalChunks: 0,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
+
+      // Process API specifications using specialized processor
+      try {
+        console.log(`[${new Date().toISOString()}] 🔵 CORE DOCS: Processing API specifications...`);
+        results.apiSpecResults = await this.apiSpecProcessor.processApiSpec(namespace);
+        results.totalDocuments += results.apiSpecResults.documentsProcessed || 0;
+        results.totalChunks += results.apiSpecResults.chunksGenerated || 0;
+      } catch (apiError) {
+        console.error(`[${new Date().toISOString()}] ❌ CORE DOCS: API spec processing failed:`, apiError.message);
+        results.apiSpecError = apiError.message;
+      }
+
+      // Process markdown documentation using specialized processor
+      try {
+        console.log(`[${new Date().toISOString()}] 📚 CORE DOCS: Processing markdown documentation...`);
+        results.markdownResults = await this.markdownDocumentationProcessor.processMarkdownDocumentation(namespace);
+        results.totalDocuments += results.markdownResults.documentsProcessed || 0;
+        results.totalChunks += results.markdownResults.chunksGenerated || 0;
+      } catch (markdownError) {
+        console.error(`[${new Date().toISOString()}] ❌ CORE DOCS: Markdown processing failed:`, markdownError.message);
+        results.markdownError = markdownError.message;
+      }
+
+      console.log(`[${new Date().toISOString()}] ✅ CORE DOCS PROCESSING COMPLETE: Processed ${results.totalDocuments} documents into ${results.totalChunks} chunks`);
+      return results;
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ CORE DOCS: Core documentation processing failed:`, error.message);
+      return {
+        success: false,
+        error: error.message,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
+    }
   }
 
   emitRagStatus(status, details = {}) {
