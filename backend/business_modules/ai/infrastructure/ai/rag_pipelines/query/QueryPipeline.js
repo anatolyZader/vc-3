@@ -1,5 +1,5 @@
-const VectorSearchManager = require('./VectorSearchManager');
-const ContextAnalyzer = require('./ContextAnalyzer');
+const VectorSearchOrchestrator = require('./VectorSearchOrchestrator');
+const ContextBuilder = require('./ContextBuilder');
 const ResponseGenerator = require('./ResponseGenerator');
 
 /**
@@ -17,7 +17,7 @@ class QueryPipeline {
     this.eventBus = options.eventBus;
     
     // Initialize managers
-    this.vectorSearchManager = new VectorSearchManager(
+    this.vectorSearchOrchestrator = new VectorSearchOrchestrator(
       this.vectorStore, 
       this.pinecone, 
       this.embeddings
@@ -46,7 +46,7 @@ class QueryPipeline {
         return this.createStandardResponseIndicator('No relevant documents found');
       }
 
-      const contextData = ContextAnalyzer.formatContext(searchResults);
+      const contextData = ContextBuilder.formatContext(searchResults);
       const response = await this.responseGenerator.generateWithContext(prompt, contextData, conversationHistory);
       
       this.emitRagStatus('retrieval_success', this.createSuccessMetrics(searchResults, userId, conversationId));
@@ -97,9 +97,9 @@ class QueryPipeline {
 
   async performVectorSearch(prompt, vectorStore) {
     if (vectorStore !== this.vectorStore) {
-      // Create temporary search manager for different vector store
-      const tempSearchManager = new VectorSearchManager(vectorStore, this.pinecone, this.embeddings);
-      const results = await tempSearchManager.performSearch(prompt);
+      // Create temporary search orchestrator for different vector store
+      const tempSearchOrchestrator = new VectorSearchOrchestrator(vectorStore, this.pinecone, this.embeddings);
+      const results = await tempSearchOrchestrator.performSearch(prompt);
       
       // Emit retrieval success status
       if (results.length > 0) {
@@ -119,7 +119,7 @@ class QueryPipeline {
       return results;
     }
     
-    const results = await this.vectorSearchManager.performSearch(prompt);
+    const results = await this.vectorSearchOrchestrator.performSearch(prompt);
     
     // Emit retrieval success status
     if (results.length > 0) {

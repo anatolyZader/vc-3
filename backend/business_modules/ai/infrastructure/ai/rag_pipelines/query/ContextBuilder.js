@@ -1,4 +1,4 @@
-class ContextAnalyzer {
+class ContextBuilder {
   static analyzeDocuments(documents) {
     const sourceAnalysis = {
       apiSpec: 0,
@@ -121,4 +121,4 @@ class ContextAnalyzer {
   }
 }
 
-module.exports = ContextAnalyzer;
+module.exports = ContextBuilder;
