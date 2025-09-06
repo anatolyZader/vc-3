@@ -168,7 +168,7 @@ module.exports = async function (fastify, opts) {
     maxDepth: 1,
     dirNameRoutePrefix: false,
     prefix: '/api',
-    options: Object.assign({}, opts),
+    options: { ...opts},
   });
 
   fastify.get('/api/debug/swagger-routes', async (request, reply) => {

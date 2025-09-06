@@ -198,7 +198,7 @@ class QueryPipeline {
   }
 
   emitRagStatus(status, data) {
-    if (this.eventBus && this.eventBus.emit) {
+    if (this.eventBus?.emit) {
       this.eventBus.emit('ragStatus', { status, ...data });
       console.log(`[${new Date().toISOString()}] Emitted RAG status: ${status}`);
     }
