@@ -11,11 +11,13 @@ async function authController(fastify, options) {
 
   // Helper to set auth cookies uniformly
   const setAuthCookies = (reply, token) => {
+    const cookieSecure = process.env.NODE_ENV === 'staging';
+    const cookieSameSite = cookieSecure ? 'None' : 'Lax';
     reply.setCookie('authToken', token, {
       path: '/',
       httpOnly: true,
-      secure: true, // adjust to false in local dev if needed
-      sameSite: 'None', // or 'None' based on your requirements
+      secure: cookieSecure,
+      sameSite: cookieSameSite,
       maxAge: 60 * 60 * 24, // 1 day
     });
   };
@@ -87,14 +89,8 @@ async function authController(fastify, options) {
         { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
       );
   
-      // Set auth cookie for manual login
-      reply.setCookie('authToken', authToken, {
-        path: '/',
-        httpOnly: true,
-        secure: true,
-        sameSite: 'None',
-        maxAge: 60 * 60 * 24,
-      });
+  // Set auth cookie for manual login
+  setAuthCookies(reply, authToken);
   
       return reply.send({
         message: 'Authentication successful',
@@ -118,13 +114,7 @@ async function authController(fastify, options) {
         { id: user.id, username: user.username },
         { expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
       );
-      reply.setCookie('authToken', authToken, {
-        path: '/',
-        httpOnly: true,
-        secure: true,
-        sameSite: 'None',
-        maxAge: 60 * 60 * 24,
-      });
+  setAuthCookies(reply, authToken);
       return reply.send({ token: authToken });
     } catch (error) {
       fastify.log.error('Error refreshing token:', error);

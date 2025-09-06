@@ -1,11 +1,13 @@
 // aop_modules/auth/index.js
 /* eslint-disable no-unused-vars */
-const fp = require('fastify-plugin'); 
 const autoload = require('@fastify/autoload');
 const path = require('path');
 
-module.exports = fp(async function authModuleIndex(fastify, opts) {
+// Export as raw async function without fastify-plugin wrapper
+module.exports = async function authModuleIndex(fastify, opts) {
 
+  // Register the auth plugin FIRST to ensure decorators are available
+  await fastify.register(require('./authPlugin'));
 
   const moduleSpecificPrefix = opts.prefix ? `${opts.prefix}/${path.basename(__dirname)}` : `/${path.basename(__dirname)}`;
 
@@ -19,7 +21,7 @@ module.exports = fp(async function authModuleIndex(fastify, opts) {
   // });
   
 
-  fastify.register(autoload, {
+  await fastify.register(autoload, {
     dir: path.join(__dirname, 'application'),
     encapsulate: false,
     maxDepth: 1,
@@ -27,7 +29,7 @@ module.exports = fp(async function authModuleIndex(fastify, opts) {
     prefix: moduleSpecificPrefix 
   });
 
-  fastify.register(autoload, {
+  await fastify.register(autoload, {
     dir: path.join(__dirname, 'input'),
     encapsulate: false, 
     maxDepth: 1,
@@ -35,5 +37,6 @@ module.exports = fp(async function authModuleIndex(fastify, opts) {
     dirNameRoutePrefix: false,
     prefix: moduleSpecificPrefix 
   });
-}); 
+
+};
 

@@ -5,6 +5,9 @@ const fp = require('fastify-plugin');
 module.exports = fp(async function authRouter(fastify, opts) {
 
   console.log('authRouter is loaded!');
+  // Temporarily commenting out debug logs to clean up output
+  // console.log('fastify.verifyToken exists:', typeof fastify.verifyToken);
+  // console.log('fastify decorations:', Object.getOwnPropertyNames(fastify).filter(name => !name.startsWith('_')));
 
   // GET /api/auth/disco
   fastify.route({
