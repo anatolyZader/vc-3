@@ -21,11 +21,18 @@ const LoginPage = () => {
   // Handle manual login form submission; the backend will set the auth cookie
   const handleManualLogin = async (e) => {
     e.preventDefault();
+    // Use FormData to capture browser-autofilled values reliably
+    const formData = new FormData(e.currentTarget);
+    const emailValue = formData.get('email')?.toString() || '';
+    const passwordValue = formData.get('password')?.toString() || '';
+    // Keep local state in sync for UX/debugging
+    if (emailValue !== email) setEmail(emailValue);
+    if (passwordValue !== password) setPassword(passwordValue);
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: emailValue, password: passwordValue }),
         credentials: 'include', // include cookies
       });
       if (response.ok) {
@@ -53,7 +60,7 @@ const LoginPage = () => {
             Sign in with Google 
           </Button>
 
-          <form onSubmit={handleManualLogin}>
+      <form onSubmit={handleManualLogin} autoComplete="on">
             <Box sx={{ mb: 2 }}>
               <TextField
                 label="Email"
@@ -61,6 +68,9 @@ const LoginPage = () => {
                 fullWidth
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+        name="email"
+        autoComplete="email"
+        InputLabelProps={{ shrink: true }}
                 required
               />
             </Box>
@@ -72,6 +82,9 @@ const LoginPage = () => {
                 fullWidth
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+        name="password"
+        autoComplete="current-password"
+        InputLabelProps={{ shrink: true }}
                 required
               />
             </Box>
