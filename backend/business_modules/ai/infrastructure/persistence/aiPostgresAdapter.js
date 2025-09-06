@@ -10,48 +10,49 @@ class AIPostgresAdapter extends IAIPersistPort {
       super();
       this.connector = cloudSqlConnector;
       this.pool = null;
-      this.poolPromise = isLocal
-          ? this.createLocalPool()
-          : this.createCloudSqlPool(cloudSqlConnector);
-      
-      // Initialize the pool early to catch any setup problems
-      this.initPool().catch(err => {
-          console.error('❌ Failed to initialize database pool:', err);
-      });
+      this.poolPromise = null;
   }
 
   async initPool() {
-      try {
-          this.pool = await this.poolPromise;
-          console.log('✅ Database pool initialized successfully');
-          return this.pool;
-      } catch (error) {
-          console.error('❌ Error initializing database pool:', error);
-          throw error;
-      }
+    try {
+      // Ensure a pool and promise exist
+      const pool = await this.getPool();
+      this.pool = pool;
+      console.log('✅ Database pool initialized successfully');
+      return this.pool;
+    } catch (error) {
+      console.error('❌ Error initializing database pool:', error);
+      throw error;
+    }
   }
 
   async getPool() {
-      if (!this.pool) {
-          try {
-              this.pool = await this.poolPromise;
-          } catch (error) {
-              console.error('❌ Failed to get pool:', error);
-              throw new Error(`Database connection error: ${error.message}`);
-          }
+    if (this.pool) return this.pool;
+    try {
+      if (!this.poolPromise) {
+        this.poolPromise = isLocal
+          ? Promise.resolve(this.createLocalPool())
+          : this.createCloudSqlPool(this.connector);
       }
+      this.pool = await this.poolPromise;
       return this.pool;
+    } catch (error) {
+      console.error('❌ Failed to get pool:', error);
+      throw new Error(`Database connection error: ${error.message}`);
+    }
   }
 
   createLocalPool() {
-      const config = {
-          user: process.env.PG_USER || 'postgres',
-          password: process.env.PG_PASSWORD || '111',
-          database: process.env.PG_DATABASE || 'eventstorm_db',
-          host: 'localhost',
-          port: 5432,
-      };
-      return Promise.resolve(new Pool(config));
+    const config = {
+      host: process.env.PG_HOST || '127.0.0.1',
+      port: Number(process.env.PG_PORT || 5432),
+      user: process.env.PG_USER,
+      password: process.env.PG_PASSWORD,
+      database: process.env.PG_DATABASE,
+      ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+    };
+    console.info('[DB] Using local Postgres config (AI) host:', config.host, 'db:', config.database);
+    return new Pool(config);
   }
 
   async createCloudSqlPool(connector) {
