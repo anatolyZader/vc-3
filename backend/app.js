@@ -74,33 +74,8 @@ module.exports = async function (fastify, opts) {
 
   await fastify.register(corsPlugin);
   
-  await fastify.register(require('@fastify/swagger'), {
-    openapi: {
-      openapi: '3.0.3',
-      info: {
-        title: 'EventStorm.me API',
-        description: 'EventStorm API – Git analysis, AI insights, docs, chat and more',
-        version: '1.0.0',
-      },
-      servers: [
-        {
-          url: process.env.NODE_ENV === 'staging'
-            ? 'https://eventstorm.me'
-            : 'http://localhost:3000',
-          description: process.env.NODE_ENV === 'staging'
-            ? 'Production server'
-            : 'Development server',
-        },
-      ],
-      components: {
-        securitySchemes: {
-          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' },
-        },
-      },
-      security: [{ bearerAuth: [] }, { cookieAuth: [] }],
-    },
-  });
+  // Swagger (OpenAPI) plugin
+  await fastify.register(require('./swaggerPlugin'));
 
   // await fastify.register(require('@fastify/swagger'), {
   //   openapi: {
@@ -461,37 +436,8 @@ module.exports = async function (fastify, opts) {
     return { schemas, routes };
   });
 
-  await fastify.register(require('@fastify/swagger-ui'), {
-    routePrefix: '/api/doc',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: true,
-      filter: true,
-      persistAuthorization: true,
-      layout: 'StandaloneLayout',
-    },
-    staticCSP: true,
-    transformStaticCSP: (hdr) => {
-    // Allow HTTP connections in development
-    if (process.env.NODE_ENV === 'staging') {
-      return hdr.replace(
-        /default-src 'self'/,
-        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:"
-      );
-    } else {
-      // Development: allow both HTTP and HTTPS
-      return hdr.replace(
-        /default-src 'self'/,
-        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: http: https:"
-      );
-    }
-  },
-    transformSpecificationClone: true,
-    transformSpecification(spec) {
-      spec.info['x-build-time'] = new Date().toISOString();
-      return spec;
-    },
-  });
+  // Swagger UI plugin
+  await fastify.register(require('./swaggerUI'));
 
   fastify.addHook('onReady', async () => {
 
