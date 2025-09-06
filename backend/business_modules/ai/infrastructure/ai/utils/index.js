@@ -3,9 +3,9 @@
  * Provides convenient access to all utility modules
  */
 
-const ConversationFormatter = require('./ConversationFormatter');
-const TextMatcher = require('./TextMatcher');
-const RequestQueue = require('./RequestQueue');
+const ConversationFormatter = require('./conversationFormatter');
+const TextMatcher = require('./textMatcher');
+const RequestQueue = require('./requestQueue');
 
 module.exports = {
   ConversationFormatter,

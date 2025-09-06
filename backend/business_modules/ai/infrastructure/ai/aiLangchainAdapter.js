@@ -8,12 +8,12 @@ const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
 // Import extracted utility functions
-const RequestQueue = require('./utils/RequestQueue');
-const LLMProviderManager = require('./providers/LLMProviderManager');
+const RequestQueue = require('./utils/requestQueue');
+const LLMProviderManager = require('./providers/lLMProviderManager');
 
 // Import the DataPreparationPipeline for handling repository processing
-const DataPreparationPipeline = require('./rag_pipelines/data_preparation/DataPreparationPipeline');
-const QueryPipeline = require('./rag_pipelines/query/QueryPipeline');
+const DataPreparationPipeline = require('./rag_pipelines/data_preparation/dataPreparationPipeline');
+const QueryPipeline = require('./rag_pipelines/query/queryPipeline');
 
 class AILangchainAdapter extends IAIPort {
   constructor(options = {}) {

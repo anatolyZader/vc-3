@@ -10,7 +10,7 @@
  * 4. Enhanced processing strategy
  */
 
-const DataPreparationPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/DataPreparationPipeline');
+const DataPreparationPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/dataPreparationPipeline');
 
 async function testOptimizedPipeline() {
   console.log('\n🚀 TESTING OPTIMIZED LANGCHAIN-FIRST DATA PREPARATION PIPELINE');

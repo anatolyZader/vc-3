@@ -1,22 +1,22 @@
 // DataPreparationPipeline.js - REFACTORED WITH MODULAR ORCHESTRATORS
 "use strict";
 
-const SemanticPreprocessor = require('./processors/SemanticPreprocessor');
-const ASTCodeSplitter = require('./processors/ASTCodeSplitter');
+const SemanticPreprocessor = require('./processors/semanticPreprocessor');
+const ASTCodeSplitter = require('./processors/aSTCodeSplitter');
 
 // Import all specialized processors
-const UbiquitousLanguageProcessor = require('./processors/UbiquitousLanguageProcessor');
-const RepositoryManager = require('./processors/RepositoryManager');
-const VectorStorageManager = require('./processors/VectorStorageManager');
-const ApiSpecProcessor = require('./processors/ApiSpecProcessor');
-const MarkdownDocumentationProcessor = require('./processors/MarkdownDocumentationProcessor');
-const RepositoryProcessor = require('./processors/RepositoryProcessor');
+const UbiquitousLanguageProcessor = require('./processors/ubiquitousLanguageProcessor');
+const RepositoryManager = require('./processors/repositoryManager');
+const VectorStorageManager = require('./processors/vectorStorageManager');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const MarkdownDocumentationProcessor = require('./processors/markdownDocumentationProcessor');
+const RepositoryProcessor = require('./processors/repositoryProcessor');
 
 // Import modular orchestrators
-const CommitManager = require('./orchestrators/CommitManager');
-const DocumentProcessingOrchestrator = require('./orchestrators/DocumentProcessingOrchestrator');
-const ProcessingStrategyManager = require('./orchestrators/ProcessingStrategyManager');
-const EventManager = require('./orchestrators/EventManager');
+const CommitManager = require('./orchestrators/commitManager');
+const DocumentProcessingOrchestrator = require('./orchestrators/documentProcessingOrchestrator');
+const ProcessingStrategyManager = require('./orchestrators/processingStrategyManager');
+const EventManager = require('./orchestrators/eventManager');
 
 /**
  * REFACTORED DataPreparationPipeline - Now uses modular orchestrators for better organization

@@ -10,7 +10,7 @@ console.log('Testing that our optimized DataPreparationPipeline compiles and has
 try {
   // Test that the class can be imported
   console.log('1. Testing import...');
-  const DataPreparationPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/DataPreparationPipeline');
+  const DataPreparationPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/dataPreparationPipeline');
   console.log('   ✅ DataPreparationPipeline imported successfully');
   
   // Test instantiation with minimal mocks

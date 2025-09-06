@@ -1,9 +1,9 @@
 // rag_pipelines/index.js - Main exports for RAG pipelines
 "use strict";
 
-const DataPreparationPipeline = require('./data_preparation/DataPreparationPipeline');
-const QueryPipeline = require('./query/QueryPipeline');
-const VectorSearchStrategy = require('./query/VectorSearchStrategy');
+const DataPreparationPipeline = require('./data_preparation/dataPreparationPipeline');
+const QueryPipeline = require('./query/queryPipeline');
+const VectorSearchStrategy = require('./query/vectorSearchStrategy');
 
 // Export main pipeline classes
 module.exports = {
@@ -16,15 +16,15 @@ module.exports = {
   
   // Export specialized processors for advanced usage
   processors: {
-    SemanticPreprocessor: require('./data_preparation/processors/SemanticPreprocessor'),
-    ASTCodeSplitter: require('./data_preparation/processors/ASTCodeSplitter'),
-    UbiquitousLanguageProcessor: require('./data_preparation/processors/UbiquitousLanguageProcessor'),
-    RepositoryManager: require('./data_preparation/processors/RepositoryManager'),
-    VectorStorageManager: require('./data_preparation/processors/VectorStorageManager'),
-    ApiSpecProcessor: require('./data_preparation/processors/ApiSpecProcessor'),
-    MarkdownDocumentationProcessor: require('./data_preparation/processors/MarkdownDocumentationProcessor'),
-    RepositoryProcessor: require('./data_preparation/processors/RepositoryProcessor'),
-    DocumentProcessor: require('./data_preparation/processors/DocumentProcessor'),
-    OptimizedRepositoryProcessor: require('./data_preparation/processors/OptimizedRepositoryProcessor')
+  SemanticPreprocessor: require('./data_preparation/processors/semanticPreprocessor'),
+  ASTCodeSplitter: require('./data_preparation/processors/aSTCodeSplitter'),
+  UbiquitousLanguageProcessor: require('./data_preparation/processors/ubiquitousLanguageProcessor'),
+  RepositoryManager: require('./data_preparation/processors/repositoryManager'),
+  VectorStorageManager: require('./data_preparation/processors/vectorStorageManager'),
+  ApiSpecProcessor: require('./data_preparation/processors/apiSpecProcessor'),
+  MarkdownDocumentationProcessor: require('./data_preparation/processors/markdownDocumentationProcessor'),
+  RepositoryProcessor: require('./data_preparation/processors/repositoryProcessor'),
+  DocumentProcessor: require('./data_preparation/processors/documentProcessor'),
+  OptimizedRepositoryProcessor: require('./data_preparation/processors/optimizedRepositoryProcessor')
   }
 };

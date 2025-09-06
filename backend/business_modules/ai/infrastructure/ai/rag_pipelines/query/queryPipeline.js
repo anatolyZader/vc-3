@@ -1,6 +1,6 @@
-const VectorSearchOrchestrator = require('./VectorSearchOrchestrator');
-const ContextBuilder = require('./ContextBuilder');
-const ResponseGenerator = require('./ResponseGenerator');
+const VectorSearchOrchestrator = require('./vectorSearchOrchestrator');
+const ContextBuilder = require('./contextBuilder');
+const ResponseGenerator = require('./responseGenerator');
 
 /**
  * Consolidated QueryPipeline that handles all RAG query processing

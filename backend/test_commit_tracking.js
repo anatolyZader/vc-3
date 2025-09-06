@@ -10,7 +10,7 @@
  * 4. Repository tracking metadata storage
  */
 
-const DataPreparationPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/DataPreparationPipeline');
+const DataPreparationPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/dataPreparationPipeline');
 
 async function testCommitTracking() {
   console.log('\n🧪 TESTING ENHANCED REPOSITORY DUPLICATE DETECTION WITH COMMIT TRACKING');

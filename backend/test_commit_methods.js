@@ -9,7 +9,7 @@
 const path = require('path');
 
 // Import only the RepositoryManager to test commit tracking methods
-const RepositoryManager = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/RepositoryManager');
+const RepositoryManager = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/repositoryManager');
 
 async function testCommitMethods() {
   console.log('\n🧪 TESTING COMMIT HASH TRACKING METHODS');

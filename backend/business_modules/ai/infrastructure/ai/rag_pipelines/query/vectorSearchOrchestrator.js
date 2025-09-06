@@ -1,5 +1,5 @@
 const { PineconeStore } = require('@langchain/pinecone');
-const VectorSearchStrategy = require('./VectorSearchStrategy');
+const VectorSearchStrategy = require('./vectorSearchStrategy');
 
 class VectorSearchOrchestrator {
   constructor(vectorStore, pinecone, embeddings) {
