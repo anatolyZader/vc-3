@@ -5,12 +5,11 @@
 const BUILDING_API_SPEC = process.env.GENERATING_HTTP_API_SPEC === '1';
 
 const path              = require('node:path');
-const fs                = require('fs');
 const AutoLoad          = require('@fastify/autoload');
 const fastifySensible   = require('@fastify/sensible');
 const fastifyCookie     = require('@fastify/cookie');
 const fastifySession    = require('@fastify/session');
-const { Store }         = fastifySession;
+const RedisStore        = require('./redisStore');
 const redisPlugin       = require('./redisPlugin');
 const websocketPlugin   = require('./websocketPlugin');
 const loggingPlugin     = require('./logPlugin');
@@ -19,8 +18,6 @@ const envPlugin         = require('./envPlugin');
 const diPlugin          = require('./diPlugin');
 const corsPlugin        = require('./corsPlugin');
 const helmet            = require('@fastify/helmet');
-// const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
-const schemasCheckPlugin = require('./schemasCheckPlugin');
 const pubsubPlugin      = require('./pubsubPlugin');
 const eventDispatcher   = require('./eventDispatcher');
 
@@ -73,120 +70,7 @@ module.exports = async function (fastify, opts) {
   });
 
   await fastify.register(corsPlugin);
-  
-  // Swagger (OpenAPI) plugin
   await fastify.register(require('./swaggerPlugin'));
-
-  // await fastify.register(require('@fastify/swagger'), {
-  //   openapi: {
-  //     openapi: '3.0.0',
-  //     info: {
-  //       title: 'eventstorm.me',
-  //       description: 'http API',
-  //       version: '0.0.1',
-  //     },
-  //     servers: [
-  //       {
-  //         url: process.env.NODE_ENV === 'staging'
-  //           ? 'https://eventstorm.me'
-  //           : 'http://localhost:3000',
-  //         description: process.env.NODE_ENV === 'staging'
-  //           ? 'Production server'
-  //           : 'Development server',
-  //       },
-  //     ],
-  //     components: {
-  //       securitySchemes: {
-  //         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-  //         cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' },
-  //       },
-  //     },
-  //     security: [{ bearerAuth: [] }, { cookieAuth: [] }],
-  //   },
-  //   transform: ({ schema, url }) => {
-  //     // Create a safe clone to avoid modifying the original schema
-  //     if (!schema) {
-  //       return {
-  //         schema: { type: 'object' },
-  //         url
-  //       };
-  //     }
-
-  //     // Deep clone the schema
-  //     const safeSchema = JSON.parse(JSON.stringify(schema));
-      
-  //     // Ensure root schema has a type
-  //     if (!safeSchema.type) {
-  //       safeSchema.type = 'object';
-  //     }
-      
-  //     // Handle response schemas - ensure each one has a type
-  //     if (safeSchema.response) {
-  //       Object.keys(safeSchema.response).forEach(statusCode => {
-  //         const response = safeSchema.response[statusCode];
-  //         if (response && typeof response === 'object' && !response.type) {
-  //           safeSchema.response[statusCode].type = 'object';
-  //         }
-  //       });
-  //     }
-      
-  //     // Handle request parts - each should have a type
-  //     ['params', 'querystring', 'headers', 'body'].forEach(part => {
-  //       if (safeSchema[part] && typeof safeSchema[part] === 'object' && !safeSchema[part].type) {
-  //         safeSchema[part].type = 'object';
-  //       }
-  //     });
-      
-  //     return { schema: safeSchema, url };
-  //   },
-  //   mode: 'dynamic'
-  // });
-
-  // await fastify.register(require('@fastify/swagger'), {
-  //   openapi: {
-  //     openapi: '3.0.0',
-  //     info: {
-  //       title: 'eventstorm.me',
-  //       description: 'http API',
-  //       version: '0.0.1',
-  //     },
-  //     servers: [
-  //       {
-  //         url: process.env.NODE_ENV === 'production'
-  //           ? 'https://eventstorm.me'
-  //           : 'http://localhost:3000',
-  //         description: process.env.NODE_ENV === 'production'
-  //           ? 'Production server'
-  //           : 'Development server',
-  //       },
-  //     ],
-  //     components: {
-  //       securitySchemes: {
-  //         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-  //         cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' },
-  //       },
-  //     },
-  //     security: [{ bearerAuth: [] }, { cookieAuth: [] }],
-  //   },
-  //   // Add transform to handle any schema issues
-  //   transform: (schema) => {
-  //     if (!schema) return schema;
-      
-  //     // Ensure all schema objects have a type
-  //     if (!schema.type) schema.type = 'object';
-      
-  //     // Ensure these schema properties exist and are objects
-  //     if (schema.params === undefined) schema.params = {};
-  //     if (schema.querystring === undefined) schema.querystring = {};
-  //     if (schema.body === undefined) schema.body = {};
-      
-  //     return schema;
-  //   }
-  // });
-
-    
-  // await fastify.register(swaggerPlugin);
-  // await fastify.register(swaggerUIPlugin);
 
   if (!BUILDING_API_SPEC) {
     await fastify.register(redisPlugin);
@@ -217,34 +101,7 @@ module.exports = async function (fastify, opts) {
   }
 
   if (!BUILDING_API_SPEC) {
-    class RedisStore extends Store { // @fastify/session package exports a Store base class for session stores. This is the recommended way to get the session store parent class for custom session stores
-    constructor(sendCommand) {
-      super();
-      this.send = sendCommand;
-    }
-
-    // get session data from Redis
-    // sid - session ID, sess - session object, ttlMs - time to live in milliseconds (for JavaScript/Node.js), cb - callback function, ttl - time-to-live (in seconds (for Redis), ttlMs is converted to ttl by dividing by 1000 and rounding), 
-    get(sid, cb) {
-      this.send(['GET', sid])
-        .then((data) => cb(null, data ? JSON.parse(data) : null))
-        .catch(cb);
-    }
-
-    // store session data in Redis.
-    set(sid, sess, ttlMs, cb) {
-      const data = JSON.stringify(sess);
-      const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;
-      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data]; // SETEX Redis command, which means “set the key sid to the value data and expire it after ttl seconds” Vs. SET Redis command, which means “set the key sid to the value data” with no expiration.
-      this.send(cmd).then(() => cb(null)).catch(cb); // If successful, calls cb(null) to indicate success. If there’s an error, passes the error to the callback (catch(cb)).
-    }
-
-    destroy(sid, cb) {
-      this.send(['DEL', sid]).then(() => cb(null)).catch(cb);
-    }
-  }
-
-  await fastify.register(fastifySession, {
+    await fastify.register(fastifySession, {
     secret: fastify.secrets.SESSION_SECRET,
     cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
     store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)), // where session data is stored.
@@ -302,7 +159,7 @@ module.exports = async function (fastify, opts) {
     maxDepth: 1,
     dirNameRoutePrefix: false,
     prefix: '/api',
-    options: Object.assign({}, opts),
+    options: { ...opts},
   });
 
   await fastify.register(AutoLoad, {
@@ -436,7 +293,6 @@ module.exports = async function (fastify, opts) {
     return { schemas, routes };
   });
 
-  // Swagger UI plugin
   await fastify.register(require('./swaggerUI'));
 
   fastify.addHook('onReady', async () => {
