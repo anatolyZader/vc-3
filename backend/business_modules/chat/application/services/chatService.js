@@ -28,6 +28,22 @@ class ChatService extends IChatService {
   async startConversation(userId, title = 'New Conversation') {
     const conversation = new Conversation(userId);
     await conversation.startConversation( this.chatPersistAdapter, title);
+
+    // Publish domain event: ConversationStarted
+    const payload = {
+      userId,
+      conversationId: conversation.conversationId,
+      title,
+      timestamp: new Date().toISOString()
+    };
+    if (this.chatMessagingAdapter) {
+      if (typeof this.chatMessagingAdapter.publishEvent === 'function') {
+        await this.chatMessagingAdapter.publishEvent('conversationStarted', payload);
+      } else if (typeof this.chatMessagingAdapter.startConversation === 'function') {
+        await this.chatMessagingAdapter.startConversation(payload);
+      }
+    }
+
     return conversation.conversationId;
   }
 
