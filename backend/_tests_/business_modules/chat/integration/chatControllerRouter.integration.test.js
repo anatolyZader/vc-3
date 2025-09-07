@@ -44,35 +44,37 @@ describe("Chat Controller + Router (Fastify inject)", () => {
     app.register(require(controllerPath));
     app.register(require(routerPath), { prefix: "/api/chat" });
 
+  // (debug logging of routes removed)
+
     return app;
   }
 
-  test("POST /api/chat/start returns conversationId and calls service", async () => {
+  test("POST /start returns conversationId and calls service", async () => {
     const chatService = { startConversation: jest.fn(async () => "c-123") };
     const app = build({ chatServiceImpl: chatService });
     await app.ready();
 
-    const res = await app.inject({ method: "POST", url: "/api/chat/start", payload: { title: "My Chat" } });
+  const res = await app.inject({ method: "POST", url: "/start", payload: { title: "My Chat" } });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ conversationId: "c-123" });
     expect(chatService.startConversation).toHaveBeenCalledWith("u-1", "My Chat");
     await app.close();
   });
 
-  test("POST /api/chat/start without title fails 400 via schema", async () => {
+  test("POST /start without title fails 400 via schema", async () => {
     const app = build();
     await app.ready();
-    const res = await app.inject({ method: "POST", url: "/api/chat/start", payload: {} });
+  const res = await app.inject({ method: "POST", url: "/start", payload: {} });
     expect(res.statusCode).toBe(400);
     await app.close();
   });
 
-  test("GET /api/chat/history returns array", async () => {
+  test("GET /history returns array", async () => {
     const chatService = { fetchConversationsHistory: jest.fn(async () => ([{ conversationId: "c1", title: "T", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }])) };
     const app = build({ chatServiceImpl: chatService });
     await app.ready();
 
-    const res = await app.inject({ method: "GET", url: "/api/chat/history" });
+  const res = await app.inject({ method: "GET", url: "/history" });
     expect(res.statusCode).toBe(200);
     const arr = res.json();
     expect(Array.isArray(arr)).toBe(true);

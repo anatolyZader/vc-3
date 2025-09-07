@@ -4,7 +4,7 @@ const path = require("path");
 
 // Minimal PromptSelector/Config stubs to satisfy generateWithContext path
 jest.mock(
-  path.join(__dirname, "../../../../../business_modules/ai/infrastructure/ai/prompts/index"),
+  "../../../../business_modules/ai/infrastructure/ai/prompts/index",
   () => ({
     PromptSelector: {
       selectPrompt: jest.fn(() => "sys")
@@ -13,7 +13,7 @@ jest.mock(
 );
 
 jest.mock(
-  path.join(__dirname, "../../../../../business_modules/ai/infrastructure/ai/prompts/promptConfig"),
+  "../../../../business_modules/ai/infrastructure/ai/prompts/promptConfig",
   () => ({
     keywords: { application: ["eventstorm"], general: ["what", "how"] },
     logging: { logPromptSelection: false }

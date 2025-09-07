@@ -8,7 +8,7 @@ describe("ChatPubsubAdapter (contract)", () => {
     "../../../../../../business_modules/chat/infrastructure/messaging/pubsub/chatPubsubAdapter.js"
   );
 
-  test("publishEvent dispatches via function eventDispatcher", async () => {
+  test("publishEvent dispatches via function eventDispatcher and matches schema", async () => {
     const dispatched = [];
     const eventDispatcher = async (name, payload) => { dispatched.push({ name, payload }); };
     const Adapter = require(adapterPath);
@@ -18,5 +18,9 @@ describe("ChatPubsubAdapter (contract)", () => {
 
     expect(dispatched).toHaveLength(1);
     expect(dispatched[0]).toEqual({ name: "questionAdded", payload: { userId: "u1", conversationId: "c1", prompt: "Why?" } });
+
+    const { getChatEventValidators } = require("../../../../../helpers/eventSchemas");
+    const { validateQuestionAdded } = getChatEventValidators();
+    expect(validateQuestionAdded({ event: dispatched[0].name, payload: dispatched[0].payload })).toBe(true);
   });
 });

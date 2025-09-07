@@ -23,7 +23,7 @@ jest.mock("@langchain/pinecone", () => ({
 }));
 
 const pineconeMock = { Index: jest.fn(() => ({})) };
-const VectorSearchOrchestrator = require("../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/vectorSearchOrchestrator");
+const VectorSearchOrchestrator = require("../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/vectorSearchOrchestrator");
 
 describe("VectorSearchOrchestrator integration", () => {
   test("performs user + core searches and merges results", async () => {

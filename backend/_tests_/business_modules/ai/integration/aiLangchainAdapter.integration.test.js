@@ -25,7 +25,7 @@ jest.mock("@langchain/pinecone", () => ({
 
 // Mock provider manager to return a fake LLM
 jest.mock(
-  path.join(__dirname, "../../../../../business_modules/ai/infrastructure/ai/providers/lLMProviderManager"),
+  "../../../../business_modules/ai/infrastructure/ai/providers/lLMProviderManager",
   () => {
     return jest.fn().mockImplementation(() => ({
       getLLM: jest.fn(() => ({
@@ -36,7 +36,7 @@ jest.mock(
 );
 
 // Mock QueryPipeline to observe construction and respond behavior
-const QueryPipelineMock = jest.fn().mockImplementation((opts) => ({
+const mockQueryPipeline = jest.fn().mockImplementation((opts) => ({
   __opts: opts,
   respondToPrompt: jest.fn(async (userId, conversationId, prompt, history, vectorStore) => ({
     success: true,
@@ -50,12 +50,12 @@ const QueryPipelineMock = jest.fn().mockImplementation((opts) => ({
 }));
 
 jest.mock(
-  path.join(__dirname, "../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/queryPipeline"),
-  () => QueryPipelineMock
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/queryPipeline",
+  () => mockQueryPipeline
 );
 
 // Mock DataPreparationPipeline to simulate repo processing
-const DataPreparationPipelineMock = jest.fn().mockImplementation((opts) => ({
+const mockDataPreparationPipeline = jest.fn().mockImplementation((opts) => ({
   __opts: opts,
   processPushedRepo: jest.fn(async (userId, repoId, repoData) => ({
     success: true,
@@ -67,8 +67,8 @@ const DataPreparationPipelineMock = jest.fn().mockImplementation((opts) => ({
 }));
 
 jest.mock(
-  path.join(__dirname, "../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/dataPreparationPipeline"),
-  () => DataPreparationPipelineMock
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/dataPreparationPipeline",
+  () => mockDataPreparationPipeline
 );
 
 // SUT
@@ -94,8 +94,8 @@ describe("AI business module integration: AILangchainAdapter", () => {
     adapter.setUserId("u-integration");
 
     // QueryPipeline should be constructed with LLM and requestQueue provided
-    expect(QueryPipelineMock).toHaveBeenCalledTimes(1);
-    const qpArgs = QueryPipelineMock.mock.calls[0][0];
+  expect(mockQueryPipeline).toHaveBeenCalledTimes(1);
+  const qpArgs = mockQueryPipeline.mock.calls[0][0];
     expect(qpArgs).toMatchObject({ llm: expect.any(Object), requestQueue: expect.any(Object) });
 
     // Assert namespacing via public behavior rather than internal properties

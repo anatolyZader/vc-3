@@ -27,7 +27,10 @@ describe("Chat event bus bridge (answerAdded)", () => {
       app.register(require(listenerPath));
       await app.ready();
 
-      const payload = { userId: "u1", conversationId: "c1", answer: "Ans" };
+  const payload = { userId: "u1", conversationId: "c1", answer: "Ans" };
+  const { getChatEventValidators } = require("../../../helpers/eventSchemas");
+  const { validateAnswerAdded } = getChatEventValidators();
+  expect(validateAnswerAdded({ event: "answerAdded", payload })).toBe(true);
       eventBus.emit("answerAdded", payload);
 
       // Allow microtasks

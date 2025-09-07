@@ -3,7 +3,7 @@
 const path = require("path");
 
 // Mocks
-const VectorSearchOrchestratorMock = jest.fn().mockImplementation(() => ({
+const mockVectorSearchOrchestrator = jest.fn().mockImplementation(() => ({
   performSearch: jest.fn(async () => ([
     { pageContent: "doc1", metadata: { source: "s1", type: "apiSpec" } },
     { pageContent: "doc2", metadata: { source: "s2", repoId: "r1" } }
@@ -11,11 +11,11 @@ const VectorSearchOrchestratorMock = jest.fn().mockImplementation(() => ({
 }));
 
 jest.mock(
-  path.join(__dirname, "../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/vectorSearchOrchestrator"),
-  () => VectorSearchOrchestratorMock
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/vectorSearchOrchestrator",
+  () => mockVectorSearchOrchestrator
 );
 
-const ContextBuilderMock = {
+const mockContextBuilder = {
   formatContext: jest.fn((docs) => ({
     context: docs.map(d => d.pageContent).join("\n"),
     sourceAnalysis: { apiSpec: 1, rootDocumentation: 0, moduleDocumentation: 0, githubRepo: 1 },
@@ -24,22 +24,22 @@ const ContextBuilderMock = {
 };
 
 jest.mock(
-  path.join(__dirname, "../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/contextBuilder"),
-  () => ContextBuilderMock
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/contextBuilder",
+  () => mockContextBuilder
 );
 
-const ResponseGeneratorMock = jest.fn().mockImplementation(() => ({
+const mockResponseGenerator = jest.fn().mockImplementation(() => ({
   generateWithContext: jest.fn(async () => ({ content: "with-context" })),
   generateStandard: jest.fn(async () => ({ content: "standard" })),
   isRateLimitError: jest.fn(() => false)
 }));
 
 jest.mock(
-  path.join(__dirname, "../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/responseGenerator"),
-  () => ResponseGeneratorMock
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/responseGenerator",
+  () => mockResponseGenerator
 );
 
-const QueryPipeline = require("../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/queryPipeline");
+const QueryPipeline = require("../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/queryPipeline");
 
 describe("QueryPipeline integration", () => {
   test("respondToPrompt returns RAG response when vectorStore and pinecone present", async () => {
@@ -51,7 +51,7 @@ describe("QueryPipeline integration", () => {
 
     const out = await qp.respondToPrompt("u", "c", "how to?", [], {});
     expect(out).toMatchObject({ success: true, ragEnabled: true, response: "with-context" });
-    expect(ContextBuilderMock.formatContext).toHaveBeenCalled();
+  expect(mockContextBuilder.formatContext).toHaveBeenCalled();
   });
 
   test("respondToPrompt indicates standard response when vector store missing", async () => {
