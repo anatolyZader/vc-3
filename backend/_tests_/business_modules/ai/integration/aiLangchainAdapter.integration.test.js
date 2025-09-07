@@ -98,9 +98,19 @@ describe("AI business module integration: AILangchainAdapter", () => {
     const qpArgs = QueryPipelineMock.mock.calls[0][0];
     expect(qpArgs).toMatchObject({ llm: expect.any(Object), requestQueue: expect.any(Object) });
 
-    // vectorStore created with namespace
-    expect(adapter.vectorStore).toBeTruthy();
-    expect(adapter.vectorStore.namespace).toBe("u-integration");
+    // Assert namespacing via public behavior rather than internal properties
+    const result = await adapter.respondToPrompt(
+      "u-integration",
+      "cX",
+      "ping?",
+      []
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        meta: expect.objectContaining({ vectorStoreNS: "u-integration" })
+      })
+    );
   });
 
   test("respondToPrompt delegates to QueryPipeline and returns success payload", async () => {
