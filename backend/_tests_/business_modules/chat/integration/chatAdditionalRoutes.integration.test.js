@@ -157,4 +157,32 @@ describe("Chat additional routes (Fastify inject)", () => {
     expect(chatService.addAnswer).toHaveBeenCalledWith("u-1", "c-3", "OK", false);
     await app.close();
   });
+
+  test("PATCH /:conversationId/rename returns message and calls service", async () => {
+    const chatService = {
+      renameConversation: jest.fn(async () => "New Title"),
+    };
+    const app = build({ chatServiceImpl: chatService });
+    await app.ready();
+
+    const res = await app.inject({ method: "PATCH", url: "/c-4/rename", payload: { newTitle: "New Title" } });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ message: "Conversation renamed successfully" });
+    expect(chatService.renameConversation).toHaveBeenCalledWith("u-1", "c-4", "New Title");
+    await app.close();
+  });
+
+  test("DELETE /:conversationId/delete returns message and calls service", async () => {
+    const chatService = {
+      deleteConversation: jest.fn(async () => "c-5"),
+    };
+    const app = build({ chatServiceImpl: chatService });
+    await app.ready();
+
+    const res = await app.inject({ method: "DELETE", url: "/c-5/delete" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ message: "Conversation deleted successfully" });
+    expect(chatService.deleteConversation).toHaveBeenCalledWith("u-1", "c-5");
+    await app.close();
+  });
 });
