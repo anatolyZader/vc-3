@@ -6,7 +6,8 @@
   "type": "commonjs",
   "directories": {},
   "scripts": {
-    "test": "jest",
+  "test": "jest",
+  "test:integration": "jest -c jest.integration.config.js",
     "test:watch": "jest --watchAll",
     "lint": "eslint .",
     "dev": "concurrently --kill-others-on-fail \"./cloud-sql-proxy eventstorm-1:me-west1:eventstorm-pg-instance-1 --port 5432\" \"NODE_DEBUG=fastify,node-fastify fastify start server.js --watch --watch-ignore logs/ --watch-ignore node_modules/ --port 3000 -l trace | pino-pretty --translateTime 'SYS:standard' --colorize\"",

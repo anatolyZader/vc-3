@@ -2,6 +2,7 @@
 
 const path = require("path");
 const Fastify = require("fastify");
+const { getApiEventValidators } = require("../../../helpers/eventSchemas");
 
 describe("API Pub/Sub bridge", () => {
   const listenerPath = path.resolve(
@@ -43,12 +44,17 @@ describe("API Pub/Sub bridge", () => {
 
     const ack = jest.fn();
     const nack = jest.fn();
+    const messagePayload = { event: "fetchHttpApiRequest", payload: { userId: "u1", repoId: "r1", correlationId: "c1" } };
     const message = {
       id: "m1",
-      data: Buffer.from(JSON.stringify({ event: "fetchHttpApiRequest", payload: { userId: "u1", repoId: "r1", correlationId: "c1" } })),
+      data: Buffer.from(JSON.stringify(messagePayload)),
       ack,
       nack,
     };
+
+    // Validate incoming event against schema
+    const { validateFetchHttpApiRequest } = getApiEventValidators();
+    expect(validateFetchHttpApiRequest(messagePayload)).toBe(true);
 
     await subscriptionMock._onMessage(message);
 
