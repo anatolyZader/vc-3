@@ -1,4 +1,4 @@
-// aiLangchainAdapter.js - Migrated to LangGraph
+// aiLanggraphAdapter.js
 "use strict";
 /* eslint-disable no-unused-vars */
 
@@ -7,8 +7,9 @@ const { PineconeStore } = require('@langchain/pinecone');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
-// LangGraph imports for workflow orchestration
-const { StateGraph, START, END, Annotation } = require('@langchain/langgraph');
+// LangGraph imports
+const { StateGraph, START, END } = require('@langchain/langgraph');
+const { MemorySaver } = require('@langchain/langgraph');
 
 // Import extracted utility functions
 const RequestQueue = require('./utils/requestQueue');
@@ -18,7 +19,7 @@ const LLMProviderManager = require('./providers/lLMProviderManager');
 const DataPreparationPipeline = require('./rag_pipelines/data_preparation/dataPreparationPipeline');
 const QueryPipeline = require('./rag_pipelines/query/queryPipeline');
 
-class AILangchainAdapter extends IAIPort {
+class AILanggraphAdapter extends IAIPort {
   constructor(options = {}) {
     super();
 
@@ -28,7 +29,7 @@ class AILangchainAdapter extends IAIPort {
 
     // Get provider from infraConfig or options
     this.aiProvider = options.aiProvider || 'openai';
-    console.log(`[${new Date().toISOString()}] AILangchainAdapter (LangGraph) initializing with provider: ${this.aiProvider}`);
+    console.log(`[${new Date().toISOString()}] AILanggraphAdapter initializing with provider: ${this.aiProvider}`);
     console.log(`[${new Date().toISOString()}] [DEBUG] aiProvider set to: ${this.aiProvider}`);
 
     // Get access to the event bus for status updates
@@ -96,12 +97,12 @@ class AILangchainAdapter extends IAIPort {
       });
       console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with specialized processors for all core documentation.`);
 
-      // Initialize LangGraph workflow for RAG operations
+      // Initialize LangGraph workflow
       this.initializeLangGraphWorkflow();
 
-      console.log(`[${new Date().toISOString()}] AILangchainAdapter (LangGraph) initialized successfully`);
+      console.log(`[${new Date().toISOString()}] AILanggraphAdapter initialized successfully`);
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Error initializing AILangchainAdapter:`, error.message);
+      console.error(`[${new Date().toISOString()}] Error initializing AILanggraphAdapter:`, error.message);
       console.log(`[${new Date().toISOString()}] [DEBUG] Initialization error stack:`, error.stack);
       // We'll continue with degraded functionality and try to recover later
     }
@@ -113,52 +114,22 @@ class AILangchainAdapter extends IAIPort {
   initializeLangGraphWorkflow() {
     console.log(`[${new Date().toISOString()}] 🔧 Initializing LangGraph workflow for RAG operations`);
     
-    // Define the state schema using Annotation
-    const RagState = Annotation.Root({
-      userId: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => null,
-      }),
-      conversationId: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => null,
-      }),
-      prompt: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => null,
-      }),
-      conversationHistory: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => [],
-      }),
-      vectorStore: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => null,
-      }),
-      searchResults: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => [],
-      }),
-      contextData: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => null,
-      }),
-      response: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => null,
-      }),
-      error: Annotation({
-        reducer: (x, y) => y ?? x,
-        default: () => null,
-      }),
-      metadata: Annotation({
-        reducer: (x, y) => ({ ...x, ...y }),
-        default: () => ({}),
-      }),
-    });
+    // Define the state schema for the RAG workflow
+    this.ragWorkflowState = {
+      userId: null,
+      conversationId: null,
+      prompt: null,
+      conversationHistory: [],
+      vectorStore: null,
+      searchResults: [],
+      contextData: null,
+      response: null,
+      error: null,
+      metadata: {}
+    };
 
     // Create the state graph
-    this.ragGraph = new StateGraph(RagState);
+    this.ragGraph = new StateGraph(this.ragWorkflowState);
 
     // Add nodes to the graph
     this.ragGraph.addNode("validate_inputs", this.validateInputsNode.bind(this));
@@ -398,7 +369,7 @@ class AILangchainAdapter extends IAIPort {
   // Add method to set userId after construction - this is crucial!
   setUserId(userId) {
     if (!userId) {
-      console.warn(`[${new Date().toISOString()}] Attempted to set null/undefined userId in AILangchainAdapter`);
+      console.warn(`[${new Date().toISOString()}] Attempted to set null/undefined userId in AILanggraphAdapter`);
       return this;
     }
     console.log(`[${new Date().toISOString()}] [DEBUG] setUserId called with: ${userId}`);
@@ -413,7 +384,7 @@ class AILangchainAdapter extends IAIPort {
           pineconeIndex: this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index'),
           namespace: this.userId
         });
-        console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
+        console.log(`[${new Date().toISOString()}] AILanggraphAdapter userId updated to: ${this.userId}`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Vector store initialized for userId: ${this.userId}`);
         
         // Initialize QueryPipeline with the new vector store for RAG operations
@@ -495,7 +466,6 @@ class AILangchainAdapter extends IAIPort {
   }
 
   // 2. Retrieval and generation using LangGraph workflow:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
   async respondToPrompt(userId, conversationId, prompt, conversationHistory = []) {
     this.setUserId(userId);
     if (!this.userId) {
@@ -617,4 +587,4 @@ class AILangchainAdapter extends IAIPort {
   }
 }
 
-module.exports = AILangchainAdapter;
+module.exports = AILanggraphAdapter;
