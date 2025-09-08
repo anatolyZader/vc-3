@@ -1,0 +1,2 @@
+# Protect manual-only files
+backend/business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/ubiqLangDict.json  @anatolyZader

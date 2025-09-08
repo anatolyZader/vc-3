@@ -1,0 +1,115 @@
+/* messageActions.css */
+
+.message-with-actions {
+  position: relative;
+  min-height: 40px;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+}
+
+.message-actions {
+  position: absolute;
+  bottom: 0px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+/* Show actions on message hover */
+.cs-message--outgoing:hover .message-actions,
+.cs-message:hover .message-actions {
+  opacity: 1;
+}
+
+.message-action-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.message-action-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.message-action-btn:active {
+  transform: scale(0.95);
+}
+
+.copy-btn:hover {
+  color: #10b981;
+}
+
+.edit-btn:hover {
+  color: #3b82f6;
+}
+
+.copy-feedback {
+  position: absolute;
+  bottom: -32px;
+  right: 8px;
+  background: #10b981;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  animation: fadeInOut 2s ease;
+  pointer-events: none;
+  z-index: 20;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(4px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Ensure proper positioning for message content */
+.cs-message--outgoing .cs-message__content-wrapper {
+  position: relative;
+}
+
+.cs-message--outgoing .cs-message__content {
+  /* Remove conflicting padding - let message-with-actions handle it */
+  position: relative;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .message-actions {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 4px;
+    border-radius: 6px;
+  }
+  
+  .message-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Touch devices - show buttons more easily */
+@media (hover: none) and (pointer: coarse) {
+  .message-actions {
+    opacity: 0.7;
+  }
+  
+  .cs-message--outgoing:hover .message-actions,
+  .cs-message:hover .message-actions {
+    opacity: 1;
+  }
+}

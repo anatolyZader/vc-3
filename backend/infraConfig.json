@@ -1,0 +1,46 @@
+{
+  "aop_modules": {
+    "auth": {
+      "authPersistAdapter": "authPostgresAdapter"
+    }
+  },
+
+  "business_modules": {
+    "chat": {
+      "chatPersistAdapter": "chatPostgresAdapter",
+      "chatAiAdapter": "chatAiAdapter",
+      "chatMessagingAdapter": "chatPubsubAdapter",
+      "chatVoiceAdapter": "chatGCPVoiceAdapter"
+    },
+    "git": {
+      "gitAdapter": "gitGithubAdapter",
+      "gitMessagingAdapter": "gitPubsubAdapter",
+      "gitPersistAdapter": "gitPostgresAdapter"
+    },
+
+    "docs": {
+      "docsMessagingAdapter": "docsPubsubAdapter",
+      "docsPersistAdapter": "docsPostgresAdapter",
+      "docsAiAdapter": "docsLangchainAdapter",
+      "docsGitAdapter": "docsGithubAdapter"
+    },
+    "ai": {
+      "aiPersistAdapter": "aiPostgresAdapter",
+      "aiAdapter": "aiLangchainAdapter", 
+      "aiProvider": "anthropic", 
+      "aiMessagingAdapter": "aiPubsubAdapter",
+      "aiGitAdapter": "aiGithubAdapter",
+      "aiDocsAdapter": "aiGithubDocsAdapter"
+    },
+    "messaging": {
+      "messagingPersistAdapter": "messagingPostgresAdapter",
+      "messagingAIAdapter": "messagingLangchainAdapter",
+      "messagingMessagingAdapter": "messagingPubsubAdapter"
+    },
+    "api": {
+      "apiPersistAdapter": "apiPostgresAdapter",
+      "apiMessagingAdapter": "apiPubsubAdapter",
+      "apiAdapter": "apiSwaggerAdapter"
+    }
+  }
+}

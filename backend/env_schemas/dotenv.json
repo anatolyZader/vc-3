@@ -1,0 +1,106 @@
+
+{
+  "type": "object",
+  "$id": "schema:dotenv",
+  "properties": {
+    "YOUTUBE_API_KEY": {
+      "type": "string"
+    },
+    "PORT": {
+      "type": "integer"
+    },
+    "PG_CONNECTION_STRING": {
+      "type": "string"
+    },
+    "JWT_SECRET": {
+      "type": "string"
+    },
+    "JWT_EXPIRE_IN": {
+      "type": "string",
+      "default": "1h"
+    },
+    "GCP_OAUTH2_CLIENT_SECRET": {
+      "type": "string"
+    },
+    "GCP_OAUTH2_CLIENT_ID": {
+      "type": "string"
+    },
+    "GITHUB_TOKEN": {
+      "type": "string"
+    },
+    "CLOUD_SQL_CONNECTION_NAME": {
+      "type": "string"
+    },
+    "PG_USER": {
+      "type": "string"
+    },
+    "PG_PASSWORD": {
+      "type": "string"
+    },
+    "PG_DATABASE": {
+      "type": "string"
+    },
+    "GOOGLE_APPLICATION_CREDENTIALS": {
+      "type": "string"
+    },
+    "USER_OAUTH2_CREDENTIALS": {
+      "type": "string"
+    },
+    "REDIS_SECRET": {
+      "type": "string"
+    },
+    "REDIS_HOST": {
+      "type": "string"
+    },
+    "REDIS_PORT": {
+      "type": "integer"
+    },
+    "SSL_KEY_PATH": {
+      "type": "string"
+    },
+    "SSL_CERT_PATH": {
+      "type": "string"
+    },
+    "COOKIE_SECRET": {
+      "type": "string"
+    },
+    "SESSION_SECRET": {
+      "type": "string"
+    },
+    "APP_URL": {
+      "type": "string"
+    },
+    "PINECONE_API_KEY": {
+      "type": "string"
+    },
+    "PINECONE_INDEX_NAME": {
+      "type": "string"
+    },
+    "OPENAI_API_KEY": {
+      "type": "string"
+    },
+    "PUBSUB_MAIN_SUBSCRIPTION": {
+      "type": "string"
+    },
+    "OLLAMA_BASE_URL": {
+      "type": "string",
+      "default": "http://localhost:11434"
+    },
+    "OLLAMA_MODEL": {
+      "type": "string",
+      "default": "llama2"
+    },
+    "GOOGLE_API_KEY": {
+      "type": "string"
+    },
+    "ANTHROPIC_API_KEY": {
+      "type": "string"
+    },
+    "EMBEDDINGS_PROVIDER": {
+      "type": "string",
+      "default": "openai"
+    }
+
+
+  }
+}

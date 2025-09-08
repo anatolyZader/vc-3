@@ -1,0 +1,328 @@
+diff --git a/client/src/components/chat_components/Chat.jsx b/client/src/components/chat_components/Chat.jsx
+index cc7a76c..b253035 100644
+--- a/client/src/components/chat_components/Chat.jsx
++++ b/client/src/components/chat_components/Chat.jsx
+@@ -23,42 +23,58 @@ import NewConversationBtn from './NewConversationBtn';
+ import LogoutBtn from './LogoutBtn'; 
+ import eventstorm_logo from './eventstorm_logo.png';  
+ 
++const LS_KEY = 'chat.sidebarWidth';
++
+ const Chat = () => {
+   const { isAuthenticated, userProfile, authLoading } = useContext(AuthContext);
+-  // Destructures both data (lists, flags) and actions / methods.
+-  // Encourages a clear separation: view layer doesn’t know fetch details. 
+-  const {
+-    conversations,
+-    currentConversationId,
+-    messages,
+-    loading,
+-    error,
+-    isTyping,
+-    loadConversationsHistory,
+-    startNewConversation,
+-    loadConversation,
+-    sendMessage,
+-    deleteConversation,
+-    clearError
+-  } = useChat();
++  const { conversations, currentConversationId, messages, loading, error, isTyping, loadConversationsHistory, startNewConversation, loadConversation, sendMessage, deleteConversation, clearError } = useChat();
+ 
+-  const [sidebarHidden, setSidebarHidden] = useState(false);
+-  const [sidebarWidth, setSidebarWidth] = useState(320); // initial width in px
++  const [sidebarWidth, setSidebarWidth] = useState(() => {
++    const stored = typeof window !== 'undefined' ? parseInt(localStorage.getItem(LS_KEY), 10) : NaN;
++    return !isNaN(stored) ? stored : 320;
++  });
+   const isDraggingRef = useRef(false);
+-  const startXRef = useRef(0);
+-  const startWidthRef = useRef(sidebarWidth);
++  const containerLeftRef = useRef(0);
++  const containerWidthRef = useRef(0);
++  const sidebarRef = useRef(null);
++  const rafRef = useRef(null);
+ 
+   const MIN_WIDTH = 180;
+-  const MAX_WIDTH = 640;
++  const MIN_CHAT_WIDTH = 360; // ensure chat area remains usable
++  const HANDLE_WIDTH = 6;
++  const mainContainerRef = useRef(null);
++
++  // Persist width
++  useEffect(() => {
++    try { localStorage.setItem(LS_KEY, String(Math.round(sidebarWidth))); } catch(_) {}
++  }, [sidebarWidth]);
++
++  // Apply width immediately to DOM + CSS variable (imperative) for robustness
++  const applyWidth = useCallback((w) => {
++    if (mainContainerRef.current) mainContainerRef.current.style.setProperty('--sidebar-width', w + 'px');
++    if (sidebarRef.current) {
++      sidebarRef.current.style.width = w + 'px';
++      sidebarRef.current.style.flexBasis = w + 'px';
++    }
++  }, []);
++
++  useEffect(() => { applyWidth(sidebarWidth); }, [sidebarWidth, applyWidth]);
+ 
+   const onMouseMove = useCallback((e) => {
+     if (!isDraggingRef.current) return;
+-    const delta = e.clientX - startXRef.current;
+-    let newWidth = startWidthRef.current + delta;
+-    if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH;
+-    if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH;
+-    setSidebarWidth(newWidth);
+-  }, []);
++    const totalWidth = containerWidthRef.current || 0;
++    const containerLeft = containerLeftRef.current || 0;
++    let proposed = e.clientX - containerLeft; // distance from container left
++    const maxWidth = Math.max(MIN_WIDTH, totalWidth - MIN_CHAT_WIDTH - HANDLE_WIDTH);
++    if (proposed < MIN_WIDTH) proposed = MIN_WIDTH;
++    if (proposed > maxWidth) proposed = maxWidth;
++    // Use rAF batching
++    if (rafRef.current) cancelAnimationFrame(rafRef.current);
++    rafRef.current = requestAnimationFrame(() => {
++      applyWidth(proposed);
++      setSidebarWidth(proposed);
++    });
++  }, [applyWidth]);
+ 
+   const stopDrag = useCallback(() => {
+     if (isDraggingRef.current) {
+@@ -68,10 +84,11 @@ const Chat = () => {
+   }, []);
+ 
+   const startDrag = (e) => {
+-    if (sidebarHidden) return; // ignore when hidden
++    if (!mainContainerRef.current) return;
++    const rect = mainContainerRef.current.getBoundingClientRect();
++    containerLeftRef.current = rect.left;
++    containerWidthRef.current = rect.width;
+     isDraggingRef.current = true;
+-    startXRef.current = e.clientX;
+-    startWidthRef.current = sidebarWidth;
+     document.body.classList.add('resizing');
+   };
+ 
+@@ -139,10 +156,6 @@ const Chat = () => {
+     }
+   };
+ 
+-  const toggleSidebar = () => {
+-    setSidebarHidden((prev) => !prev);
+-  };
+-
+   const formatDate = (dateString) => {
+     return new Date(dateString).toLocaleDateString('en-US', {
+       weekday: 'long',
+@@ -154,13 +167,15 @@ const Chat = () => {
+ 
+   return (
+     <MainContainer
+-      className={`main-container ${sidebarHidden ? 'sidebar-hidden' : ''}`}
+-      style={!sidebarHidden ? { gridTemplateColumns: `${sidebarWidth}px 1fr` } : undefined}
++      ref={mainContainerRef}
++      className="cs-main-container main-container"
++      style={{ ['--sidebar-width']: sidebarWidth + 'px' }}
+     >
+       <Sidebar
+-        className={`sidebar ${sidebarHidden ? 'hidden' : ''}`}
++        ref={sidebarRef}
++        className="sidebar cs-sidebar cs-sidebar--left"
+         position="left"
+-        style={{ width: sidebarHidden ? 0 : sidebarWidth }}
++        /* No width/flexBasis here; CSS variable drives layout */
+       >
+         <div className="sidebar-content">
+ 
+@@ -215,13 +230,17 @@ const Chat = () => {
+         aria-label="Resize conversations sidebar"
+         tabIndex={0}
+         onKeyDown={(e) => {
+-          if (e.key === 'ArrowLeft') setSidebarWidth(w => Math.max(MIN_WIDTH, w - 16));
+-          if (e.key === 'ArrowRight') setSidebarWidth(w => Math.min(MAX_WIDTH, w + 16));
++          if (!mainContainerRef.current) return;
++          const totalWidth = mainContainerRef.current.getBoundingClientRect().width;
++          const maxWidth = Math.max(MIN_WIDTH, totalWidth - MIN_CHAT_WIDTH - HANDLE_WIDTH);
++            if (e.key === 'ArrowLeft') setSidebarWidth(w => Math.max(MIN_WIDTH, w - 16));
++            if (e.key === 'ArrowRight') setSidebarWidth(w => Math.min(maxWidth, w + 16));
+         }}
++        onDoubleClick={() => setSidebarWidth(320)}
++        title="Drag to resize (double-click to reset)"
+       />
+-      <button className="toggle-button" onClick={toggleSidebar} aria-label="Toggle sidebar" />
+ 
+-      <ChatContainer className="chat-container">
++      <ChatContainer className="chat-container cs-chat-container">
+         <ConversationHeader>
+           <Avatar src={eventstorm_logo} name="AI Assistant" />
+           <ConversationHeader.Content userName="AI Assistant" />
+@@ -237,8 +256,6 @@ const Chat = () => {
+           </div>
+         )}
+ 
+-        
+-
+         <MessageList 
+           typingIndicator={isTyping ? (
+             <TypingIndicator content="AI Assistant is typing..." />
+diff --git a/client/src/components/chat_components/chat.css b/client/src/components/chat_components/chat.css
+index ba63bb5..c09a091 100644
+--- a/client/src/components/chat_components/chat.css
++++ b/client/src/components/chat_components/chat.css
+@@ -1,60 +1,116 @@
+ .main-container {
+-  display: grid;
+-  grid-template-columns: 320px 1fr; /* default overridden inline when resizing */
+-  grid-template-areas: "sidebar chat-container";
++  display: flex; /* Use flex to stay compatible with chatscope internal expectations */
+   height: 100vh;
+   width: 100%;
+-  transition: grid-template-columns 0.15s ease;
+   position: relative;
+   overflow: hidden;
+ }
+ 
+-.main-container.sidebar-hidden {
+-  grid-template-columns: 0 1fr;
++/* Default variable (overridden inline via React) */
++.main-container {
++  --sidebar-width: 320px;
+ }
+ 
+ .sidebar {
+-  grid-area: sidebar;
+   background-color: #f5f5f5;
+   height: 100%;
+   position: relative;
+-  transition: width 0.15s ease, transform 0.3s ease;
++  transition: width 0.12s ease;
+   overflow: hidden;
+   border-right: 1px solid #d0d0d0;
+-}
+-
+-.sidebar.hidden {
+-  transform: translateX(-100%);
+-}
+-
+-/* Position the toggle button outside the sidebar so it's always visible */
+-.toggle-button {
+-  position: absolute;
+-  top: 8px;
+-  left: 8px;
+-  z-index: 20;
+-  padding: 4px 8px;
+-  cursor: pointer;
+-  background: #ffffffcc;
+-  border: 1px solid #ccc;
+-  border-radius: 4px;
+-  font-size: 12px;
++  flex: 0 0 auto; /* width controlled inline */
++  display: flex;
++  flex-direction: column;
+ }
+ 
+ /* Draggable vertical resize handle */
+ .resize-handle {
++  position: absolute;
++  top: 0;
++  bottom: 0;
++  left: calc(var(--sidebar-width) - 3px); /* center the 6px handle on border */
+   width: 6px;
+   cursor: col-resize;
+   background: transparent;
+-  position: relative;
+-  z-index: 15;
+-  transition: background-color 0.15s ease;
++  z-index: 25;
++  transition: background-color 0.15s ease, box-shadow 0.15s ease;
++}
++
++/* Provide a visible vertical line for separation */
++.resize-handle::before {
++  content: '';
++  position: absolute;
++  top: 0;
++  bottom: 0;
++  left: 2px;
++  width: 2px;
++  background: linear-gradient(to bottom, #d0d0d0, #b8b8b8);
++  opacity: 0.9;
++  pointer-events: none;
++}
++
++/* Visible grab icon (dotted grip) */
++.resize-handle::after {
++  content: '';
++  position: absolute;
++  top: 50%;
++  left: 50%;
++  transform: translate(-50%, -50%);
++  width: 4px;
++  height: 48px;
++  background: repeating-linear-gradient(
++    to bottom,
++    #888,
++    #888 4px,
++    transparent 4px,
++    transparent 8px
++  );
++  opacity: 0.7;
++  pointer-events: none;
++}
++
++.resize-handle:hover::after, .resize-handle:focus::after {
++  opacity: 1;
++  background: repeating-linear-gradient(
++    to bottom,
++    #555,
++    #555 4px,
++    transparent 4px,
++    transparent 8px
++  );
+ }
+ 
+ .resize-handle:hover,
+ .resize-handle:focus {
+   background: rgba(0,0,0,0.08);
+   outline: none;
++  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
++}
++
++/* Chat container explicit column so auto-placement doesn't shift when 3 columns active */
++.chat-container {
++  flex: 1 1 auto;
++  min-width: 0; /* allow scroll area to shrink properly */
++}
++
++/* ---- Overrides for Chatscope defaults that clamp the sidebar width ---- */
++/* Remove max-width and flex-basis so our inline style can drive resizing beyond 320px. */
++.cs-main-container.main-container > .cs-sidebar.cs-sidebar--left {
++  max-width: none !important;
++  flex: 0 0 var(--sidebar-width) !important;
++  width: var(--sidebar-width) !important;
++  min-width: 0;
++}
++
++/* When we set an inline width, also ensure flex-basis matches that width. We do that inline; this rule protects shrinkage. */
++/* Keep flex stable when style/variable changes */
++.cs-main-container.main-container > .cs-sidebar.cs-sidebar--left[style] {
++  flex: 0 0 var(--sidebar-width) !important;
++}
++
++/* Optional: clamp minimal width visually */
++.cs-main-container.main-container > .cs-sidebar.cs-sidebar--left.min-width {
++  min-width: 160px;
+ }
+ 
+ body.resizing {
+@@ -62,10 +118,6 @@ body.resizing {
+   cursor: col-resize;
+ }
+ 
+-.main-container.sidebar-hidden .toggle-button {
+-  left: 0; /* when sidebar is hidden, place button at the left edge */
+-}
+-
+ .conversations-list {
+   padding: 10px 0;
+ }

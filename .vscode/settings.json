@@ -1,0 +1,29 @@
+{
+  "sonarlint.ls.javaHome": "/usr/lib/jvm/java-17-openjdk-amd64",
+
+  // Re-enable forwarding so localhost can reach the remote server
+  "remote.autoForwardPorts": true,
+  "remote.autoForwardPortsSource": "process",
+  "remote.restoreForwardedPorts": false,
+
+  // Ensure these ports are always forwarded
+  "remote.forwardPorts": [5173, 3000],
+
+  // Forward quietly, never auto-open Simple Browser
+  "remote.portsAttributes": {
+    "443":  { "protocol": "https" },
+    "8443": { "protocol": "https" },
+    "5173": { "onAutoForward": "silent", "requireLocalPort": true },
+    "3000": { "onAutoForward": "silent", "requireLocalPort": true }
+  },
+  "remote.otherPortsAttributes": { "onAutoForward": "silent" },
+
+  // Defensive (local scenario)
+  "portsAttributes": {
+    "5173": { "onAutoForward": "silent", "requireLocalPort": true },
+    "3000": { "onAutoForward": "silent", "requireLocalPort": true }
+  },
+  "otherPortsAttributes": { "onAutoForward": "silent" },
+
+  "debug.javascript.autoAttachFilter": "disabled"
+}

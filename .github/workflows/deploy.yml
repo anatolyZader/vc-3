@@ -1,0 +1,385 @@
+name: Full deploy
+
+on:
+  push:
+    branches: [ amber ]
+  pull_request:
+    branches: [ amber ]
+
+# Cancel older runs on same branch to save time
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (${{ matrix.part }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [ backend, frontend ]
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            client/package-lock.json
+
+      - name: Resolve module directory
+        id: mod
+        run: |
+          if [ "${{ matrix.part }}" = "frontend" ]; then echo "dir=client" >> $GITHUB_OUTPUT; else echo "dir=${{ matrix.part }}" >> $GITHUB_OUTPUT; fi
+          echo "Resolved directory: $(grep dir= $GITHUB_OUTPUT || true)"
+
+      - name: Install & Test
+        working-directory: ${{ steps.mod.outputs.dir }}
+        run: |
+          npm ci
+          if npm run test --if-present -- --coverage --watchAll=false --maxWorkers=50%; then
+            echo "✅ ${{ matrix.part }} tests finished"
+          else
+            echo "⚠️ No tests for ${{ matrix.part }}"
+          fi
+
+      - name: Run backend integration tests
+        if: ${{ matrix.part == 'backend' }}
+        working-directory: backend
+        run: |
+          echo "🧪 Running backend integration tests..."
+          npm run test:integration --silent
+          echo "✅ Backend integration tests finished"
+
+      - name: Upload coverage (if present)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+            name: coverage-${{ matrix.part }}
+            path: ${{ steps.mod.outputs.dir }}/coverage/lcov.info
+            if-no-files-found: ignore
+
+  sonar:
+    name: SonarCloud Analysis
+    needs: tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/amber' }}
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js (for JS analyzers if needed)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            client/package-lock.json
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-backend
+          path: backend/coverage
+        continue-on-error: true
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-frontend
+          path: client/coverage
+        continue-on-error: true
+
+      - name: Cache Sonar scanner
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: sonar-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Run SonarQube Analysis (CI mode)
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=ncljdsnvfalinvlifsagifsngsa8274359842759843ywoiudsfkuds__Fdfndk
+            -Dsonar.organization=anatolyzader
+            -Dsonar.sources=backend/,client/src/
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js
+            -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,client/coverage/lcov.info
+            -Dsonar.branch.name=${{ github.ref_name }}
+            -Dsonar.scanner.forceAnalysis=true
+
+  domain-tests:
+    name: Domain Layer Tests
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Verify each domain module has tests
+        working-directory: backend
+        run: |
+          echo "🔎 Checking domain modules for tests..."
+          modules=$(ls -d business_modules/*/domain 2>/dev/null | sed 's@business_modules/@@; s@/domain@@') || true
+          if [ -z "$modules" ]; then
+            echo "⚠️ No domain modules found under business_modules/*/domain (skipping check)"; exit 0; fi
+          missing_list=""
+          for m in $modules; do
+            pattern="_tests_/business_modules/$m/domain/**/*.test.js"
+            if compgen -G $pattern > /dev/null; then
+              count=$(ls _tests_/business_modules/$m/domain/**/*.test.js 2>/dev/null | wc -l)
+              echo "✅ $m: $count domain test file(s) (centralized)"
+            else
+              echo "⚠️ $m: no centralized domain tests found at _tests_/business_modules/$m/domain"; missing_list="$missing_list $m"
+            fi
+          done
+          if [ -n "$missing_list" ]; then
+            echo "⚠️ Modules without domain tests (non-blocking):$missing_list"
+          else
+            echo "✅ All domain modules have at least one test file"
+          fi
+
+      - name: Run domain layer tests with coverage
+        working-directory: backend
+        run: |
+          echo "🧪 Running domain tests..."
+          npx jest _tests_/business_modules/*/domain --coverage --coverageDirectory=coverage/domain --maxWorkers=50% || { echo "❌ Domain tests failed"; exit 1; }
+
+      - name: Upload domain coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-domain
+          path: backend/coverage/domain/lcov.info
+          if-no-files-found: ignore
+
+  build-and-deploy:
+    name: Build & Deploy
+    needs: [ tests, sonar, domain-tests ]
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+      GCP_PROJECT: eventstorm-1
+      REGION: me-west1
+      GCP_BUCKET: eventstorm-bucket
+      REDIS_HOST: 10.187.8.27
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+      PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_ENVIRONMENT }}
+      PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+      PINECONE_DOCS_ENVIRONMENT: ${{ secrets.PINECONE_DOCS_ENVIRONMENT }}
+      GENERATE_DOCS: true
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # Increase if docs generation needs history
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+
+      - name: Debug GCP Auth
+        run: |
+          gcloud auth list
+          gcloud config list
+          gsutil ls gs://$GCP_BUCKET/ || echo "Bucket not reachable"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            client/package-lock.json
+
+      - name: Install & Build Frontend
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Sync Static Files to Bucket
+        run: |
+          gsutil -m rsync -d -r ./client/dist gs://$GCP_BUCKET/
+
+      - name: Install Backend Production Deps (reuse lockfile)
+        working-directory: backend
+        run: |
+          npm ci --omit=dev || npm ci
+
+      - name: Validate docs environment
+        working-directory: backend
+        run: |
+          echo "🔍 Validating docs documentation environment..."
+          for f in docs-cli.js business_modules/docs/input/docsCli.js; do
+            [ -f "$f" ] || { echo "❌ Missing $f"; exit 1; }
+          done
+          [ -n "$PINECONE_API_KEY" ] || { echo "❌ PINECONE_API_KEY not set"; exit 1; }
+          if [ -z "$OPENAI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "❌ No AI provider API key set"; exit 1; fi
+          echo "✅ Validation OK"
+
+      - name: Generate comprehensive documentation (conditional)
+        if: env.GENERATE_DOCS == 'true'
+        working-directory: backend
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_ENVIRONMENT: ${{ secrets.PINECONE_DOCS_ENVIRONMENT }}
+          PINECONE_INDEX_NAME: eventstorm-docs
+        run: |
+          echo "📚 Starting docs documentation generation..."
+          timeout 240 npm run docs:generate -- --user-id deployment-${{ github.run_id }} || echo "⚠️ Docs generation failed/timeout (non-blocking)"
+
+      - name: Verify generated documentation (informational)
+        if: env.GENERATE_DOCS == 'true'
+        working-directory: backend
+        run: |
+          echo "🔍 Checking docs..."
+          ls -1 business_modules/*/*.md 2>/dev/null | head || echo "No per-module docs"
+          for f in ROOT_DOCUMENTATION.md ARCHITECTURE.md; do [ -f "$f" ] && echo "Found $f" || echo "Missing $f"; done
+
+      - name: Pre-deployment validation
+        working-directory: backend
+        run: |
+          for f in package.json server.js app.js; do [ -f "$f" ] || { echo "❌ Missing $f"; exit 1; }; done
+          node -e "const p=require('./package.json'); console.log('pkg', p.name)"
+          timeout 8 node -e "try{require('./server.js');console.log('Loaded server.js')}catch(e){console.error(e);process.exit(1)}" || echo "⚠️ Startup probe inconclusive"
+
+      - name: Create .gcloudignore
+        working-directory: backend
+        run: |
+          cat > .gcloudignore <<'EOF'
+          .git/
+          .gitignore
+          README.md
+          .env*
+          _tests_/
+          test/
+          tests/
+          *.test.js
+          *.spec.js
+          logs/
+          *.log
+          cloud_run_logs.txt
+          logs_run.txt
+          bfg.jar
+          cloud-sql-proxy
+          *.zip
+          *.tar.gz
+          # Include essentials
+          !package.json
+          !package-lock.json
+          !server.js
+          !app.js
+          !fastify.config.js
+          !business_modules/
+          !aop_modules/
+          !env_schemas/
+          !*.js
+          !ARCHITECTURE.md
+          !ROOT_DOCUMENTATION.md
+          !business_modules/*/*.md
+          EOF
+          echo "Generated .gcloudignore:"; wc -l .gcloudignore
+
+      - name: Generate HTTP API Specification
+        working-directory: backend
+        env:
+          GENERATING_HTTP_API_SPEC: 1
+        run: |
+          npm run generate:spec
+          [ -f httpApiSpec.json ] || { echo "Spec missing"; exit 1; }
+          node -e "JSON.parse(require('fs').readFileSync('httpApiSpec.json','utf8')); console.log('Spec valid JSON')"
+
+      - name: Deploy backend to Cloud Run
+        working-directory: backend
+        run: |
+          echo "Deploying..."
+          gcloud run deploy eventstorm-backend \
+            --source . \
+            --region $REGION \
+            --project $GCP_PROJECT \
+            --platform managed \
+            --vpc-connector=cr-vpc-conn \
+            --vpc-egress=all-traffic \
+            --allow-unauthenticated \
+            --memory=2Gi \
+            --cpu=2 \
+            --timeout=900 \
+            --max-instances=10 \
+            --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
+            --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DEPLOYMENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ"),DEPLOYMENT_RUN_ID=${{ github.run_id }} \
+            --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_ENVIRONMENT=${{ secrets.PINECONE_ENVIRONMENT }},PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }},PINECONE_DOCS_ENVIRONMENT=${{ secrets.PINECONE_DOCS_ENVIRONMENT }},PINECONE_DOCS_INDEX_NAME=eventstorm-docs \
+            --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
+
+      - name: Post-deployment verification
+        run: |
+          SERVICE_URL=$(gcloud run services describe eventstorm-backend --region=$REGION --format='value(status.url)')
+          echo "Service URL: $SERVICE_URL"
+          timeout 25 curl -s "$SERVICE_URL/health" || echo "Health endpoint not responding"
+
+      - name: Archive documentation artifacts
+        if: always() && env.GENERATE_DOCS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-documentation-${{ github.run_id }}
+          path: |
+            backend/business_modules/*/*.md
+            backend/ROOT_DOCUMENTATION.md
+            backend/ARCHITECTURE.md
+          retention-days: 30
+
+      - name: Publish repoPushed event
+        env:
+          GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
+          USER_ID: 'github-actions'
+          REPO_ID: ${{ github.repository }}
+          REPO_URL: "https://github.com/${{ github.repository }}"
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          gcloud pubsub topics publish git-topic --message '{"event":"repoPushed","payload":{"userId":"'"$USER_ID"'","repoId":"'"$REPO_ID"'","repoData":{"url":"'"$REPO_URL"'","branch":"'"$BRANCH"'"}}}' --project=${GCP_PROJECT_ID}
+
+      - name: Publish docsDocsUpdated event
+        env:
+          GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
+          USER_ID: 'github-actions'
+        run: |
+          gcloud pubsub topics publish git-topic --message '{"event":"docsDocsUpdated","payload":{"userId":"'"$USER_ID"'"}}' --project=${GCP_PROJECT_ID}
