@@ -155,3 +155,43 @@ function getChatEventValidators() {
 }
 
 module.exports.getChatEventValidators = getChatEventValidators;
+
+// Git module event schemas and validators
+const gitSchemas = {
+  repositoryFetched: {
+    type: "object",
+    additionalProperties: true,
+    required: ["event", "correlationId", "userId", "repoId", "repo"],
+    properties: {
+      event: { const: "repositoryFetched" },
+      correlationId: { type: "string", minLength: 1 },
+      userId: { type: "string", minLength: 1 },
+      repoId: { type: "string", minLength: 1 },
+      repo: { type: "object" },
+      occurredAt: { type: ["string", "null"] },
+    },
+  },
+  docsFetched: {
+    type: "object",
+    additionalProperties: true,
+    required: ["event", "correlationId", "userId", "repoId"],
+    properties: {
+      event: { const: "docsFetched" },
+      correlationId: { type: "string", minLength: 1 },
+      userId: { type: "string", minLength: 1 },
+      repoId: { type: "string", minLength: 1 },
+      // docs can be various shapes; allow object or string
+      docs: { anyOf: [ { type: "object" }, { type: "string" }, { type: "array" } ] },
+      occurredAt: { type: ["string", "null"] },
+    },
+  },
+};
+
+function getGitEventValidators() {
+  return {
+    validateRepositoryFetched: ajv.compile(gitSchemas.repositoryFetched),
+    validateDocsFetched: ajv.compile(gitSchemas.docsFetched),
+  };
+}
+
+module.exports.getGitEventValidators = getGitEventValidators;

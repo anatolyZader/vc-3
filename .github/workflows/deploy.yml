@@ -50,6 +50,14 @@ jobs:
             echo "⚠️ No tests for ${{ matrix.part }}"
           fi
 
+      - name: Run backend integration tests
+        if: ${{ matrix.part == 'backend' }}
+        working-directory: backend
+        run: |
+          echo "🧪 Running backend integration tests..."
+          npm run test:integration --silent
+          echo "✅ Backend integration tests finished"
+
       - name: Upload coverage (if present)
         if: always()
         uses: actions/upload-artifact@v4
@@ -64,7 +72,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/amber' }}
     env:
-      # mirror the secret into env so the `if` can read it even when secrets context is unavailable
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout (shallow)
@@ -116,7 +123,6 @@ jobs:
             -Dsonar.branch.name=${{ github.ref_name }}
             -Dsonar.scanner.forceAnalysis=true
 
-
   domain-tests:
     name: Domain Layer Tests
     needs: tests
@@ -165,7 +171,6 @@ jobs:
         working-directory: backend
         run: |
           echo "🧪 Running domain tests..."
-          # Run only domain tests from centralized _tests_ tree
           npx jest _tests_/business_modules/*/domain --coverage --coverageDirectory=coverage/domain --maxWorkers=50% || { echo "❌ Domain tests failed"; exit 1; }
 
       - name: Upload domain coverage

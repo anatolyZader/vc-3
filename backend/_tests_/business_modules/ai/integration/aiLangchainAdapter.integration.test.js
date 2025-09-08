@@ -72,7 +72,7 @@ jest.mock(
 );
 
 // SUT
-const AILangchainAdapter = require("../../../../../business_modules/ai/infrastructure/ai/aiLangchainAdapter");
+const AILangchainAdapter = require("../../../../business_modules/ai/infrastructure/ai/aiLangchainAdapter");
 
 describe("AI business module integration: AILangchainAdapter", () => {
   const OLD_ENV = process.env;

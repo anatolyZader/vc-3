@@ -20,7 +20,7 @@ jest.mock(
   })
 );
 
-const ResponseGenerator = require("../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/responseGenerator");
+const ResponseGenerator = require("../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/responseGenerator");
 
 function makeLLM() {
   return { invoke: jest.fn(async (messages) => ({ content: "resp" })) };
