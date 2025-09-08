@@ -243,27 +243,6 @@ jobs:
         run: |
           npm ci --omit=dev || npm ci
 
-      - name: Load REDIS_HOST from backend/.env (override if present)
-        working-directory: backend
-        run: |
-          if [ -f .env ]; then
-            echo "Attempting to load REDIS_HOST from backend/.env"
-            line=$(grep -E '^[[:space:]]*REDIS_HOST[[:space:]]*=' .env | tail -n1 || true)
-            if [ -n "$line" ]; then
-              val=$(echo "$line" | sed -E 's/^[[:space:]]*REDIS_HOST[[:space:]]*=[[:space:]]*//; s/^"//; s/^\'//; s/"$//; s/\'$//')
-              if [ -n "$val" ]; then
-                echo "REDIS_HOST=$val" >> "$GITHUB_ENV"
-                echo "Loaded REDIS_HOST from .env"
-              else
-                echo "REDIS_HOST in .env is empty; keeping default from job env"
-              fi
-            else
-              echo "REDIS_HOST not found in .env; keeping default from job env"
-            fi
-          else
-            echo "backend/.env not found; keeping default from job env"
-          fi
-
       - name: Validate docs environment
         working-directory: backend
         run: |
