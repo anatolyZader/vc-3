@@ -17,6 +17,13 @@ const CommitManager = require('./orchestrators/commitManager');
 const DocumentProcessingOrchestrator = require('./orchestrators/documentProcessingOrchestrator');
 const ProcessingStrategyManager = require('./orchestrators/processingStrategyManager');
 const EventManager = require('./orchestrators/eventManager');
+// Optional LangSmith tracing
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (_) {
+  // silent if not installed
+}
 
 /**
  * REFACTORED DataPreparationPipeline - Now uses modular orchestrators for better organization
@@ -115,6 +122,23 @@ class DataPreparationPipeline {
     };
     
     console.log(`[${new Date().toISOString()}] ✅ PIPELINE READY: DataPreparationPipeline initialized with modular architecture`);
+
+    this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
+    if (this.enableTracing) {
+      try {
+        this.processPushedRepo = traceable(
+          this.processPushedRepo.bind(this),
+          {
+            name: 'DataPreparationPipeline.processPushedRepo',
+            metadata: { component: 'DataPreparationPipeline' },
+            tags: ['rag', 'ingestion']
+          }
+        );
+        console.log(`[${new Date().toISOString()}] [TRACE] DataPreparationPipeline tracing enabled.`);
+      } catch (err) {
+        console.warn(`[${new Date().toISOString()}] [TRACE] Failed to enable DataPreparationPipeline tracing: ${err.message}`);
+      }
+    }
   }
 
   /**

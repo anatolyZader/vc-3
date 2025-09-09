@@ -15,6 +15,18 @@ const LLMProviderManager = require('./providers/lLMProviderManager');
 const DataPreparationPipeline = require('./rag_pipelines/data_preparation/dataPreparationPipeline');
 const QueryPipeline = require('./rag_pipelines/query/queryPipeline');
 
+// LangSmith tracing (optional)
+let wrapOpenAI, traceable;
+try {
+  ({ wrapOpenAI } = require('langsmith/wrappers'));
+  ({ traceable } = require('langsmith/traceable'));
+} catch (e) {
+  // LangSmith not installed or optional; continue without tracing
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith packages not found, tracing disabled.`);
+  }
+}
+
 class AILangchainAdapter extends IAIPort {
   constructor(options = {}) {
     super();
@@ -78,6 +90,30 @@ class AILangchainAdapter extends IAIPort {
       });
       this.llm = this.llmProviderManager.getLLM();
       console.log(`[${new Date().toISOString()}] [DEBUG] LLM initialized.`);
+
+      // LangSmith tracing toggle
+      this.enableTracing = process.env.LANGSMITH_TRACING === 'true';
+      if (this.enableTracing) {
+        console.log(`[${new Date().toISOString()}] [TRACE] LangSmith tracing enabled (adapter level)`);
+      }
+
+      // Attempt to wrap underlying OpenAI client if available & tracing enabled
+      if (this.enableTracing && this.aiProvider === 'openai' && wrapOpenAI) {
+        try {
+          // Common patterns for underlying client reference
+          if (this.llm?.client) {
+            this.llm.client = wrapOpenAI(this.llm.client);
+            console.log(`[${new Date().toISOString()}] [TRACE] Wrapped this.llm.client with LangSmith`);
+          } else if (this.llm?._client) {
+            this.llm._client = wrapOpenAI(this.llm._client);
+            console.log(`[${new Date().toISOString()}] [TRACE] Wrapped this.llm._client with LangSmith`);
+          } else {
+            console.log(`[${new Date().toISOString()}] [TRACE] No direct raw OpenAI client found to wrap (LangChain may auto-instrument).`);
+          }
+        } catch (wrapErr) {
+          console.warn(`[${new Date().toISOString()}] [TRACE] Failed to wrap OpenAI client: ${wrapErr.message}`);
+        }
+      }
 
       // Don't initialize vectorStore until we have a userId
       this.vectorStore = null;
@@ -203,44 +239,58 @@ class AILangchainAdapter extends IAIPort {
   // 2. Retrieval and generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
   async respondToPrompt(userId, conversationId, prompt, conversationHistory = []) {
-    this.setUserId(userId);
-    if (!this.userId) {
-      console.warn(`[${new Date().toISOString()}] Failed to set userId in respondToPrompt. Provided userId: ${userId}`);
-      return {
-        success: false,
-        response: "I'm having trouble identifying your session. Please try again in a moment.",
-        conversationId: conversationId,
-        timestamp: new Date().toISOString()
-      };
-    }
-
-    console.log(`[${new Date().toISOString()}] Processing AI request for conversation ${conversationId}`);
-
-    // Use the queue system for all AI operations
-    return this.requestQueue.queueRequest(async () => {
-      try {
-        // Delegate to QueryPipeline for RAG processing
-        const result = await this.queryPipeline.respondToPrompt(
-          userId, 
-          conversationId, 
-          prompt, 
-          conversationHistory, 
-          this.vectorStore
-        );
-        
-        return result;
-        
-      } catch (error) {
-        console.error(`[${new Date().toISOString()}] Error in respondToPrompt:`, error.message);
+    const exec = async () => {
+      this.setUserId(userId);
+      if (!this.userId) {
+        console.warn(`[${new Date().toISOString()}] Failed to set userId in respondToPrompt. Provided userId: ${userId}`);
         return {
           success: false,
-          response: "I encountered an issue while processing your request. Please try again shortly.",
-          conversationId,
-          timestamp: new Date().toISOString(),
-          error: error.message
+          response: "I'm having trouble identifying your session. Please try again in a moment.",
+          conversationId: conversationId,
+          timestamp: new Date().toISOString()
         };
       }
-    });
+
+      console.log(`[${new Date().toISOString()}] Processing AI request for conversation ${conversationId}`);
+
+      // Use the queue system for all AI operations
+      return this.requestQueue.queueRequest(async () => {
+        try {
+          // Delegate to QueryPipeline for RAG processing
+          const result = await this.queryPipeline.respondToPrompt(
+            userId,
+            conversationId,
+            prompt,
+            conversationHistory,
+            this.vectorStore
+          );
+          return result;
+        } catch (error) {
+          console.error(`[${new Date().toISOString()}] Error in respondToPrompt:`, error.message);
+          return {
+            success: false,
+            response: "I encountered an issue while processing your request. Please try again shortly.",
+            conversationId,
+            timestamp: new Date().toISOString(),
+            error: error.message
+          };
+        }
+      });
+    };
+
+    if (this.enableTracing && traceable) {
+      try {
+        const traced = traceable(exec, {
+          name: 'AIAdapter.respondToPrompt',
+            metadata: { userId, conversationId },
+            tags: ['rag', 'adapter', 'query']
+        });
+        return traced();
+      } catch (traceErr) {
+        console.warn(`[${new Date().toISOString()}] [TRACE] Failed to trace respondToPrompt: ${traceErr.message}`);
+      }
+    }
+    return exec();
   }
 
   /**

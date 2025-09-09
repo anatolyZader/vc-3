@@ -1,6 +1,13 @@
 const VectorSearchOrchestrator = require('./vectorSearchOrchestrator');
 const ContextBuilder = require('./contextBuilder');
 const ResponseGenerator = require('./responseGenerator');
+// Optional LangSmith tracing
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (_) {
+  // silent if not installed
+}
 
 /**
  * Consolidated QueryPipeline that handles all RAG query processing
@@ -25,6 +32,32 @@ class QueryPipeline {
     this.responseGenerator = new ResponseGenerator(this.llm, this.requestQueue);
     
     console.log(`[${new Date().toISOString()}] QueryPipeline initialized for comprehensive RAG processing`);
+
+    this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
+    if (this.enableTracing) {
+      try {
+        // Wrap core methods (bind first to preserve context)
+        this.performVectorSearch = traceable(
+          this.performVectorSearch.bind(this),
+          {
+            name: 'QueryPipeline.performVectorSearch',
+            metadata: { component: 'QueryPipeline', phase: 'retrieval' },
+            tags: ['rag', 'retrieval']
+          }
+        );
+        this.respondToPrompt = traceable(
+          this.respondToPrompt.bind(this),
+          {
+            name: 'QueryPipeline.respondToPrompt',
+            metadata: { component: 'QueryPipeline' },
+            tags: ['rag', 'pipeline']
+          }
+        );
+        console.log(`[${new Date().toISOString()}] [TRACE] QueryPipeline tracing enabled.`);
+      } catch (err) {
+        console.warn(`[${new Date().toISOString()}] [TRACE] Failed to enable QueryPipeline tracing: ${err.message}`);
+      }
+    }
   }
 
   /**
