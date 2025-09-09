@@ -2,9 +2,9 @@ name: Full deploy
 
 on:
   push:
-    branches: [ amber ]
+    branches: [ main ]
   pull_request:
-    branches: [ amber ]
+    branches: [ main ]
 
 # Cancel older runs on same branch to save time
 concurrency:
@@ -62,7 +62,7 @@ jobs:
     name: SonarCloud Analysis
     needs: tests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/amber' }}
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
     env:
       # mirror the secret into env so the `if` can read it even when secrets context is unavailable
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

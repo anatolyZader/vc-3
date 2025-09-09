@@ -283,7 +283,7 @@ class DataPreparationPipeline {
         processedAt: new Date().toISOString()
       };
 
-      // Process API specifications using specialized processor
+      // Processs API specifications using specialized processor
       try {
         console.log(`[${new Date().toISOString()}] 🔵 CORE DOCS: Processing API specifications...`);
         results.apiSpecResults = await this.apiSpecProcessor.processApiSpec(namespace);
