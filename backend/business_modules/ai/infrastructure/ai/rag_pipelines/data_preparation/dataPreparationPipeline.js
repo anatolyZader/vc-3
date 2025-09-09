@@ -130,6 +130,7 @@ class DataPreparationPipeline {
           this.processPushedRepo.bind(this),
           {
             name: 'DataPreparationPipeline.processPushedRepo',
+            project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
             metadata: { component: 'DataPreparationPipeline' },
             tags: ['rag', 'ingestion']
           }

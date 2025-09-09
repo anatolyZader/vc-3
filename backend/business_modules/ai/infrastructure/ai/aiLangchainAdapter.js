@@ -282,6 +282,7 @@ class AILangchainAdapter extends IAIPort {
       try {
         const traced = traceable(exec, {
           name: 'AIAdapter.respondToPrompt',
+            project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
             metadata: { userId, conversationId },
             tags: ['rag', 'adapter', 'query']
         });

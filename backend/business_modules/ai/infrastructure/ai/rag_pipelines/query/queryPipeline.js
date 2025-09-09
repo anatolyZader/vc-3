@@ -41,6 +41,7 @@ class QueryPipeline {
           this.performVectorSearch.bind(this),
           {
             name: 'QueryPipeline.performVectorSearch',
+            project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
             metadata: { component: 'QueryPipeline', phase: 'retrieval' },
             tags: ['rag', 'retrieval']
           }
@@ -49,6 +50,7 @@ class QueryPipeline {
           this.respondToPrompt.bind(this),
           {
             name: 'QueryPipeline.respondToPrompt',
+            project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
             metadata: { component: 'QueryPipeline' },
             tags: ['rag', 'pipeline']
           }
