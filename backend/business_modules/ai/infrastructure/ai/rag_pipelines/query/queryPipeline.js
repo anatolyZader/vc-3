@@ -136,6 +136,19 @@ class QueryPipeline {
       const tempSearchOrchestrator = new VectorSearchOrchestrator(vectorStore, this.pinecone, this.embeddings);
       const results = await tempSearchOrchestrator.performSearch(prompt);
       
+      // Log full chunk content if enabled
+      if (process.env.RAG_ENABLE_CHUNK_LOGGING === 'true' && results.length > 0) {
+        console.log(`[${new Date().toISOString()}] 📋 CHUNK CONTENT LOGGING (temp): Retrieved ${results.length} chunks for query: "${prompt.substring(0, 100)}..."`);
+        results.forEach((doc, index) => {
+          console.log(`[${new Date().toISOString()}] 📄 CHUNK ${index + 1}/${results.length}:`);
+          console.log(`[${new Date().toISOString()}] 🏷️  Source: ${doc.metadata.source || 'Unknown'}`);
+          console.log(`[${new Date().toISOString()}] 🏷️  Type: ${doc.metadata.type || 'Unknown'}`);
+          console.log(`[${new Date().toISOString()}] 🏷️  Score: ${doc.metadata.score || 'N/A'}`);
+          console.log(`[${new Date().toISOString()}] 📝 Content: ${doc.pageContent}`);
+          console.log(`[${new Date().toISOString()}] ──────────────────────────────────────────────────────────────────────────────────`);
+        });
+      }
+      
       // Emit retrieval success status
       if (results.length > 0) {
         this.emitRagStatus('retrieval_success', {
@@ -155,6 +168,19 @@ class QueryPipeline {
     }
     
     const results = await this.vectorSearchOrchestrator.performSearch(prompt);
+    
+    // Log full chunk content if enabled
+    if (process.env.RAG_ENABLE_CHUNK_LOGGING === 'true' && results.length > 0) {
+      console.log(`[${new Date().toISOString()}] 📋 CHUNK CONTENT LOGGING: Retrieved ${results.length} chunks for query: "${prompt.substring(0, 100)}..."`);
+      results.forEach((doc, index) => {
+        console.log(`[${new Date().toISOString()}] 📄 CHUNK ${index + 1}/${results.length}:`);
+        console.log(`[${new Date().toISOString()}] 🏷️  Source: ${doc.metadata.source || 'Unknown'}`);
+        console.log(`[${new Date().toISOString()}] 🏷️  Type: ${doc.metadata.type || 'Unknown'}`);
+        console.log(`[${new Date().toISOString()}] 🏷️  Score: ${doc.metadata.score || 'N/A'}`);
+        console.log(`[${new Date().toISOString()}] 📝 Content: ${doc.pageContent}`);
+        console.log(`[${new Date().toISOString()}] ──────────────────────────────────────────────────────────────────────────────────`);
+      });
+    }
     
     // Emit retrieval success status
     if (results.length > 0) {
