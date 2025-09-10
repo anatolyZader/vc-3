@@ -293,6 +293,34 @@ module.exports = async function (fastify, opts) {
     return { schemas, routes };
   });
 
+  // LangSmith tracing diagnostics endpoint
+  fastify.get('/api/debug/tracing-status', {
+    schema: {
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            langsmithTracing: { type: 'boolean' },
+            langsmithApiKeySet: { type: 'boolean' },
+            langsmithWorkspaceIdSet: { type: 'boolean' },
+            langchainProject: { type: 'string' },
+            langsmithOrganizationName: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' }
+          },
+          required: ['langsmithTracing', 'langsmithApiKeySet', 'timestamp'],
+          additionalProperties: false
+        }
+      }
+    }
+  }, async () => ({
+    langsmithTracing: process.env.LANGSMITH_TRACING === 'true',
+    langsmithApiKeySet: !!process.env.LANGSMITH_API_KEY,
+    langsmithWorkspaceIdSet: !!process.env.LANGSMITH_WORKSPACE_ID,
+    langchainProject: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+    langsmithOrganizationName: process.env.LANGSMITH_ORGANIZATION_NAME || 'not-set',
+    timestamp: new Date().toISOString()
+  }));
+
   await fastify.register(require('./swaggerUI'));
 
   fastify.addHook('onReady', async () => {
