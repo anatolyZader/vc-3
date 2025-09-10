@@ -21,8 +21,10 @@ const EventManager = require('./orchestrators/eventManager');
 let traceable;
 try {
   ({ traceable } = require('langsmith/traceable'));
-} catch (_) {
-  // silent if not installed
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
 }
 
 /**
@@ -136,6 +138,7 @@ class DataPreparationPipeline {
           }
         );
         console.log(`[${new Date().toISOString()}] [TRACE] DataPreparationPipeline tracing enabled.`);
+  console.log(`[${new Date().toISOString()}] [TRACE] DataPreparationPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
       } catch (err) {
         console.warn(`[${new Date().toISOString()}] [TRACE] Failed to enable DataPreparationPipeline tracing: ${err.message}`);
       }

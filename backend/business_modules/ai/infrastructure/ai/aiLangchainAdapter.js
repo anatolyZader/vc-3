@@ -20,10 +20,9 @@ let wrapOpenAI, traceable;
 try {
   ({ wrapOpenAI } = require('langsmith/wrappers'));
   ({ traceable } = require('langsmith/traceable'));
-} catch (e) {
-  // LangSmith not installed or optional; continue without tracing
+} catch (err) {
   if (process.env.LANGSMITH_TRACING === 'true') {
-    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith packages not found, tracing disabled.`);
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith packages not found or failed to load: ${err.message}`);
   }
 }
 
@@ -95,6 +94,7 @@ class AILangchainAdapter extends IAIPort {
       this.enableTracing = process.env.LANGSMITH_TRACING === 'true';
       if (this.enableTracing) {
         console.log(`[${new Date().toISOString()}] [TRACE] LangSmith tracing enabled (adapter level)`);
+  console.log(`[${new Date().toISOString()}] [TRACE] LangSmith env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID} organizationName=${process.env.LANGSMITH_ORGANIZATION_NAME || 'n/a'}`);
       }
 
       // Attempt to wrap underlying OpenAI client if available & tracing enabled

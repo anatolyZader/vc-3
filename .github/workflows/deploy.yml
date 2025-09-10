@@ -192,6 +192,10 @@ jobs:
       PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
       PINECONE_DOCS_ENVIRONMENT: ${{ secrets.PINECONE_DOCS_ENVIRONMENT }}
       GENERATE_DOCS: true
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      LANGSMITH_WORKSPACE_ID: ${{ secrets.LANGSMITH_WORKSPACE_ID }}
+      LANGSMITH_TRACING: true
+      LANGSMITH_ORGANIZATION_NAME: eventstorm-trace
     steps:
       - name: Checkout (shallow)
         uses: actions/checkout@v4
