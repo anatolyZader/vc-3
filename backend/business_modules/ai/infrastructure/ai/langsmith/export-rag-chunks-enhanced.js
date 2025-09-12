@@ -18,6 +18,10 @@ const SERVICE_NAME = 'eventstorm-backend';
 function main() {
   console.log(`🚀 RAG Chunks Export Tool - Enhanced`);
   
+  /**
+   * Command line arguments passed to the script, excluding the first two default arguments (node executable and script path).
+   * @type {string[]}
+   */
   const args = process.argv.slice(2);
   const outputFile = args[0] || 'rag-chunks-analysis.md';
   

@@ -62,7 +62,7 @@
     "bcrypt": "^5.1.1",
     "concurrently": "^9.1.2",
     "connect-redis": "^7.1.1",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "express-session": "^1.18.1",
     "fastify": "latest",
     "fastify-cli": "^7.4.0",

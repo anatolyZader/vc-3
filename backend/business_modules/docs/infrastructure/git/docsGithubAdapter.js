@@ -26,7 +26,7 @@ class DocsGithubAdapter extends IDocsGitPort {
       const response = await this.octokit.rest.repos.downloadZipballArchive({
         owner,
         repo: docsRepo,
-        ref: 'amber'
+        ref: 'main'
       });
       console.log(`Docs for 'amber' branch downloaded for repository: ${repoId}`);
       // response.data returns the ZIP archive data (stream or buffer).

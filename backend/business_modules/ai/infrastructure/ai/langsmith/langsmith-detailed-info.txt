@@ -1,0 +1,34 @@
+🔍 LangSmith Workspace Information
+=====================================
+
+✅ LangSmith Client initialized successfully
+🔑 API Key: lsv2_sk_...3b95
+🌐 API URL: https://api.smith.langchain.com
+🏢 Workspace ID: 5ab7f19a-28d2-4022-a80f-3db9a77b3b21
+📁 Default Project: eventstorm-trace
+
+📊 Recent Runs and Traces:
+---------------------------
+
+🔍 Found undefined recent runs in project "eventstorm-trace"
+
+
+📁 Available Projects:
+----------------------
+
+🗂️ Found undefined projects:
+⚠️ Could not fetch projects: projects is not iterable
+
+
+🎯 Configuration Summary:
+-------------------------
+Environment: development
+Tracing Enabled: true
+Organization: eventstorm-trace
+
+✅ LangSmith workspace analysis complete!
+
+💡 Tips:
+   - Visit https://smith.langchain.com to view traces in the web UI
+   - Use LANGSMITH_TRACING=true to enable tracing
+   - Check the "eventstorm-trace" project for your application traces

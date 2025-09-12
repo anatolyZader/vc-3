@@ -3,22 +3,7 @@
 /**
  * RAG Chunks Export Tool
  * 
- * This tool fetches an    // Detect new query - updated to match actual log format
-    if (text.includes('📋 CHUNK CONTENT LOGGING (temp): Retrieved')) {
-      const match = text.match(/Retrieved (\d+) chunks for query: "([^"]+)"/);
-      if (match) {
-        const [, chunkCount, queryText] = match;
-        currentQuery = {
-          id: timestamp,
-          timestamp,
-          query: queryText,
-          chunkCount: parseInt(chunkCount),
-          chunks: [],
-          metadata: {}
-        };
-        queries.set(currentQuery.id, currentQuery);
-      }
-    }chunk logging data from Google Cloud Logging
+ * This tool fetches and organizes RAG chunk logging data from Google Cloud Logging
  * into a readable, structured format for analysis and debugging.
  * 
  * Usage:
@@ -60,7 +45,7 @@ function fetchChunkLogs(timestamp = 'latest', limit = 50) {
   const query = `
     resource.type="cloud_run_revision" 
     AND resource.labels.service_name="${SERVICE_NAME}" 
-    AND (textPayload:"📋 CHUNK CONTENT LOGGING" OR textPayload:"📄 CHUNK" OR textPayload:"📝 Content:" OR textPayload:"🏷️")
+    AND (textPayload:"CHUNK CONTENT LOGGING" OR textPayload:"📄 CHUNK" OR textPayload:"📝 Content:" OR textPayload:"🏷️")
     ${timeFilter}
   `.replace(/\s+/g, ' ').trim();
 
