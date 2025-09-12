@@ -4,10 +4,12 @@
 const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { PineconeStore } = require('@langchain/pinecone');
+const FileFilteringUtils = require('../utils/FileFilteringUtils');
 
 /**
  * Dedicated processor for GitHub repository source code
  * Handles repository cloning, code analysis, AST-based splitting, and semantic enhancement
+ * Enhanced with comprehensive binary file filtering
  */
 class RepositoryProcessor {
   constructor(options = {}) {
@@ -85,35 +87,30 @@ class RepositoryProcessor {
         recursive: true,
         unknown: 'warn',
         maxConcurrency: 5,
-        ignoreFiles: [
-          'node_modules/**',
-          '.git/**',
-          'dist/**',
-          'build/**',
-          'coverage/**',
-          '*.log',
-          '*.lock',
-          '*.tmp',
-          '.DS_Store',
-          'temp/**'
-        ]
+        ignoreFiles: FileFilteringUtils.getEnhancedIgnorePatterns()
       });
 
+      console.log(`[${new Date().toISOString()}] 🔍 FILTERING: Using enhanced file filtering to prevent binary contamination`);
       const documents = await loader.load();
       
+      // Apply additional post-load filtering
+      console.log(`[${new Date().toISOString()}] 🧹 POST-FILTER: Scanning ${documents.length} documents for binary content...`);
+      const cleanDocuments = await FileFilteringUtils.filterDocuments(documents);
+      
       // Filter and categorize documents
-      const categorizedDocs = documents.map(doc => ({
+      const categorizedDocs = cleanDocuments.map(doc => ({
         ...doc,
         metadata: {
           ...doc.metadata,
           file_type: this.repositoryManager.getFileType(doc.metadata.source || ''),
           repository_url: repoUrl,
           branch: branch,
-          loaded_at: new Date().toISOString()
+          loaded_at: new Date().toISOString(),
+          filtered: true
         }
       }));
 
-      console.log(`[${new Date().toISOString()}] ✅ REPOSITORY LOADING: Loaded ${categorizedDocs.length} documents`);
+      console.log(`[${new Date().toISOString()}] ✅ REPOSITORY LOADING: Successfully loaded ${categorizedDocs.length} clean documents (filtered ${documents.length - cleanDocuments.length} binary/problematic files)`);
       return categorizedDocs;
 
     } catch (error) {
