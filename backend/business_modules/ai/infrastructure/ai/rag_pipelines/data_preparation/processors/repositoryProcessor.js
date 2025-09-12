@@ -5,6 +5,8 @@ const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { PineconeStore } = require('@langchain/pinecone');
 const FileFilteringUtils = require('../utils/FileFilteringUtils');
+const EnhancedASTCodeSplitter = require('./EnhancedASTCodeSplitter');
+const ChunkQualityAnalyzer = require('../analyzers/ChunkQualityAnalyzer');
 
 /**
  * Dedicated processor for GitHub repository source code
@@ -20,6 +22,17 @@ class RepositoryProcessor {
     this.ubiquitousLanguageProcessor = options.ubiquitousLanguageProcessor;
     this.astBasedSplitter = options.astBasedSplitter;
     this.semanticPreprocessor = options.semanticPreprocessor;
+    
+    // Initialize enhanced chunking components
+    this.enhancedASTSplitter = new EnhancedASTCodeSplitter({
+      maxChunkSize: 2000,
+      minChunkSize: 500,
+      preserveImports: true,
+      enableQualityOptimization: true
+    });
+    this.chunkQualityAnalyzer = new ChunkQualityAnalyzer();
+    
+    console.log(`[${new Date().toISOString()}] 🚀 REPOSITORY PROCESSOR: Enhanced with quality-driven chunking system`);
   }
 
   /**
@@ -157,61 +170,82 @@ class RepositoryProcessor {
   }
 
   /**
-   * Split documents using intelligent AST-based chunking
+   * Split documents using ENHANCED quality-driven AST-based chunking
+   * Replaces legacy chunking with quality optimization system
    */
   async intelligentSplitDocuments(documents) {
-    console.log(`[${new Date().toISOString()}] ✂️  REPOSITORY SPLITTING: Applying AST-based intelligent chunking for ${documents.length} documents`);
-    console.log(`[${new Date().toISOString()}] 🎯 STRATEGY: Using Abstract Syntax Tree parsing for code files, semantic boundaries for text`);
+    console.log(`[${new Date().toISOString()}] ✂️  ENHANCED REPOSITORY SPLITTING: Applying quality-driven AST chunking for ${documents.length} documents`);
+    console.log(`[${new Date().toISOString()}] 🎯 STRATEGY: Quality-optimized chunking with semantic types, deduplication, and context preservation`);
 
     const allChunks = [];
-    let codeFileCount = 0;
-    let textFileCount = 0;
+    let qualityImprovements = 0;
+    let processedFileCount = 0;
     
     for (const doc of documents) {
       try {
-        let chunks;
+        // Use enhanced AST splitter for ALL documents (code and text)
+        const enhancedChunks = this.enhancedASTSplitter.splitDocument({
+          content: doc.pageContent,
+          metadata: {
+            source: doc.metadata.source || 'unknown',
+            ...doc.metadata
+          }
+        });
 
-        // Use AST-based splitting for code files if available
-        if (this.astBasedSplitter && doc.metadata.file_type === 'code') {
-          chunks = await this.astBasedSplitter.splitDocument(doc);
-          codeFileCount++;
-          console.log(`[${new Date().toISOString()}] 🌳 REPOSITORY: AST split ${doc.metadata.source} into ${chunks.length} chunks`);
-        } else {
-          chunks = await this.standardSplitDocument(doc);
-          textFileCount++;
-          console.log(`[${new Date().toISOString()}] 📄 REPOSITORY: Text split ${doc.metadata.source} into ${chunks.length} chunks`);
+        // Ensure enhancedChunks is an array
+        const chunksArray = Array.isArray(enhancedChunks) ? enhancedChunks : [enhancedChunks];
+
+        processedFileCount++;
+        
+        // Analyze quality improvements
+        const qualityAnalysis = this.chunkQualityAnalyzer.analyzeTraceChunks(chunksArray);
+        if (qualityAnalysis.qualityScore > 70) {
+          qualityImprovements++;
         }
 
-        // Add chunk-specific metadata
-        const enrichedChunks = chunks.map((chunk, index) => ({
-          ...chunk,
+        console.log(`[${new Date().toISOString()}] ✨ ENHANCED: Split ${doc.metadata.source} into ${chunksArray.length} quality chunks (score: ${qualityAnalysis.qualityScore})`);
+
+        // Add enhanced metadata with quality metrics
+        const enrichedChunks = chunksArray.map((chunk, index) => ({
+          pageContent: chunk.content || chunk.pageContent || '',
           metadata: {
-            ...chunk.metadata,
+            ...doc.metadata,
+            ...(chunk.metadata || {}),
             chunk_index: index,
-            total_chunks: chunks.length,
-            splitting_method: doc.metadata.file_type === 'code' && this.astBasedSplitter ? 'ast_based' : 'text_based',
-            original_document: doc.metadata.source
+            total_chunks: chunksArray.length,
+            splitting_method: 'enhanced_ast_quality',
+            quality_score: qualityAnalysis.qualityScore,
+            semantic_type: (chunk.metadata && chunk.metadata.semanticType) || 'unknown',
+            has_imports: (chunk.metadata && chunk.metadata.hasImports) || false,
+            functions: (chunk.metadata && chunk.metadata.functions) || [],
+            original_document: doc.metadata.source,
+            enhanced_chunking: true
           }
         }));
 
         allChunks.push(...enrichedChunks);
 
       } catch (error) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ REPOSITORY: Failed to split ${doc.metadata.source}, using fallback:`, error.message);
+        console.warn(`[${new Date().toISOString()}] ⚠️ ENHANCED: Error with ${doc.metadata.source}, using fallback:`, error.message);
         
-        // Fallback to standard splitting
+        // Fallback to standard splitting if enhanced fails
         const fallbackChunks = await this.standardSplitDocument(doc);
         allChunks.push(...fallbackChunks.map(chunk => ({
           ...chunk,
           metadata: {
             ...chunk.metadata,
-            splitting_method: 'fallback_standard'
+            splitting_method: 'fallback_standard',
+            enhanced_chunking: false
           }
         })));
       }
     }
 
-    console.log(`[${new Date().toISOString()}] ✂️  REPOSITORY SPLITTING COMPLETE: ${codeFileCount} code files (AST), ${textFileCount} text files (standard), ${allChunks.length} total chunks`);
+    console.log(`[${new Date().toISOString()}] ✅ ENHANCED SPLITTING COMPLETE:`);
+    console.log(`[${new Date().toISOString()}]    📊 Processed: ${processedFileCount} files`);
+    console.log(`[${new Date().toISOString()}]    ⭐ High Quality: ${qualityImprovements}/${processedFileCount} files (${Math.round(qualityImprovements/processedFileCount*100)}%)`);
+    console.log(`[${new Date().toISOString()}]    📄 Total Chunks: ${allChunks.length}`);
+    
     return allChunks;
   }
 
@@ -277,6 +311,13 @@ class RepositoryProcessor {
    */
   async storeRepositoryDocuments(documents, namespace) {
     console.log(`[${new Date().toISOString()}] 🗄️ REPOSITORY STORAGE: Storing ${documents.length} repository chunks in namespace '${namespace}'`);
+    
+    // Analyze final quality before storage
+    const qualityAnalysis = this.chunkQualityAnalyzer.analyzeTraceChunks(documents);
+    console.log(`[${new Date().toISOString()}] 📊 FINAL QUALITY ANALYSIS:`);
+    console.log(`[${new Date().toISOString()}]    ⭐ Overall Score: ${qualityAnalysis.qualityScore}/100`);
+    console.log(`[${new Date().toISOString()}]    🔍 Issues Found: ${qualityAnalysis.issues.length}`);
+    console.log(`[${new Date().toISOString()}]    💡 Recommendations: ${qualityAnalysis.recommendations.length}`);
 
     if (!this.pinecone) {
       console.warn(`[${new Date().toISOString()}] ⚠️ REPOSITORY: Pinecone not available, skipping storage`);
@@ -306,7 +347,7 @@ class RepositoryProcessor {
         await vectorStore.addDocuments(documents, { ids: documentIds });
       }
 
-      console.log(`[${new Date().toISOString()}] ✅ REPOSITORY STORAGE: Successfully stored ${documents.length} repository chunks`);
+      console.log(`[${new Date().toISOString()}] ✅ REPOSITORY STORAGE: Successfully stored ${documents.length} repository chunks with quality score ${qualityAnalysis.qualityScore}/100`);
 
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ REPOSITORY STORAGE: Error storing documents:`, error.message);
