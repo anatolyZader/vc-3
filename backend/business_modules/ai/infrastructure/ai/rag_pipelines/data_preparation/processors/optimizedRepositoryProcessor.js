@@ -6,13 +6,13 @@ const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { PineconeStore } = require('@langchain/pinecone');
 
 /**
- * OPTIMIZED: Maximum leverage of Langchain's native GitLoader with minimal manual git operations
+ * OPTIMIZED: Maximum leverage of Langchain's native GitLoader with local git operations
  * 
  * Key improvements:
  * 1. Use GitHubRepoLoader for ALL document loading (no manual file system operations)
- * 2. Only clone locally when we absolutely need git metadata
+ * 2. Only clone locally when we need git metadata (current implementation)
  * 3. Cache commit info to minimize git operations
- * 4. Use GitHub API for change detection when possible
+ * 4. GitHub API integration is stubbed for future implementation
  */
 class OptimizedRepositoryProcessor {
   constructor(options = {}) {
@@ -39,64 +39,13 @@ class OptimizedRepositoryProcessor {
       namespace = this.repositoryManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
     }
 
-    // Step 1: Check if we can use GitHub API for change detection
-    const canUseGitHubAPI = await this.canUseGitHubAPIForChangeDetection(githubOwner, repoName);
-    
-    if (canUseGitHubAPI) {
-      console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Using GitHub API for change detection (faster)`);
-      return await this.processWithGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace);
-    } else {
-      console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Using local git clone for change detection`);
-      return await this.processWithLocalGit(repoUrl, githubOwner, repoName, branch, namespace);
-    }
+    // GitHub API methods are currently stubbed, using local git processing
+    console.log(`[${new Date().toISOString()}] 🔄 PROCESSING: Using local git clone for repository processing`);
+    return await this.processWithLocalGit(repoUrl, githubOwner, repoName, branch, namespace);
   }
 
   /**
-   * OPTIMIZED: Use GitHub API for change detection when possible
-   */
-  async processWithGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace) {
-    try {
-      // Get latest commit info from GitHub API (much faster than cloning)
-      const commitInfo = await this.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
-      
-      // Check if processing needed based on commit hash
-      const existingRepo = await this.checkExistingRepo(githubOwner, repoName, commitInfo.hash);
-      
-      if (existingRepo?.reason === 'same_commit') {
-        console.log(`[${new Date().toISOString()}] ⏭️ SKIPPING: Same commit, no processing needed`);
-        return { success: true, skipped: true, reason: 'same_commit' };
-      }
-
-      // Load documents using Langchain's native loader (no manual cloning!)
-      const documents = await this.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
-      
-      if (existingRepo?.reason === 'commit_changed') {
-        // Get changed files via GitHub API
-        const changedFiles = await this.getChangedFilesFromGitHubAPI(
-          githubOwner, repoName, existingRepo.existingCommitHash, commitInfo.hash
-        );
-        
-        // Filter documents to only changed files
-        const changedDocuments = documents.filter(doc => 
-          changedFiles.some(file => doc.metadata.source?.includes(file))
-        );
-        
-        console.log(`[${new Date().toISOString()}] 🔄 INCREMENTAL: Processing ${changedDocuments.length} changed files via GitHub API`);
-        return await this.processFilteredDocuments(changedDocuments, namespace, commitInfo, true);
-      }
-
-      // Full processing for new repository
-      console.log(`[${new Date().toISOString()}] 🆕 FULL: Processing all ${documents.length} files via GitHub API`);
-      return await this.processFilteredDocuments(documents, namespace, commitInfo, false);
-
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ GitHub API failed, falling back to local git:`, error.message);
-      return await this.processWithLocalGit(repoUrl, githubOwner, repoName, branch, namespace);
-    }
-  }
-
-  /**
-   * FALLBACK: Use local git operations when GitHub API is insufficient
+   * Process repository using local git operations
    */
   async processWithLocalGit(repoUrl, githubOwner, repoName, branch, namespace) {
     let tempDir = null;
@@ -197,35 +146,31 @@ class OptimizedRepositoryProcessor {
   }
 
   /**
-   * Get commit info from GitHub API (faster than cloning)
+   * Get commit info from GitHub API (STUB - NOT IMPLEMENTED)
+   * TODO: Implement actual GitHub API integration with Octokit
    */
   async getCommitInfoFromGitHubAPI(owner, repo, branch) {
-    // This would use GitHub API or Octokit
-    // For now, return a placeholder - implement with actual GitHub API
-    console.log(`[${new Date().toISOString()}] 🌐 TODO: Implement GitHub API commit info retrieval`);
-    return {
-      hash: 'api_placeholder_hash',
-      timestamp: Math.floor(Date.now() / 1000),
-      author: 'API Author',
-      subject: 'Latest commit from API',
-      date: new Date().toISOString()
-    };
+    // STUB: This method is not implemented and should not be called
+    console.warn(`[${new Date().toISOString()}] ⚠️ STUB: getCommitInfoFromGitHubAPI called but not implemented`);
+    throw new Error('GitHub API integration not implemented - use local git instead');
   }
 
   /**
-   * Get changed files from GitHub API
+   * Get changed files from GitHub API (STUB - NOT IMPLEMENTED)
+   * TODO: Implement actual GitHub API integration for diff detection
    */
   async getChangedFilesFromGitHubAPI(owner, repo, fromCommit, toCommit) {
-    console.log(`[${new Date().toISOString()}] 🌐 TODO: Implement GitHub API changed files detection`);
-    return []; // Placeholder
+    // STUB: This method is not implemented and should not be called
+    console.warn(`[${new Date().toISOString()}] ⚠️ STUB: getChangedFilesFromGitHubAPI called but not implemented`);
+    throw new Error('GitHub API integration not implemented - use local git instead');
   }
 
   /**
-   * Check if GitHub API can be used for this repository
+   * Check if GitHub API can be used for this repository (ALWAYS FALSE - STUBS NOT IMPLEMENTED)
+   * TODO: Implement proper GitHub API availability detection
    */
   async canUseGitHubAPIForChangeDetection(owner, repo) {
-    // Check if repo is public, if we have API tokens, rate limits, etc.
-    // For now, fallback to local git
+    // GitHub API methods are stubbed and not functional
     return false;
   }
 

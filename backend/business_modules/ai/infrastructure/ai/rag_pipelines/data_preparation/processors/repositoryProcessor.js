@@ -25,9 +25,10 @@ class RepositoryProcessor {
     
     // Initialize content-aware splitter router - fixes issue where all files routed through AST splitter
     this.contentAwareSplitterRouter = new ContentAwareSplitterRouter({
-      maxChunkSize: 2000,
-      minChunkSize: 500,
-      chunkOverlap: 150
+      maxTokens: 1400,        // Token-based limit (more accurate than character count)
+      minTokens: 120,         // Minimum meaningful tokens per chunk
+      overlapTokens: 180,     // Token overlap for context preservation
+      encodingModel: 'cl100k_base'  // OpenAI's token encoding model
     });
     this.chunkQualityAnalyzer = new ChunkQualityAnalyzer();
     

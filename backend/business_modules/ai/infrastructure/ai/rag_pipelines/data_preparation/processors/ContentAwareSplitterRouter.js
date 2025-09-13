@@ -80,7 +80,7 @@ class ContentAwareSplitterRouter {
     const source = document.metadata?.source || 'unknown';
     
     try {
-      if (contentType === 'javascript_typescript_code' || contentType === 'other_code') {
+      if (contentType === 'code') {
         const result = await this.codePreprocessor.preprocessCodeFile(
           document.pageContent, 
           source, 
@@ -96,7 +96,7 @@ class ContentAwareSplitterRouter {
           }
         };
         
-      } else if (contentType === 'markdown_documentation' || contentType === 'text_content') {
+      } else if (contentType === 'markdown' || contentType === 'documentation' || contentType === 'generic') {
         const result = await this.textPreprocessor.preprocessTextFile(
           document.pageContent, 
           source, 
@@ -134,14 +134,13 @@ class ContentAwareSplitterRouter {
    */
   async routeToSplitter(document, contentType) {
     switch (contentType) {
-      case 'javascript_typescript_code':
-      case 'other_code':
+      case 'code':
         return await this.splitCodeDocument(document);
         
-      case 'markdown_documentation':
+      case 'markdown':
         return await this.splitMarkdownDocument(document);
         
-      case 'openapi_specification':
+      case 'openapi':
         return await this.splitOpenAPIDocument(document);
         
       case 'yaml_config':
@@ -153,10 +152,10 @@ class ContentAwareSplitterRouter {
       case 'json_schema':
         return await this.splitJSONSchemaDocument(document);
         
-      case 'documentation_file':
+      case 'documentation':
         return await this.splitDocumentationFile(document);
         
-      case 'text_content':
+      case 'generic':
       default:
         return await this.splitGenericDocument(document);
     }
@@ -647,6 +646,53 @@ class ContentAwareSplitterRouter {
         splitting_method: 'yaml_key_block_centric'
       }
     };
+  }
+
+  /**
+   * Fallback splitting method when content-aware routing fails
+   * Uses the most basic and reliable text splitting approach
+   */
+  async fallbackSplit(document) {
+    console.log(`[${new Date().toISOString()}] 🚨 FALLBACK SPLITTING: Using emergency text splitter for ${document.metadata?.source || 'unknown'}`);
+    
+    try {
+      // Use the most basic RecursiveCharacterTextSplitter as last resort
+      const fallbackSplitter = new RecursiveCharacterTextSplitter({
+        chunkSize: 1000,  // Smaller chunks for safety
+        chunkOverlap: 100,
+        separators: ['\n\n', '\n', ' ', '']
+      });
+
+      const chunks = await fallbackSplitter.splitDocuments([document]);
+      
+      return chunks.map((chunk, index) => ({
+        ...chunk,
+        metadata: {
+          ...document.metadata,
+          chunk_index: index,
+          chunk_type: 'fallback_text',
+          total_chunks: chunks.length,
+          splitting_method: 'fallback_emergency',
+          fallback_reason: 'content_aware_routing_failed'
+        }
+      }));
+
+    } catch (fallbackError) {
+      console.error(`[${new Date().toISOString()}] ❌ FALLBACK SPLITTING FAILED: ${document.metadata?.source}:`, fallbackError.message);
+      
+      // Ultimate fallback: return the document as a single chunk
+      return [{
+        pageContent: document.pageContent || document.content || '',
+        metadata: {
+          ...document.metadata,
+          chunk_index: 0,
+          chunk_type: 'single_document',
+          total_chunks: 1,
+          splitting_method: 'no_splitting_applied',
+          fallback_reason: 'all_splitting_methods_failed'
+        }
+      }];
+    }
   }
 
   /**

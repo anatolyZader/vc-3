@@ -3,6 +3,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
+const os = require('os');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
@@ -21,8 +22,8 @@ class RepositoryManager {
     console.log(`[${new Date().toISOString()}] 🎯 CLONING EXPLANATION: Creating isolated temporary workspace for safe repository analysis`);
     console.log(`[${new Date().toISOString()}] 🎯 We use 'git clone --depth 1' for efficiency (only latest commit) and create a unique temporary directory to avoid conflicts with concurrent processing`);
     
-    // Create temp directory
-    const tempDir = path.join(__dirname, '../../../../../../../temp', `repo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    // Create temp directory using OS temp directory
+    const tempDir = path.join(os.tmpdir(), 'eventstorm-repos', `repo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
     
     try {
       await fs.mkdir(tempDir, { recursive: true });
@@ -43,7 +44,7 @@ class RepositoryManager {
       
       // Cleanup on failure
       try {
-        await fs.rmdir(tempDir, { recursive: true });
+        await fs.rm(tempDir, { recursive: true, force: true });
       } catch (cleanupError) {
         console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Could not cleanup temp directory:`, cleanupError.message);
       }
@@ -60,7 +61,7 @@ class RepositoryManager {
     console.log(`[${new Date().toISOString()}] 🎯 Since all source files have been processed and stored as vector embeddings in Pinecone, the local copy is no longer needed. This prevents disk space accumulation from multiple repository processings`);
     
     try {
-      await fs.rmdir(tempDir, { recursive: true });
+      await fs.rm(tempDir, { recursive: true, force: true });
       console.log(`[${new Date().toISOString()}] ✅ CLEANUP SUCCESS: Removed temporary directory: ${tempDir}`);
       console.log(`[${new Date().toISOString()}] 💾 Disk space preserved - only vector embeddings retained for fast retrieval`);
     } catch (error) {
