@@ -4,6 +4,7 @@
 const { parse } = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 const ChunkQualityAnalyzer = require('../analyzers/ChunkQualityAnalyzer');
+const TokenBasedSplitter = require('./TokenBasedSplitter');
 
 /**
  * Enhanced AST-Based Code Splitter with Chunk Quality Analysis
@@ -11,9 +12,18 @@ const ChunkQualityAnalyzer = require('../analyzers/ChunkQualityAnalyzer');
  */
 class EnhancedASTCodeSplitter {
   constructor(options = {}) {
-    this.maxChunkSize = options.maxChunkSize || 2800; // Optimal for embeddings
-    this.minChunkSize = options.minChunkSize || 300;  // Minimum meaningful size
-    this.chunkOverlap = options.chunkOverlap || 150;  // Context preservation
+    // Initialize token splitter first for accurate measurements
+    this.tokenSplitter = options.tokenSplitter || new TokenBasedSplitter({
+      maxTokens: options.maxTokens || 1200,        // Optimal for code embeddings
+      minTokens: options.minTokens || 150,         // Minimum meaningful code size
+      overlapTokens: options.overlapTokens || 200  // More overlap for code context
+    });
+    
+    // Legacy character-based options (converted to tokens when needed)
+    this.maxChunkSize = options.maxChunkSize || (this.tokenSplitter.maxTokens * 3.5); // For backward compatibility
+    this.minChunkSize = options.minChunkSize || (this.tokenSplitter.minTokens * 3.5);
+    this.chunkOverlap = options.chunkOverlap || (this.tokenSplitter.overlapTokens * 3.5);
+    
     this.includeImportsInContext = options.includeImportsInContext !== false;
     this.mergeSmallChunks = options.mergeSmallChunks !== false;
     this.semanticCoherence = options.semanticCoherence !== false;
@@ -21,10 +31,12 @@ class EnhancedASTCodeSplitter {
     
     this.qualityAnalyzer = new ChunkQualityAnalyzer({
       minChunkSize: this.minChunkSize,
-      maxChunkSize: this.maxChunkSize
+      maxChunkSize: this.maxChunkSize,
+      tokenSplitter: this.tokenSplitter  // Pass token splitter for accurate analysis
     });
 
-    console.log(`[${new Date().toISOString()}] 🚀 ENHANCED AST SPLITTER: Initialized with quality-driven chunking`);
+    console.log(`[${new Date().toISOString()}] 🚀 ENHANCED AST SPLITTER: Initialized with TOKEN-BASED chunking`);
+    console.log(`[${new Date().toISOString()}] 🎯 TOKEN LIMITS: ${this.tokenSplitter.maxTokens}/${this.tokenSplitter.minTokens} tokens`);
   }
 
   /**
@@ -94,8 +106,10 @@ class EnhancedASTCodeSplitter {
           if (classUnit) {
             semanticUnits.push(classUnit);
             
-            // Extract methods separately if class is too large
-            if (classUnit.size > this.maxChunkSize) {
+            // Extract methods separately if class is too large (token-based check)
+            const classTokens = this.tokenSplitter.countTokens(classUnit.content);
+            if (classTokens > this.tokenSplitter.maxTokens) {
+              console.log(`[${new Date().toISOString()}] 🔍 CLASS TOO LARGE: ${classUnit.name} (${classTokens} tokens > ${this.tokenSplitter.maxTokens})`);
               const methods = this.extractClassMethods(path.node, lines, originalCode, classUnit.name);
               semanticUnits.push(...methods);
             }
@@ -145,14 +159,33 @@ class EnhancedASTCodeSplitter {
   }
 
   /**
-   * Create enhanced class unit with proper context
+   * Check if content exceeds token limits (more accurate than character count)
+   */
+  exceedsTokenLimit(content) {
+    return this.tokenSplitter.exceedsTokenLimit(content);
+  }
+
+  /**
+   * Check if content is below minimum token threshold
+   */
+  belowMinimumTokens(content) {
+    return this.tokenSplitter.belowMinimumTokens(content);
+  }
+
+  /**
+   * Create enhanced class unit with token-based size analysis
    */
   createClassUnit(node, lines, originalCode, imports) {
     const unit = this.createSemanticUnit(node, lines, 'class', originalCode);
     if (!unit) return null;
 
+    // Use token-based size check instead of character count
+    const tokenAnalysis = this.tokenSplitter.analyzeChunk(unit.content);
+
     return {
       ...unit,
+      tokenCount: tokenAnalysis.tokenCount,
+      tokenAnalysis: tokenAnalysis,
       contextualImports: this.getRelevantImports(imports, unit.content),
       methods: this.getMethodNames(node),
       hasConstructor: this.hasConstructor(node),
@@ -162,14 +195,19 @@ class EnhancedASTCodeSplitter {
   }
 
   /**
-   * Create enhanced function unit with context
+   * Create enhanced function unit with token-based context
    */
   createFunctionUnit(node, lines, originalCode, imports) {
     const unit = this.createSemanticUnit(node, lines, 'function', originalCode);
     if (!unit) return null;
 
+    // Use token-based size analysis
+    const tokenAnalysis = this.tokenSplitter.analyzeChunk(unit.content);
+
     return {
       ...unit,
+      tokenCount: tokenAnalysis.tokenCount,
+      tokenAnalysis: tokenAnalysis,
       contextualImports: this.getRelevantImports(imports, unit.content),
       parameters: this.getParameterNames(node),
       isAsync: node.async || false,
@@ -243,19 +281,30 @@ class EnhancedASTCodeSplitter {
   }
 
   /**
-   * Merge small chunks with adjacent chunks
+   * Merge small chunks with adjacent chunks (token-based decisions)
    */
   mergeSmallChunks(chunks) {
     const merged = [];
     let currentMerged = null;
 
     for (const chunk of chunks) {
-      const isSmall = (chunk.pageContent || chunk.content || '').length < this.minChunkSize;
+      const content = chunk.pageContent || chunk.content || '';
+      const tokenAnalysis = this.tokenSplitter.analyzeChunk(content);
       
-      if (isSmall) {
+      if (tokenAnalysis.tooSmall) {
         if (currentMerged) {
-          // Merge with previous
-          currentMerged = this.mergeChunks(currentMerged, chunk);
+          // Check if merging would exceed token limits
+          const combinedContent = currentMerged.pageContent + '\n\n' + content;
+          const combinedAnalysis = this.tokenSplitter.analyzeChunk(combinedContent);
+          
+          if (!combinedAnalysis.tooLarge) {
+            // Safe to merge
+            currentMerged = this.mergeChunks(currentMerged, chunk);
+          } else {
+            // Can't merge, finalize current and start new
+            merged.push(currentMerged);
+            currentMerged = chunk;
+          }
         } else {
           // Start merging process
           currentMerged = chunk;
@@ -264,7 +313,16 @@ class EnhancedASTCodeSplitter {
         // Finalize current merge if exists
         if (currentMerged) {
           if (currentMerged !== chunk) {
-            merged.push(this.mergeChunks(currentMerged, chunk));
+            // Try to merge with this chunk
+            const combinedContent = currentMerged.pageContent + '\n\n' + content;
+            const combinedAnalysis = this.tokenSplitter.analyzeChunk(combinedContent);
+            
+            if (!combinedAnalysis.tooLarge) {
+              merged.push(this.mergeChunks(currentMerged, chunk));
+            } else {
+              merged.push(currentMerged);
+              merged.push(chunk);
+            }
             currentMerged = null;
           } else {
             merged.push(currentMerged);
@@ -281,20 +339,22 @@ class EnhancedASTCodeSplitter {
       merged.push(currentMerged);
     }
 
-    console.log(`[${new Date().toISOString()}] 🔧 MERGE: Merged small chunks ${chunks.length} → ${merged.length}`);
+    console.log(`[${new Date().toISOString()}] 🔧 TOKEN-BASED MERGE: ${chunks.length} → ${merged.length} chunks`);
     return merged;
   }
 
   /**
-   * Split chunks that are too large
+   * Split chunks that are too large (token-based)
    */
   async splitLargeChunks(chunks) {
     const split = [];
     
     for (const chunk of chunks) {
       const content = chunk.pageContent || chunk.content || '';
+      const tokenAnalysis = this.tokenSplitter.analyzeChunk(content);
       
-      if (content.length > this.maxChunkSize) {
+      if (tokenAnalysis.tooLarge) {
+        console.log(`[${new Date().toISOString()}] 🔪 TOKEN SPLIT: Chunk has ${tokenAnalysis.tokenCount} tokens (max: ${this.tokenSplitter.maxTokens})`);
         // Split while preserving semantic boundaries
         const subChunks = await this.splitLargeChunk(chunk);
         split.push(...subChunks);
@@ -670,31 +730,335 @@ class EnhancedASTCodeSplitter {
   }
 
   async splitLargeChunk(chunk) {
-    // Simple splitting for now - could be enhanced
     const content = chunk.pageContent || chunk.content || '';
-    const lines = content.split('\n');
-    const midPoint = Math.floor(lines.length / 2);
+    const tokenAnalysis = this.tokenSplitter.analyzeChunk(content);
     
-    return [
-      {
-        ...chunk,
-        pageContent: lines.slice(0, midPoint).join('\n'),
-        metadata: {
-          ...chunk.metadata,
-          split_part: 1,
-          split_total: 2
-        }
-      },
-      {
-        ...chunk,
-        pageContent: lines.slice(midPoint).join('\n'),
-        metadata: {
-          ...chunk.metadata,
-          split_part: 2,
-          split_total: 2
+    console.log(`[${new Date().toISOString()}] 🔪 SEMANTIC SPLITTING: Large chunk (${tokenAnalysis.tokenCount} tokens, ${content.length} chars) - attempting semantic-aware split`);
+
+    try {
+      // First attempt: Re-parse and split by semantic units
+      const semanticSplits = await this.splitBySemanticUnits(content, chunk.metadata);
+      if (semanticSplits && semanticSplits.length > 1) {
+        console.log(`[${new Date().toISOString()}] ✅ SEMANTIC SPLIT: Successfully split into ${semanticSplits.length} semantic units`);
+        return semanticSplits;
+      }
+
+      // Second attempt: Split by AST-aware boundaries (functions, classes, blocks)
+      const astAwareSplits = await this.splitByASTBoundaries(content, chunk.metadata);
+      if (astAwareSplits && astAwareSplits.length > 1) {
+        console.log(`[${new Date().toISOString()}] ✅ AST BOUNDARY SPLIT: Successfully split into ${astAwareSplits.length} AST-aware chunks`);
+        return astAwareSplits;
+      }
+
+      // Third attempt: Smart line-based splitting (avoid breaking code blocks)
+      const smartLineSplits = await this.splitBySmartLineBoundaries(content, chunk.metadata);
+      if (smartLineSplits && smartLineSplits.length > 1) {
+        console.log(`[${new Date().toISOString()}] ✅ SMART LINE SPLIT: Successfully split into ${smartLineSplits.length} logical chunks`);
+        return smartLineSplits;
+      }
+
+      // Last resort: Token windows with overlap (preserves some context)
+      console.log(`[${new Date().toISOString()}] ⚠️ FALLBACK SPLIT: Using token-based windows with overlap as last resort`);
+      return await this.splitByTokenWindows(content, chunk.metadata);
+
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ❌ SEMANTIC SPLITTING ERROR: ${error.message}, falling back to token windows`);
+      return await this.splitByTokenWindows(content, chunk.metadata);
+    }
+  }
+
+  /**
+   * Split by re-analyzing semantic units within the large chunk
+   */
+  async splitBySemanticUnits(content, metadata) {
+    try {
+      const fileExtension = this.getFileExtension(metadata.source || '');
+      if (!this.supportedExtensions.includes(fileExtension)) {
+        return null; // Not a code file, can't use AST
+      }
+
+      const ast = this.parseCode(content, fileExtension);
+      const semanticUnits = this.extractSemanticUnits(ast, content, metadata);
+
+      if (semanticUnits.length <= 1) {
+        return null; // Can't split semantically
+      }
+
+      // Group semantic units into chunks that fit within size limits
+      const semanticChunks = [];
+      let currentChunk = null;
+
+      for (const unit of semanticUnits) {
+        if (!currentChunk) {
+          currentChunk = unit;
+        } else if (currentChunk.size + unit.size <= this.maxChunkSize) {
+          // Merge units if they fit together
+          currentChunk = this.mergeUnits(currentChunk, unit);
+        } else {
+          // Finalize current chunk and start new one
+          semanticChunks.push(this.createChunkFromUnit(currentChunk, metadata));
+          currentChunk = unit;
         }
       }
-    ];
+
+      // Add final chunk
+      if (currentChunk) {
+        semanticChunks.push(this.createChunkFromUnit(currentChunk, metadata));
+      }
+
+      return semanticChunks.length > 1 ? semanticChunks : null;
+
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ SEMANTIC UNIT SPLIT FAILED: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Split by AST-aware boundaries (functions, classes, blocks)
+   */
+  async splitByASTBoundaries(content, metadata) {
+    try {
+      const fileExtension = this.getFileExtension(metadata.source || '');
+      if (!this.supportedExtensions.includes(fileExtension)) {
+        return null; // Not a code file
+      }
+
+      const ast = this.parseCode(content, fileExtension);
+      const lines = content.split('\n');
+      const splitPoints = [];
+
+      // Find natural split points between top-level declarations
+      traverse(ast, {
+        Program(path) {
+          const body = path.node.body;
+          for (let i = 1; i < body.length; i++) {
+            const prevNode = body[i - 1];
+            const currentNode = body[i];
+            
+            if (prevNode.loc && currentNode.loc) {
+              const splitLine = prevNode.loc.end.line;
+              splitPoints.push(splitLine);
+            }
+          }
+        }
+      });
+
+      if (splitPoints.length === 0) {
+        return null; // No good split points found
+      }
+
+      // Find the best split point (closest to middle)
+      const targetLine = Math.floor(lines.length / 2);
+      const bestSplitLine = splitPoints.reduce((closest, current) => 
+        Math.abs(current - targetLine) < Math.abs(closest - targetLine) ? current : closest
+      );
+
+      const chunks = [
+        {
+          pageContent: lines.slice(0, bestSplitLine).join('\n'),
+          metadata: {
+            ...metadata,
+            split_method: 'ast_boundary',
+            split_part: 1,
+            split_total: 2,
+            split_line: bestSplitLine
+          }
+        },
+        {
+          pageContent: lines.slice(bestSplitLine).join('\n'),
+          metadata: {
+            ...metadata,
+            split_method: 'ast_boundary',
+            split_part: 2,
+            split_total: 2,
+            split_line: bestSplitLine
+          }
+        }
+      ];
+
+      return chunks;
+
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ AST BOUNDARY SPLIT FAILED: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Split by smart line boundaries (avoid breaking code blocks)
+   */
+  async splitBySmartLineBoundaries(content, metadata) {
+    const lines = content.split('\n');
+    const targetSize = Math.floor(this.maxChunkSize / 2); // Aim for half max size per chunk
+    
+    // Find good split points (empty lines, comment blocks, logical separators)
+    const goodSplitLines = [];
+    let currentSize = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      currentSize += line.length + 1; // +1 for newline
+      
+      // Look for good split opportunities
+      if (currentSize >= targetSize && this.isGoodSplitLine(line, lines, i)) {
+        goodSplitLines.push(i + 1); // Split after this line
+        currentSize = 0;
+      }
+    }
+
+    if (goodSplitLines.length === 0) {
+      return null; // No good split points found
+    }
+
+    // Create chunks based on split points
+    const chunks = [];
+    let startLine = 0;
+
+    for (const splitLine of goodSplitLines) {
+      if (startLine < splitLine) {
+        chunks.push({
+          pageContent: lines.slice(startLine, splitLine).join('\n'),
+          metadata: {
+            ...metadata,
+            split_method: 'smart_line_boundary',
+            split_part: chunks.length + 1,
+            split_lines: `${startLine}-${splitLine}`
+          }
+        });
+        startLine = splitLine;
+      }
+    }
+
+    // Add final chunk if there are remaining lines
+    if (startLine < lines.length) {
+      chunks.push({
+        pageContent: lines.slice(startLine).join('\n'),
+        metadata: {
+          ...metadata,
+          split_method: 'smart_line_boundary',
+          split_part: chunks.length + 1,
+          split_lines: `${startLine}-${lines.length}`
+        }
+      });
+    }
+
+    // Update split_total for all chunks
+    chunks.forEach(chunk => {
+      chunk.metadata.split_total = chunks.length;
+    });
+
+    return chunks.length > 1 ? chunks : null;
+  }
+
+  /**
+   * Last resort: Token-based splitting with overlap
+   */
+  async splitByTokenWindows(content, metadata) {
+    console.log(`[${new Date().toISOString()}] 🎯 TOKEN WINDOWS: Using accurate token-based splitting`);
+    
+    try {
+      // Use TokenBasedSplitter for accurate token measurements
+      const tokenChunks = this.tokenSplitter.splitByTokenBoundaries(content, [
+        '\nclass ',      // Preserve class boundaries
+        '\nfunction ',   // Preserve function boundaries  
+        '\nconst ',      // Preserve const declarations
+        '\nlet ',        // Preserve let declarations
+        '\nvar ',        // Preserve var declarations
+        '\n\n',         // Paragraph breaks
+        '\n',           // Line breaks
+        ' ',            // Word breaks
+        ''              // Character breaks (last resort)
+      ]);
+      
+      const chunks = tokenChunks.map((tokenChunk, index) => ({
+        pageContent: tokenChunk.text,
+        metadata: {
+          ...metadata,
+          split_method: 'token_windows_with_overlap',
+          split_part: index + 1,
+          split_total: tokenChunks.length,
+          token_count: tokenChunk.tokens,
+          character_count: tokenChunk.characters,
+          has_overlap: true,
+          overlap_tokens: this.tokenSplitter.overlapTokens,
+          token_efficiency: `${(tokenChunk.tokens / this.tokenSplitter.maxTokens * 100).toFixed(1)}%`
+        }
+      }));
+
+      console.log(`[${new Date().toISOString()}] ✅ TOKEN WINDOWS: Created ${chunks.length} token-optimized chunks`);
+      return chunks;
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ TOKEN WINDOW SPLIT FAILED: ${error.message}`);
+      
+      // Ultimate fallback: Use RecursiveCharacterTextSplitter with token-based estimates
+      const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
+      
+      const splitter = new RecursiveCharacterTextSplitter({
+        chunkSize: this.tokenSplitter.maxTokens * 3.5, // Approximate conversion
+        chunkOverlap: this.tokenSplitter.overlapTokens * 3.5,
+        separators: [
+          '\nclass ',      // Preserve class boundaries
+          '\nfunction ',   // Preserve function boundaries  
+          '\nconst ',      // Preserve const declarations
+          '\nlet ',        // Preserve let declarations
+          '\nvar ',        // Preserve var declarations
+          '\n\n',         // Paragraph breaks
+          '\n',           // Line breaks
+          ' ',            // Word breaks
+          ''              // Character breaks (last resort)
+        ],
+        keepSeparator: true
+      });
+
+      const fakeDoc = { pageContent: content, metadata };
+      const chunks = await splitter.splitDocuments([fakeDoc]);
+      
+      return chunks.map((chunk, index) => ({
+        ...chunk,
+        metadata: {
+          ...metadata,
+          split_method: 'fallback_character_based',
+          split_part: index + 1,
+          split_total: chunks.length,
+          estimated_tokens: this.tokenSplitter.countTokens(chunk.pageContent),
+          warning: 'Fallback to character-based splitting - token accuracy not guaranteed'
+        }
+      }));
+    }
+  }
+
+  /**
+   * Determine if a line is a good place to split
+   */
+  isGoodSplitLine(line, lines, index) {
+    const trimmed = line.trim();
+    
+    // Empty lines are good split points
+    if (trimmed === '') return true;
+    
+    // Comment blocks are good split points
+    if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) return true;
+    
+    // End of blocks (closing braces with nothing else)
+    if (/^[\s}]*$/.test(line)) return true;
+    
+    // Before new top-level declarations
+    if (index < lines.length - 1) {
+      const nextLine = lines[index + 1].trim();
+      if (nextLine.startsWith('class ') || 
+          nextLine.startsWith('function ') || 
+          nextLine.startsWith('const ') ||
+          nextLine.startsWith('let ') ||
+          nextLine.startsWith('var ') ||
+          nextLine.startsWith('export ') ||
+          nextLine.startsWith('import ')) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   getMethodNames(node) {

@@ -1,12 +1,12 @@
-# LangSmith RAG Trace Analysis - 9/12/2025, 3:14:52 PM
+# LangSmith RAG Trace Analysis - 9/13/2025, 1:01:46 PM
 
 ## 🔍 Query Details
-- **Query**: "how is error management implemented in eventstorm.me?&nbsp;"
+- **Query**: "explain 3 main technical differences in implementation beteen aop and business modules in eventstorm.me&nbsp;"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
-- **Conversation ID**: 2d974ef6-7c5a-4516-84f5-604bcc5ab4b0
-- **Started**: 2025-09-12T15:14:52.134Z
-- **Completed**: 2025-09-12T15:15:01.166Z
-- **Total Duration**: 9032ms
+- **Conversation ID**: f0bcd771-3e9f-4466-8664-e25fcefcfe54
+- **Started**: 2025-09-13T13:01:46.812Z
+- **Completed**: 2025-09-13T13:01:54.024Z
+- **Total Duration**: 7212ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,80 +16,103 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-09-12T15:14:52.134Z) - success
-2. **vector_store_check** (2025-09-12T15:14:52.134Z) - success
-3. **vector_search** (2025-09-12T15:14:55.192Z) - success - Found 12 documents
-4. **context_building** (2025-09-12T15:14:55.192Z) - success - Context: 6379 chars
-5. **response_generation** (2025-09-12T15:15:01.166Z) - success - Response: 3413 chars
+1. **initialization** (2025-09-13T13:01:46.812Z) - success
+2. **vector_store_check** (2025-09-13T13:01:46.812Z) - success
+3. **vector_search** (2025-09-13T13:01:50.300Z) - success - Found 22 documents
+4. **context_building** (2025-09-13T13:01:50.301Z) - success - Context: 15271 chars
+5. **response_generation** (2025-09-13T13:01:54.024Z) - success - Response: 2409 chars
 
 ## 📊 Vector Search Analysis
 
 ### Search Configuration:
 - **Vector Store**: temporary
 - **Search Strategy**: temp_orchestrator
-- **Documents Retrieved**: 12
-- **Total Context**: 10,896 characters
+- **Documents Retrieved**: 22
+- **Total Context**: 30,556 characters
 
 ### Source Type Distribution:
-- **GitHub Repository Code**: 10 chunks (83%)
+- **GitHub Repository Code**: 14 chunks (64%)
 - **Module Documentation**: 0 chunks (0%)  
-- **Architecture Documentation**: 0 chunks (0%)
+- **Architecture Documentation**: 7 chunks (32%)
 - **API Specification**: 0 chunks (0%)
-- **Other Sources**: 2 chunks (17%)
+- **Other Sources**: 1 chunks (5%)
 
 ## 📋 Complete Chunk Analysis
 
 
-### Chunk 1/12
-- **Source**: client/index.html
+### Chunk 1/22
+- **Source**: backend/infraConfig.json
 - **Type**: Unknown
-- **Size**: 630 characters
+- **Size**: 1211 characters
 - **Score**: N/A
 - **Repository**: https://github.com/anatolyZader/vc-3
 - **Branch**: amber
-- **File Type**: HTML
+- **File Type**: JSON
 - **Processed At**: 2025-07-14T15:43:05.314Z
 
 **Full Content**:
 ```
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  
-    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
-    <title>eventstorm</title>
-    <meta name="msapplication-TileColor" content="#da532c">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="viewport" content="initial-scale=1, width=device-width" />
+{
+  "aop_modules": {
+    "auth": {
+      "authPersistAdapter": "authPostgresAdapter"
+    }
+  },
 
+  "business_modules": {
+    "chat": {
+      "chatPersistAdapter": "chatPostgresAdapter",
+      "chatAIAdapter": "chatLangchainAdapter",
+      "chatMessagingAdapter": "chatPubsubAdapter"
+    },
+    "git": {
+      "gitAdapter": "gitGithubAdapter",
+      "gitMessagingAdapter": "gitPubsubAdapter",
+      "gitPersistAdapter": "gitPostgresAdapter"
+    },
 
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+    "wiki": {
+      "wikiMessagingAdapter": "wikiPubsubAdapter",
+      "wikiPersistAdapter": "wikiPostgresAdapter"
+    },
+    "ai": {
+      "aiPersistAdapter": "aiPostgresAdapter",
+      "aiAdapter": "aiLangchainAdapter", 
+      "aiProvider": "anthropic", 
+      "aiMessagingAdapter": "aiPubsubAdapter",
+      "aiGitAdapter": "aiGithubAdapter",
+      "aiWikiAdapter": "aiGithubWikiAdapter"
+    },
+    "messaging": {
+      "messagingPersistAdapter": "messagingPostgresAdapter",
+      "messagingAIAdapter": "messagingLangchainAdapter",
+      "messagingMessagingAdapter": "messagingPubsubAdapter"
+    },
+    "api": {
+      "apiPersistAdapter": "apiPostgresAdapter",
+      "apiMessagingAdapter": "apiPubsubAdapter",
+      "apiAdapter": "apiSwaggerAdapter"
+    }
+  }
+}
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "amber",
-  "chunkIndex": 32261,
-  "chunkSize": 630,
-  "fileType": "HTML",
+  "chunkIndex": 32176,
+  "chunkSize": 1211,
+  "fileType": "JSON",
   "githubOwner": "anatolyZader",
   "loc.lines.from": 1,
-  "loc.lines.to": 20,
+  "loc.lines.to": 43,
   "processedAt": "2025-07-14T15:43:05.314Z",
   "processedBy": "AI-Service",
   "repoId": "anatolyZader/vc-3",
   "repoUrl": "https://github.com/anatolyZader/vc-3",
   "repository": "https://github.com/anatolyZader/vc-3",
-  "source": "client/index.html",
+  "source": "backend/infraConfig.json",
   "totalChunks": 32395,
   "userId": "d41402df-182a-41ec-8f05-153118bf2718"
 }
@@ -97,59 +120,10 @@
 
 ---
 
-### Chunk 2/12
-- **Source**: backend/business_modules/ai/infrastructure/ai/aiLangchainAdapter.js
+### Chunk 2/22
+- **Source**: backend/diPlugin.js
 - **Type**: Unknown
-- **Size**: 346 characters
-- **Score**: N/A
-- **Repository**: https://github.com/anatolyZader/vc-3
-- **Branch**: amber
-- **File Type**: JavaScript
-- **Processed At**: 2025-07-14T14:59:13.923Z
-
-**Full Content**:
-```
-if (eventBus) {
-        eventBus.emit('ragStatusUpdate', {
-          component: 'aiLangchainAdapter',
-          timestamp: new Date().toISOString(),
-          status,
-          ...details
-        });
-      }
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
-    }
-  }
-```
-
-**Metadata**:
-```json
-{
-  "branch": "amber",
-  "chunkIndex": 238,
-  "chunkSize": 346,
-  "fileType": "JavaScript",
-  "githubOwner": "anatolyZader",
-  "loc.lines.from": 902,
-  "loc.lines.to": 913,
-  "processedAt": "2025-07-14T14:59:13.923Z",
-  "processedBy": "AI-Service",
-  "repoId": "anatolyZader/vc-3",
-  "repoUrl": "https://github.com/anatolyZader/vc-3",
-  "repository": "https://github.com/anatolyZader/vc-3",
-  "source": "backend/business_modules/ai/infrastructure/ai/aiLangchainAdapter.js",
-  "totalChunks": 49981,
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
-}
-```
-
----
-
-### Chunk 3/12
-- **Source**: backend/errorPlugin.js
-- **Type**: Unknown
-- **Size**: 1368 characters
+- **Size**: 301 characters
 - **Score**: N/A
 - **Repository**: https://github.com/anatolyZader/vc-3
 - **Branch**: amber
@@ -158,68 +132,29 @@ if (eventBus) {
 
 **Full Content**:
 ```
-// errorPlugin.js
+const AIGithubAdapter = require('./business_modules/ai/infrastructure/git/aiGithubAdapter');
+const AIGithubWikiAdapter = require('./business_modules/ai/infrastructure/wiki/aiGithubWikiAdapter');
 
-'use strict'
-const fp = require('fastify-plugin')
-
-module.exports = fp(function errorHandlerPlugin (fastify, opts, next) {
-  fastify.setErrorHandler((err, req, reply) => {
-    // 1) Decide on the HTTP status code
-    const statusCode = err.statusCode || err.status || 500
-    reply.code(statusCode)
-
-    // 2) Log with the right level
-    if (statusCode >= 500) {
-      req.log.error({ err, url: req.raw.url, reqId: req.id }, err.message)
-      return reply.send({
-        statusCode,                    // ← required by your schema
-        error: 'Internal Server Error',
-        message: `Fatal error. Contact support with id ${req.id}`
-      })
-    } else {
-      req.log.info({ err, url: req.raw.url, reqId: req.id }, err.message)
-    }
-
-    // 3) Validation errors (from fastify-schema) should be 400
-    if (err.validation) {
-      return reply.send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: err.message
-      })
-    }
-
-    // 4) Known HTTP errors (e.g. 401, 404) keep their name/message
-    return reply.send({
-      statusCode,                    // ← required!
-      error:      err.name  || 'Error',
-      message:    err.message || 'An error occurred'
-      // (we no longer spread `...err`, to avoid accidentally serializing
-      // buffers, circular refs, or private properties)
-    })
-  })
-
-  next()
-})
+const { PubSub } = require('@google-cloud/pubsub');
+const eventDispatcher = require('./eventDispatcher');
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "amber",
-  "chunkIndex": 32156,
-  "chunkSize": 1368,
+  "chunkIndex": 32137,
+  "chunkSize": 301,
   "fileType": "JavaScript",
   "githubOwner": "anatolyZader",
-  "loc.lines.from": 1,
-  "loc.lines.to": 44,
+  "loc.lines.from": 38,
+  "loc.lines.to": 42,
   "processedAt": "2025-07-14T15:43:05.314Z",
   "processedBy": "AI-Service",
   "repoId": "anatolyZader/vc-3",
   "repoUrl": "https://github.com/anatolyZader/vc-3",
   "repository": "https://github.com/anatolyZader/vc-3",
-  "source": "backend/errorPlugin.js",
+  "source": "backend/diPlugin.js",
   "totalChunks": 32395,
   "userId": "d41402df-182a-41ec-8f05-153118bf2718"
 }
@@ -227,174 +162,7 @@ module.exports = fp(function errorHandlerPlugin (fastify, opts, next) {
 
 ---
 
-### Chunk 4/12
-- **Source**: backend/cloud-sql-proxy
-- **Type**: Unknown
-- **Size**: 1456 characters
-- **Score**: N/A
-- **Repository**: https://github.com/anatolyZader/vc-3
-- **Branch**: amber
-- **File Type**: Unknown
-- **Processed At**: 2025-07-14T15:43:05.281Z
-
-**Full Content**:
-```
-Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
-
-<html>
-	<head>
-		<title>events</title>
-	</head>
-	<style type="text/css">
-		body {
-			font-family: sans-serif;
-		}
-		table#req-status td.family {
-			padding-right: 2em;
-		}
-		table#req-status td.active {
-			padding-right: 1em;
-		}
-		table#req-status td.empty {
-			color: #aaa;
-		}
-		table#reqs {
-			margin-top: 1em;
-		}
-		table#reqs tr.first {
-			{{if $.Expanded}}font-weight: bold;{{end}}
-		}
-		table#reqs td {
-			font-family: monospace;
-		}
-		table#reqs td.when {
-			text-align: right;
-			white-space: nowrap;
-		}
-		table#reqs td.elapsed {
-			padding: 0 0.5em;
-			text-align: right;
-			white-space: pre;
-			width: 10em;
-		}
-		address {
-			font-size: smaller;
-			margin-top: 5em;
-		}
-	</style>
-	<body>
-
-<h1>/debug/events</h1>
-
-<table id="req-status">
-	{{range $i, $fam := .Families}}
-	<tr>
-		<td class="family">{{$fam}}</td>
-
-	        {{range $j, $bucket := $.Buckets}}
-	        {{$n := index $.Counts $i $j}}
-		<td class="{{if not $bucket.MaxErrAge}}active{{end}}{{if not $n}}empty{{end}}">
-	                {{if $n}}<a href="?fam={{$fam}}&b={{$j}}{{if $.Expanded}}&exp=1{{end}}">{{end}}
-		        [{{$n}} {{$bucket.String}}]
-			{{if $n}}</a>{{end}}
-		</td>
-                {{end}}
-
-	</tr>{{end}}
-</table>
-
-{{if $.EventLogs}}
-<hr />
-<h3>Family: {{$.Family}}</h3>
-
-{{if $.Expanded}}<a href="?fam={{$.Family}}&b={{$.Bucket}}">{{end}}
-[Summary]{{if $.Expanded}}</a>{{end}}
-```
-
-**Metadata**:
-```json
-{
-  "branch": "amber",
-  "chunkIndex": 13757,
-  "chunkSize": 1456,
-  "fileType": "Unknown",
-  "githubOwner": "anatolyZader",
-  "loc.lines.from": 29986,
-  "loc.lines.to": 30055,
-  "processedAt": "2025-07-14T15:43:05.281Z",
-  "processedBy": "AI-Service",
-  "repoId": "anatolyZader/vc-3",
-  "repoUrl": "https://github.com/anatolyZader/vc-3",
-  "repository": "https://github.com/anatolyZader/vc-3",
-  "source": "backend/cloud-sql-proxy",
-  "totalChunks": 32395,
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
-}
-```
-
----
-
-### Chunk 5/12
-- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
-- **Type**: Unknown
-- **Size**: 928 characters
-- **Score**: N/A
-- **Repository**: https://github.com/anatolyZader/vc-3
-- **Branch**: amber
-- **File Type**: JavaScript
-- **Processed At**: 2025-07-14T14:59:13.923Z
-
-**Full Content**:
-```
-if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
-fastify.decorate('testQuestionAdded', async function(userId, conversationId, prompt) {
-  fastify.log.info(`🧪 AI MODULE: Emitting test questionAdded event`);
-  eventBus.emit('questionAdded', {
-    eventType: 'questionAdded',
-    timestamp: new Date().toISOString(),
-    payload: { userId, conversationId, prompt }
-  });
-  return { success: true, message: 'Test event emitted' };
-});
-};
-}
-  } catch (error) {
-    fastify.log.error(`❌ AI MODULE: Error setting up Pub/Sub listeners: ${error.message}`);
-    fastify.log.debug(error.stack);
-  }
-  
-  // Check if we've found an event bus
-  if (!eventBus) {
-    // Final fallback - check if it's available as a direct property on fastify
-    if (fastify.eventDispatcher && fastify.eventDispatcher.eventBus) {
-      eventBus = fastify.eventDispatcher.eventBus;
-      eventBusSource = 'fastify-property';
-```
-
-**Metadata**:
-```json
-{
-  "branch": "amber",
-  "chunkIndex": 277,
-  "chunkSize": 928,
-  "fileType": "JavaScript",
-  "githubOwner": "anatolyZader",
-  "loc.lines.from": 270,
-  "loc.lines.to": 292,
-  "processedAt": "2025-07-14T14:59:13.923Z",
-  "processedBy": "AI-Service",
-  "repoId": "anatolyZader/vc-3",
-  "repoUrl": "https://github.com/anatolyZader/vc-3",
-  "repository": "https://github.com/anatolyZader/vc-3",
-  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
-  "totalChunks": 49981,
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
-}
-```
-
----
-
-### Chunk 6/12
+### Chunk 3/22
 - **Source**: backend/business_modules/ai/input/aiPubsubListener.js
 - **Type**: Unknown
 - **Size**: 628 characters
@@ -444,69 +212,65 @@ if (fastify.eventDispatcher && fastify.eventDispatcher.eventBus) {
 
 ---
 
-### Chunk 7/12
-- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
+### Chunk 4/22
+- **Source**: backend/eventDispatcher.js
 - **Type**: Unknown
-- **Size**: 1396 characters
+- **Size**: 974 characters
 - **Score**: N/A
 - **Repository**: https://github.com/anatolyZader/vc-3
 - **Branch**: amber
 - **File Type**: JavaScript
-- **Processed At**: 2025-07-14T15:43:05.253Z
+- **Processed At**: 2025-07-14T15:43:05.314Z
 
 **Full Content**:
 ```
-if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
-fastify.decorate('testQuestionAdded', async function(userId, conversationId, prompt) {
-  fastify.log.info(`🧪 AI MODULE: Emitting test questionAdded event`);
-  eventBus.emit('questionAdded', {
-    eventType: 'questionAdded',
-    timestamp: new Date().toISOString(),
-    payload: { userId, conversationId, prompt }
-  });
-  return { success: true, message: 'Test event emitted' };
-});
-};
-}
-  } catch (error) {
-    fastify.log.error(`❌ AI MODULE: Error setting up Pub/Sub listeners: ${error.message}`);
-    fastify.log.debug(error.stack);
-  }
-  
-  // Check if we've found an event bus
-  if (!eventBus) {
-    // Final fallback - check if it's available as a direct property on fastify
-    if (fastify.eventDispatcher && fastify.eventDispatcher.eventBus) {
-      eventBus = fastify.eventDispatcher.eventBus;
-      eventBusSource = 'fastify-property';
-      fastify.log.info('✅ AI MODULE: EventBus acquired from fastify.eventDispatcher');
-    } else {
-      fastify.log.error('❌ AI MODULE: Could not acquire EventBus from any source!');
-      fastify.log.error('❌ AI MODULE: This will prevent the AI module from receiving events!');
-      // Create an empty event bus so we don't crash
-      const EventEmitter = require('events');
-      eventBus = new EventEmitter();
-      eventBusSource = 'fallback-empty';
+const sharedEventBus = new EventEmitter();
+
+// SIMPLE FUNCTION VERSION (for DI usage)
+async function simpleEventDispatcher(eventType, eventData) {
+    console.log(`📡 EventDispatcher: Processing event '${eventType}'`, {
+        eventType,
+        eventData,
+        timestamp: new Date().toISOString()
+    });
+
+    try {
+        // Just emit the event to the shared event bus
+        sharedEventBus.emit(eventType, eventData);
+        console.log(`✅ Event '${eventType}' dispatched successfully`);
+        
+        if (eventType === 'questionAdded') {
+            console.log('🤖 Received questionAdded - AI should process this');
+            // This is where your AI listener should pick it up
+        }
+        
+    } catch (error) {
+        console.error(`❌ Error dispatching event '${eventType}':`, error);
+        throw error;
     }
-  }
+}
+
+// ORIGINAL FASTIFY PLUGIN VERSION (unchanged)
+async function eventDispatcher(fastify, opts) {
+  const eventBus = new EventEmitter();
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "amber",
-  "chunkIndex": 188,
-  "chunkSize": 1396,
+  "chunkIndex": 32159,
+  "chunkSize": 974,
   "fileType": "JavaScript",
   "githubOwner": "anatolyZader",
-  "loc.lines.from": 270,
-  "loc.lines.to": 302,
-  "processedAt": "2025-07-14T15:43:05.253Z",
+  "loc.lines.from": 8,
+  "loc.lines.to": 36,
+  "processedAt": "2025-07-14T15:43:05.314Z",
   "processedBy": "AI-Service",
   "repoId": "anatolyZader/vc-3",
   "repoUrl": "https://github.com/anatolyZader/vc-3",
   "repository": "https://github.com/anatolyZader/vc-3",
-  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
+  "source": "backend/eventDispatcher.js",
   "totalChunks": 32395,
   "userId": "d41402df-182a-41ec-8f05-153118bf2718"
 }
@@ -514,10 +278,10 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
 
 ---
 
-### Chunk 8/12
+### Chunk 5/22
 - **Source**: backend/business_modules/ai/input/aiPubsubListener.js
 - **Type**: Unknown
-- **Size**: 982 characters
+- **Size**: 946 characters
 - **Score**: N/A
 - **Repository**: https://github.com/anatolyZader/vc-3
 - **Branch**: amber
@@ -526,43 +290,40 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
 
 **Full Content**:
 ```
-});
-      }
-      
-      
-      // _______________________________________________________________________
-      // QUESTION ADDED EVENT HANDLER
-      // ________________________________________________________________________
-      eventBus.on('questionAdded', async (data) => {
-        try {
-          fastify.log.info(`🔔 AI MODULE: Received questionAdded event via ${eventBusSource}`);
-          fastify.log.info(`📊 AI MODULE: Event payload: ${JSON.stringify(data, null, 2)}`);
-          
-          // Extract required data with validation
-          if (!data) {
-            throw new Error('Invalid event data: empty data');
-          }
-          
-          // Handle both data formats - with or without payload wrapper
-          const eventData = data.payload ? data.payload : data;
-          
-          const { userId, conversationId, prompt } = eventData;
-          
-          if (!userId) {
-            throw new Error('Missing userId in questionAdded event');
-          }
+}
+    
+    // // Approach 2: Try to get from the exported module if DI failed
+    // if (!eventBus) {
+    //   try {
+    //     // Try path resolution starting from the AI module directory first
+    //     let resolvedPath;
+    //     try {
+    //       resolvedPath = require.resolve('../../../eventDispatcher');
+    //     } catch (e) {
+    //       // If that fails, try relative to the current working directory
+    //       resolvedPath = require.resolve(process.cwd() + '/eventDispatcher');
+    //     }
+        
+    //     fastify.log.info(`🔍 AI MODULE DEBUG: Resolved eventDispatcher path: ${resolvedPath}`);
+        
+    //     const eventDispatcherModule = require(resolvedPath);
+    //     if (eventDispatcherModule.eventBus) {
+    //       eventBus = eventDispatcherModule.eventBus;
+    //       eventBusSource = 'direct-import';
+    //       fastify.log.info('✅ AI MODULE: EventBus acquired from direct import');
+    //     } else {
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "amber",
-  "chunkIndex": 270,
-  "chunkSize": 982,
+  "chunkIndex": 263,
+  "chunkSize": 946,
   "fileType": "JavaScript",
   "githubOwner": "anatolyZader",
-  "loc.lines.from": 170,
-  "loc.lines.to": 194,
+  "loc.lines.from": 39,
+  "loc.lines.to": 60,
   "processedAt": "2025-07-14T14:59:13.923Z",
   "processedBy": "AI-Service",
   "repoId": "anatolyZader/vc-3",
@@ -576,7 +337,123 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
 
 ---
 
-### Chunk 9/12
+### Chunk 6/22
+- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
+- **Type**: Unknown
+- **Size**: 979 characters
+- **Score**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: JavaScript
+- **Processed At**: 2025-07-14T14:59:13.923Z
+
+**Full Content**:
+```
+//       eventBusSource = 'direct-import';
+    //       fastify.log.info('✅ AI MODULE: EventBus acquired from direct import');
+    //     } else {
+    //       fastify.log.warn('⚠️ AI MODULE: EventDispatcher module imported but no eventBus property found');
+    //     }
+    //   } catch (e) {
+    //     fastify.log.error(`❌ AI MODULE: Failed to import eventDispatcher module: ${e.message}`);
+    //   }
+    // }
+    
+    // // Approach 3: Last resort - check if fastify has eventDispatcher decorator
+    // if (!eventBus && fastify.eventDispatcher) {
+    //   try {
+    //     if (fastify.eventDispatcher.eventBus) {
+    //       eventBus = fastify.eventDispatcher.eventBus;
+    //       eventBusSource = 'fastify-decorator';
+    //       fastify.log.info('✅ AI MODULE: EventBus acquired from fastify decorator');
+    //     }
+    //   } catch (e) {
+    //     fastify.log.error(`❌ AI MODULE: Error accessing eventBus from fastify decorator: ${e.message}`);
+    //   }
+    // }
+```
+
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 264,
+  "chunkSize": 979,
+  "fileType": "JavaScript",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 58,
+  "loc.lines.to": 79,
+  "processedAt": "2025-07-14T14:59:13.923Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
+  "totalChunks": 49981,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
+
+---
+
+### Chunk 7/22
+- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
+- **Type**: Unknown
+- **Size**: 928 characters
+- **Score**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: JavaScript
+- **Processed At**: 2025-07-14T14:59:13.923Z
+
+**Full Content**:
+```
+if (fastify.diContainer && await fastify.diContainer.hasRegistration('eventDispatcher')) {
+      try {
+        const eventDispatcher = await fastify.diContainer.resolve('eventDispatcher');
+        if (eventDispatcher && eventDispatcher.eventBus) {
+          eventBus = eventDispatcher.eventBus;
+          eventBusSource = 'di-container';
+          fastify.log.info('✅ AI MODULE: EventBus acquired from DI container');
+        } else {
+          fastify.log.warn('⚠️ AI MODULE: EventDispatcher resolved from DI but no eventBus property found');
+        }
+      } catch (e) {
+        fastify.log.warn(`⚠️ AI MODULE: Failed to resolve eventDispatcher from DI container: ${e.message}`);
+      }
+    } else {
+      fastify.log.warn('⚠️ AI MODULE: No eventDispatcher found in DI container, trying direct import');
+    }
+    
+    // // Approach 2: Try to get from the exported module if DI failed
+    // if (!eventBus) {
+    //   try {
+```
+
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 262,
+  "chunkSize": 928,
+  "fileType": "JavaScript",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 24,
+  "loc.lines.to": 43,
+  "processedAt": "2025-07-14T14:59:13.923Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
+  "totalChunks": 49981,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
+
+---
+
+### Chunk 8/22
 - **Source**: backend/business_modules/ai/input/aiPubsubListener.js
 - **Type**: Unknown
 - **Size**: 1491 characters
@@ -652,100 +529,70 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
 
 ---
 
-### Chunk 10/12
-- **Source**: backend/business_modules/api/infrastructure/api/httpApiSpec.json
+### Chunk 9/22
+- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
 - **Type**: Unknown
-- **Size**: 1489 characters
+- **Size**: 1473 characters
 - **Score**: N/A
 - **Repository**: https://github.com/anatolyZader/vc-3
 - **Branch**: amber
-- **File Type**: JSON
+- **File Type**: JavaScript
 - **Processed At**: 2025-07-14T15:43:05.253Z
 
 **Full Content**:
 ```
-{
-  "openapi": "3.0.0",
-  "info": {
-    "title": "EventStorm.me API",
-    "description": "EventStorm API Documentation",
-    "version": "1.0.0"
-  },
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      },
-      "cookieAuth": {
-        "type": "apiKey",
-        "in": "cookie",
-        "name": "authToken"
+}
+      } catch (e) {
+        fastify.log.warn(`⚠️ AI MODULE: Failed to resolve eventDispatcher from DI container: ${e.message}`);
       }
-    },
-    "schemas": {
-      "def-0": {
-        "type": "object",
-        "properties": {
-          "YOUTUBE_API_KEY": {
-            "type": "string"
-          },
-          "PORT": {
-            "type": "integer"
-          },
-          "PG_CONNECTION_STRING": {
-            "type": "string"
-          },
-          "JWT_SECRET": {
-            "type": "string"
-          },
-          "JWT_EXPIRE_IN": {
-            "type": "string",
-            "default": "1h"
-          },
-          "GCP_OAUTH2_CLIENT_SECRET": {
-            "type": "string"
-          },
-          "GCP_OAUTH2_CLIENT_ID": {
-            "type": "string"
-          },
-          "GITHUB_TOKEN": {
-            "type": "string"
-          },
-          "CLOUD_SQL_CONNECTION_NAME": {
-            "type": "string"
-          },
-          "PG_USER": {
-            "type": "string"
-          },
-          "PG_PASSWORD": {
-            "type": "string"
-          },
-          "PG_DATABASE": {
-            "type": "string"
-          },
-          "GOOGLE_APPLICATION_CREDENTIALS": {
-            "type": "string"
-          },
+    } else {
+      fastify.log.warn('⚠️ AI MODULE: No eventDispatcher found in DI container, trying direct import');
+    }
+    
+    // // Approach 2: Try to get from the exported module if DI failed
+    // if (!eventBus) {
+    //   try {
+    //     // Try path resolution starting from the AI module directory first
+    //     let resolvedPath;
+    //     try {
+    //       resolvedPath = require.resolve('../../../eventDispatcher');
+    //     } catch (e) {
+    //       // If that fails, try relative to the current working directory
+    //       resolvedPath = require.resolve(process.cwd() + '/eventDispatcher');
+    //     }
+        
+    //     fastify.log.info(`🔍 AI MODULE DEBUG: Resolved eventDispatcher path: ${resolvedPath}`);
+        
+    //     const eventDispatcherModule = require(resolvedPath);
+    //     if (eventDispatcherModule.eventBus) {
+    //       eventBus = eventDispatcherModule.eventBus;
+    //       eventBusSource = 'direct-import';
+    //       fastify.log.info('✅ AI MODULE: EventBus acquired from direct import');
+    //     } else {
+    //       fastify.log.warn('⚠️ AI MODULE: EventDispatcher module imported but no eventBus property found');
+    //     }
+    //   } catch (e) {
+    //     fastify.log.error(`❌ AI MODULE: Failed to import eventDispatcher module: ${e.message}`);
+    //   }
+    // }
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "amber",
-  "chunkIndex": 207,
-  "chunkSize": 1489,
-  "fileType": "JSON",
+  "chunkIndex": 177,
+  "chunkSize": 1473,
+  "fileType": "JavaScript",
   "githubOwner": "anatolyZader",
-  "loc.lines.from": 1,
-  "loc.lines.to": 64,
+  "loc.lines.from": 33,
+  "loc.lines.to": 66,
   "processedAt": "2025-07-14T15:43:05.253Z",
   "processedBy": "AI-Service",
   "repoId": "anatolyZader/vc-3",
   "repoUrl": "https://github.com/anatolyZader/vc-3",
   "repository": "https://github.com/anatolyZader/vc-3",
-  "source": "backend/business_modules/api/infrastructure/api/httpApiSpec.json",
+  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
   "totalChunks": 32395,
   "userId": "d41402df-182a-41ec-8f05-153118bf2718"
 }
@@ -753,38 +600,333 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
 
 ---
 
-### Chunk 11/12
-- **Source**: httpApiSpec.json
-- **Type**: apiSpecInfo
-- **Size**: 91 characters
+### Chunk 10/22
+- **Source**: backend/eventDispatcher.js
+- **Type**: Unknown
+- **Size**: 1042 characters
 - **Score**: N/A
-- **Repository**: N/A
-- **Branch**: N/A
-- **File Type**: N/A
-- **Processed At**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: JavaScript
+- **Processed At**: 2025-07-14T15:43:05.314Z
 
 **Full Content**:
 ```
-API Info:
-Title: EventStorm.me API
-Description: EventStorm API Documentation
-Version: 1.0.0
+if (eventName) {
+          fastify.log.info(`[EventDispatcher] Dispatching received event '${eventName}' to local listeners.`);
+          eventBus.emit(eventName, payload);
+        } else {
+          fastify.log.warn(`[EventDispatcher] Received Pub/Sub message ${message.id} with no 'event' field.`);
+        }
+
+        message.ack();
+      } catch (error) {
+        fastify.log.error(`[EventDispatcher] Error processing Pub/Sub message ${message.id}:`, error);
+        message.nack();
+      }
+    });
+
+    fastify.log.info(`[EventDispatcher] Listening for messages on Pub/Sub subscription: ${subscriptionName}...`);
+
+    fastify.addHook('onClose', async () => {
+      fastify.log.info(`[EventDispatcher] Closing Pub/Sub subscription: ${subscriptionName}.`);
+      await subscription.close();
+    });
+  });
+}
+
+// Export both versions
+module.exports = simpleEventDispatcher;  // The simple function for DI
+module.exports.plugin = fp(eventDispatcher);  // The Fastify plugin
+module.exports.eventBus = sharedEventBus;  // Access to the event bus
 ```
 
 **Metadata**:
 ```json
 {
-  "source": "httpApiSpec.json",
-  "type": "apiSpecInfo"
+  "branch": "amber",
+  "chunkIndex": 32162,
+  "chunkSize": 1042,
+  "fileType": "JavaScript",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 87,
+  "loc.lines.to": 113,
+  "processedAt": "2025-07-14T15:43:05.314Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/eventDispatcher.js",
+  "totalChunks": 32395,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
 }
 ```
 
 ---
 
-### Chunk 12/12
-- **Source**: httpApiSpec.json
-- **Type**: apiSpecInfo
-- **Size**: 91 characters
+### Chunk 11/22
+- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
+- **Type**: Unknown
+- **Size**: 962 characters
+- **Score**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: JavaScript
+- **Processed At**: 2025-07-14T14:59:13.923Z
+
+**Full Content**:
+```
+module.exports = fp(async function aiPubsubListener(fastify, opts) {
+  fastify.log.info('🤖 Setting up AI Pub/Sub listeners...');
+  
+  // Enhanced event bus acquisition with robust fallbacks
+  let eventBus = null;
+  let eventBusSource = 'none';
+  
+  try {
+    // Debug: List all registered services in DI container
+    // if (fastify.diContainer) {
+    //   try {
+    //     const registeredServices = await fastify.diContainer.listRegistrations();
+    //     fastify.log.info('🔍 AI MODULE DEBUG: DI Container registered services:', registeredServices);
+    //   } catch (e) {
+    //     fastify.log.warn('⚠️ AI MODULE DEBUG: Could not list DI container registrations:', e.message);
+    //   }
+    // }
+    
+    // Approach 1: Try to get from DI container if available
+    if (fastify.diContainer && await fastify.diContainer.hasRegistration('eventDispatcher')) {
+      try {
+        const eventDispatcher = await fastify.diContainer.resolve('eventDispatcher');
+```
+
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 261,
+  "chunkSize": 962,
+  "fileType": "JavaScript",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 5,
+  "loc.lines.to": 26,
+  "processedAt": "2025-07-14T14:59:13.923Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
+  "totalChunks": 49981,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
+
+---
+
+### Chunk 12/22
+- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
+- **Type**: Unknown
+- **Size**: 1396 characters
+- **Score**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: JavaScript
+- **Processed At**: 2025-07-14T15:43:05.253Z
+
+**Full Content**:
+```
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
+fastify.decorate('testQuestionAdded', async function(userId, conversationId, prompt) {
+  fastify.log.info(`🧪 AI MODULE: Emitting test questionAdded event`);
+  eventBus.emit('questionAdded', {
+    eventType: 'questionAdded',
+    timestamp: new Date().toISOString(),
+    payload: { userId, conversationId, prompt }
+  });
+  return { success: true, message: 'Test event emitted' };
+});
+};
+}
+  } catch (error) {
+    fastify.log.error(`❌ AI MODULE: Error setting up Pub/Sub listeners: ${error.message}`);
+    fastify.log.debug(error.stack);
+  }
+  
+  // Check if we've found an event bus
+  if (!eventBus) {
+    // Final fallback - check if it's available as a direct property on fastify
+    if (fastify.eventDispatcher && fastify.eventDispatcher.eventBus) {
+      eventBus = fastify.eventDispatcher.eventBus;
+      eventBusSource = 'fastify-property';
+      fastify.log.info('✅ AI MODULE: EventBus acquired from fastify.eventDispatcher');
+    } else {
+      fastify.log.error('❌ AI MODULE: Could not acquire EventBus from any source!');
+      fastify.log.error('❌ AI MODULE: This will prevent the AI module from receiving events!');
+      // Create an empty event bus so we don't crash
+      const EventEmitter = require('events');
+      eventBus = new EventEmitter();
+      eventBusSource = 'fallback-empty';
+    }
+  }
+```
+
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 188,
+  "chunkSize": 1396,
+  "fileType": "JavaScript",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 270,
+  "loc.lines.to": 302,
+  "processedAt": "2025-07-14T15:43:05.253Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
+  "totalChunks": 32395,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
+
+---
+
+### Chunk 13/22
+- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
+- **Type**: Unknown
+- **Size**: 1477 characters
+- **Score**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: JavaScript
+- **Processed At**: 2025-07-14T15:43:05.253Z
+
+**Full Content**:
+```
+module.exports = fp(async function aiPubsubListener(fastify, opts) {
+  fastify.log.info('🤖 Setting up AI Pub/Sub listeners...');
+  
+  // Enhanced event bus acquisition with robust fallbacks
+  let eventBus = null;
+  let eventBusSource = 'none';
+  
+  try {
+    // Debug: List all registered services in DI container
+    // if (fastify.diContainer) {
+    //   try {
+    //     const registeredServices = await fastify.diContainer.listRegistrations();
+    //     fastify.log.info('🔍 AI MODULE DEBUG: DI Container registered services:', registeredServices);
+    //   } catch (e) {
+    //     fastify.log.warn('⚠️ AI MODULE DEBUG: Could not list DI container registrations:', e.message);
+    //   }
+    // }
+    
+    // Approach 1: Try to get from DI container if available
+    if (fastify.diContainer && await fastify.diContainer.hasRegistration('eventDispatcher')) {
+      try {
+        const eventDispatcher = await fastify.diContainer.resolve('eventDispatcher');
+        if (eventDispatcher && eventDispatcher.eventBus) {
+          eventBus = eventDispatcher.eventBus;
+          eventBusSource = 'di-container';
+          fastify.log.info('✅ AI MODULE: EventBus acquired from DI container');
+        } else {
+          fastify.log.warn('⚠️ AI MODULE: EventDispatcher resolved from DI but no eventBus property found');
+        }
+      } catch (e) {
+        fastify.log.warn(`⚠️ AI MODULE: Failed to resolve eventDispatcher from DI container: ${e.message}`);
+      }
+    } else {
+```
+
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 176,
+  "chunkSize": 1477,
+  "fileType": "JavaScript",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 5,
+  "loc.lines.to": 37,
+  "processedAt": "2025-07-14T15:43:05.253Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
+  "totalChunks": 32395,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
+
+---
+
+### Chunk 14/22
+- **Source**: backend/business_modules/ai/input/aiPubsubListener.js
+- **Type**: Unknown
+- **Size**: 928 characters
+- **Score**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: JavaScript
+- **Processed At**: 2025-07-14T14:59:13.923Z
+
+**Full Content**:
+```
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
+fastify.decorate('testQuestionAdded', async function(userId, conversationId, prompt) {
+  fastify.log.info(`🧪 AI MODULE: Emitting test questionAdded event`);
+  eventBus.emit('questionAdded', {
+    eventType: 'questionAdded',
+    timestamp: new Date().toISOString(),
+    payload: { userId, conversationId, prompt }
+  });
+  return { success: true, message: 'Test event emitted' };
+});
+};
+}
+  } catch (error) {
+    fastify.log.error(`❌ AI MODULE: Error setting up Pub/Sub listeners: ${error.message}`);
+    fastify.log.debug(error.stack);
+  }
+  
+  // Check if we've found an event bus
+  if (!eventBus) {
+    // Final fallback - check if it's available as a direct property on fastify
+    if (fastify.eventDispatcher && fastify.eventDispatcher.eventBus) {
+      eventBus = fastify.eventDispatcher.eventBus;
+      eventBusSource = 'fastify-property';
+```
+
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 277,
+  "chunkSize": 928,
+  "fileType": "JavaScript",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 270,
+  "loc.lines.to": 292,
+  "processedAt": "2025-07-14T14:59:13.923Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/business_modules/ai/input/aiPubsubListener.js",
+  "totalChunks": 49981,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
+
+---
+
+### Chunk 15/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 1018 characters
 - **Score**: N/A
 - **Repository**: N/A
 - **Branch**: N/A
@@ -793,17 +935,523 @@ Version: 1.0.0
 
 **Full Content**:
 ```
-API Info:
-Title: EventStorm.me API
-Description: EventStorm API Documentation
-Version: 1.0.0
+FILE: ARCHITECTURE.md
+
+---
+
+## System Structure
+
+The `eventstorm.me` application follows a layered architecture, with the following key components:
+
+1. **Business Modules**: These modules encapsulate the core business logic of the application, such as chat, git analysis, wiki generation, and AI integration. Each business module follows the Hexagonal Architecture pattern, with a clear separation of concerns between the domain, application, and infrastructure layers.
+
+2. **AOP (Aspect-Oriented Programming) Modules**: These modules handle cross-cutting concerns, such as authentication and authorization, which are applied across multiple business modules. The AOP modules follow the Ports and Adapters pattern, allowing for the easy integration of different authentication and authorization mechanisms.
+
+3. **Domain Layer**: This layer contains the core domain entities and the business logic that drives the application. It is independent of any technical implementation details and focuses on the problem domain.
 ```
 
 **Metadata**:
 ```json
 {
-  "source": "httpApiSpec.json",
-  "type": "apiSpecInfo"
+  "chunkIndex": 17,
+  "chunkLength": 1018,
+  "contentHash": "f11b87b6",
+  "docType": "markdown",
+  "estimatedTokens": 255,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 25,
+  "loc.lines.to": 33,
+  "originalChunkLength": 990,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "test"
+  ],
+  "tokenCount": 255,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 16/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 1026 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Architecture Patterns
+
+The `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:
+
+1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
+
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 16,
+  "chunkLength": 1026,
+  "contentHash": "4f253799",
+  "docType": "markdown",
+  "estimatedTokens": 257,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 15,
+  "loc.lines.to": 23,
+  "originalChunkLength": 998,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "schema",
+    "test"
+  ],
+  "tokenCount": 257,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 17/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 923 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Development Practices
+
+The `eventstorm.me` application follows these development practices:
+
+1. **Module Organization**: The application is organized into multiple modules, each responsible for a specific set of functionalities. This modular structure promotes code reuse, maintainability, and the ability to evolve the system independently.
+
+2. **Dependency Injection**: The application utilizes a dependency injection framework, such as Awilix, to manage the dependencies between the various components. This approach ensures loose coupling, testability, and the ability to easily swap out implementations.
+
+3. **Testing Approach**: The application has a comprehensive test suite, including unit tests, integration tests, and end-to-end tests. This testing strategy helps ensure the reliability and correctness of the application, as well as facilitating refactoring and future development.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 28,
+  "chunkLength": 923,
+  "contentHash": "64405c67",
+  "docType": "markdown",
+  "estimatedTokens": 231,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 101,
+  "loc.lines.to": 109,
+  "originalChunkLength": 895,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "test"
+  ],
+  "tokenCount": 231,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 18/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 10354 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+# Architecture Documentation
+
+## Application Overview
+
+The `eventstorm.me` application is a modern Node.js application that provides a comprehensive set of features for developers and teams. The main functionalities of the application include:
+
+1. **Authentication and Authorization**: Secure user authentication and role-based access control.
+2. **Chat Functionality with AI Integration**: Real-time chat capabilities with AI-powered features, such as natural language processing and generation.
+3. **Git Analysis and Wiki Generation**: Automated analysis of Git repositories and generation of project wikis.
+4. **API Structure and Documentation**: Robust HTTP API with comprehensive OpenAPI (Swagger) documentation.
+5. **Real-time Communication**: Leveraging WebSocket technology for real-time data updates and notifications.
+
+The application is designed to serve a wide range of users, from individual developers to teams and organizations, providing them with a centralized platform for collaboration, knowledge sharing, and project management.
+
+## Architecture Patterns
+
+The `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:
+
+1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
+
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
+
+## System Structure
+
+The `eventstorm.me` application follows a layered architecture, with the following key components:
+
+1. **Business Modules**: These modules encapsulate the core business logic of the application, such as chat, git analysis, wiki generation, and AI integration. Each business module follows the Hexagonal Architecture pattern, with a clear separation of concerns between the domain, application, and infrastructure layers.
+
+2. **AOP (Aspect-Oriented Programming) Modules**: These modules handle cross-cutting concerns, such as authentication and authorization, which are applied across multiple business modules. The AOP modules follow the Ports and Adapters pattern, allowing for the easy integration of different authentication and authorization mechanisms.
+
+3. **Domain Layer**: This layer contains the core domain entities and the business logic that drives the application. It is independent of any technical implementation details and focuses on the problem domain.
+
+4. **Application Layer**: This layer bridges the gap between the domain layer and the infrastructure layer. It orchestrates the interactions between the domain entities and the external services or adapters.
+
+5. **Infrastructure Layer**: This layer handles the technical implementation details, such as database interactions, external API integrations, and messaging systems. It provides the necessary adapters and ports for the application layer to interact with these external dependencies.
+
+The Ports and Adapters pattern is used throughout the system, where the application layer defines the necessary ports (interfaces) and the infrastructure layer provides the corresponding adapters to implement these ports.
+
+## Key Components
+
+1. **Authentication and Authorization**:
+   - The authentication and authorization functionality is implemented as an AOP module, following the Ports and Adapters pattern.
+   - The module provides secure user authentication and role-based access control, ensuring that only authorized users can access specific features and data.
+   - The module integrates with various authentication providers, such as OAuth2, to support a wide range of authentication mechanisms.
+
+2. **Chat Functionality with AI Integration**:
+   - The chat module is a business module that provides real-time chat capabilities, including features like message history, user presence, and typing indicators.
+   - The module integrates with an AI adapter, which leverages natural language processing and generation to provide intelligent responses, language translation, and other AI-powered features.
+   - The chat module uses a messaging adapter to handle the real-time communication, ensuring scalable and reliable message delivery.
+
+3. **Git Analysis and Wiki Generation**:
+   - The git analysis and wiki generation modules are business modules that work together to provide automated analysis of Git repositories and generate project wikis.
+   - The git analysis module fetches and processes the repository data, while the wiki generation module uses the analyzed data to create comprehensive project documentation.
+   - These modules integrate with external Git providers (e.g., GitHub) and utilize AI-powered techniques for content generation and summarization.
+
+4. **API Structure and Documentation**:
+   - The API module is responsible for managing the HTTP API functionality of the application, including endpoints for fetching and retrieving the OpenAPI specification (Swagger).
+   - The module follows a layered architecture, with a clear separation of concerns between the API router, API service, domain entities, and adapters.
+   - The API module publishes a `HttpApiFetchedEvent` domain event to notify other parts of the system when the API is updated, enabling features like real-time API documentation updates.
+
+5. **Real-time Communication (WebSocket)**:
+   - The application utilizes WebSocket technology for real-time communication, enabling features like live chat, real-time updates, and notifications.
+   - The WebSocket functionality is integrated across various modules, such as the chat and messaging modules, to provide a seamless real-time experience for users.
+   - The WebSocket implementation follows the Ports and Adapters pattern, allowing for the easy integration of different WebSocket providers or protocols.
+
+## Technology Stack
+
+The `eventstorm.me` application is built using the following technology stack:
+
+- **Framework**: Fastify, a high-performance Node.js web framework
+- **Database**: PostgreSQL, a powerful and scalable relational database
+- **Messaging**: PubSub (e.g., Google Cloud Pub/Sub, RabbitMQ), for reliable and scalable message delivery
+- **AI Integration**: Langchain, a framework for building applications with large language models
+- **Authentication**: OAuth2, a widely adopted authentication and authorization protocol
+- **API Documentation**: OpenAPI (Swagger), a standard for describing RESTful APIs
+
+## Data Flow
+
+The data flow within the `eventstorm.me` application follows the Hexagonal Architecture pattern, where the core business logic is isolated from the technical implementation details:
+
+1. The client (e.g., a web application or a mobile app) sends a request to the API module.
+2. The API module's router handles the incoming request and delegates the processing to the appropriate API service.
+3. The API service interacts with the domain entities and the necessary ports (interfaces) to fulfill the request.
+4. The infrastructure layer, through the appropriate adapters, handles the interactions with external services, databases, and messaging systems.
+5. The response is then returned to the client, following the same flow in reverse.
+
+This layered approach ensures a clear separation of concerns, making the application more maintainable, testable, and adaptable to changes in requirements or technology.
+
+## Integration Points
+
+The `eventstorm.me` application integrates with the following external services and systems:
+
+1. **Authentication Providers**: The application integrates with various authentication providers, such as OAuth2, to support a wide range of authentication mechanisms.
+2. **AI Services**: The application utilizes AI-powered services, such as Anthropic's language models, for features like natural language processing, generation, and content summarization.
+3. **Databases**: The application uses PostgreSQL as the primary database for storing user data, chat history, Git repository metadata, and other application-specific data.
+4. **Messaging Systems**: The application integrates with PubSub-based messaging systems, such as Google Cloud Pub/Sub or RabbitMQ, to enable reliable and scalable real-time communication and event-driven architecture.
+5. **Git Providers**: The application integrates with Git providers, such as GitHub, to fetch and analyze repository data for the wiki generation and other Git-related features.
+
+## Development Practices
+
+The `eventstorm.me` application follows these development practices:
+
+1. **Module Organization**: The application is organized into multiple modules, each responsible for a specific set of functionalities. This modular structure promotes code reuse, maintainability, and the ability to evolve the system independently.
+
+2. **Dependency Injection**: The application utilizes a dependency injection framework, such as Awilix, to manage the dependencies between the various components. This approach ensures loose coupling, testability, and the ability to easily swap out implementations.
+
+3. **Testing Approach**: The application has a comprehensive test suite, including unit tests, integration tests, and end-to-end tests. This testing strategy helps ensure the reliability and correctness of the application, as well as facilitating refactoring and future development.
+
+4. **Continuous Integration and Deployment**: The application is integrated with a continuous integration (CI) and continuous deployment (CD) pipeline, which automatically builds, tests, and deploys the application to the production environment. This ensures a reliable and streamlined development and deployment process.
+
+5. **Documentation**: In addition to this comprehensive architecture documentation, the application also includes detailed documentation for the API, the
+```
+
+**Metadata**:
+```json
+{
+  "error": "splitting_failed",
+  "priority": "high",
+  "source": "ARCHITECTURE.md",
+  "splitterType": "none",
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 19/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 948 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Data Flow
+
+The data flow within the `eventstorm.me` application follows the Hexagonal Architecture pattern, where the core business logic is isolated from the technical implementation details:
+
+1. The client (e.g., a web application or a mobile app) sends a request to the API module.
+2. The API module's router handles the incoming request and delegates the processing to the appropriate API service.
+3. The API service interacts with the domain entities and the necessary ports (interfaces) to fulfill the request.
+4. The infrastructure layer, through the appropriate adapters, handles the interactions with external services, databases, and messaging systems.
+5. The response is then returned to the client, following the same flow in reverse.
+
+This layered approach ensures a clear separation of concerns, making the application more maintainable, testable, and adaptable to changes in requirements or technology.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 25,
+  "chunkLength": 948,
+  "contentHash": "4e35ebf4",
+  "docType": "markdown",
+  "estimatedTokens": 237,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 79,
+  "loc.lines.to": 89,
+  "originalChunkLength": 920,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "routing",
+    "test"
+  ],
+  "tokenCount": 237,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 20/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 825 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Application Overview
+
+The `eventstorm.me` application is a modern Node.js application that provides a comprehensive set of features for developers and teams. The main functionalities of the application include:
+
+1. **Authentication and Authorization**: Secure user authentication and role-based access control.
+2. **Chat Functionality with AI Integration**: Real-time chat capabilities with AI-powered features, such as natural language processing and generation.
+3. **Git Analysis and Wiki Generation**: Automated analysis of Git repositories and generation of project wikis.
+4. **API Structure and Documentation**: Robust HTTP API with comprehensive OpenAPI (Swagger) documentation.
+5. **Real-time Communication**: Leveraging WebSocket technology for real-time data updates and notifications.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 14,
+  "chunkLength": 825,
+  "contentHash": "1f88ed9e",
+  "docType": "markdown",
+  "estimatedTokens": 207,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 3,
+  "loc.lines.to": 11,
+  "originalChunkLength": 797,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function"
+  ],
+  "tokenCount": 207,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 21/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 143 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Integration Points
+
+The `eventstorm.me` application integrates with the following external services and systems:
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 26,
+  "chunkLength": 143,
+  "contentHash": "44ee4515",
+  "docType": "markdown",
+  "estimatedTokens": 36,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 91,
+  "loc.lines.to": 93,
+  "originalChunkLength": 115,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tokenCount": 36,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 22/22
+- **Source**: ROOT_DOCUMENTATION.md
+- **Type**: root_documentation
+- **Size**: 583 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ROOT_DOCUMENTATION.md
+
+---
+
+## Plugins Architecture
+
+### Plugin System Overview
+The EventStorm.me backend application utilizes a plugin-based architecture, where various functionalities are encapsulated in separate plugin files. These plugins are registered and integrated into the main application using the Fastify plugin system.
+
+The plugin system in Fastify allows for modular and extensible development, where each plugin can be independently developed, tested, and maintained. Plugins can also depend on other plugins, enabling a hierarchical and composable architecture.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 6,
+  "chunkLength": 583,
+  "contentHash": "f9500dc6",
+  "docType": "markdown",
+  "estimatedTokens": 146,
+  "filePath": "ROOT_DOCUMENTATION.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 54,
+  "loc.lines.to": 59,
+  "originalChunkLength": 549,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ROOT_DOCUMENTATION.md",
+  "tags": [
+    "function",
+    "test"
+  ],
+  "tokenCount": 146,
+  "type": "root_documentation"
 }
 ```
 
@@ -814,57 +1462,37 @@ Version: 1.0.0
 
 ### Generated Response:
 **Status**: ✅ Generated Successfully
-**Response Length**: 3413 characters
-**Generated At**: 2025-09-12T15:15:01.169Z
+**Response Length**: 2409 characters
+**Generated At**: 2025-09-13T13:01:54.052Z
 
 ### Response Content:
 ```markdown
-Based on the provided code snippets, it appears that EventStorm.me has implemented error management in the following ways:
+Based on the provided information, here are the 3 main technical differences in implementation between the AOP (Aspect-Oriented Programming) modules and the business modules in the `eventstorm.me` application:
 
-1. **Error Handling in the Backend**:
-   - The `errorPlugin.js` file sets up an error handler for the Fastify server. This error handler does the following:
-     - Decides on the appropriate HTTP status code for the error (either the error's `statusCode` or `status` property, or 500 if not provided).
-     - Logs the error with the appropriate log level (error for 500+ status codes).
-     - Sends a response with the status code and an error object.
-   - This centralized error handling ensures that errors are consistently managed across the backend application.
+1. **Separation of Concerns**:
+   - **AOP Modules**: The AOP modules are responsible for handling cross-cutting concerns, such as authentication and authorization, which are applied across multiple business modules. They follow the Ports and Adapters pattern, allowing for the easy integration of different authentication and authorization mechanisms.
+   - **Business Modules**: The business modules encapsulate the core business logic of the application, such as chat, git analysis, wiki generation, and AI integration. They follow the Hexagonal Architecture pattern, with a clear separation of concerns between the domain, application, and infrastructure layers.
 
-2. **Logging and Monitoring**:
-   - The code in `aiLangchainAdapter.js` shows that the application is using an `eventBus` to emit "RAG status updates" when certain events occur, including errors.
-   - These status updates are likely being used for monitoring and observability purposes, allowing the development team to track the health and performance of the AI module.
-   - The `aiPubsubListener.js` file also includes error handling, where any errors are logged using the Fastify logger.
+2. **Dependency Management**:
+   - **AOP Modules**: The AOP modules are designed to be loosely coupled and independent of the specific business modules. They rely on the Dependency Injection (DI) framework to manage their dependencies, allowing for easy substitution of implementation details.
+   - **Business Modules**: The business modules also utilize the Dependency Injection framework to manage their dependencies, but their dependencies are more closely tied to the specific business requirements and domain entities.
 
-3. **Test Environment Error Handling**:
-   - In the `aiPubsubListener.js` file, there is a section of code that is only executed in non-production environments (development and staging).
-   - This code adds a `testQuestionAdded` method to the Fastify server, which allows emitting a test "questionAdded" event. This is likely used for testing and debugging purposes.
-   - The code also includes a `catch` block to handle any errors that may occur during the execution of the `testQuestionAdded` method.
+3. **Event Handling**:
+   - **AOP Modules**: The AOP modules, such as the authentication and authorization modules, are likely to subscribe to events emitted by the business modules to perform their cross-cutting concerns. They may use a centralized event bus or messaging system to receive and process these events.
+   - **Business Modules**: The business modules are responsible for emitting events related to their specific functionalities, which can then be consumed by the AOP modules or other business modules. They may use a dedicated event bus or messaging system within their own module to manage the event flow.
 
-Overall, the codebase demonstrates a solid approach to error management, with centralized error handling, logging and monitoring, and specific handling for the test environment. This helps ensure that errors are properly captured, logged, and potentially escalated for further investigation and resolution.
-
-To further improve the error management, you could consider the following suggestions:
-
-1. **Consistent Error Logging**: Ensure that all error handling across the codebase follows a consistent format and level of detail in the logged information. This will make it easier to analyze and correlate errors across the application.
-
-2. **Error Enrichment**: Consider adding more context to the logged errors, such as request details, user information, and any other relevant data that could aid in debugging and troubleshooting.
-
-3. **Error Reporting and Alerting**: Integrate the application with an error reporting service (e.g., Sentry, Rollbar) to automatically capture and report errors, potentially triggering alerts for critical issues.
-
-4. **Error Handling in the Frontend**: Ensure that the frontend application also has a robust error handling mechanism, potentially using a global error boundary component to gracefully handle and report errors to the user.
-
-5. **Error Handling Documentation**: Provide clear documentation on the error handling strategy, including information on how to handle and report errors, as well as any specific error codes or patterns used in the application.
-
-By addressing these areas, you can further strengthen the error management capabilities of the EventStorm.me application, improving overall reliability, observability, and the ability to quickly identify and resolve issues.
+In summary, the main differences lie in the separation of concerns, the dependency management approach, and the event handling mechanisms between the AOP modules and the business modules. The AOP modules focus on cross-cutting concerns, while the business modules encapsulate the core business logic, with a clear separation of responsibilities and integration points between the two.
 ```
 
 ### Response Quality Assessment:
-- **Relevance to Query**: HIGH - Directly addresses query terms
-- **Use of Context**: EXCELLENT - Explicitly references source files
-- **Response Completeness**: GOOD - Structured with adequate detail
+- **Relevance to Query**: MEDIUM - Partially addresses query
+- **Use of Context**: GOOD - Some reference to retrieved context
+- **Response Completeness**: EXCELLENT - Well-structured and comprehensive
 
 ### Key Response Elements:
-- **Structured Lists**: 8 numbered points
-- **Bullet Points**: 11 bullet items
-- **File References**: 4 specific files mentioned
-- **Technical Terms**: 5 technical concepts used
+- **Structured Lists**: 3 numbered points
+- **Bullet Points**: 6 bullet items
+- **Technical Terms**: 1 technical concepts used
 
 ---
 
@@ -872,15 +1500,15 @@ By addressing these areas, you can further strengthen the error management capab
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 9032ms
-- **Documents Retrieved**: 12
-- **Unique Sources**: 7
-- **Average Chunk Size**: 908 characters
+- **Query Processing Time**: 7212ms
+- **Documents Retrieved**: 22
+- **Unique Sources**: 6
+- **Average Chunk Size**: 1389 characters
 
 ### Context Quality:
-- **Relevance Score**: HIGH (12 relevant chunks found)
-- **Diversity Score**: EXCELLENT (7 unique sources)
-- **Completeness Score**: HIGH (10,896 total characters)
+- **Relevance Score**: HIGH (22 relevant chunks found)
+- **Diversity Score**: EXCELLENT (6 unique sources)
+- **Completeness Score**: HIGH (30,556 total characters)
 
 ### LangSmith Integration:
 - **Tracing Status**: ✅ Active
@@ -890,18 +1518,18 @@ By addressing these areas, you can further strengthen the error management capab
 ## 🔍 Source Analysis
 
 ### Most Frequent Sources:
-- **backend/business_modules/ai/input/aiPubsubListener.js**: 5 chunks
-- **httpApiSpec.json**: 2 chunks
-- **client/index.html**: 1 chunks
-- **backend/business_modules/ai/infrastructure/ai/aiLangchainAdapter.js**: 1 chunks
-- **backend/errorPlugin.js**: 1 chunks
+- **backend/business_modules/ai/input/aiPubsubListener.js**: 10 chunks
+- **ARCHITECTURE.md**: 7 chunks
+- **backend/eventDispatcher.js**: 2 chunks
+- **backend/infraConfig.json**: 1 chunks
+- **backend/diPlugin.js**: 1 chunks
 
 ### Repository Coverage:
 - https://github.com/anatolyZader/vc-3
 
 ## 🎯 Query Classification & Analysis
 
-- **Query Type**: Informational/Explanatory
+- **Query Type**: Implementation/Development
 - **Domain Focus**: Business Logic
 - **Technical Complexity**: High
 - **Expected Response Type**: Explanatory
@@ -921,7 +1549,7 @@ This comprehensive LangSmith trace demonstrates excellent RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-09-12T15:15:01.169Z  
+**Generated**: 2025-09-13T13:01:54.054Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true

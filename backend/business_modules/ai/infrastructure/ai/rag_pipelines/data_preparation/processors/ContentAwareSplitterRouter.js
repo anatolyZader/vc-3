@@ -3,6 +3,7 @@
 
 const EnhancedASTCodeSplitter = require('./EnhancedASTCodeSplitter');
 const MarkdownDocumentationProcessor = require('./markdownDocumentationProcessor');
+const TokenBasedSplitter = require('./TokenBasedSplitter');
 const { RecursiveCharacterTextSplitter, MarkdownTextSplitter } = require('langchain/text_splitter');
 
 /**
@@ -14,16 +15,26 @@ class ContentAwareSplitterRouter {
   constructor(options = {}) {
     this.options = options;
     
-    // Initialize specialized splitters
+    // Initialize token-based splitter for accurate measurements
+    this.tokenSplitter = new TokenBasedSplitter({
+      maxTokens: options.maxTokens || 1400,        // Token-based limit (more accurate)
+      minTokens: options.minTokens || 120,         // Minimum meaningful tokens
+      overlapTokens: options.overlapTokens || 180, // Token overlap for context
+      encodingModel: options.encodingModel || 'cl100k_base'
+    });
+    
+    // Initialize specialized splitters with token-aware limits
     this.astCodeSplitter = new EnhancedASTCodeSplitter({
-      maxChunkSize: options.maxChunkSize || 2800,
-      minChunkSize: options.minChunkSize || 300,
-      chunkOverlap: options.chunkOverlap || 150
+      maxTokens: this.tokenSplitter.maxTokens,
+      minTokens: this.tokenSplitter.minTokens,
+      overlapTokens: this.tokenSplitter.overlapTokens,
+      tokenSplitter: this.tokenSplitter  // Pass token splitter for accurate measurements
     });
     
     this.markdownProcessor = new MarkdownDocumentationProcessor();
     
-    console.log(`[${new Date().toISOString()}] 🚦 CONTENT ROUTER: Initialized with specialized splitters`);
+    console.log(`[${new Date().toISOString()}] 🚦 CONTENT ROUTER: Initialized with TOKEN-BASED measurements`);
+    console.log(`[${new Date().toISOString()}] 🎯 TOKEN LIMITS: ${this.tokenSplitter.maxTokens}/${this.tokenSplitter.minTokens} tokens, ${this.tokenSplitter.overlapTokens} overlap`);
   }
 
   /**
