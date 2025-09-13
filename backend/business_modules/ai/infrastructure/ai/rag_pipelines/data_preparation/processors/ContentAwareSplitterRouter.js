@@ -4,16 +4,24 @@
 const EnhancedASTCodeSplitter = require('./EnhancedASTCodeSplitter');
 const MarkdownDocumentationProcessor = require('./markdownDocumentationProcessor');
 const TokenBasedSplitter = require('./TokenBasedSplitter');
+const CodePreprocessor = require('./CodePreprocessor');
+const TextPreprocessor = require('./TextPreprocessor');
+const ChunkPostprocessor = require('./ChunkPostprocessor');
 const { RecursiveCharacterTextSplitter, MarkdownTextSplitter } = require('langchain/text_splitter');
 
 /**
- * Content-Type-Aware Splitter Router
- * Routes documents to appropriate splitters based on content type and file extension
- * Fixes the issue where all files are routed through AST splitter
+ * Content-Type-Aware Splitter Router with Comprehensive Preprocessing
+ * Routes documents to appropriate splitters and applies preprocessing/postprocessing
+ * Fixes content routing + adds quality preprocessing for better RAG results
  */
 class ContentAwareSplitterRouter {
   constructor(options = {}) {
     this.options = options;
+    
+    // Initialize preprocessors
+    this.codePreprocessor = new CodePreprocessor();
+    this.textPreprocessor = new TextPreprocessor();
+    this.chunkPostprocessor = new ChunkPostprocessor();
     
     // Initialize token-based splitter for accurate measurements
     this.tokenSplitter = new TokenBasedSplitter({
@@ -33,53 +41,129 @@ class ContentAwareSplitterRouter {
     
     this.markdownProcessor = new MarkdownDocumentationProcessor();
     
-    console.log(`[${new Date().toISOString()}] 🚦 CONTENT ROUTER: Initialized with TOKEN-BASED measurements`);
+    console.log(`[${new Date().toISOString()}] 🚦 CONTENT ROUTER: Initialized with TOKEN-BASED measurements + PREPROCESSING`);
     console.log(`[${new Date().toISOString()}] 🎯 TOKEN LIMITS: ${this.tokenSplitter.maxTokens}/${this.tokenSplitter.minTokens} tokens, ${this.tokenSplitter.overlapTokens} overlap`);
   }
 
   /**
-   * Route documents to appropriate splitters based on content type
+   * Main entry point: Route documents with preprocessing and postprocessing
    */
   async splitDocument(document) {
     const contentType = this.detectContentType(document);
     const source = document.metadata?.source || 'unknown';
     
-    console.log(`[${new Date().toISOString()}] 🎯 ROUTING: ${source} → ${contentType} splitter`);
+    console.log(`[${new Date().toISOString()}] 🎯 PREPROCESSING + ROUTING: ${source} → ${contentType}`);
 
     try {
-      switch (contentType) {
-        case 'code':
-          return await this.splitCodeDocument(document);
-          
-        case 'markdown':
-          return await this.splitMarkdownDocument(document);
-          
-        case 'openapi':
-          return await this.splitOpenAPIDocument(document);
-          
-        case 'yaml_config':
-          return await this.splitYAMLConfigDocument(document);
-          
-        case 'json_config':
-          return await this.splitJSONConfigDocument(document);
-          
-        case 'json_schema':
-          return await this.splitJSONSchemaDocument(document);
-          
-        case 'documentation':
-          return await this.splitDocumentationFile(document);
-          
-        default:
-          return await this.splitGenericDocument(document);
-      }
+      // Step 1: Preprocess the document content
+      const preprocessedDoc = await this.preprocessDocument(document, contentType);
+      
+      // Step 2: Route to appropriate splitter
+      const chunks = await this.routeToSplitter(preprocessedDoc, contentType);
+      
+      // Step 3: Postprocess chunks for better retrieval
+      const enhancedChunks = await this.chunkPostprocessor.postprocessChunks(chunks, preprocessedDoc);
+      
+      console.log(`[${new Date().toISOString()}] ✅ COMPLETE PIPELINE: ${source} → ${enhancedChunks.length} enhanced chunks`);
+      return enhancedChunks;
+
     } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ ROUTING: Error splitting ${source}, using fallback:`, error.message);
-      return await this.splitGenericDocument(document);
+      console.error(`[${new Date().toISOString()}] ❌ ROUTING ERROR: ${source}:`, error.message);
+      return this.fallbackSplit(document);
     }
   }
 
   /**
-   * Detect content type based on file extension and content analysis
+   * Step 1: Preprocess document based on content type
+   */
+  async preprocessDocument(document, contentType) {
+    const source = document.metadata?.source || 'unknown';
+    
+    try {
+      if (contentType === 'javascript_typescript_code' || contentType === 'other_code') {
+        const result = await this.codePreprocessor.preprocessCodeFile(
+          document.pageContent, 
+          source, 
+          document.metadata
+        );
+        
+        return {
+          pageContent: result.content,
+          metadata: {
+            ...document.metadata,
+            ...result.metadata,
+            preprocessing_applied: result.preprocessingApplied
+          }
+        };
+        
+      } else if (contentType === 'markdown_documentation' || contentType === 'text_content') {
+        const result = await this.textPreprocessor.preprocessTextFile(
+          document.pageContent, 
+          source, 
+          document.metadata
+        );
+        
+        return {
+          pageContent: result.content,
+          metadata: {
+            ...document.metadata,
+            ...result.metadata,
+            preprocessing_applied: result.preprocessingApplied
+          }
+        };
+        
+      } else {
+        // For other content types, minimal preprocessing
+        return {
+          ...document,
+          metadata: {
+            ...document.metadata,
+            preprocessing_applied: { minimal: true }
+          }
+        };
+      }
+      
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ PREPROCESSING WARNING: ${source}:`, error.message);
+      return document; // Return original if preprocessing fails
+    }
+  }
+
+  /**
+   * Step 2: Route to appropriate splitter
+   */
+  async routeToSplitter(document, contentType) {
+    switch (contentType) {
+      case 'javascript_typescript_code':
+      case 'other_code':
+        return await this.splitCodeDocument(document);
+        
+      case 'markdown_documentation':
+        return await this.splitMarkdownDocument(document);
+        
+      case 'openapi_specification':
+        return await this.splitOpenAPIDocument(document);
+        
+      case 'yaml_config':
+        return await this.splitYAMLConfigDocument(document);
+        
+      case 'json_config':
+        return await this.splitJSONConfigDocument(document);
+        
+      case 'json_schema':
+        return await this.splitJSONSchemaDocument(document);
+        
+      case 'documentation_file':
+        return await this.splitDocumentationFile(document);
+        
+      case 'text_content':
+      default:
+        return await this.splitGenericDocument(document);
+    }
+  }
+
+  /**
+   * Detect content type for routing decisions
    */
   detectContentType(document) {
     const source = document.metadata?.source || '';

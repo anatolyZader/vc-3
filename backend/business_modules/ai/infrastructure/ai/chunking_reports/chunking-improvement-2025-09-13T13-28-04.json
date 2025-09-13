@@ -1,0 +1,86 @@
+{
+  "timestamp": "2025-09-13T13:28:04.016Z",
+  "summary": {
+    "qualityScore": 95,
+    "tracesAnalyzed": 1,
+    "improvementsImplemented": 1,
+    "validationPassed": false
+  },
+  "traceAnalysis": {
+    "totalTraces": 1,
+    "totalChunks": 22,
+    "averageQualityScore": 95,
+    "commonIssues": [
+      {
+        "issue": "smallChunks",
+        "frequency": 1,
+        "percentage": 100
+      },
+      {
+        "issue": "largeChunks",
+        "frequency": 1,
+        "percentage": 100
+      },
+      {
+        "issue": "missingContext",
+        "frequency": 1,
+        "percentage": 100
+      }
+    ],
+    "trends": {
+      "qualityImproving": false,
+      "chunkCountStable": true,
+      "latestQuality": 95,
+      "averageChunkCount": 22
+    },
+    "recommendations": [
+      {
+        "category": "sizing",
+        "count": 1
+      }
+    ]
+  },
+  "improvementPlan": {
+    "priority": "low",
+    "recommendations": [
+      {
+        "category": "sizing",
+        "issue": "Too many small chunks",
+        "solution": "Implement chunk merging and increase minimum size",
+        "priority": "high"
+      }
+    ],
+    "implementations": [],
+    "timeline": {
+      "immediate": "2 weeks",
+      "shortTerm": "2 months",
+      "longTerm": "6 months"
+    }
+  },
+  "implementation": {
+    "implemented": [
+      {
+        "type": "sizing",
+        "changes": {
+          "minChunkSize": 300,
+          "maxChunkSize": 2800,
+          "mergeSmallChunks": true
+        },
+        "status": "configured"
+      }
+    ],
+    "failed": [],
+    "skipped": []
+  },
+  "validation": {
+    "validationPassed": false,
+    "improvements": 75,
+    "regressions": 0
+  },
+  "recommendations": [
+    "Continue monitoring chunk quality through LangSmith traces",
+    "Implement automated chunk quality alerts",
+    "Develop domain-specific chunking strategies",
+    "Create chunk quality benchmarks for different file types"
+  ]
+}
