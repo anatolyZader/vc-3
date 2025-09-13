@@ -15,10 +15,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['domain', 'entity', 'business', 'rule', 'aggregate', 'model'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Domain/Business Logic Query`);
       return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { layer: 'domain' },
-        coreFilters: { type: 'module_documentation' }
+        codeResults: 15,
+        docsResults: 8,
+        codeFilters: { layer: 'domain' },
+        docsFilters: { type: 'module_documentation' }
       };
     }
     
@@ -26,10 +26,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['api', 'endpoint', 'route', 'http', 'request', 'controller', 'fastify'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: API/Endpoint Query`);
       return {
-        userResults: 6,
-        coreResults: 5,
-        userFilters: { semantic_role: 'controller' },
-        coreFilters: { type: 'api_endpoint' }
+        codeResults: 12,
+        docsResults: 8,
+        codeFilters: { semantic_role: 'controller' },
+        docsFilters: { type: 'api_endpoint' }
       };
     }
     
@@ -37,10 +37,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['error', 'bug', 'fix', 'debug', 'issue', 'problem', 'exception', 'fail'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Error/Debugging Query`);
       return {
-        userResults: 10,
-        coreResults: 2,
-        userFilters: { is_entrypoint: true }, // Focus on entry points where errors often occur
-        coreFilters: {}
+        codeResults: 20,
+        docsResults: 5,
+        codeFilters: { is_entrypoint: true }, // Focus on entry points where errors often occur
+        docsFilters: {}
       };
     }
     
@@ -48,10 +48,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['chat', 'message', 'conversation', 'websocket', 'socket'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Chat Module Query`);
       return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { eventstorm_module: 'chatModule' },
-        coreFilters: { type: 'module_documentation' }
+        codeResults: 15,
+        docsResults: 5,
+        codeFilters: { eventstorm_module: 'chatModule' },
+        docsFilters: { type: 'module_documentation' }
       };
     }
     
@@ -59,10 +59,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['git', 'repository', 'github', 'pull request', 'commit', 'branch'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Git Module Query`);
       return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { eventstorm_module: 'gitModule' },
-        coreFilters: { type: 'module_documentation' }
+        codeResults: 15,
+        docsResults: 5,
+        codeFilters: { eventstorm_module: 'gitModule' },
+        docsFilters: { type: 'module_documentation' }
       };
     }
     
@@ -70,10 +70,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['ai', 'embedding', 'vector', 'rag', 'langchain', 'openai', 'semantic'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: AI Module Query`);
       return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { eventstorm_module: 'aiModule' },
-        coreFilters: { type: 'module_documentation' }
+        codeResults: 15,
+        docsResults: 8,
+        codeFilters: { eventstorm_module: 'aiModule' },
+        docsFilters: { type: 'module_documentation' }
       };
     }
     
@@ -81,10 +81,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['docs', 'documentation', 'search', 'knowledge', 'doc'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Docs Module Query`);
       return {
-        userResults: 8,
-        coreResults: 4,
-        userFilters: { eventstorm_module: 'docsModule' },
-        coreFilters: { type: 'module_documentation' }
+        codeResults: 12,
+        docsResults: 10,
+        codeFilters: { eventstorm_module: 'docsModule' },
+        docsFilters: { type: 'module_documentation' }
       };
     }
     
@@ -92,10 +92,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['test', 'testing', 'spec', 'unit test', 'integration test'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Testing Query`);
       return {
-        userResults: 8,
-        coreResults: 2,
-        userFilters: { semantic_role: 'test' },
-        coreFilters: {}
+        codeResults: 15,
+        docsResults: 5,
+        codeFilters: { semantic_role: 'test' },
+        docsFilters: {}
       };
     }
     
@@ -103,10 +103,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['config', 'configuration', 'setup', 'environment', 'env', 'settings'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Configuration Query`);
       return {
-        userResults: 6,
-        coreResults: 4,
-        userFilters: { semantic_role: 'config' },
-        coreFilters: { type: 'configuration' }
+        codeResults: 10,
+        docsResults: 12,
+        codeFilters: { semantic_role: 'config' },
+        docsFilters: { type: 'configuration' }
       };
     }
     
@@ -114,20 +114,20 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['plugin', 'middleware', 'interceptor', 'fastify plugin'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Plugin/Middleware Query`);
       return {
-        userResults: 8,
-        coreResults: 3,
-        userFilters: { semantic_role: 'plugin' },
-        coreFilters: {}
+        codeResults: 15,
+        docsResults: 8,
+        codeFilters: { semantic_role: 'plugin' },
+        docsFilters: {}
       };
     }
     
     // Default strategy for general questions
     console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: General Query (default)`);
     return {
-      userResults: 8,
-      coreResults: 4,
-      userFilters: {},
-      coreFilters: {}
+      codeResults: 15,
+      docsResults: 8,
+      codeFilters: {},
+      docsFilters: {}
     };
   }
 }

@@ -184,7 +184,7 @@ class RepositoryProcessor {
     for (const doc of documents) {
       try {
         // Use enhanced AST splitter for ALL documents (code and text)
-        const enhancedChunks = await this.enhancedASTSplitter.splitDocument({
+        const enhancedChunks = this.enhancedASTSplitter.splitDocument({
           content: doc.pageContent,
           metadata: {
             source: doc.metadata.source || 'unknown',

@@ -135,22 +135,6 @@ class FileFilteringUtils {
     const extension = path.extname(filePath).slice(1).toLowerCase();
     const filePathLower = filePath.toLowerCase();
     
-    // CLIENT CODE EXCLUSION - Check for client directories first
-    const clientDirectories = ['client/', 'frontend/', 'web/', 'www/', 'static/', 'public/', 'assets/'];
-    for (const clientDir of clientDirectories) {
-      if (filePathLower.includes(clientDir)) {
-        console.log(`[FILTER] ❌ CLIENT EXCLUSION: Excluded client code: ${filePath}`);
-        return false;
-      }
-    }
-    
-    // CLIENT CODE EXCLUSION - Frontend file types that shouldn't be in backend RAG
-    const frontendExtensions = ['html', 'css', 'scss', 'sass', 'less'];
-    if (frontendExtensions.includes(extension)) {
-      console.log(`[FILTER] ❌ CLIENT EXCLUSION: Excluded frontend file (.${extension}): ${filePath}`);
-      return false;
-    }
-    
     // Check against exclude patterns first
     const excludePatterns = this.getExcludePatterns();
     for (const pattern of excludePatterns) {
@@ -364,49 +348,7 @@ class FileFilteringUtils {
       '**/*.min.js',
       '**/*.min.css',
       '**/*.bundle.js',
-      '**/*.chunk.js',
-      
-      // CLIENT CODE EXCLUSION - Frontend directories and files
-      'client/**',
-      'frontend/**',
-      'web/**',
-      'www/**',
-      'static/**',
-      'public/**',
-      'assets/**',
-      
-      // Frontend build outputs
-      'dist/**',
-      'build/**',
-      '.next/**',
-      '.nuxt/**',
-      'public/build/**',
-      
-      // Frontend files (HTML/CSS should not be in backend RAG)
-      '**/*.html',
-      '**/*.css',
-      '**/*.scss',
-      '**/*.sass',
-      '**/*.less',
-      
-      // Frontend framework files (unless in backend context)
-      'client/**/*.js',
-      'client/**/*.jsx',
-      'frontend/**/*.js',
-      'frontend/**/*.jsx',
-      'web/**/*.js',
-      'web/**/*.jsx',
-      '**/*.vue',
-      '**/*.svelte',
-      
-      // Frontend entry points
-      '**/index.html',
-      'client/index.js',
-      'frontend/index.js',
-      'web/index.js',
-      'src/main.jsx',
-      'src/main.js',
-      'src/app.js'
+      '**/*.chunk.js'
     ];
   }
 

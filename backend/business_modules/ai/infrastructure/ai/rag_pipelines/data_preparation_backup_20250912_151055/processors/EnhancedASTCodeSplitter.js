@@ -31,31 +31,24 @@ class EnhancedASTCodeSplitter {
    * Split document with enhanced quality analysis
    */
   async splitDocument(document) {
-    // 🔧 FIX: Normalize pageContent vs content mismatch
-    const pageContent = document.pageContent ?? document.content ?? "";
-    const metadata = document.metadata || {};
-    
-    console.log(`[${new Date().toISOString()}] 📄 ENHANCED SPLITTING: Processing ${metadata?.source}`);
+    console.log(`[${new Date().toISOString()}] 📄 ENHANCED SPLITTING: Processing ${document.metadata?.source}`);
 
     try {
-      // Create normalized document object for internal processing
-      const normalizedDocument = { pageContent, metadata };
-      
       // First pass: Create initial chunks
-      const initialChunks = await this.createInitialChunks(normalizedDocument);
+      const initialChunks = await this.createInitialChunks(document);
       
       // Second pass: Quality analysis and optimization
-      const optimizedChunks = await this.optimizeChunks(initialChunks, normalizedDocument);
+      const optimizedChunks = await this.optimizeChunks(initialChunks, document);
       
       // Third pass: Final validation and metadata enrichment
-      const finalChunks = await this.enrichChunksWithMetadata(optimizedChunks, normalizedDocument);
+      const finalChunks = await this.enrichChunksWithMetadata(optimizedChunks, document);
 
-      console.log(`[${new Date().toISOString()}] ✅ ENHANCED SPLITTING: ${metadata?.source} → ${finalChunks.length} optimized chunks`);
+      console.log(`[${new Date().toISOString()}] ✅ ENHANCED SPLITTING: ${document.metadata?.source} → ${finalChunks.length} optimized chunks`);
       return finalChunks;
 
     } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ ENHANCED SPLITTING: Fallback for ${metadata?.source}:`, error.message);
-      return this.fallbackSplit({ pageContent, metadata });
+      console.warn(`[${new Date().toISOString()}] ⚠️ ENHANCED SPLITTING: Fallback for ${document.metadata?.source}:`, error.message);
+      return this.fallbackSplit(document);
     }
   }
 
@@ -657,16 +650,7 @@ class EnhancedASTCodeSplitter {
 
   fallbackSplit(document) {
     console.log(`[${new Date().toISOString()}] 📄 FALLBACK: Using standard splitting`);
-    // Ensure consistent pageContent format
-    const pageContent = document.pageContent ?? document.content ?? "";
-    return [{
-      pageContent,
-      metadata: {
-        ...document.metadata,
-        splitting_method: 'fallback_standard',
-        enhanced_chunking: false
-      }
-    }];
+    return [document];
   }
 
   async splitLargeChunk(chunk) {

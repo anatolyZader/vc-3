@@ -15,12 +15,12 @@ class VectorSearchOrchestrator {
     const VECTOR_SEARCH_TIMEOUT = 30000; // 30 seconds
     const pineconeIndex = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
     
-    const userSearchPromise = this.createResilientSearch(
+    const codeSearchPromise = this.createResilientSearch(
       this.vectorStore,
       prompt,
-      searchStrategy.userResults,
-      searchStrategy.userFilters,
-      'USER'
+      searchStrategy.codeResults,
+      searchStrategy.codeFilters,
+      'CODE'
     );
 
     const coreDocsVectorStore = new PineconeStore(this.embeddings, {
@@ -28,15 +28,15 @@ class VectorSearchOrchestrator {
       namespace: 'core-docs'
     });
 
-    const coreDocsSearchPromise = this.createResilientSearch(
+    const docsSearchPromise = this.createResilientSearch(
       coreDocsVectorStore,
       prompt,
-      searchStrategy.coreResults,
-      searchStrategy.coreFilters,
-      'CORE DOCS'
+      searchStrategy.docsResults,
+      searchStrategy.docsFilters,
+      'DOCS'
     );
 
-    return await this.executeSearchWithTimeout([userSearchPromise, coreDocsSearchPromise], VECTOR_SEARCH_TIMEOUT);
+    return await this.executeSearchWithTimeout([codeSearchPromise, docsSearchPromise], VECTOR_SEARCH_TIMEOUT);
   }
 
   async createResilientSearch(vectorStore, prompt, maxResults, filters, searchType) {
@@ -59,12 +59,15 @@ class VectorSearchOrchestrator {
     });
 
     try {
-      const [userDocs, coreDocs] = await Promise.race([
+      const [codeDocs, docsDocs] = await Promise.race([
         Promise.all(searchPromises),
         timeoutPromise
       ]);
       
-      const similarDocuments = [...userDocs, ...coreDocs];
+      const allDocuments = [...codeDocs, ...docsDocs];
+      
+      // CLIENT CODE EXCLUSION - Filter out client code chunks post-retrieval
+      const similarDocuments = this.filterClientCode(allDocuments);
 
       // Log retrieved documents for debugging
       similarDocuments.forEach((doc, i) => {
@@ -92,9 +95,54 @@ class VectorSearchOrchestrator {
     }
   }
 
+  /**
+   * CLIENT CODE EXCLUSION - Filter out client/frontend code chunks from search results
+   */
+  filterClientCode(documents) {
+    const clientDirectories = ['client/', 'frontend/', 'web/', 'www/', 'static/', 'public/', 'assets/'];
+    const frontendExtensions = ['.html', '.css', '.scss', '.sass', '.less'];
+    const frontendFiles = ['index.html', 'main.jsx', 'app.js', 'index.js'];
+    
+    const originalCount = documents.length;
+    const filteredDocuments = documents.filter(doc => {
+      const source = doc.metadata?.source?.toLowerCase() || '';
+      
+      // Check for client directories
+      for (const clientDir of clientDirectories) {
+        if (source.includes(clientDir)) {
+          console.log(`[${new Date().toISOString()}] 🚫 CLIENT FILTER: Excluded ${doc.metadata.source} (client directory)`);
+          return false;
+        }
+      }
+      
+      // Check for frontend file extensions
+      for (const ext of frontendExtensions) {
+        if (source.endsWith(ext)) {
+          console.log(`[${new Date().toISOString()}] 🚫 CLIENT FILTER: Excluded ${doc.metadata.source} (frontend extension)`);
+          return false;
+        }
+      }
+      
+      // Check for frontend entry point files in client contexts
+      const fileName = source.split('/').pop() || '';
+      if (frontendFiles.includes(fileName) && clientDirectories.some(dir => source.includes(dir))) {
+        console.log(`[${new Date().toISOString()}] 🚫 CLIENT FILTER: Excluded ${doc.metadata.source} (frontend entry file)`);
+        return false;
+      }
+      
+      return true;
+    });
+    
+    if (filteredDocuments.length !== originalCount) {
+      console.log(`[${new Date().toISOString()}] 🧹 CLIENT FILTER: Filtered ${originalCount - filteredDocuments.length} client code chunks, ${filteredDocuments.length} backend chunks remaining`);
+    }
+    
+    return filteredDocuments;
+  }
+
   logSearchStrategy(searchStrategy) {
-    console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: User=${searchStrategy.userResults} docs, Core=${searchStrategy.coreResults} docs`);
-    console.log(`[${new Date().toISOString()}] 🧠 SEARCH FILTERS: User=${JSON.stringify(searchStrategy.userFilters)}, Core=${JSON.stringify(searchStrategy.coreFilters)}`);
+    console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Code=${searchStrategy.codeResults} docs, Docs=${searchStrategy.docsResults} docs`);
+    console.log(`[${new Date().toISOString()}] 🧠 SEARCH FILTERS: Code=${JSON.stringify(searchStrategy.codeFilters)}, Docs=${JSON.stringify(searchStrategy.docsFilters)}`);
   }
 }
 
