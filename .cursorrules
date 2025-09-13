@@ -1,0 +1,209 @@
+# Eventstorm.me Cursor Rules
+
+## System Overview
+Eventstorm.me is a full-stack React-Fastify application implementing a modular monolith architecture with Domain-Driven Design (DDD) and Hexagonal Architecture principles.
+
+## Modular Monolith Architecture
+
+### Module Types
+1. **AOP Modules** - Cross-cutting concerns (located in `/backend/aop_modules/`)
+   - Handle shared technical services that cross module boundaries
+   - Examples: auth, logging, monitoring
+   - Globally accessible via Fastify decorators
+   - Are dependency sinks (never call back into business logic)
+
+2. **Business Modules** - Core business capabilities (located in `/backend/business_modules/`)
+   - Each represents a bounded context in DDD
+   - Examples: ai, api, chat, docs, git, reqs
+   - Strict boundaries with event-driven communication
+   - Could potentially be extracted as microservices
+
+### Module Communication Rules
+- **Business → Business**: ONLY async via Pub/Sub (domain or integration events). NO direct calls. Contracts = event schemas.
+- **Business → AOP**: Direct method calls through well-defined interfaces (e.g., `permissions.check()`, `auth.verify()`, `log.info()`)
+- **AOP → Business**: NEVER call back into business logic to prevent cycles
+
+## Layered Architecture (DDD + Hexagonal)
+
+Each module follows a strict 5-layer architecture:
+
+### 1. Input Layer (`/input/`)
+- **Purpose**: Accept incoming requests
+- **Components**:
+  - `*Router.js` - HTTP route endpoints with Fastify schemas, pre-validation, handlers
+  - `*PubsubListener.js` - Pub/Sub topic listeners that convert messages to mock Request objects
+- **Rules**:
+  - Use Fastify decorators for handlers defined in controller layer
+  - Mock Request objects for Pub/Sub should match HTTP request structure
+  - Include proper error handling and logging
+
+### 2. Controller Layer (`/application/controller/`)
+- **Purpose**: Thin layer to accept requests and delegate to services
+- **Rules**:
+  - Extract required data from request objects
+  - Call the module's service layer
+  - Set up as Fastify decorators
+  - Accessible to module-specific child Fastify instances (encapsulated)
+  - NO business logic in controllers
+
+### 3. Service Layer (`/application/service/`)
+- **Purpose**: Main business logic of the application
+- **Rules**:
+  - Contains business logic and orchestration
+  - Calls domain entities/aggregates methods
+  - Replaces domain ports with specific adapters (hexagonal pattern)
+  - Handles persistence, messaging, and external integrations
+  - Controller + Service = Application Layer
+
+### 4. Domain Layer (`/domain/`)
+- **Purpose**: Rich domain model with DDD tactical patterns
+- **Components**:
+  - **Aggregates** - Consistency boundaries
+  - **Entities** - Objects with identity
+  - **Value Objects** - Immutable objects
+  - **Ports** - Interfaces for external dependencies (persistence, messaging, AI, etc.)
+  - **Domain Events** - Business events
+  - `ubiqLangDict.json` - Ubiquitous language dictionary/glossary
+- **Rules**:
+  - NO framework dependencies (pure JavaScript)
+  - Rich behavioral models, not anemic data models
+  - Enforce invariants and business rules
+  - Ports define contracts for external systems
+
+### 5. Infrastructure Layer (`/infrastructure/`)
+- **Purpose**: Specific adapters implementing domain ports
+- **Rules**:
+  - Implement ports from domain layer
+  - Multiple adapters can exist for one port (e.g., PostgreSQL and MySQL adapters for same persistence port)
+  - Active adapter configuration in `infraConfig.json`
+  - Handle external system integration details
+  - NO domain logic in infrastructure
+
+## Infrastructure Configuration
+
+### Adapter Configuration Pattern
+```json
+{
+  "aop_modules": {
+    "auth": {
+      "authPersistAdapter": "authPostgresAdapter"
+    }
+  },
+  "business_modules": {
+    "moduleName": {
+      "modulePortAdapter": "specificAdapterImplementation"
+    }
+  }
+}
+```
+
+### Current Module Configurations
+- **chat**: chatPersistAdapter, chatAiAdapter, chatMessagingAdapter, chatVoiceAdapter
+- **git**: gitAdapter, gitMessagingAdapter, gitPersistAdapter  
+- **docs**: docsMessagingAdapter, docsPersistAdapter, docsAiAdapter, docsGitAdapter
+- **ai**: aiPersistAdapter, aiAdapter, aiProvider, aiMessagingAdapter, aiGitAdapter, aiDocsAdapter
+- **messaging**: messagingPersistAdapter, messagingAIAdapter, messagingMessagingAdapter
+- **api**: apiPersistAdapter, apiMessagingAdapter, apiAdapter
+
+## Framework Integration Rules
+
+### Fastify Integration
+- **Scope**: Limited to Input and Application layers ONLY
+- **Isolation**: Domain and Infrastructure layers must be isolated from Fastify
+- **Implementation**: Use regular JS files (not Fastify plugins) for Domain/Infrastructure
+- **Encapsulation**: Use child Fastify instances for module isolation
+
+### Dependency Injection
+- **Pattern**: Inside-out data flow (domain → adapters)
+- **Implementation**: Used in each module for hexagonal design
+- **Container**: Awilix DI container with Fastify plugin
+- **Configuration**: Service registrations in `diPlugin.js`
+
+## File Naming Conventions
+
+### Adapters
+- Pattern: `{module}{AdapterType}Adapter.js`
+- Examples: `aiPostgresAdapter.js`, `chatPubsubAdapter.js`
+
+### Ports  
+- Pattern: `I{Module}{PortType}Port.js`
+- Examples: `IAIPersistPort.js`, `IChatMessagingPort.js`
+
+### Services
+- Pattern: `{module}Service.js`
+- Examples: `aiService.js`, `chatService.js`
+
+### Controllers
+- Pattern: `{module}Controller.js`
+- Examples: `aiController.js`, `chatController.js`
+
+## Development Practices
+
+### Environment Variables
+- Location: `.env` file at root app directory
+- Scope: Global application configuration
+- Access: Through Fastify env plugin
+
+### Backend For Frontend (BFF)
+- Implementation: Partial implementation
+- Example: Chat module handles user interaction via Chat UI
+- Pattern: Module-specific user interface adaptations
+
+### Testing
+- Framework: Jest
+- Commands: `npm test`, `npm run test:watch`
+- Scope: Test each layer in isolation
+
+### Pub/Sub Messaging
+- **Event Structure**:
+```javascript
+{
+  event: 'eventName',
+  payload: { /* event data */ }
+}
+```
+- **Listener Pattern**:
+```javascript
+subscription.on('message', async (message) => {
+  const data = JSON.parse(message.data.toString());
+  const mockRequest = {
+    params: { /* extracted params */ },
+    user: { /* user context */ }
+  };
+  await fastify.handlerMethod(mockRequest, mockReply);
+});
+```
+
+## Code Quality Rules
+
+### Layer Isolation
+- NO leakage between layers
+- Domain layer must be framework-agnostic
+- Infrastructure details must not leak into domain
+- Application layer orchestrates but contains no business logic
+
+### Module Boundaries
+- Respect bounded context boundaries
+- Use events for cross-module communication
+- Avoid direct dependencies between business modules
+- Keep AOP modules as pure utility services
+
+### DDD Practices
+- Use ubiquitous language consistently
+- Model business concepts as first-class objects
+- Enforce business invariants in domain layer
+- Use aggregates to maintain consistency
+
+### Architecture Validation
+- Validate adapter configurations at startup
+- Ensure port-adapter contracts are maintained
+- Monitor module communication patterns
+- Review cross-cutting concern usage
+
+## Error Handling
+- Use structured logging with correlation IDs
+- Handle errors at appropriate layer boundaries
+- Propagate domain errors through application layer
+- Log infrastructure errors with context
+
+This architecture enables Eventstorm.me to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.
