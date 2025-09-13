@@ -5,7 +5,7 @@ const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { PineconeStore } = require('@langchain/pinecone');
 const FileFilteringUtils = require('../utils/FileFilteringUtils');
-const EnhancedASTCodeSplitter = require('./EnhancedASTCodeSplitter');
+const ContentAwareSplitterRouter = require('./ContentAwareSplitterRouter');
 const ChunkQualityAnalyzer = require('../analyzers/ChunkQualityAnalyzer');
 
 /**
@@ -23,16 +23,15 @@ class RepositoryProcessor {
     this.astBasedSplitter = options.astBasedSplitter;
     this.semanticPreprocessor = options.semanticPreprocessor;
     
-    // Initialize enhanced chunking components
-    this.enhancedASTSplitter = new EnhancedASTCodeSplitter({
+    // Initialize content-aware splitter router - fixes issue where all files routed through AST splitter
+    this.contentAwareSplitterRouter = new ContentAwareSplitterRouter({
       maxChunkSize: 2000,
       minChunkSize: 500,
-      preserveImports: true,
-      enableQualityOptimization: true
+      chunkOverlap: 150
     });
     this.chunkQualityAnalyzer = new ChunkQualityAnalyzer();
     
-    console.log(`[${new Date().toISOString()}] 🚀 REPOSITORY PROCESSOR: Enhanced with quality-driven chunking system`);
+    console.log(`[${new Date().toISOString()}] 🚀 REPOSITORY PROCESSOR: Enhanced with content-aware splitter routing`);
   }
 
   /**
@@ -170,12 +169,12 @@ class RepositoryProcessor {
   }
 
   /**
-   * Split documents using ENHANCED quality-driven AST-based chunking
-   * Replaces legacy chunking with quality optimization system
+   * Split documents using CONTENT-AWARE routing instead of forcing all through AST splitter
+   * Routes documents to appropriate splitters based on content type and file extension
    */
   async intelligentSplitDocuments(documents) {
-    console.log(`[${new Date().toISOString()}] ✂️  ENHANCED REPOSITORY SPLITTING: Applying quality-driven AST chunking for ${documents.length} documents`);
-    console.log(`[${new Date().toISOString()}] 🎯 STRATEGY: Quality-optimized chunking with semantic types, deduplication, and context preservation`);
+    console.log(`[${new Date().toISOString()}] ✂️  CONTENT-AWARE SPLITTING: Routing ${documents.length} documents to specialized splitters`);
+    console.log(`[${new Date().toISOString()}] 🎯 STRATEGY: Content-type aware routing (Code→AST, Markdown→Header, OpenAPI→Operation, etc.)`);
 
     const allChunks = [];
     let qualityImprovements = 0;
@@ -183,17 +182,17 @@ class RepositoryProcessor {
     
     for (const doc of documents) {
       try {
-        // Use enhanced AST splitter for ALL documents (code and text)
-        const enhancedChunks = await this.enhancedASTSplitter.splitDocument({
-          content: doc.pageContent,
+        // Use content-aware router that routes to appropriate splitter based on file type
+        const routedChunks = await this.contentAwareSplitterRouter.splitDocument({
+          pageContent: doc.pageContent, // Ensure consistent format
           metadata: {
             source: doc.metadata.source || 'unknown',
             ...doc.metadata
           }
         });
 
-        // Ensure enhancedChunks is an array
-        const chunksArray = Array.isArray(enhancedChunks) ? enhancedChunks : [enhancedChunks];
+        // Ensure routedChunks is an array
+        const chunksArray = Array.isArray(routedChunks) ? routedChunks : [routedChunks];
 
         processedFileCount++;
         
@@ -203,45 +202,45 @@ class RepositoryProcessor {
           qualityImprovements++;
         }
 
-        console.log(`[${new Date().toISOString()}] ✨ ENHANCED: Split ${doc.metadata.source} into ${chunksArray.length} quality chunks (score: ${qualityAnalysis.qualityScore})`);
+        console.log(`[${new Date().toISOString()}] ✨ ROUTED: Split ${doc.metadata.source} into ${chunksArray.length} content-aware chunks (score: ${qualityAnalysis.qualityScore})`);
 
         // Add enhanced metadata with quality metrics
         const enrichedChunks = chunksArray.map((chunk, index) => ({
-          pageContent: chunk.content || chunk.pageContent || '',
+          pageContent: chunk.pageContent || chunk.content || '',
           metadata: {
             ...doc.metadata,
             ...(chunk.metadata || {}),
             chunk_index: index,
             total_chunks: chunksArray.length,
-            splitting_method: 'enhanced_ast_quality',
+            splitting_method: chunk.metadata?.splitting_method || 'content_aware_routing',
             quality_score: qualityAnalysis.qualityScore,
-            semantic_type: (chunk.metadata && chunk.metadata.semanticType) || 'unknown',
-            has_imports: (chunk.metadata && chunk.metadata.hasImports) || false,
-            functions: (chunk.metadata && chunk.metadata.functions) || [],
+            semantic_type: (chunk.metadata && chunk.metadata.semantic_type) || 'unknown',
+            chunk_type: (chunk.metadata && chunk.metadata.chunk_type) || 'unknown',
+            functions: (chunk.metadata && chunk.metadata.function_names) || [],
             original_document: doc.metadata.source,
-            enhanced_chunking: true
+            content_aware_routing: true
           }
         }));
 
         allChunks.push(...enrichedChunks);
 
       } catch (error) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ ENHANCED: Error with ${doc.metadata.source}, using fallback:`, error.message);
+        console.warn(`[${new Date().toISOString()}] ⚠️ ROUTING: Error with ${doc.metadata.source}, using fallback:`, error.message);
         
-        // Fallback to standard splitting if enhanced fails
+        // Fallback to standard splitting if routing fails
         const fallbackChunks = await this.standardSplitDocument(doc);
         allChunks.push(...fallbackChunks.map(chunk => ({
           ...chunk,
           metadata: {
             ...chunk.metadata,
             splitting_method: 'fallback_standard',
-            enhanced_chunking: false
+            content_aware_routing: false
           }
         })));
       }
     }
 
-    console.log(`[${new Date().toISOString()}] ✅ ENHANCED SPLITTING COMPLETE:`);
+    console.log(`[${new Date().toISOString()}] ✅ CONTENT-AWARE ROUTING COMPLETE:`);
     console.log(`[${new Date().toISOString()}]    📊 Processed: ${processedFileCount} files`);
     console.log(`[${new Date().toISOString()}]    ⭐ High Quality: ${qualityImprovements}/${processedFileCount} files (${Math.round(qualityImprovements/processedFileCount*100)}%)`);
     console.log(`[${new Date().toISOString()}]    📄 Total Chunks: ${allChunks.length}`);

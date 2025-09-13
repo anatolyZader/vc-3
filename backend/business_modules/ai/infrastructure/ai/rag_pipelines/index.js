@@ -18,6 +18,8 @@ module.exports = {
   processors: {
   SemanticPreprocessor: require('./data_preparation/processors/semanticPreprocessor'),
   ASTCodeSplitter: require('./data_preparation/processors/aSTCodeSplitter'),
+  EnhancedASTCodeSplitter: require('./data_preparation/processors/EnhancedASTCodeSplitter'),
+  ContentAwareSplitterRouter: require('./data_preparation/processors/ContentAwareSplitterRouter'),
   UbiquitousLanguageProcessor: require('./data_preparation/processors/ubiquitousLanguageProcessor'),
   RepositoryManager: require('./data_preparation/processors/repositoryManager'),
   VectorStorageManager: require('./data_preparation/processors/vectorStorageManager'),
