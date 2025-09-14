@@ -227,9 +227,29 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           
 if (answer) {
   // Ensure we have a string before trying to use substring
-  const answerText = typeof answer === 'object' ? 
-    (answer.response || JSON.stringify(answer)) : 
-    String(answer);
+  let answerText;
+  if (typeof answer === 'object') {
+    // Handle different possible object structures
+    answerText = answer.response || answer.content || answer.text || answer.answer || answer.message || answer.result;
+    
+    // If none of the common properties exist, try to find the actual text content
+    if (!answerText || typeof answerText !== 'string') {
+      // Check if it's a nested object with text content
+      if (answer.choices && answer.choices[0] && answer.choices[0].message && answer.choices[0].message.content) {
+        answerText = answer.choices[0].message.content; // OpenAI format
+      } else if (answer.content && typeof answer.content === 'object' && answer.content.text) {
+        answerText = answer.content.text; // Anthropic format
+      } else {
+        // Last resort - stringify but try to make it readable
+        answerText = JSON.stringify(answer);
+      }
+    }
+  } else {
+    answerText = String(answer);
+  }
+  
+  // Ensure answerText is always a string
+  answerText = String(answerText);
             
   fastify.log.info(`✅ AI MODULE: Generated answer for conversation ${conversationId}: "${answerText.substring(0, 100)}..."`);
             
@@ -239,9 +259,7 @@ if (answer) {
       userId,
       conversationId,
       // Make sure we're sending a string to the chat module
-      answer: typeof answer === 'object' ? 
-        (answer.response || JSON.stringify(answer)) : 
-        String(answer),
+      answer: answerText,
       timestamp: new Date().toISOString()
     };
               

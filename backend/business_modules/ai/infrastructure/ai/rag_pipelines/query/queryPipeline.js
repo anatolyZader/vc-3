@@ -91,7 +91,8 @@ class QueryPipeline {
       
       if (!this.isVectorStoreAvailable(activeVectorStore)) {
         traceData.steps.push({ step: 'vector_store_check', timestamp: new Date().toISOString(), status: 'failed', message: 'Vector database not available' });
-        return this.createStandardResponseIndicator('Vector database not available');
+        console.log(`[${new Date().toISOString()}] 🔄 Vector database not available, generating standard response`);
+        return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
       }
       traceData.steps.push({ step: 'vector_store_check', timestamp: new Date().toISOString(), status: 'success' });
 
@@ -99,7 +100,8 @@ class QueryPipeline {
       
       if (searchResults.length === 0) {
         traceData.steps.push({ step: 'vector_search', timestamp: new Date().toISOString(), status: 'no_results' });
-        return this.createStandardResponseIndicator('No relevant documents found');
+        console.log(`[${new Date().toISOString()}] 🔄 No relevant documents found, generating standard response`);
+        return await this.generateStandardResponse(prompt, conversationId, conversationHistory);
       }
       traceData.steps.push({ step: 'vector_search', timestamp: new Date().toISOString(), status: 'success', documentsFound: searchResults.length });
 
