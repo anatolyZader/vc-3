@@ -26,6 +26,7 @@ import VoiceInput from './VoiceInput';
 import CustomMessage from './CustomMessage';
 import ConfirmationDialog from './ConfirmationDialog';
 import { scrollChatToBottom } from './scrollUtils';
+import { cleanChatText } from './textSanitizer';
 import eventstorm_logo from './eventstorm_logo.png';  
 
 const Chat = () => {
@@ -180,7 +181,13 @@ const Chat = () => {
 
   const handleSend = (messageText) => {
     if (!messageText.trim()) return;
-    sendMessage(messageText);
+    
+    // Clean the message text to remove HTML entities and unwanted characters
+    const cleanedText = cleanChatText(messageText);
+    console.log('Original text:', messageText);
+    console.log('Cleaned text:', cleanedText);
+    
+    sendMessage(cleanedText);
   };
 
   const handleVoiceMessage = async (audioBlob) => {
