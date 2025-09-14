@@ -204,7 +204,7 @@ const Chat = () => {
   const handleNewConversation = async () => {
     console.log('Starting new conversation for user:', userProfile?.name || 'anatolyZader');
     try {
-      const conversationId = await startNewConversation(`convers No.`);
+      const conversationId = await startNewConversation(`New conversation`);
       if (conversationId) {
         console.log('New conversation started with ID:', conversationId);
       }

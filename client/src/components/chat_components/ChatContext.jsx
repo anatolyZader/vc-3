@@ -94,6 +94,27 @@ export const ChatProvider = ({ children }) => {
   // Track which conversations have already been named to avoid duplicate calls
   const namedConversationsRef = useRef(new Set());
 
+  // Helper function to name a conversation reliably
+  const nameConversationSafely = useCallback(async (conversationId, options = {}) => {
+    if (!conversationId || !isAuthenticated || namedConversationsRef.current.has(conversationId)) {
+      return;
+    }
+    
+    namedConversationsRef.current.add(conversationId);
+    
+    try {
+      const result = await chatAPI.nameConversation(conversationId, options);
+      if (result && typeof result.title === 'string') {
+        dispatch({ type: 'UPDATE_CONVERSATION', payload: { id: conversationId, title: result.title } });
+      }
+      return result;
+    } catch (err) {
+      console.warn('Failed to auto-name conversation:', err?.message || err);
+      namedConversationsRef.current.delete(conversationId);
+      throw err;
+    }
+  }, [isAuthenticated]);
+
   const handleError = useCallback((error, customMessage) => {
     console.error(`[${new Date().toISOString()}] ${customMessage || 'Chat error'}:`, error);
     
@@ -314,31 +335,27 @@ export const ChatProvider = ({ children }) => {
     const nextId = state.currentConversationId;
     // Name the conversation we are leaving
     if (prevId && prevId !== nextId && isAuthenticated && !namedConversationsRef.current.has(prevId)) {
-      namedConversationsRef.current.add(prevId);
-      chatAPI
-        .nameConversation(prevId)
-        .then(res => {
-          if (res && typeof res.title === 'string') {
-            dispatch({ type: 'UPDATE_CONVERSATION', payload: { id: prevId, title: res.title } });
-          }
-        })
-        .catch(err => {
-          console.warn('Failed to auto-name conversation on switch:', err?.message || err);
-          namedConversationsRef.current.delete(prevId);
-        });
+      nameConversationSafely(prevId).catch(() => {
+        // Error already logged in helper function
+      });
     }
     // Update last seen to the current after handling
     lastConversationIdRef.current = nextId;
-  }, [state.currentConversationId, isAuthenticated]);
+  }, [state.currentConversationId, isAuthenticated, nameConversationSafely]);
 
   // Auto-name the current conversation on page unload/close
   useEffect(() => {
     const handler = () => {
       const cid = currentConversationIdRef.current;
-      if (!cid || namedConversationsRef.current.has(cid)) return;
-      namedConversationsRef.current.add(cid);
-      // Use keepalive to maximize success during unload
-      try { chatAPI.nameConversation(cid, { keepalive: true }); } catch (_) {}
+      if (cid && !namedConversationsRef.current.has(cid)) {
+        namedConversationsRef.current.add(cid);
+        // Use keepalive to maximize success during unload
+        try { 
+          chatAPI.nameConversation(cid, { keepalive: true }); 
+        } catch (err) {
+          console.warn('Failed to name conversation on unload:', err?.message || err);
+        }
+      }
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
@@ -477,6 +494,41 @@ export const ChatProvider = ({ children }) => {
     dispatch({ type: 'TRUNCATE_MESSAGES', payload: { index: fromIndex } });
     console.log(`🔧 Truncated messages from index ${fromIndex}`);
   }, []);
+
+  // Cleanup: Name current conversation when component unmounts
+  useEffect(() => {
+    return () => {
+      const cid = currentConversationIdRef.current;
+      if (cid && !namedConversationsRef.current.has(cid)) {
+        namedConversationsRef.current.add(cid);
+        // Use keepalive for cleanup scenarios
+        try { 
+          chatAPI.nameConversation(cid, { keepalive: true }); 
+        } catch (err) {
+          console.warn('Failed to name conversation on unmount:', err?.message || err);
+        }
+      }
+    };
+  }, []);
+
+  // Auto-name conversations after a period of inactivity (when they have messages)
+  useEffect(() => {
+    const cid = state.currentConversationId;
+    const hasMessages = state.messages.length > 0;
+    
+    if (!cid || !hasMessages || !isAuthenticated || namedConversationsRef.current.has(cid)) {
+      return;
+    }
+    
+    // Wait 30 seconds after last message before auto-naming
+    const timeoutId = setTimeout(() => {
+      nameConversationSafely(cid).catch(() => {
+        // Error already logged in helper function
+      });
+    }, 30000); // 30 seconds
+    
+    return () => clearTimeout(timeoutId);
+  }, [state.currentConversationId, state.messages.length, isAuthenticated, nameConversationSafely]);
 
   const value = {
     ...state,

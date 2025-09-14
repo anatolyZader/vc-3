@@ -75,7 +75,7 @@ class AILangchainAdapter extends IAIPort {
           apiKey: process.env.PINECONE_API_KEY
         });
         console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone client initialized.`);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone environment: ${process.env.PINECONE_ENVIRONMENT}`);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone region: ${process.env.PINECONE_REGION || 'not set'}`);
         console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone index name: ${process.env.PINECONE_INDEX_NAME}`);
       } else {
         console.warn(`[${new Date().toISOString()}] No Pinecone API key found, vector search will be unavailable`);
