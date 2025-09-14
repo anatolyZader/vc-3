@@ -51,7 +51,8 @@ class DocsLangchainAdapter extends IDocsAiPort {
       this.pinecone = new Pinecone({
         apiKey: process.env.PINECONE_API_KEY
       });
-      this.pineconeIndexName = 'eventstorm-docs';
+      this.pineconeIndexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+      console.log(`📊 DocsLangchainAdapter: Using Pinecone index: ${this.pineconeIndexName}`);
     } else {
       console.warn('No Pinecone API key found, vector search will be unavailable');
       this.pinecone = null;
@@ -129,10 +130,12 @@ class DocsLangchainAdapter extends IDocsAiPort {
       console.log(`[docsLangchainAdapter] Created ${splits.length} document splits.`);
       this.emitRagStatus('split', { message: `Created ${splits.length} document splits.`, count: splits.length, userId });
 
-      const pinecone = new Pinecone();
-      const indexName = 'eventstorm-docs';
+      const pinecone = new Pinecone({
+        apiKey: process.env.PINECONE_API_KEY
+      });
+      const indexName = this.pineconeIndexName;
       const pineconeIndex = pinecone.index(indexName);
-      console.log('[docsLangchainAdapter] Pinecone index retrieved.');
+      console.log(`[docsLangchainAdapter] Pinecone index retrieved: ${indexName}`);
 
       try {
         await pinecone.describeIndex(indexName);
