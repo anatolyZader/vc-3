@@ -29,7 +29,7 @@ async function aiController(fastify, options) {
         
         // Check and set userId on adapter if needed
         if (aiService.aiAdapter && typeof aiService.aiAdapter.setUserId === 'function') {
-          aiService.aiAdapter.setUserId(userId);
+          await aiService.aiAdapter.setUserId(userId);
           fastify.log.debug(`🔧 AI Controller: userId set on adapter: ${userId}`);
         }
         

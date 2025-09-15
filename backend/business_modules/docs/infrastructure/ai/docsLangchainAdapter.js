@@ -8,10 +8,12 @@ const { TextLoader } = require('langchain/document_loaders/fs/text');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 const { PineconeStore } = require('@langchain/pinecone');
-const { Pinecone } = require('@pinecone-database/pinecone');
 const { PromptTemplate } = require('@langchain/core/prompts');
 const { RunnableSequence } = require('@langchain/core/runnables');
 const { StringOutputParser } = require('@langchain/core/output_parsers');
+
+// Modern Pinecone service
+const PineconeService = require('../../ai/infrastructure/ai/pinecone/PineconeService');
 const { formatDocumentsAsString } = require('langchain/util/document');
 const Bottleneck = require("bottleneck");
 
@@ -46,16 +48,14 @@ class DocsLangchainAdapter extends IDocsAiPort {
       apiKey: process.env.OPENAI_API_KEY
     });
 
-    // Initialize Pinecone client
+    // Initialize Pinecone service
     if (process.env.PINECONE_API_KEY) {
-      this.pinecone = new Pinecone({
-        apiKey: process.env.PINECONE_API_KEY
-      });
+      this.pineconeService = new PineconeService();
       this.pineconeIndexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
       console.log(`📊 DocsLangchainAdapter: Using Pinecone index: ${this.pineconeIndexName}`);
     } else {
       console.warn('No Pinecone API key found, vector search will be unavailable');
-      this.pinecone = null;
+      this.pineconeService = null;
     }
 
     // Initialize chat model
@@ -130,42 +130,36 @@ class DocsLangchainAdapter extends IDocsAiPort {
       console.log(`[docsLangchainAdapter] Created ${splits.length} document splits.`);
       this.emitRagStatus('split', { message: `Created ${splits.length} document splits.`, count: splits.length, userId });
 
-      const pinecone = new Pinecone({
-        apiKey: process.env.PINECONE_API_KEY
-      });
+      // Use the modern PineconeService to get connected client
+      await this.pineconeService.connect();
+      const pinecone = this.pineconeService.client;
       const indexName = this.pineconeIndexName;
-      const pineconeIndex = pinecone.index(indexName);
-      console.log(`[docsLangchainAdapter] Pinecone index retrieved: ${indexName}`);
-
+      
       try {
         await pinecone.describeIndex(indexName);
         console.log(`[docsLangchainAdapter] Pinecone index '${indexName}' already exists.`);
       } catch (error) {
-        // Assuming the error is because the index doesn't exist
+        // Use the modern service to create index if it doesn't exist
         if (error.name === 'PineconeNotFoundError') {
           console.log(`[docsLangchainAdapter] Pinecone index '${indexName}' not found. Creating it...`);
-          await pinecone.createIndex({
-            name: indexName,
-            dimension: 3072, // Dimension for text-embedding-3-large
+          await this.pineconeService.createIndex({
+            cloud: 'gcp',
+            region: 'us-central1',
+            dimension: 3072,
             metric: 'cosine',
-            spec: { 
-              serverless: { 
-                cloud: 'aws', 
-                region: 'us-east-1' 
-              } 
-            } 
+            waitUntilReady: true
           });
-          console.log(`[docsLangchainAdapter] Pinecone index '${indexName}' created. Waiting for it to be ready...`);
-          // Wait for a moment for the index to be ready
-          await new Promise(resolve => setTimeout(resolve, 60000)); // 60 seconds delay
         } else {
           throw error; // Re-throw other errors
         }
       }
 
-      await PineconeStore.fromDocuments(splits, this.embeddings, {
-        pineconeIndex,
-        maxConcurrency: 5,
+      await this.pineconeService.upsertDocuments(splits, this.embeddings, {
+        namespace: null, // Use default namespace for documentation
+        batchSize: 100,
+        onProgress: (processed, total) => {
+          console.log(`[docsLangchainAdapter] Progress: ${processed}/${total} documents processed`);
+        }
       });
       console.log('[docsLangchainAdapter] Pinecone store updated with new documents. Now generating module documentation...');
       this.emitRagStatus('indexed', { message: 'Pinecone store updated successfully.', userId });
@@ -224,11 +218,8 @@ class DocsLangchainAdapter extends IDocsAiPort {
         } catch (error) {
           console.log(`[docsLangchainAdapter] Could not load ARCHITECTURE.md: ${error.message}`);
         }
-        console.log(`[docsLangchainAdapter] Initializing Pinecone index for module: ${moduleName}`);
-        const pineconeIndex = this.pinecone.index(this.pineconeIndexName);
-        console.log(`[docsLangchainAdapter] Pinecone index initialized: ${this.pineconeIndexName}`);
-
-        const vectorStore = await PineconeStore.fromExistingIndex(this.embeddings, { pineconeIndex });
+        console.log(`[docsLangchainAdapter] Creating vector store for module: ${moduleName}`);
+        const vectorStore = await this.pineconeService.createVectorStore(this.embeddings);
         console.log(`[docsLangchainAdapter] Vector store created for module: ${moduleName}`);
 
         // Monitor memory before similarity search
@@ -372,8 +363,7 @@ class DocsLangchainAdapter extends IDocsAiPort {
       console.log(`[docsLangchainAdapter] Backend root path: ${backendRootPath}`);
 
       // Initialize Pinecone components
-      const pineconeIndex = this.pinecone.index(this.pineconeIndexName);
-      const vectorStore = await PineconeStore.fromExistingIndex(this.embeddings, { pineconeIndex });
+      const vectorStore = await this.pineconeService.createVectorStore(this.embeddings);
 
       // Define root files to document
       const rootFiles = [
@@ -643,8 +633,7 @@ Generate comprehensive, well-structured documentation that helps developers unde
       const backendRootPath = path.resolve(__dirname, '../../../../');
       
       // Initialize Pinecone components
-      const pineconeIndex = this.pinecone.index(this.pineconeIndexName);
-      const vectorStore = await PineconeStore.fromExistingIndex(this.embeddings, { pineconeIndex });
+      const vectorStore = await this.pineconeService.createVectorStore(this.embeddings);
 
       this.emitRagStatus('generating_architecture_doc', { 
         message: `${isUpdating ? 'Updating' : 'Generating'} overall application architecture documentation...`, 

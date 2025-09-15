@@ -99,7 +99,8 @@ class OptimizedRepositoryProcessor {
   async loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo) {
     console.log(`[${new Date().toISOString()}] 📥 LANGCHAIN LOADER: Using native GitHubRepoLoader for document loading`);
     
-    const loader = new GithubRepoLoader(repoUrl, {
+    // Configure GitHub authentication if available
+    const loaderOptions = {
       branch: branch,
       recursive: true,
       unknown: 'warn',
@@ -119,7 +120,17 @@ class OptimizedRepositoryProcessor {
         '*.min.js',
         '*.min.css'
       ]
-    });
+    };
+
+    // Add GitHub authentication if token is available
+    if (process.env.GITHUB_TOKEN) {
+      loaderOptions.accessToken = process.env.GITHUB_TOKEN;
+      console.log(`[${new Date().toISOString()}] 🔑 GITHUB AUTH: Using authenticated requests with GitHub token`);
+    } else {
+      console.log(`[${new Date().toISOString()}] ⚠️  GITHUB AUTH: No token found, using unauthenticated requests (rate limited)`);
+    }
+
+    const loader = new GithubRepoLoader(repoUrl, loaderOptions);
 
     const documents = await loader.load();
     

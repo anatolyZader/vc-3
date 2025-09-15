@@ -153,7 +153,7 @@ class AIService extends IAIService {
     try {
       // Set the userId on the adapter if it's not already set
       if (this.aiAdapter && this.aiAdapter.setUserId) {
-        this.aiAdapter.setUserId(userId);
+        await this.aiAdapter.setUserId(userId);
         console.log(`[${new Date().toISOString()}] 🤖 AI SERVICE: Set userId ${userId} on AI adapter`);
       } else {
         console.warn(`[${new Date().toISOString()}] 🤖 AI SERVICE: Unable to set userId - aiAdapter missing or lacks setUserId method`);
