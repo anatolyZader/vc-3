@@ -24,7 +24,7 @@ class VectorSearchOrchestrator {
     );
 
     const coreDocsVectorStore = new PineconeStore(this.embeddings, {
-      pineconeIndex: this.pinecone.Index(pineconeIndex),
+      pineconeIndex: await this.pinecone.connect(),
       namespace: 'core-docs'
     });
 

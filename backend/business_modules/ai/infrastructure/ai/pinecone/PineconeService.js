@@ -85,11 +85,27 @@ class PineconeService {
         apiKey: this.config.apiKey
       });
 
+      // Check if index exists, create if it doesn't
+      try {
+        const existingIndexes = await this.client.listIndexes();
+        const indexExists = existingIndexes.indexes?.some(idx => idx.name === this.config.indexName);
+        
+        if (!indexExists) {
+          this.logger.info(`Index ${this.config.indexName} doesn't exist, creating it...`);
+          await this.createIndex();
+        }
+      } catch (listError) {
+        this.logger.warn('Could not check existing indexes, attempting to create index:', listError.message);
+        try {
+          await this.createIndex();
+        } catch (createError) {
+          // If creation also fails, it might already exist, continue
+          this.logger.debug('Index creation failed, assuming it exists:', createError.message);
+        }
+      }
+
       // Get index reference using the official pattern
       this.index = this.client.index(this.config.indexName);
-      
-      // Test connection by getting index stats
-      await this.getIndexStats();
       
       this.isConnected = true;
       this.logger.info(`Successfully connected to Pinecone index: ${this.config.indexName}`);
@@ -107,10 +123,12 @@ class PineconeService {
    * Get index statistics
    */
   async getIndexStats() {
-    const index = await this.connect();
+    if (!this.isConnected || !this.index) {
+      await this.connect();
+    }
     
     try {
-      const stats = await index.describeIndexStats();
+      const stats = await this.index.describeIndexStats();
       this.logger.debug('Index stats retrieved', {
         totalVectors: stats.totalVectorCount || 0,
         namespaces: Object.keys(stats.namespaces || {}).length
