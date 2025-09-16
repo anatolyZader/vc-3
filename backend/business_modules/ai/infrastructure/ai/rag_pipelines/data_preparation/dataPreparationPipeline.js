@@ -10,7 +10,7 @@ const RepositoryManager = require('./processors/repositoryManager');
 const VectorStorageManager = require('./processors/vectorStorageManager');
 const ApiSpecProcessor = require('./processors/apiSpecProcessor');
 const MarkdownDocumentationProcessor = require('./processors/markdownDocumentationProcessor');
-const RepositoryProcessor = require('./processors/repositoryProcessor');
+const RepositoryProcessor = require('./processors/optimizedRepositoryProcessor');
 
 // Import modular orchestrators
 const CommitManager = require('./orchestrators/commitManager');

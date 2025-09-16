@@ -28,7 +28,7 @@ class DocumentProcessingOrchestrator {
     
     try {
       // Use the repository processor's optimized Langchain loading
-      const documents = await this.repositoryProcessor.loadRepositoryDocuments(repoUrl, branch);
+      const documents = await this.repositoryProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
       
       // Enrich with commit information
       const enrichedDocuments = documents.map(doc => ({
@@ -210,8 +210,8 @@ class DocumentProcessingOrchestrator {
     // Process 4: Repository Source Code (using tempDir)
     console.log(`[${new Date().toISOString()}] 🎯 PROCESSOR 4: REPOSITORY CODE PROCESSING`);
     try {
-      processingResults.repositoryCode = await this.repositoryProcessor.loadRepositoryDocuments(
-        `file://${tempDir}`, branch, namespace, githubOwner, repoName
+      processingResults.repositoryCode = await this.repositoryProcessor.loadDocumentsWithLangchain(
+        `file://${tempDir}`, branch, githubOwner, repoName, null
       );
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] ⚠️ Repository Code processing failed: ${error.message}`);

@@ -130,9 +130,20 @@ class OptimizedRepositoryProcessor {
       console.log(`[${new Date().toISOString()}] ⚠️  GITHUB AUTH: No token found, using unauthenticated requests (rate limited)`);
     }
 
-    const loader = new GithubRepoLoader(repoUrl, loaderOptions);
-
-    const documents = await loader.load();
+    let documents;
+    try {
+      const loader = new GithubRepoLoader(repoUrl, loaderOptions);
+      documents = await loader.load();
+    } catch (error) {
+      if (error.message.includes('401') && loaderOptions.accessToken) {
+        console.warn(`[${new Date().toISOString()}] ⚠️  GITHUB AUTH: Token authentication failed, retrying without token for public repo`);
+        delete loaderOptions.accessToken;
+        const fallbackLoader = new GithubRepoLoader(repoUrl, loaderOptions);
+        documents = await fallbackLoader.load();
+      } else {
+        throw error;
+      }
+    }
     
     // Enrich with commit information
     const enrichedDocuments = documents.map(doc => ({

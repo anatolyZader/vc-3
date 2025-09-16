@@ -1424,86 +1424,6 @@
         }
       }
     },
-    "/api/git/repositories/{owner}/{repo}": {
-      "get": {
-        "tags": [
-          "git"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "in": "path",
-            "name": "owner",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "in": "path",
-            "name": "repo",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "header",
-            "name": "x-correlation-id",
-            "required": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "fullName": {
-                      "type": "string"
-                    },
-                    "owner": {
-                      "type": "string"
-                    },
-                    "private": {
-                      "type": "boolean"
-                    },
-                    "description": {
-                      "type": "string"
-                    },
-                    "url": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  },
-                  "additionalProperties": true
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/docs/repos/{repoId}/docs": {
       "get": {
         "tags": [
@@ -1829,6 +1749,86 @@
         }
       }
     },
+    "/api/git/repositories/{owner}/{repo}": {
+      "get": {
+        "tags": [
+          "git"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "owner",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "repo",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "x-correlation-id",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "fullName": {
+                      "type": "string"
+                    },
+                    "owner": {
+                      "type": "string"
+                    },
+                    "private": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/debug/swagger-routes": {
       "get": {
         "responses": {
@@ -1851,6 +1851,29 @@
                     "message": {
                       "type": "string",
                       "description": "Confirmation message that the state cookie was cleared."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/debug/clear-auth-cookie": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Confirmation message that the auth cookie was cleared."
                     }
                   },
                   "additionalProperties": false
@@ -1914,6 +1937,49 @@
                   "required": [
                     "schemas",
                     "routes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/debug/tracing-status": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "langsmithTracing": {
+                      "type": "boolean"
+                    },
+                    "langsmithApiKeySet": {
+                      "type": "boolean"
+                    },
+                    "langsmithWorkspaceIdSet": {
+                      "type": "boolean"
+                    },
+                    "langchainProject": {
+                      "type": "string"
+                    },
+                    "langsmithOrganizationName": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "langsmithTracing",
+                    "langsmithApiKeySet",
+                    "timestamp"
                   ],
                   "additionalProperties": false
                 }
