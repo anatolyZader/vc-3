@@ -94,49 +94,88 @@ class OptimizedRepositoryProcessor {
   }
 
   /**
-   * ENHANCED: Load documents using Langchain's native loader exclusively
+   * ENHANCED: Load documents using batched processing to handle large repositories
    */
   async loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo) {
-    console.log(`[${new Date().toISOString()}] 📥 LANGCHAIN LOADER: Using native GitHubRepoLoader for document loading`);
+    console.log(`[${new Date().toISOString()}] 📥 BATCHED LOADER: Using progressive batched processing for large repositories`);
     
-    // Configure GitHub authentication if available
-    const loaderOptions = {
-      branch: branch,
-      recursive: true,
-      unknown: 'warn',
-      maxConcurrency: 5,
-      ignoreFiles: [
-        'node_modules/**',
-        '.git/**',
-        'dist/**',
-        'build/**',
-        'coverage/**',
-        'temp/**',
-        '*.log',
-        '*.lock',
-        '*.tmp',
-        '.DS_Store',
-        '**/.DS_Store',
-        '*.min.js',
-        '*.min.css'
-      ]
-    };
+    // Define processing batches with different priorities and scopes
+    const processingBatches = [
+      {
+        name: 'Core Documentation',
+        recursive: false,
+        priority: 1,
+        maxConcurrency: 2,
+        ignoreFiles: [
+          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
+          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
+          'backend/**', 'client/**', 'tools/**' // Skip large directories in this batch
+        ]
+      },
+      {
+        name: 'Backend JavaScript/TypeScript',
+        recursive: true,
+        priority: 2,
+        maxConcurrency: 2,
+        fileTypeFilter: ['js', 'ts', 'jsx', 'tsx'],
+        ignoreFiles: [
+          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
+          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
+          'client/**', 'tools/**', // Focus only on backend
+          '**/*.test.js', '**/*.spec.js', '**/*.test.ts', '**/*.spec.ts'
+        ]
+      },
+      {
+        name: 'Backend Configuration & Docs',
+        recursive: true,
+        priority: 3,
+        maxConcurrency: 2,
+        fileTypeFilter: ['md', 'json', 'yml', 'yaml'],
+        ignoreFiles: [
+          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
+          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
+          'client/**', 'tools/**', // Focus only on backend
+          'package-lock.json', 'yarn.lock'
+        ]
+      }
+    ];
 
-    // Configure GitHub authentication
-    const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+    const allDocuments = [];
+    let batchNumber = 1;
     
-    if (githubToken) {
-      loaderOptions.accessToken = githubToken;
-      console.log(`[${new Date().toISOString()}] 🔑 GITHUB AUTH: Using authenticated requests with token`);
-    } else {
-      console.log(`[${new Date().toISOString()}] 🔓 GITHUB AUTH: Using unauthenticated requests for public repository`);
+    for (const batch of processingBatches) {
+      try {
+        console.log(`[${new Date().toISOString()}] 🔄 BATCH ${batchNumber}/${processingBatches.length}: Processing ${batch.name}`);
+        
+        const batchDocuments = await this.processBatch(repoUrl, branch, batch);
+        
+        if (batchDocuments.length > 0) {
+          allDocuments.push(...batchDocuments);
+          console.log(`[${new Date().toISOString()}] ✅ BATCH ${batchNumber}: Loaded ${batchDocuments.length} documents from ${batch.name}`);
+        } else {
+          console.log(`[${new Date().toISOString()}] ⚠️ BATCH ${batchNumber}: No documents found in ${batch.name}`);
+        }
+        
+        // Small delay between batches to prevent rate limiting
+        if (batchNumber < processingBatches.length) {
+          console.log(`[${new Date().toISOString()}] ⏱️ Waiting 2 seconds before next batch...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        
+        batchNumber++;
+        
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ BATCH ${batchNumber} FAILED: ${batch.name} - ${error.message}`);
+        // Continue with next batch even if one fails
+        batchNumber++;
+        continue;
+      }
     }
-    
-    const loader = new GithubRepoLoader(repoUrl, loaderOptions);
-    const documents = await loader.load();
+
+    console.log(`[${new Date().toISOString()}] 🎉 BATCHED PROCESSING COMPLETE: Loaded ${allDocuments.length} total documents`);
     
     // Enrich with commit information
-    const enrichedDocuments = documents.map(doc => ({
+    const enrichedDocuments = allDocuments.map(doc => ({
       ...doc,
       metadata: {
         ...doc.metadata,
@@ -149,12 +188,121 @@ class OptimizedRepositoryProcessor {
         file_type: this.repositoryManager.getFileType(doc.metadata.source || ''),
         repository_url: repoUrl,
         loaded_at: new Date().toISOString(),
-        loading_method: 'langchain_github_loader'
+        loading_method: 'batched_github_loader'
       }
     }));
 
-    console.log(`[${new Date().toISOString()}] ✅ LANGCHAIN LOADER: Loaded ${enrichedDocuments.length} documents with commit metadata`);
+    console.log(`[${new Date().toISOString()}] ✅ BATCHED LOADER: Enriched ${enrichedDocuments.length} documents with commit metadata`);
     return enrichedDocuments;
+  }
+
+  /**
+   * Process a single batch of repository content
+   */
+  async processBatch(repoUrl, branch, batchConfig) {
+    console.log(`[${new Date().toISOString()}] 🔧 Processing batch: ${batchConfig.name}`);
+    console.log(`[${new Date().toISOString()}] 📝 Config: recursive=${batchConfig.recursive}, concurrency=${batchConfig.maxConcurrency}`);
+    if (batchConfig.fileTypeFilter) {
+      console.log(`[${new Date().toISOString()}] 📁 File types: ${batchConfig.fileTypeFilter.join(', ')}`);
+    }
+    
+    const loaderOptions = {
+      branch: branch,
+      recursive: batchConfig.recursive,
+      unknown: 'warn',
+      maxConcurrency: batchConfig.maxConcurrency,
+      ignoreFiles: batchConfig.ignoreFiles
+    };
+
+    // Add path filtering if specified
+    if (batchConfig.pathFilter) {
+      console.log(`[${new Date().toISOString()}] 🎯 Focusing on path: ${batchConfig.pathFilter}`);
+      // Note: GithubRepoLoader doesn't have built-in path filtering,
+      // so we'll filter after loading and use ignoreFiles to exclude other paths
+    }
+
+    // Configure GitHub authentication
+    const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+    
+    if (githubToken) {
+      loaderOptions.accessToken = githubToken;
+      console.log(`[${new Date().toISOString()}] 🔑 BATCH AUTH: Using authenticated requests`);
+    } else {
+      console.log(`[${new Date().toISOString()}] 🔓 BATCH AUTH: Using unauthenticated requests`);
+    }
+
+    try {
+      // Add timeout to prevent hanging
+      const loadPromise = new Promise(async (resolve, reject) => {
+        try {
+          const loader = new GithubRepoLoader(repoUrl, loaderOptions);
+          const documents = await loader.load();
+          resolve(documents);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Batch timeout after 30 seconds: ${batchConfig.name}`));
+        }, 30000);
+      });
+
+      const documents = await Promise.race([loadPromise, timeoutPromise]);
+      
+      // Filter documents by path if specified
+      let filteredDocuments = documents;
+      if (batchConfig.pathFilter) {
+        filteredDocuments = documents.filter(doc => 
+          doc.metadata.source && doc.metadata.source.startsWith(batchConfig.pathFilter)
+        );
+        console.log(`[${new Date().toISOString()}] 🔍 Path filtering: ${documents.length} → ${filteredDocuments.length} documents`);
+      }
+      
+      // Filter documents by file type if specified
+      if (batchConfig.fileTypeFilter && batchConfig.fileTypeFilter.length > 0) {
+        const beforeCount = filteredDocuments.length;
+        filteredDocuments = filteredDocuments.filter(doc => {
+          if (!doc.metadata.source) return false;
+          const fileExtension = doc.metadata.source.split('.').pop()?.toLowerCase();
+          return batchConfig.fileTypeFilter.includes(fileExtension);
+        });
+        console.log(`[${new Date().toISOString()}] 🔍 File type filtering (${batchConfig.fileTypeFilter.join(', ')}): ${beforeCount} → ${filteredDocuments.length} documents`);
+      }
+      
+      // Add batch metadata
+      const batchDocuments = filteredDocuments.map(doc => ({
+        ...doc,
+        metadata: {
+          ...doc.metadata,
+          batch_name: batchConfig.name,
+          batch_priority: batchConfig.priority,
+          batch_processed_at: new Date().toISOString()
+        }
+      }));
+
+      return batchDocuments;
+
+    } catch (error) {
+      if (error.message.includes('timeout')) {
+        console.warn(`[${new Date().toISOString()}] ⏰ TIMEOUT: ${batchConfig.name} - trying with reduced scope`);
+        
+        // Retry with non-recursive for timeout cases
+        if (batchConfig.recursive) {
+          const fallbackConfig = {
+            ...batchConfig,
+            recursive: false,
+            maxConcurrency: 1,
+            name: batchConfig.name + ' (fallback)'
+          };
+          return await this.processBatch(repoUrl, branch, fallbackConfig);
+        }
+      }
+      
+      console.error(`[${new Date().toISOString()}] ❌ Batch processing failed for ${batchConfig.name}: ${error.message}`);
+      return [];
+    }
   }
 
   /**
