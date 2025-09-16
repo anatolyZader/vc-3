@@ -140,7 +140,7 @@ class AILangchainAdapter extends IAIPort {
       // Initialize DataPreparationPipeline for repository processing
       this.dataPreparationPipeline = new DataPreparationPipeline({
         embeddings: this.embeddings,
-        pinecone: this.pinecone,
+        pinecone: this.pineconeService, // Use pineconeService instead of this.pinecone
         eventBus: this.eventBus,
         pineconeLimiter: this.pineconeLimiter,
         maxChunkSize: 2000
