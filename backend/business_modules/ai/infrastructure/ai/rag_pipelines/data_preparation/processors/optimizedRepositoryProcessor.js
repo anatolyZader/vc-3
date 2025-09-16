@@ -122,28 +122,18 @@ class OptimizedRepositoryProcessor {
       ]
     };
 
-    // Add GitHub authentication if token is available
-    if (process.env.GITHUB_TOKEN) {
-      loaderOptions.accessToken = process.env.GITHUB_TOKEN;
-      console.log(`[${new Date().toISOString()}] 🔑 GITHUB AUTH: Using authenticated requests with GitHub token`);
+    // Configure GitHub authentication
+    const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+    
+    if (githubToken) {
+      loaderOptions.accessToken = githubToken;
+      console.log(`[${new Date().toISOString()}] 🔑 GITHUB AUTH: Using authenticated requests with token`);
     } else {
-      console.log(`[${new Date().toISOString()}] ⚠️  GITHUB AUTH: No token found, using unauthenticated requests (rate limited)`);
+      console.log(`[${new Date().toISOString()}] 🔓 GITHUB AUTH: Using unauthenticated requests for public repository`);
     }
-
-    let documents;
-    try {
-      const loader = new GithubRepoLoader(repoUrl, loaderOptions);
-      documents = await loader.load();
-    } catch (error) {
-      if (error.message.includes('401') && loaderOptions.accessToken) {
-        console.warn(`[${new Date().toISOString()}] ⚠️  GITHUB AUTH: Token authentication failed, retrying without token for public repo`);
-        delete loaderOptions.accessToken;
-        const fallbackLoader = new GithubRepoLoader(repoUrl, loaderOptions);
-        documents = await fallbackLoader.load();
-      } else {
-        throw error;
-      }
-    }
+    
+    const loader = new GithubRepoLoader(repoUrl, loaderOptions);
+    const documents = await loader.load();
     
     // Enrich with commit information
     const enrichedDocuments = documents.map(doc => ({
