@@ -109,7 +109,8 @@ class DataPreparationPipeline {
       documentOrchestrator: this.documentOrchestrator,
       repositoryManager: this.repositoryManager,
       repositoryProcessor: this.repositoryProcessor,
-      pinecone: this.pinecone
+      pinecone: this.pinecone,
+      embeddings: this.embeddings
     });
 
     this.eventManager = new EventManager({

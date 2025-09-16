@@ -12,6 +12,8 @@
 
 require('dotenv').config();
 const DataPreparationPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/dataPreparationPipeline');
+const { OpenAIEmbeddings } = require('@langchain/openai');
+const { Pinecone } = require('@pinecone-database/pinecone');
 
 async function manualRepositoryProcessing() {
   console.log('🔧 MANUAL REPOSITORY PROCESSING TRIGGER');
@@ -20,8 +22,25 @@ async function manualRepositoryProcessing() {
   console.log('');
   
   try {
-    // Initialize the data preparation pipeline
-    const pipeline = new DataPreparationPipeline();
+    // Initialize required services for the pipeline
+    console.log('🔧 Initializing embeddings and Pinecone...');
+    
+    const embeddings = new OpenAIEmbeddings({
+      apiKey: process.env.OPENAI_API_KEY,
+      model: 'text-embedding-3-large'
+    });
+    
+    const pinecone = new Pinecone({
+      apiKey: process.env.PINECONE_API_KEY,
+    });
+    
+    // Initialize the data preparation pipeline with required dependencies
+    const pipeline = new DataPreparationPipeline({
+      embeddings,
+      pinecone,
+      eventBus: null, // Not needed for manual processing
+      pineconeLimiter: null // Can be null for simple processing
+    });
     
     // Repository information - matches what GitHub Actions would send
     const userId = 'github-actions'; // Same as in deploy.yml

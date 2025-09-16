@@ -17,6 +17,7 @@ class ProcessingStrategyManager {
     this.repositoryManager = options.repositoryManager;
     this.repositoryProcessor = options.repositoryProcessor;
     this.pinecone = options.pinecone;
+    this.embeddings = options.embeddings;
     
     this.processingStrategy = {
       preferGitHubAPI: true,
@@ -73,7 +74,7 @@ class ProcessingStrategyManager {
       // Step 5: Update repository tracking
       await this.repositoryManager.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, newCommitInfo, 
-        namespace, this.pinecone, null
+        namespace, this.pinecone, this.embeddings
       );
 
       return {
@@ -113,7 +114,7 @@ class ProcessingStrategyManager {
       // Step 3: Store repository tracking info for future duplicate detection
       await this.repositoryManager.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, commitInfo, 
-        namespace, this.pinecone, null
+        namespace, this.pinecone, this.embeddings
       );
 
       return {
@@ -179,7 +180,7 @@ class ProcessingStrategyManager {
       // Update repository tracking info
       await this.repositoryManager.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, commitInfo, 
-        namespace, this.pinecone, null
+        namespace, this.pinecone, this.embeddings
       );
       
       // Cleanup temp directory
