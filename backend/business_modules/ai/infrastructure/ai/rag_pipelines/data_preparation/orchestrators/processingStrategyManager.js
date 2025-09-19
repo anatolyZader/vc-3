@@ -16,8 +16,12 @@ class ProcessingStrategyManager {
     this.documentOrchestrator = options.documentOrchestrator;
     this.repositoryManager = options.repositoryManager;
     this.repositoryProcessor = options.repositoryProcessor;
-    this.pinecone = options.pinecone;
     this.embeddings = options.embeddings;
+    this.pineconeManager = options.pineconeManager;
+    
+    // Get the shared Pinecone service from the connection manager (only if needed for strategy decisions)
+    this.pineconeService = this.pineconeManager?.getPineconeService();
+    this.pinecone = this.pineconeService; // For backward compatibility
     
     this.processingStrategy = {
       preferGitHubAPI: true,
@@ -147,7 +151,7 @@ class ProcessingStrategyManager {
     
     try {
       // Get list of changed files
-      const changedFiles = await this.repositoryManager.getChangedFiles(tempDir, oldCommitHash, newCommitHash);
+      const changedFiles = await this.commitManager.getChangedFilesFromLocalGit(tempDir, oldCommitHash, newCommitHash);
       
       if (changedFiles.length === 0) {
         console.log(`[${new Date().toISOString()}] 📭 NO CHANGES: No files modified between commits, skipping processing`);
@@ -225,7 +229,7 @@ class ProcessingStrategyManager {
     try {
       const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
       
-      // Create vector IDs for changed files (matching the pattern used in VectorStorageManager)
+      // Create vector IDs for changed files (matching the pattern used in VectorStorageService)
       const vectorIdsToDelete = [];
       
       changedFiles.forEach(filePath => {

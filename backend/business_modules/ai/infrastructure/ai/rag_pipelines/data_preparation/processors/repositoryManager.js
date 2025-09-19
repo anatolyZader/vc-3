@@ -71,63 +71,6 @@ class RepositoryManager {
   }
 
   /**
-   * Get commit hash from a cloned repository
-   */
-  async getCommitHash(repoPath, branch = 'HEAD') {
-    try {
-      const command = `cd "${repoPath}" && git rev-parse ${branch}`;
-      const { stdout } = await this.execAsync(command);
-      const commitHash = stdout.trim();
-      console.log(`[${new Date().toISOString()}] 🔑 COMMIT HASH: Retrieved ${commitHash} for branch ${branch}`);
-      return commitHash;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to get commit hash:`, error.message);
-      return null;
-    }
-  }
-
-  /**
-   * Get detailed commit information including timestamp and author
-   */
-  async getCommitInfo(repoPath, commitHash = 'HEAD') {
-    try {
-      const command = `cd "${repoPath}" && git show --format="%H|%ct|%an|%s" -s ${commitHash}`;
-      const { stdout } = await this.execAsync(command);
-      const [hash, timestamp, author, subject] = stdout.trim().split('|');
-      
-      const commitInfo = {
-        hash,
-        timestamp: parseInt(timestamp),
-        author,
-        subject,
-        date: new Date(parseInt(timestamp) * 1000).toISOString()
-      };
-      
-      console.log(`[${new Date().toISOString()}] 📝 COMMIT INFO: ${hash.substring(0, 8)} by ${author} on ${commitInfo.date}`);
-      return commitInfo;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to get commit info:`, error.message);
-      return null;
-    }
-  }
-
-  /**
-   * Get list of changed files between commits
-   */
-  async getChangedFiles(repoPath, fromCommit, toCommit = 'HEAD') {
-    try {
-      const command = `cd "${repoPath}" && git diff --name-only ${fromCommit} ${toCommit}`;
-      const { stdout } = await this.execAsync(command);
-      const changedFiles = stdout.trim().split('\n').filter(file => file.length > 0);
-      console.log(`[${new Date().toISOString()}] 📋 CHANGED FILES: ${changedFiles.length} files modified between ${fromCommit.substring(0, 8)} and ${toCommit}`);
-      return changedFiles;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to get changed files:`, error.message);
-      return [];
-    }
-  }
-
-  /**
    * Check if repository already exists and compare commit hashes
    */
   async findExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash = null, pinecone = null) {

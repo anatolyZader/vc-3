@@ -1,15 +1,18 @@
 // DataPreparationPipeline.js - REFACTORED WITH MODULAR ORCHESTRATORS
 "use strict";
 
+const PineconePlugin = require('../../pinecone/pineconePlugin');
 const SemanticPreprocessor = require('./processors/semanticPreprocessor');
-const ASTCodeSplitter = require('./processors/aSTCodeSplitter');
 
-// Import all specialized processors
-const UbiquitousLanguageProcessor = require('./processors/ubiquitousLanguageProcessor');
-const RepositoryManager = require('./processors/repositoryManager');
-const VectorStorageManager = require('./processors/vectorStorageManager');
+const VectorStorageService = require('./processors/vectorStorageService');
+
+const UbiquitousLanguageEnhancer = require('./processors/ubiquitousLanguageEnhancer');
+
 const ApiSpecProcessor = require('./processors/apiSpecProcessor');
 const MarkdownDocumentationProcessor = require('./processors/markdownDocumentationProcessor');
+
+const RepositoryManager = require('./processors/repositoryManager');
+const ASTCodeSplitter = require('./processors/aSTCodeSplitter');
 const RepositoryProcessor = require('./processors/optimizedRepositoryProcessor');
 
 // Import modular orchestrators
@@ -17,7 +20,8 @@ const CommitManager = require('./orchestrators/commitManager');
 const DocumentProcessingOrchestrator = require('./orchestrators/documentProcessingOrchestrator');
 const ProcessingStrategyManager = require('./orchestrators/processingStrategyManager');
 const EventManager = require('./orchestrators/eventManager');
-// Optional LangSmith tracing
+
+// LangSmith tracing
 let traceable;
 try {
   ({ traceable } = require('langsmith/traceable'));
@@ -43,9 +47,11 @@ class DataPreparationPipeline {
     
     // Store dependencies passed from the adapter
     this.embeddings = options.embeddings;
-    this.pinecone = options.pinecone;
     this.eventBus = options.eventBus;
     this.pineconeLimiter = options.pineconeLimiter;
+    
+    // Initialize shared Pinecone connection manager
+    this.pineconeManager = new PineconePlugin();
     
     // Initialize core components for backward compatibility
     this.semanticPreprocessor = new SemanticPreprocessor();
@@ -56,44 +62,45 @@ class DataPreparationPipeline {
     });
 
     // Initialize specialized processors
-    this.ubiquitousLanguageProcessor = new UbiquitousLanguageProcessor();
+    this.ubiquitousLanguageProcessor = new UbiquitousLanguageEnhancer();
     this.repositoryManager = new RepositoryManager();
     
-    this.vectorStorageManager = new VectorStorageManager({
+    this.vectorStorageManager = new VectorStorageService({
       embeddings: this.embeddings,
-      pinecone: this.pinecone,
       pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repositoryManager
+      repositoryManager: this.repositoryManager,
+      pineconeManager: this.pineconeManager
     });
 
     // Initialize dedicated processors for each information source
     this.apiSpecProcessor = new ApiSpecProcessor({
       embeddings: this.embeddings,
-      pinecone: this.pinecone,
       pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repositoryManager
+      repositoryManager: this.repositoryManager,
+      pineconeManager: this.pineconeManager
     });
 
     this.markdownDocumentationProcessor = new MarkdownDocumentationProcessor({
       embeddings: this.embeddings,
-      pinecone: this.pinecone,
-      pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repositoryManager
-    });
-
-    this.repositoryProcessor = new RepositoryProcessor({
-      embeddings: this.embeddings,
-      pinecone: this.pinecone,
       pineconeLimiter: this.pineconeLimiter,
       repositoryManager: this.repositoryManager,
-      ubiquitousLanguageProcessor: this.ubiquitousLanguageProcessor,
-      astBasedSplitter: this.astCodeSplitter,
-      semanticPreprocessor: this.semanticPreprocessor
+      pineconeManager: this.pineconeManager
     });
 
     // Initialize modular managers
     this.commitManager = new CommitManager({
       repositoryManager: this.repositoryManager
+    });
+
+    this.repositoryProcessor = new RepositoryProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repositoryManager: this.repositoryManager,
+      commitManager: this.commitManager,
+      pineconeManager: this.pineconeManager,
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageProcessor,
+      astBasedSplitter: this.astCodeSplitter,
+      semanticPreprocessor: this.semanticPreprocessor
     });
 
     this.documentOrchestrator = new DocumentProcessingOrchestrator({
@@ -109,8 +116,8 @@ class DataPreparationPipeline {
       documentOrchestrator: this.documentOrchestrator,
       repositoryManager: this.repositoryManager,
       repositoryProcessor: this.repositoryProcessor,
-      pinecone: this.pinecone,
-      embeddings: this.embeddings
+      embeddings: this.embeddings,
+      pineconeManager: this.pineconeManager
     });
 
     this.eventManager = new EventManager({
@@ -189,7 +196,7 @@ class DataPreparationPipeline {
 
       // Step 2: Enhanced duplicate check with commit hash comparison
       const existingRepo = await this.repositoryManager.findExistingRepo(
-        userId, repoId, githubOwner, repoName, commitInfo.hash, this.pinecone
+        userId, repoId, githubOwner, repoName, commitInfo.hash
       );
       
       if (existingRepo) {
@@ -267,10 +274,10 @@ class DataPreparationPipeline {
     
     try {
       // Clear namespace if requested
-      if (clearFirst && this.pinecone) {
+      if (clearFirst && this.vectorStorageManager.pinecone) {
         console.log(`[${new Date().toISOString()}] 🧹 CORE DOCS: Clearing existing docs in namespace '${namespace}'`);
         try {
-          const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+          const index = this.vectorStorageManager.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
           await index.namespace(namespace).deleteAll();
           console.log(`[${new Date().toISOString()}] ✅ CORE DOCS: Successfully cleared namespace '${namespace}'`);
         } catch (clearError) {

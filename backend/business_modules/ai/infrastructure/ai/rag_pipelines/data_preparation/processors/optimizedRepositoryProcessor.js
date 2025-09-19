@@ -17,12 +17,17 @@ const { PineconeStore } = require('@langchain/pinecone');
 class OptimizedRepositoryProcessor {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
-    this.pinecone = options.pinecone;
     this.pineconeLimiter = options.pineconeLimiter;
     this.repositoryManager = options.repositoryManager;
+    this.commitManager = options.commitManager;
     this.ubiquitousLanguageProcessor = options.ubiquitousLanguageProcessor;
     this.astBasedSplitter = options.astBasedSplitter;
     this.semanticPreprocessor = options.semanticPreprocessor;
+    this.pineconeManager = options.pineconeManager;
+    
+    // Get the shared Pinecone service from the connection manager
+    this.pineconeService = this.pineconeManager?.getPineconeService();
+    this.pinecone = this.pineconeService; // For backward compatibility
     
     // Cache for git operations
     this.gitCache = new Map();
@@ -55,8 +60,8 @@ class OptimizedRepositoryProcessor {
       tempDir = await this.repositoryManager.cloneRepository(repoUrl, branch);
       
       // Get commit info from local git
-      const commitHash = await this.repositoryManager.getCommitHash(tempDir);
-      const commitInfo = await this.repositoryManager.getCommitInfo(tempDir);
+      const commitHash = await this.commitManager.getCommitHashFromLocalGit(tempDir);
+      const commitInfo = await this.commitManager.getCommitInfoFromLocalGit(tempDir);
       
       // Check existing processing
       const existingRepo = await this.checkExistingRepo(githubOwner, repoName, commitHash);
@@ -70,7 +75,7 @@ class OptimizedRepositoryProcessor {
       
       if (existingRepo?.reason === 'commit_changed') {
         // Get changed files from local git
-        const changedFiles = await this.repositoryManager.getChangedFiles(
+        const changedFiles = await this.commitManager.getChangedFilesFromLocalGit(
           tempDir, existingRepo.existingCommitHash, commitHash
         );
         
