@@ -1,6 +1,24 @@
 /**
  * Enhanced Query Analyzer for RAG Pipeline
- * Detects query intent and optimizes search/response strategy accordingly
+ * Detects query intent and opti    // Architecture-related patterns
+    architecture: {
+      patterns: [
+        /\b(architecture|structure|design|pattern|approach)\b/i,
+        /\bhow\s+.*\s+(organized|structured|designed|built)\b/i,
+        /\b(modular|layered|hexagonal|clean\s+architecture)\b/i,
+        /\b(mvc|mvp|mvvm|ddd)\b/i,
+        /\b(di|dependency\s+injection|ioc|inversion\s+of\s+control)\b/i,
+        /\bhow\s+.*\s+(di|dependency\s+injection)\b/i,
+        /\b(container|injection|dependencies)\b/i
+      ],
+      confidence: 0.8,
+      searchParams: {
+        topK: 15,
+        threshold: 0.6,
+        sourceFilter: ['architecture', 'design', 'di', 'dependency'],
+        diversityBoost: true
+      }
+    },/response strategy accordingly
  */
 
 class QueryAnalyzer {
@@ -85,7 +103,10 @@ class QueryAnalyzer {
           /overall\s+structure/i,
           /how\s+.+\s+organized/i,
           /components?\s+of/i,
-          /modules?\s+in/i
+          /modules?\s+in/i,
+          /\b(di|dependency\s+injection|ioc|inversion\s+of\s+control)\b/i,
+          /\bhow\s+.*\s+(di|dependency\s+injection)\s+work/i,
+          /\b(container|injection|dependencies)\s+(work|used)/i
         ],
         strategy: 'architecture_focused',
         needsHighLevel: true

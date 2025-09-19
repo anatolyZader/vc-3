@@ -2,7 +2,7 @@
 "use strict";
 
 const EnhancedASTCodeSplitter = require('./EnhancedASTCodeSplitter');
-const MarkdownDocumentationProcessor = require('./markdownDocumentationProcessor');
+const DocsProcessor = require('./markdownDocumentationProcessor');
 const TokenBasedSplitter = require('./TokenBasedSplitter');
 const CodePreprocessor = require('./CodePreprocessor');
 const TextPreprocessor = require('./TextPreprocessor');
@@ -39,7 +39,7 @@ class ContentAwareSplitterRouter {
       tokenSplitter: this.tokenSplitter  // Pass token splitter for accurate measurements
     });
     
-    this.markdownProcessor = new MarkdownDocumentationProcessor();
+    this.markdownProcessor = new DocsProcessor();
     
     console.log(`[${new Date().toISOString()}] 🚦 CONTENT ROUTER: Initialized with TOKEN-BASED measurements + PREPROCESSING`);
     console.log(`[${new Date().toISOString()}] 🎯 TOKEN LIMITS: ${this.tokenSplitter.maxTokens}/${this.tokenSplitter.minTokens} tokens, ${this.tokenSplitter.overlapTokens} overlap`);

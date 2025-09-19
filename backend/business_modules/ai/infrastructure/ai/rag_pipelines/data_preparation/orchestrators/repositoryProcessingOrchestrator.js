@@ -1,21 +1,21 @@
-// DocumentProcessingOrchestrator.js - Orchestrates specialized document processors
+// RepoProcessor.js - Processes repository content (code, docs, configs)
 "use strict";
 
 /**
- * DocumentProcessingOrchestrator - Coordinates different specialized processors
+ * RepoProcessor - Main repository processing class
  * 
  * This module handles:
- * - Orchestration of ubiquitous language processing
- * - Orchestration of API specification processing
- * - Orchestration of markdown documentation processing
- * - Orchestration of repository code processing
- * - Document loading and processing coordination
+ * - Processing of ubiquitous language
+ * - Processing of API specifications  
+ * - Processing of markdown documentation
+ * - Processing of repository source code
+ * - Repository content loading and processing coordination
  */
-class DocumentProcessingOrchestrator {
+class RepoProcessor {
   constructor(options = {}) {
     this.ubiquitousLanguageProcessor = options.ubiquitousLanguageProcessor;
     this.apiSpecProcessor = options.apiSpecProcessor;
-    this.markdownDocumentationProcessor = options.markdownDocumentationProcessor;
+    this.docsProcessor = options.markdownDocumentationProcessor;
     this.repositoryProcessor = options.repositoryProcessor;
     this.repositoryManager = options.repositoryManager;
   }
@@ -141,7 +141,7 @@ class DocumentProcessingOrchestrator {
     console.log(`[${new Date().toISOString()}] 🎯 MARKDOWN DOCS: Starting markdown documentation processing...`);
     
     try {
-      const result = await this.markdownDocumentationProcessor.processMarkdownDocumentation(namespace);
+      const result = await this.docsProcessor.processMarkdownDocumentation(namespace);
       console.log(`[${new Date().toISOString()}] ✅ MARKDOWN DOCS: Successfully processed system documentation`);
       return result;
     } catch (error) {
@@ -246,4 +246,4 @@ class DocumentProcessingOrchestrator {
   }
 }
 
-module.exports = DocumentProcessingOrchestrator;
+module.exports = RepoProcessor;

@@ -1,17 +1,20 @@
-// VectorStorageManager.js
+// EmbeddingManager.js
 "use strict";
 
 const { PineconeStore } = require('@langchain/pinecone');
 
 /**
- * Handles all vector storage operations with Pinecone
+ * Handles all embedding and vector storage operations with Pinecone
  */
-class VectorStorageManager {
+class EmbeddingManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
-    this.pinecone = options.pinecone;
     this.pineconeLimiter = options.pineconeLimiter;
     this.repositoryManager = options.repositoryManager;
+    this.pineconeManager = options.pineconeManager;
+    
+    // Get the shared Pinecone service from the connection manager
+    this.pinecone = this.pineconeManager?.getPineconeService();
   }
 
   /**
@@ -144,4 +147,4 @@ class VectorStorageManager {
   }
 }
 
-module.exports = VectorStorageManager;
+module.exports = EmbeddingManager;

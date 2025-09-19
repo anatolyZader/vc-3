@@ -1,13 +1,10 @@
-// UbiquitousLanguageProcessor.js
+// UbiquitousLanguageEnhancer.js
 "use strict";
 
 const path = require('path');
 const fs = require('fs');
 
-/**
- * Handles all ubiquitous language processing and domain knowledge enhancement
- */
-class UbiquitousLanguageProcessor {
+class UbiquitousLanguageEnhancer {
   constructor() {
     this.ubiquitousLanguage = this.loadUbiquitousLanguage();
   }
@@ -255,4 +252,4 @@ class UbiquitousLanguageProcessor {
   }
 }
 
-module.exports = UbiquitousLanguageProcessor;
+module.exports = UbiquitousLanguageEnhancer;

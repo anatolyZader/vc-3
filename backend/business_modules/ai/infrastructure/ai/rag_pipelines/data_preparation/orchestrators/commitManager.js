@@ -1,18 +1,18 @@
-// CommitManager.js - Handles all commit-related operations
+// CommitSelectionManager.js - Handles all commit-related operations
 "use strict";
 
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
 /**
- * CommitManager - Manages commit information retrieval and change detection
+ * CommitSelectionManager - Manages commit information retrieval and change detection
  * 
  * This module handles:
  * - Commit information retrieval (GitHub API + local git fallback)
  * - Changed files detection between commits
  * - Commit-based processing optimization
  */
-class CommitManager {
+class CommitSelectionManager {
   constructor(options = {}) {
     this.repositoryManager = options.repositoryManager;
     this.execAsync = promisify(exec);
@@ -193,4 +193,4 @@ class CommitManager {
   }
 }
 
-module.exports = CommitManager;
+module.exports = CommitSelectionManager;

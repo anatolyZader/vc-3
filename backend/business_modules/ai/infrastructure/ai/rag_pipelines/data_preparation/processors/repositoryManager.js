@@ -1,4 +1,4 @@
-// RepositoryManager.js
+// RepoSelectionManager.js
 "use strict";
 
 const fs = require('fs').promises;
@@ -10,7 +10,7 @@ const { promisify } = require('util');
 /**
  * Handles repository operations including cloning, cleanup, and file management
  */
-class RepositoryManager {
+class RepoSelectionManager {
   constructor() {
     this.execAsync = promisify(exec);
   }
@@ -237,4 +237,4 @@ class RepositoryManager {
   }
 }
 
-module.exports = RepositoryManager;
+module.exports = RepoSelectionManager;

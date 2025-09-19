@@ -1,4 +1,4 @@
-// OptimizedRepositoryProcessor.js - Enhanced approach using Langchain GitLoader more effectively
+// RepoProcessorUtils.js - Utility methods for repository processing operations
 "use strict";
 
 const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
@@ -6,20 +6,20 @@ const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { PineconeStore } = require('@langchain/pinecone');
 
 /**
- * OPTIMIZED: Maximum leverage of Langchain's native GitLoader with local git operations
+ * Repository Processing Utilities - Contains implementation methods for repository operations
  * 
- * Key improvements:
- * 1. Use GitHubRepoLoader for ALL document loading (no manual file system operations)
- * 2. Only clone locally when we need git metadata (current implementation)
- * 3. Cache commit info to minimize git operations
- * 4. GitHub API integration is stubbed for future implementation
+ * Key utilities:
+ * 1. Git operations and local repository handling
+ * 2. Document processing and chunking utilities
+ * 3. File operations and cleanup methods
+ * 4. Pinecone integration utilities
  */
-class OptimizedRepositoryProcessor {
+class RepoProcessorUtils {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
-    this.repositoryManager = options.repositoryManager;
-    this.commitManager = options.commitManager;
+    this.repoManager = options.repositoryManager;
+    this.repoCommitManager = options.commitManager;
     this.ubiquitousLanguageProcessor = options.ubiquitousLanguageProcessor;
     this.astBasedSplitter = options.astBasedSplitter;
     this.semanticPreprocessor = options.semanticPreprocessor;
@@ -41,7 +41,7 @@ class OptimizedRepositoryProcessor {
     
     const { githubOwner, repoName } = this.parseRepoUrl(repoUrl);
     if (!namespace) {
-      namespace = this.repositoryManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      namespace = this.repoManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
     }
 
     // GitHub API methods are currently stubbed, using local git processing
@@ -57,11 +57,11 @@ class OptimizedRepositoryProcessor {
     
     try {
       // Only clone when absolutely necessary for git operations
-      tempDir = await this.repositoryManager.cloneRepository(repoUrl, branch);
+      tempDir = await this.repoManager.cloneRepository(repoUrl, branch);
       
       // Get commit info from local git
-      const commitHash = await this.commitManager.getCommitHashFromLocalGit(tempDir);
-      const commitInfo = await this.commitManager.getCommitInfoFromLocalGit(tempDir);
+      const commitHash = await this.repoCommitManager.getCommitHashFromLocalGit(tempDir);
+      const commitInfo = await this.repoCommitManager.getCommitInfoFromLocalGit(tempDir);
       
       // Check existing processing
       const existingRepo = await this.checkExistingRepo(githubOwner, repoName, commitHash);
@@ -75,7 +75,7 @@ class OptimizedRepositoryProcessor {
       
       if (existingRepo?.reason === 'commit_changed') {
         // Get changed files from local git
-        const changedFiles = await this.commitManager.getChangedFilesFromLocalGit(
+        const changedFiles = await this.repoCommitManager.getChangedFilesFromLocalGit(
           tempDir, existingRepo.existingCommitHash, commitHash
         );
         
@@ -93,7 +93,7 @@ class OptimizedRepositoryProcessor {
     } finally {
       // Always cleanup temp directory
       if (tempDir) {
-        await this.repositoryManager.cleanupTempDir(tempDir);
+        await this.repoManager.cleanupTempDir(tempDir);
       }
     }
   }
@@ -190,7 +190,7 @@ class OptimizedRepositoryProcessor {
         commitHash: commitInfo.hash,
         commitTimestamp: commitInfo.timestamp,
         commitAuthor: commitInfo.author,
-        file_type: this.repositoryManager.getFileType(doc.metadata.source || ''),
+        file_type: this.repoManager.getFileType(doc.metadata.source || ''),
         repository_url: repoUrl,
         loaded_at: new Date().toISOString(),
         loading_method: 'batched_github_loader'
@@ -354,7 +354,7 @@ class OptimizedRepositoryProcessor {
    * Check existing repository processing (same as before)
    */
   async checkExistingRepo(githubOwner, repoName, currentCommitHash) {
-    return await this.repositoryManager.findExistingRepo(
+    return await this.repoManager.findExistingRepo(
       null, null, githubOwner, repoName, currentCommitHash, this.pinecone
     );
   }
@@ -404,4 +404,4 @@ class OptimizedRepositoryProcessor {
   }
 }
 
-module.exports = OptimizedRepositoryProcessor;
+module.exports = RepoProcessorUtils;

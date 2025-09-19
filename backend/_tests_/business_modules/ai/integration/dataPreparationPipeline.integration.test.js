@@ -19,7 +19,7 @@ jest.mock(
 );
 
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/orchestrators/documentProcessingOrchestrator",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/orchestrators/repositoryProcessingOrchestrator",
   () => jest.fn().mockImplementation(() => ({
     processFullRepositoryWithProcessors: jest.fn(async () => ({ success: true, docs: 3 }))
   }))

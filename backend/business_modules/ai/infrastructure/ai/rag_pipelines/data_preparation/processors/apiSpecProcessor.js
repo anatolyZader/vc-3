@@ -12,9 +12,13 @@ const { PineconeStore } = require('@langchain/pinecone');
 class ApiSpecProcessor {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
-    this.pinecone = options.pinecone;
     this.pineconeLimiter = options.pineconeLimiter;
     this.repositoryManager = options.repositoryManager;
+    this.pineconeManager = options.pineconeManager;
+    
+    // Get the shared Pinecone service from the connection manager
+    this.pineconeService = this.pineconeManager?.getPineconeService();
+    this.pinecone = this.pineconeService; // For backward compatibility
   }
 
   /**

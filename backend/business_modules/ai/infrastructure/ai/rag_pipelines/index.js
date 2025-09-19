@@ -20,12 +20,11 @@ module.exports = {
   ASTCodeSplitter: require('./data_preparation/processors/aSTCodeSplitter'),
   EnhancedASTCodeSplitter: require('./data_preparation/processors/EnhancedASTCodeSplitter'),
   ContentAwareSplitterRouter: require('./data_preparation/processors/ContentAwareSplitterRouter'),
-  UbiquitousLanguageProcessor: require('./data_preparation/processors/ubiquitousLanguageProcessor'),
+  UbiquitousLanguageEnhancer: require('./data_preparation/processors/ubiquitousLanguageEnhancer'),
   RepositoryManager: require('./data_preparation/processors/repositoryManager'),
-  VectorStorageManager: require('./data_preparation/processors/vectorStorageManager'),
+  EmbeddingManager: require('./data_preparation/processors/embeddingManager'),
   ApiSpecProcessor: require('./data_preparation/processors/apiSpecProcessor'),
-  MarkdownDocumentationProcessor: require('./data_preparation/processors/markdownDocumentationProcessor'),
-  RepositoryProcessor: require('./data_preparation/processors/repositoryProcessor'),
+  DocsProcessor: require('./data_preparation/processors/markdownDocumentationProcessor'),
   DocumentProcessor: require('./data_preparation/processors/documentProcessor'),
   OptimizedRepositoryProcessor: require('./data_preparation/processors/optimizedRepositoryProcessor')
   }

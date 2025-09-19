@@ -5,11 +5,6 @@
 const IAIPort = require('../../domain/ports/IAIPort');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
-// Import modern Pinecone components
-const PineconeService = require('./pinecone/PineconeService');
-const ModernVectorStorageManager = require('./vector/ModernVectorStorageManager');
-const ModernVectorSearchOrchestrator = require('./search/ModernVectorSearchOrchestrator');
-
 // Import extracted utility functions
 const RequestQueue = require('./utils/requestQueue');
 const LLMProviderManager = require('./providers/lLMProviderManager');
@@ -72,35 +67,6 @@ class AILangchainAdapter extends IAIPort {
       });
       console.log(`[${new Date().toISOString()}] [DEBUG] Embeddings model initialized.`);
 
-      // Initialize modern Pinecone service
-      if (process.env.PINECONE_API_KEY) {
-        this.pineconeService = new PineconeService({
-          rateLimiter: this.pineconeLimiter
-        });
-        
-        // Initialize modern vector storage manager
-        this.vectorStorageManager = new ModernVectorStorageManager({
-          embeddings: this.embeddings,
-          rateLimiter: this.pineconeLimiter
-        });
-
-        // Initialize modern vector search orchestrator
-        this.vectorSearchOrchestrator = new ModernVectorSearchOrchestrator({
-          embeddings: this.embeddings,
-          rateLimiter: this.pineconeLimiter
-        });
-
-        console.log(`[${new Date().toISOString()}] [DEBUG] Modern Pinecone services initialized.`);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone region: ${process.env.PINECONE_REGION || 'not set'}`);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone index name: ${process.env.PINECONE_INDEX_NAME}`);
-      } else {
-        console.warn(`[${new Date().toISOString()}] No Pinecone API key found, vector search will be unavailable`);
-        this.pineconeService = null;
-        this.vectorStorageManager = null;
-        this.vectorSearchOrchestrator = null;
-        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone services unavailable.`);
-      }
-
       // Initialize chat model based on provider
       this.llmProviderManager = new LLMProviderManager(this.aiProvider, {
         maxRetries: this.requestQueue.maxRetries
@@ -140,12 +106,11 @@ class AILangchainAdapter extends IAIPort {
       // Initialize DataPreparationPipeline for repository processing
       this.dataPreparationPipeline = new DataPreparationPipeline({
         embeddings: this.embeddings,
-        pinecone: this.pineconeService, // Use pineconeService instead of this.pinecone
         eventBus: this.eventBus,
         pineconeLimiter: this.pineconeLimiter,
         maxChunkSize: 2000
       });
-      console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with specialized processors for all core documentation.`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with embedded Pinecone services.`);
 
       console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully`);
     } catch (error) {
@@ -168,27 +133,22 @@ class AILangchainAdapter extends IAIPort {
 
     // Update vector store namespace with the user ID
     try {
-      if (this.pineconeService && this.vectorSearchOrchestrator) {
-        // Create vector store using the modern search orchestrator
-        this.vectorStore = await this.vectorSearchOrchestrator.createVectorStore(this.userId);
-        
-        console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store initialized for userId: ${this.userId}`);
-        
-        // Initialize QueryPipeline with the modern services
-        this.queryPipeline = new QueryPipeline({
-          embeddings: this.embeddings,
-          pinecone: this.pineconeService, // Pass the service instead of raw client
-          llm: this.llm,
-          eventBus: this.eventBus,
-          requestQueue: this.requestQueue,
-          maxRetries: this.requestQueue.maxRetries
-        });
-        console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized for userId: ${this.userId}`);
-      } else {
-        console.warn(`[${new Date().toISOString()}] Pinecone services not available, vectorStore not initialized for user ${userId}`);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store NOT initialized (no Pinecone services).`);
-      }
+      // Initialize QueryPipeline with userId context
+      this.queryPipeline = new QueryPipeline({
+        embeddings: this.embeddings,
+        llm: this.llm,
+        eventBus: this.eventBus,
+        requestQueue: this.requestQueue,
+        userId: this.userId, // Pass userId for namespace creation
+        maxRetries: this.requestQueue.maxRetries
+      });
+      
+      // Get vectorStore from QueryPipeline
+      this.vectorStore = await this.queryPipeline.getVectorStore();
+      
+      console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] Vector store initialized for userId: ${this.userId}`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized for userId: ${this.userId}`);
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error creating vector store for user ${this.userId}:`, error.message);
       console.log(`[${new Date().toISOString()}] [DEBUG] Vector store creation error stack:`, error.stack);

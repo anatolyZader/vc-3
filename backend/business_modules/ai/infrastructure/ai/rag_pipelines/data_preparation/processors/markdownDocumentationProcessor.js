@@ -1,4 +1,4 @@
-// MarkdownDocumentationProcessor.js
+// DocsProcessor.js
 "use strict";
 
 const fs = require('fs').promises;
@@ -10,12 +10,16 @@ const { PineconeStore } = require('@langchain/pinecone');
  * Dedicated processor for Markdown documentation files
  * Handles system documentation, architecture docs, and business module docs
  */
-class MarkdownDocumentationProcessor {
+class DocsProcessor {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
-    this.pinecone = options.pinecone;
     this.pineconeLimiter = options.pineconeLimiter;
     this.repositoryManager = options.repositoryManager;
+    this.pineconeManager = options.pineconeManager;
+    
+    // Get the shared Pinecone service from the connection manager
+    this.pineconeService = this.pineconeManager?.getPineconeService();
+    this.pinecone = this.pineconeService; // For backward compatibility
   }
 
   /**
@@ -451,4 +455,4 @@ class MarkdownDocumentationProcessor {
   }
 }
 
-module.exports = MarkdownDocumentationProcessor;
+module.exports = DocsProcessor;

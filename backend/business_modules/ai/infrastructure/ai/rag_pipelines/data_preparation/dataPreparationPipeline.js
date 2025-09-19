@@ -1,27 +1,19 @@
 // DataPreparationPipeline.js - REFACTORED WITH MODULAR ORCHESTRATORS
 "use strict";
 
+const EventManager = require('./orchestrators/eventManager');
 const PineconePlugin = require('../../pinecone/pineconePlugin');
 const SemanticPreprocessor = require('./processors/semanticPreprocessor');
-
-const VectorStorageService = require('./processors/vectorStorageService');
-
 const UbiquitousLanguageEnhancer = require('./processors/ubiquitousLanguageEnhancer');
-
 const ApiSpecProcessor = require('./processors/apiSpecProcessor');
-const MarkdownDocumentationProcessor = require('./processors/markdownDocumentationProcessor');
-
-const RepositoryManager = require('./processors/repositoryManager');
+const DocsProcessor = require('./processors/markdownDocumentationProcessor');
+const RepoSelectionManager = require('./processors/repositoryManager');
+const CommitSelectionManager = require('./orchestrators/commitManager');
 const ASTCodeSplitter = require('./processors/aSTCodeSplitter');
-const RepositoryProcessor = require('./processors/optimizedRepositoryProcessor');
+const RepoProcessorUtils = require('./processors/optimizedRepositoryProcessor');
+const RepoProcessor = require('./orchestrators/repositoryProcessingOrchestrator');
+const EmbeddingManager = require('./processors/embeddingManager');
 
-// Import modular orchestrators
-const CommitManager = require('./orchestrators/commitManager');
-const DocumentProcessingOrchestrator = require('./orchestrators/documentProcessingOrchestrator');
-const ProcessingStrategyManager = require('./orchestrators/processingStrategyManager');
-const EventManager = require('./orchestrators/eventManager');
-
-// LangSmith tracing
 let traceable;
 try {
   ({ traceable } = require('langsmith/traceable'));
@@ -36,9 +28,9 @@ try {
  * 
  * This pipeline serves as a coordination hub with modular orchestrators:
  * - CommitManager: Handles commit operations and change detection
- * - DocumentProcessingOrchestrator: Coordinates specialized processors
- * - ProcessingStrategyManager: Manages processing strategies and workflows
+ * - RepoProcessor: Main repository content processing
  * - EventManager: Manages event emission and status reporting
+ * - Processing strategies: Integrated directly for simpler architecture
  */
 class DataPreparationPipeline {
   constructor(options = {}) {
@@ -63,12 +55,12 @@ class DataPreparationPipeline {
 
     // Initialize specialized processors
     this.ubiquitousLanguageProcessor = new UbiquitousLanguageEnhancer();
-    this.repositoryManager = new RepositoryManager();
+    this.repoSelectionManager = new RepoSelectionManager();
     
-    this.vectorStorageManager = new VectorStorageService({
+    this.embeddingManager = new EmbeddingManager({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repositoryManager,
+      repositoryManager: this.repoSelectionManager,
       pineconeManager: this.pineconeManager
     });
 
@@ -76,53 +68,48 @@ class DataPreparationPipeline {
     this.apiSpecProcessor = new ApiSpecProcessor({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repositoryManager,
+      repositoryManager: this.repoSelectionManager,
       pineconeManager: this.pineconeManager
     });
 
-    this.markdownDocumentationProcessor = new MarkdownDocumentationProcessor({
+    this.docsProcessor = new DocsProcessor({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repositoryManager,
+      repositoryManager: this.repoSelectionManager,
       pineconeManager: this.pineconeManager
     });
 
     // Initialize modular managers
-    this.commitManager = new CommitManager({
-      repositoryManager: this.repositoryManager
+    this.commitSelectionManager = new CommitSelectionManager({
+      repositoryManager: this.repoSelectionManager
     });
 
-    this.repositoryProcessor = new RepositoryProcessor({
+    this.repoProcessorUtils = new RepoProcessorUtils({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repositoryManager,
-      commitManager: this.commitManager,
+      repositoryManager: this.repoSelectionManager,
+      commitManager: this.commitSelectionManager,
       pineconeManager: this.pineconeManager,
       ubiquitousLanguageProcessor: this.ubiquitousLanguageProcessor,
       astBasedSplitter: this.astCodeSplitter,
       semanticPreprocessor: this.semanticPreprocessor
     });
 
-    this.documentOrchestrator = new DocumentProcessingOrchestrator({
+    this.repoProcessor = new RepoProcessor({
       ubiquitousLanguageProcessor: this.ubiquitousLanguageProcessor,
       apiSpecProcessor: this.apiSpecProcessor,
-      markdownDocumentationProcessor: this.markdownDocumentationProcessor,
-      repositoryProcessor: this.repositoryProcessor,
-      repositoryManager: this.repositoryManager
-    });
-
-    this.strategyManager = new ProcessingStrategyManager({
-      commitManager: this.commitManager,
-      documentOrchestrator: this.documentOrchestrator,
-      repositoryManager: this.repositoryManager,
-      repositoryProcessor: this.repositoryProcessor,
-      embeddings: this.embeddings,
-      pineconeManager: this.pineconeManager
+      markdownDocumentationProcessor: this.docsProcessor,
+      repositoryProcessor: this.repoProcessorUtils,
+      repositoryManager: this.repoSelectionManager
     });
 
     this.eventManager = new EventManager({
       eventBus: this.eventBus
     });
+
+    // Get the shared Pinecone service from the connection manager for vector operations
+    this.pineconeService = this.pineconeManager?.getPineconeService();
+    this.pinecone = this.pineconeService; // For backward compatibility
 
     // Enhanced processing strategy
     this.processingStrategy = {
@@ -186,7 +173,7 @@ class DataPreparationPipeline {
       console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Processing ${githubOwner}/${repoName} with optimized strategy`);
 
       // Step 1: Try to get commit info efficiently using CommitManager
-      const commitInfo = await this.commitManager.getCommitInfoOptimized(url, branch, githubOwner, repoName);
+      const commitInfo = await this.commitSelectionManager.getCommitInfoOptimized(url, branch, githubOwner, repoName);
       
       if (!commitInfo) {
         throw new Error('Failed to retrieve commit information');
@@ -195,7 +182,7 @@ class DataPreparationPipeline {
       console.log(`[${new Date().toISOString()}] 🔑 COMMIT DETECTED: ${commitInfo.hash.substring(0, 8)} - ${commitInfo.subject}`);
 
       // Step 2: Enhanced duplicate check with commit hash comparison
-      const existingRepo = await this.repositoryManager.findExistingRepo(
+      const existingRepo = await this.repoSelectionManager.findExistingRepo(
         userId, repoId, githubOwner, repoName, commitInfo.hash
       );
       
@@ -212,16 +199,16 @@ class DataPreparationPipeline {
             skipped: true
           };
         } else if (existingRepo.reason === 'commit_changed' && existingRepo.requiresIncremental) {
-          console.log(`[${new Date().toISOString()}] 🔄 INCREMENTAL PROCESSING: Repository has changes, using ProcessingStrategyManager`);
-          return await this.strategyManager.processIncrementalOptimized(
+          console.log(`[${new Date().toISOString()}] 🔄 INCREMENTAL PROCESSING: Repository has changes, using integrated strategy`);
+          return await this.processIncrementalOptimized(
             userId, repoId, url, branch, githubOwner, repoName,
             existingRepo.existingCommitHash, commitInfo
           );
         }
       }
 
-      console.log(`[${new Date().toISOString()}] 🆕 FULL PROCESSING: New repository or major changes, using ProcessingStrategyManager`);
-      const result = await this.strategyManager.processFullRepositoryOptimized(
+      console.log(`[${new Date().toISOString()}] 🆕 FULL PROCESSING: New repository or major changes, using integrated strategy`);
+      const result = await this.processFullRepositoryOptimized(
         userId, repoId, url, branch, githubOwner, repoName, commitInfo
       );
 
@@ -244,23 +231,23 @@ class DataPreparationPipeline {
   }
 
   /**
-   * Process incremental changes between commits - delegates to ProcessingStrategyManager
+   * Process incremental changes between commits - now integrated directly
    */
   async processIncrementalChanges(userId, repoId, repoData, tempDir, githubOwner, repoName, branch, oldCommitHash, newCommitHash, commitInfo) {
     // Group parameters to reduce count
     const repoInfo = { githubOwner, repoName, branch };
     const commitHashes = { oldCommitHash, newCommitHash };
     
-    return await this.strategyManager.processIncrementalChanges(
+    return await this.processIncrementalChangesInternal(
       userId, repoId, repoData, tempDir, repoInfo, commitHashes, commitInfo
     );
   }
 
   /**
-   * Process full repository - delegates to DocumentProcessingOrchestrator
+   * Process full repository - delegates to RepoProcessor
    */
   async processFullRepository(userId, repoId, repoData, tempDir, githubOwner, repoName, branch, commitInfo) {
-    return await this.documentOrchestrator.processFullRepositoryWithProcessors(
+    return await this.repoProcessor.processFullRepositoryWithProcessors(
       userId, repoId, tempDir, githubOwner, repoName, branch, commitInfo
     );
   }
@@ -274,10 +261,10 @@ class DataPreparationPipeline {
     
     try {
       // Clear namespace if requested
-      if (clearFirst && this.vectorStorageManager.pinecone) {
+      if (clearFirst && this.embeddingManager.pinecone) {
         console.log(`[${new Date().toISOString()}] 🧹 CORE DOCS: Clearing existing docs in namespace '${namespace}'`);
         try {
-          const index = this.vectorStorageManager.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+          const index = this.embeddingManager.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
           await index.namespace(namespace).deleteAll();
           console.log(`[${new Date().toISOString()}] ✅ CORE DOCS: Successfully cleared namespace '${namespace}'`);
         } catch (clearError) {
@@ -309,7 +296,7 @@ class DataPreparationPipeline {
       // Process markdown documentation using specialized processor
       try {
         console.log(`[${new Date().toISOString()}] 📚 CORE DOCS: Processing markdown documentation...`);
-        results.markdownResults = await this.markdownDocumentationProcessor.processMarkdownDocumentation(namespace);
+        results.markdownResults = await this.docsProcessor.processMarkdownDocumentation(namespace);
         results.totalDocuments += results.markdownResults.documentsProcessed || 0;
         results.totalChunks += results.markdownResults.chunksGenerated || 0;
       } catch (markdownError) {
@@ -328,6 +315,229 @@ class DataPreparationPipeline {
         namespace,
         processedAt: new Date().toISOString()
       };
+    }
+  }
+
+  /**
+   * OPTIMIZED: Incremental processing using Langchain-first approach  
+   */
+  async processIncrementalOptimized(userId, repoId, repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo) {
+    console.log(`[${new Date().toISOString()}] 🔄 OPTIMIZED INCREMENTAL: Processing changes between commits`);
+    console.log(`[${new Date().toISOString()}] 📊 From: ${oldCommitHash.substring(0, 8)} → To: ${newCommitInfo.hash.substring(0, 8)}`);
+    
+    try {
+      // Step 1: Get changed files efficiently
+      const changedFiles = await this.commitSelectionManager.getChangedFilesOptimized(
+        repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo.hash
+      );
+      
+      if (changedFiles.length === 0) {
+        console.log(`[${new Date().toISOString()}] 📭 NO CHANGES: No files modified between commits, skipping processing`);
+        return { 
+          success: true, 
+          message: 'No files changed between commits', 
+          repoId, userId,
+          changedFiles: [],
+          skipped: true
+        };
+      }
+
+      console.log(`[${new Date().toISOString()}] 📋 CHANGED FILES (${changedFiles.length}): ${changedFiles.join(', ')}`);
+
+      // Step 2: Load documents using Langchain (no manual filesystem operations!)
+      const allDocuments = await this.repoProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, newCommitInfo);
+      
+      // Step 3: Filter to only changed files
+      const changedDocuments = allDocuments.filter(doc => 
+        changedFiles.some(file => doc.metadata.source?.includes(file))
+      );
+
+      console.log(`[${new Date().toISOString()}] 🔄 INCREMENTAL DOCUMENTS: Filtered to ${changedDocuments.length} documents from ${allDocuments.length} total`);
+
+      if (changedDocuments.length === 0) {
+        console.log(`[${new Date().toISOString()}] ⚠️ No documents found for changed files, processing all files as fallback`);
+        return await this.processFullRepositoryOptimized(userId, repoId, repoUrl, branch, githubOwner, repoName, newCommitInfo);
+      }
+
+      // Step 4: Process changed documents
+      const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const result = await this.repoProcessor.processFilteredDocuments(changedDocuments, namespace, newCommitInfo, true);
+      
+      // Step 5: Update repository tracking
+      await this.repoSelectionManager.storeRepositoryTrackingInfo(
+        userId, repoId, githubOwner, repoName, newCommitInfo, 
+        namespace, this.pinecone, this.embeddings
+      );
+
+      return {
+        success: true,
+        message: `Optimized incremental processing completed for ${changedFiles.length} changed files`,
+        incrementalProcessing: true,
+        changedFiles,
+        documentsProcessed: result.documentsProcessed || 0,
+        chunksGenerated: result.chunksGenerated || 0,
+        oldCommitHash, 
+        newCommitHash: newCommitInfo.hash,
+        userId, repoId, githubOwner, repoName,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error in optimized incremental processing:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * OPTIMIZED: Full repository processing using Langchain-first approach
+   */
+  async processFullRepositoryOptimized(userId, repoId, repoUrl, branch, githubOwner, repoName, commitInfo) {
+    console.log(`[${new Date().toISOString()}] 🔵 OPTIMIZED FULL PROCESSING: Using Langchain-first approach for complete repository`);
+    
+    try {
+      // Step 1: Load ALL documents using Langchain (no manual filesystem operations)
+      const documents = await this.repoProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
+      
+      // Step 2: Process all documents
+      const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const result = await this.repoProcessor.processFilteredDocuments(documents, namespace, commitInfo, false);
+      
+      // Step 3: Store repository tracking info for future duplicate detection
+      await this.repoSelectionManager.storeRepositoryTrackingInfo(
+        userId, repoId, githubOwner, repoName, commitInfo, 
+        namespace, this.pinecone, this.embeddings
+      );
+
+      return {
+        success: true,
+        message: 'Optimized repository processing completed with Langchain-first approach',
+        totalDocuments: result.documentsProcessed || 0,
+        totalChunks: result.chunksGenerated || 0,
+        commitHash: commitInfo.hash,
+        commitInfo,
+        userId, repoId, githubOwner, repoName,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error in optimized full processing:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Process incremental changes between commits (legacy method with updated signature)
+   */
+  async processIncrementalChangesInternal(userId, repoId, repoData, tempDir, repoInfo, commitHashes, commitInfo) {
+    const { githubOwner, repoName, branch } = repoInfo;
+    const { oldCommitHash, newCommitHash } = commitHashes;
+    
+    console.log(`[${new Date().toISOString()}] 🔄 INCREMENTAL PROCESSING: Analyzing changes between commits`);
+    console.log(`[${new Date().toISOString()}] 📊 From: ${oldCommitHash.substring(0, 8)} → To: ${newCommitHash.substring(0, 8)}`);
+    
+    try {
+      // Get list of changed files
+      const changedFiles = await this.commitSelectionManager.getChangedFilesFromLocalGit(tempDir, oldCommitHash, newCommitHash);
+      
+      if (changedFiles.length === 0) {
+        console.log(`[${new Date().toISOString()}] 📭 NO CHANGES: No files modified between commits, skipping processing`);
+        await this.repoSelectionManager.cleanupTempDir(tempDir);
+        return { 
+          success: true, 
+          message: 'No files changed between commits', 
+          repoId, userId,
+          changedFiles: [],
+          skipped: true
+        };
+      }
+
+      console.log(`[${new Date().toISOString()}] 📋 CHANGED FILES (${changedFiles.length}):`);
+      changedFiles.forEach(file => {
+        console.log(`[${new Date().toISOString()}]   🔄 ${file}`);
+      });
+
+      // Create namespace for this repository
+      const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      
+      // Remove vectors for changed files from Pinecone
+      await this.removeChangedFilesFromPinecone(changedFiles, namespace, githubOwner, repoName);
+      
+      // Process only the changed files using repository processor
+      const incrementalResult = await this.repoProcessorUtils.processChangedFiles(
+        tempDir, changedFiles, namespace, githubOwner, repoName
+      );
+      
+      // Update repository tracking info
+      await this.repoSelectionManager.storeRepositoryTrackingInfo(
+        userId, repoId, githubOwner, repoName, commitInfo, 
+        namespace, this.pinecone, this.embeddings
+      );
+      
+      // Cleanup temp directory
+      await this.repoSelectionManager.cleanupTempDir(tempDir);
+
+      return {
+        success: true,
+        message: `Incremental processing completed for ${changedFiles.length} changed files`,
+        incrementalProcessing: true,
+        changedFiles,
+        documentsProcessed: incrementalResult.documentsProcessed || 0,
+        chunksGenerated: incrementalResult.chunksGenerated || 0,
+        oldCommitHash, newCommitHash,
+        userId, repoId, githubOwner, repoName,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error in incremental processing:`, error.message);
+      
+      // Cleanup temp directory on error
+      try {
+        await this.repoSelectionManager.cleanupTempDir(tempDir);
+      } catch (cleanupError) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ Failed to cleanup temp directory:`, cleanupError.message);
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Remove vectors for changed files from Pinecone
+   */
+  async removeChangedFilesFromPinecone(changedFiles, namespace, githubOwner, repoName) {
+    if (!this.pinecone) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Cannot remove changed files: Pinecone client not available`);
+      return;
+    }
+
+    try {
+      const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      
+      // Create vector IDs for changed files (matching the pattern used in EmbeddingManager)
+      const vectorIdsToDelete = [];
+      
+      changedFiles.forEach(filePath => {
+        const sanitizedFile = this.repoSelectionManager.sanitizeId(filePath);
+        // Generate pattern to match all chunks from this file
+        // Note: This is a simplified approach - in practice, you might need to query first to find exact IDs
+        const filePattern = `${githubOwner}_*_${sanitizedFile}_chunk_*`;
+        vectorIdsToDelete.push(filePattern);
+      });
+
+      console.log(`[${new Date().toISOString()}] 🗑️ CLEANUP: Removing vectors for ${changedFiles.length} changed files from namespace ${namespace}`);
+      
+      // Note: Pinecone doesn't support wildcard deletion directly
+      // We'll need to query first to find matching vectors, then delete them
+      // For now, we'll log this limitation
+      console.log(`[${new Date().toISOString()}] 📝 TODO: Implement precise vector deletion for changed files`);
+      console.log(`[${new Date().toISOString()}] 💡 Current approach will overwrite existing vectors when new ones are added`);
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error removing changed files from Pinecone:`, error.message);
     }
   }
 
