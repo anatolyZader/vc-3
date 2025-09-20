@@ -1,148 +1,443 @@
-const { PineconeStore } = require('@langchain/pinecone');
+/**
+ * VectorSearchOrchestrator - Modern vector search implementation
+ * 
+ * Replaces the old vectorSearchOrchestrator with a modern implementation
+ * that uses the centralized PineconeService for efficient similarity search.
+ * Maintains compatibility with existing QueryPipeline interface.
+ */
+
+const PineconeService = require('../../pinecone/PineconeService');
 const VectorSearchStrategy = require('./vectorSearchStrategy');
 
 class VectorSearchOrchestrator {
   constructor(vectorStore, pinecone, embeddings) {
+    // Legacy interface compatibility
     this.vectorStore = vectorStore;
     this.pinecone = pinecone;
     this.embeddings = embeddings;
+    
+    // Initialize PineconeService for modern functionality
+    this.pineconeService = new PineconeService({
+      rateLimiter: embeddings?.rateLimiter
+    });
+
+    // Search configuration
+    this.defaultTopK = 10;
+    this.defaultThreshold = 0.7;
+    this.maxResults = 50;
+
+    this.logger = {
+      info: (msg, ...args) => console.log(`[${new Date().toISOString()}] [VectorSearch] ${msg}`, ...args),
+      warn: (msg, ...args) => console.warn(`[${new Date().toISOString()}] [VectorSearch] ${msg}`, ...args),
+      error: (msg, ...args) => console.error(`[${new Date().toISOString()}] [VectorSearch] ${msg}`, ...args),
+      debug: (msg, ...args) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[${new Date().toISOString()}] [VectorSearch:DEBUG] ${msg}`, ...args);
+        }
+      }
+    };
   }
 
+  /**
+   * Main search method - maintains compatibility with old interface
+   * @param {string} prompt - The search query
+   * @returns {Array} Array of search results in old format
+   */
   async performSearch(prompt) {
     const searchStrategy = VectorSearchStrategy.determineSearchStrategy(prompt);
     this.logSearchStrategy(searchStrategy);
 
-    const VECTOR_SEARCH_TIMEOUT = 30000; // 30 seconds
-    const pineconeIndex = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
-    
-    const codeSearchPromise = this.createResilientSearch(
-      this.vectorStore,
-      prompt,
-      searchStrategy.codeResults,
-      searchStrategy.codeFilters,
-      'CODE'
-    );
-
-    const coreDocsVectorStore = new PineconeStore(this.embeddings, {
-      pineconeIndex: await this.pinecone.connect(),
-      namespace: 'core-docs'
-    });
-
-    const docsSearchPromise = this.createResilientSearch(
-      coreDocsVectorStore,
-      prompt,
-      searchStrategy.docsResults,
-      searchStrategy.docsFilters,
-      'DOCS'
-    );
-
-    return await this.executeSearchWithTimeout([codeSearchPromise, docsSearchPromise], VECTOR_SEARCH_TIMEOUT);
-  }
-
-  async createResilientSearch(vectorStore, prompt, maxResults, filters, searchType) {
     try {
-      if (filters && Object.keys(filters).length > 0) {
-        console.log(`[${new Date().toISOString()}] 🔍 ${searchType}: Attempting filtered search with:`, JSON.stringify(filters));
-        return await vectorStore.similaritySearch(prompt, maxResults, { filter: filters });
-      } else {
-        return await vectorStore.similaritySearch(prompt, maxResults);
-      }
-    } catch (filterError) {
-      console.log(`[${new Date().toISOString()}] ⚠️ ${searchType} filter error (${filterError.message}), retrying without filters`);
-      return await vectorStore.similaritySearch(prompt, maxResults);
-    }
-  }
-
-  async executeSearchWithTimeout(searchPromises, timeout) {
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Vector search timeout')), timeout);
-    });
-
-    try {
-      const [codeDocs, docsDocs] = await Promise.race([
-        Promise.all(searchPromises),
-        timeoutPromise
-      ]);
-      
-      const allDocuments = [...codeDocs, ...docsDocs];
-      
-      // CLIENT CODE EXCLUSION - Filter out client code chunks post-retrieval
-      const similarDocuments = this.filterClientCode(allDocuments);
-
-      // Log retrieved documents for debugging
-      similarDocuments.forEach((doc, i) => {
-        console.log(`[DEBUG] Chunk ${i}: ${doc.metadata.source || 'Unknown'} | ${doc.pageContent.substring(0, 200)}`);
+      // Use modern search with strategy-based parameters
+      const searchResults = await this.searchSimilar(prompt, {
+        namespace: this.vectorStore?.namespace || null,
+        topK: searchStrategy.codeResults + searchStrategy.docsResults,
+        threshold: 0.7,
+        includeMetadata: true
       });
-      console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: Retrieved ${similarDocuments.length} documents from vector store`);
-      
-      if (similarDocuments.length > 0) {
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: First document metadata:`, 
-          JSON.stringify(similarDocuments[0].metadata, null, 2));
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: First document content preview: ${similarDocuments[0].pageContent.substring(0, 100)}...`);
-        
-        // Log all document sources for better debugging
-        console.log(`[${new Date().toISOString()}] 🔍 RAG DEBUG: All retrieved document sources:`);
-        similarDocuments.forEach((doc, index) => {
-          console.log(`[${new Date().toISOString()}]   ${index + 1}. ${doc.metadata.source || 'Unknown'} (${doc.pageContent.length} chars)`);
-        });
-      }
-      
-      return similarDocuments;
 
-    } catch (timeoutError) {
-      console.log(`[${new Date().toISOString()}] ⚠️ Vector search timed out`);
-      throw timeoutError;
+      // Convert modern format to legacy format
+      return this.convertToLegacyFormat(searchResults.matches || []);
+
+    } catch (error) {
+      this.logger.error('Error in performSearch:', error.message);
+      // Fallback to empty results to maintain compatibility
+      return [];
     }
   }
 
   /**
-   * CLIENT CODE EXCLUSION - Filter out client/frontend code chunks from search results
+   * Convert modern search results to legacy format
    */
-  filterClientCode(documents) {
-    const clientDirectories = ['client/', 'frontend/', 'web/', 'www/', 'static/', 'public/', 'assets/'];
-    const frontendExtensions = ['.html', '.css', '.scss', '.sass', '.less'];
-    const frontendFiles = ['index.html', 'main.jsx', 'app.js', 'index.js'];
-    
-    const originalCount = documents.length;
-    const filteredDocuments = documents.filter(doc => {
-      const source = doc.metadata?.source?.toLowerCase() || '';
-      
-      // Check for client directories
-      for (const clientDir of clientDirectories) {
-        if (source.includes(clientDir)) {
-          console.log(`[${new Date().toISOString()}] 🚫 CLIENT FILTER: Excluded ${doc.metadata.source} (client directory)`);
-          return false;
-        }
+  convertToLegacyFormat(matches) {
+    return matches.map(match => ({
+      pageContent: match.metadata?.text || match.metadata?.content || '',
+      metadata: {
+        ...match.metadata,
+        score: match.score,
+        id: match.id
       }
-      
-      // Check for frontend file extensions
-      for (const ext of frontendExtensions) {
-        if (source.endsWith(ext)) {
-          console.log(`[${new Date().toISOString()}] 🚫 CLIENT FILTER: Excluded ${doc.metadata.source} (frontend extension)`);
-          return false;
-        }
-      }
-      
-      // Check for frontend entry point files in client contexts
-      const fileName = source.split('/').pop() || '';
-      if (frontendFiles.includes(fileName) && clientDirectories.some(dir => source.includes(dir))) {
-        console.log(`[${new Date().toISOString()}] 🚫 CLIENT FILTER: Excluded ${doc.metadata.source} (frontend entry file)`);
-        return false;
-      }
-      
-      return true;
-    });
-    
-    if (filteredDocuments.length !== originalCount) {
-      console.log(`[${new Date().toISOString()}] 🧹 CLIENT FILTER: Filtered ${originalCount - filteredDocuments.length} client code chunks, ${filteredDocuments.length} backend chunks remaining`);
-    }
-    
-    return filteredDocuments;
+    }));
   }
 
-  logSearchStrategy(searchStrategy) {
-    console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Code=${searchStrategy.codeResults} docs, Docs=${searchStrategy.docsResults} docs`);
-    console.log(`[${new Date().toISOString()}] 🧠 SEARCH FILTERS: Code=${JSON.stringify(searchStrategy.codeFilters)}, Docs=${JSON.stringify(searchStrategy.docsFilters)}`);
+  /**
+   * Log search strategy (maintains compatibility)
+   */
+  logSearchStrategy(strategy) {
+    console.log(`[${new Date().toISOString()}] 🔍 SEARCH STRATEGY: Using ${strategy.codeResults} code + ${strategy.docsResults} docs results`);
+    if (strategy.codeFilters) {
+      console.log(`[${new Date().toISOString()}] 🔍 CODE FILTERS:`, JSON.stringify(strategy.codeFilters));
+    }
+    if (strategy.docsFilters) {
+      console.log(`[${new Date().toISOString()}] 🔍 DOCS FILTERS:`, JSON.stringify(strategy.docsFilters));
+    }
+  }
+
+  /**
+   * Perform semantic similarity search
+   */
+  async searchSimilar(query, options = {}) {
+    const {
+      namespace = null,
+      topK = this.defaultTopK,
+      threshold = this.defaultThreshold,
+      filter = null,
+      includeMetadata = true,
+      includeValues = false
+    } = options;
+
+    this.logger.info(`🔍 Searching for similar documents: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`);
+    this.logger.debug(`Search parameters: namespace=${namespace}, topK=${topK}, threshold=${threshold}`);
+
+    try {
+      // Generate query embedding
+      this.logger.debug('Generating query embedding...');
+      const queryEmbedding = await this.embeddings.embedQuery(query);
+      
+      // Perform vector search
+      const searchResults = await this.pineconeService.querySimilar(queryEmbedding, {
+        namespace,
+        topK: Math.min(topK, this.maxResults),
+        filter,
+        includeMetadata,
+        includeValues
+      });
+
+      // Filter results by similarity threshold
+      const filteredMatches = searchResults.matches
+        ?.filter(match => match.score >= threshold)
+        .map(match => ({
+          id: match.id,
+          score: match.score,
+          metadata: match.metadata,
+          values: includeValues ? match.values : undefined
+        })) || [];
+
+      this.logger.info(`📊 Found ${filteredMatches.length} relevant documents (threshold: ${threshold})`);
+      
+      if (filteredMatches.length > 0) {
+        this.logger.debug('Top matches:', filteredMatches.slice(0, 3).map(m => ({
+          id: m.id,
+          score: m.score.toFixed(3),
+          source: m.metadata?.source || 'unknown'
+        })));
+      }
+
+      return {
+        matches: filteredMatches,
+        query,
+        namespace,
+        totalFound: searchResults.matches?.length || 0,
+        filteredCount: filteredMatches.length,
+        searchTime: Date.now()
+      };
+
+    } catch (error) {
+      this.logger.error('Error performing similarity search:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Advanced search with multiple strategies
+   */
+  async advancedSearch(query, options = {}) {
+    const {
+      namespace = null,
+      strategies = ['semantic', 'keyword'],
+      combineResults = true,
+      topK = this.defaultTopK,
+      threshold = this.defaultThreshold
+    } = options;
+
+    this.logger.info(`🎯 Advanced search using strategies: ${strategies.join(', ')}`);
+
+    const results = {};
+
+    // Semantic search
+    if (strategies.includes('semantic')) {
+      try {
+        results.semantic = await this.searchSimilar(query, {
+          namespace,
+          topK,
+          threshold,
+          includeMetadata: true
+        });
+        this.logger.debug(`Semantic search found ${results.semantic.filteredCount} results`);
+      } catch (error) {
+        this.logger.warn('Semantic search failed:', error.message);
+        results.semantic = { matches: [], error: error.message };
+      }
+    }
+
+    // Keyword-based metadata search
+    if (strategies.includes('keyword')) {
+      try {
+        results.keyword = await this.keywordSearch(query, {
+          namespace,
+          topK,
+          threshold
+        });
+        this.logger.debug(`Keyword search found ${results.keyword.filteredCount} results`);
+      } catch (error) {
+        this.logger.warn('Keyword search failed:', error.message);
+        results.keyword = { matches: [], error: error.message };
+      }
+    }
+
+    // Combine results if requested
+    if (combineResults && results.semantic && results.keyword) {
+      const combined = this.combineSearchResults(results.semantic, results.keyword);
+      results.combined = combined;
+      this.logger.info(`📈 Combined search yielded ${combined.matches.length} unique results`);
+    }
+
+    return results;
+  }
+
+  /**
+   * Keyword-based search using metadata filters
+   */
+  async keywordSearch(query, options = {}) {
+    const {
+      namespace = null,
+      topK = this.defaultTopK,
+      threshold = 0.0 // Lower threshold for keyword search
+    } = options;
+
+    // Extract potential keywords for metadata filtering
+    const keywords = this.extractKeywords(query);
+    
+    // Create metadata filters for common fields
+    const filters = this.createKeywordFilters(keywords);
+
+    this.logger.debug(`Keyword search with filters for: ${keywords.join(', ')}`);
+
+    try {
+      // Generate query embedding
+      const queryEmbedding = await this.embeddings.embedQuery(query);
+      
+      // Search with metadata filters
+      const searchResults = await this.pineconeService.querySimilar(queryEmbedding, {
+        namespace,
+        topK,
+        filter: filters,
+        includeMetadata: true
+      });
+
+      const filteredMatches = searchResults.matches
+        ?.filter(match => match.score >= threshold)
+        .map(match => ({
+          id: match.id,
+          score: match.score,
+          metadata: match.metadata,
+          matchType: 'keyword'
+        })) || [];
+
+      return {
+        matches: filteredMatches,
+        query,
+        keywords,
+        filters,
+        namespace,
+        totalFound: searchResults.matches?.length || 0,
+        filteredCount: filteredMatches.length
+      };
+
+    } catch (error) {
+      this.logger.error('Keyword search failed:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract keywords from query text
+   */
+  extractKeywords(query) {
+    // Simple keyword extraction - can be enhanced with NLP
+    const words = query.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2)
+      .filter(word => !['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'].includes(word));
+
+    return [...new Set(words)]; // Remove duplicates
+  }
+
+  /**
+   * Create metadata filters for keyword search
+   */
+  createKeywordFilters(keywords) {
+    if (keywords.length === 0) {
+      return null;
+    }
+
+    // Create OR filters for various metadata fields
+    const orConditions = [];
+
+    keywords.forEach(keyword => {
+      // Search in source paths
+      orConditions.push({ source: { $regex: `.*${keyword}.*` } });
+      
+      // Search in file types
+      orConditions.push({ fileType: { $regex: `.*${keyword}.*` } });
+      
+      // Search in module names
+      orConditions.push({ eventstorm_module: { $regex: `.*${keyword}.*` } });
+      
+      // Search in semantic roles
+      orConditions.push({ semantic_role: { $regex: `.*${keyword}.*` } });
+    });
+
+    return orConditions.length > 0 ? { $or: orConditions } : null;
+  }
+
+  /**
+   * Combine results from multiple search strategies
+   */
+  combineSearchResults(semanticResults, keywordResults) {
+    const combined = new Map();
+
+    // Add semantic results with higher weight
+    semanticResults.matches?.forEach(match => {
+      combined.set(match.id, {
+        ...match,
+        combinedScore: match.score * 0.7, // Semantic weight
+        sources: ['semantic']
+      });
+    });
+
+    // Add keyword results
+    keywordResults.matches?.forEach(match => {
+      if (combined.has(match.id)) {
+        // Boost score if found in both searches
+        const existing = combined.get(match.id);
+        existing.combinedScore += match.score * 0.3; // Keyword weight
+        existing.sources.push('keyword');
+      } else {
+        combined.set(match.id, {
+          ...match,
+          combinedScore: match.score * 0.3,
+          sources: ['keyword']
+        });
+      }
+    });
+
+    // Sort by combined score
+    const sortedMatches = Array.from(combined.values())
+      .sort((a, b) => b.combinedScore - a.combinedScore);
+
+    return {
+      matches: sortedMatches,
+      totalUnique: sortedMatches.length,
+      semanticCount: semanticResults.filteredCount || 0,
+      keywordCount: keywordResults.filteredCount || 0
+    };
+  }
+
+  /**
+   * Search within specific repository
+   */
+  async searchInRepository(query, userId, repoId, options = {}) {
+    const {
+      topK = this.defaultTopK,
+      threshold = this.defaultThreshold,
+      fileTypes = null,
+      semanticRoles = null
+    } = options;
+
+    this.logger.info(`🏠 Searching within repository: ${repoId} for user: ${userId}`);
+
+    // Create repository-specific filters
+    const filters = this.createRepositoryFilters(repoId, fileTypes, semanticRoles);
+
+    return await this.searchSimilar(query, {
+      namespace: userId,
+      topK,
+      threshold,
+      filter: filters,
+      includeMetadata: true
+    });
+  }
+
+  /**
+   * Create filters for repository-specific search
+   */
+  createRepositoryFilters(repoId, fileTypes, semanticRoles) {
+    const filters = {};
+
+    if (repoId) {
+      filters.repoId = repoId;
+    }
+
+    if (fileTypes && fileTypes.length > 0) {
+      filters.fileType = { $in: fileTypes };
+    }
+
+    if (semanticRoles && semanticRoles.length > 0) {
+      filters.semantic_role = { $in: semanticRoles };
+    }
+
+    return Object.keys(filters).length > 0 ? filters : null;
+  }
+
+  /**
+   * Get namespace statistics
+   */
+  async getSearchableContent(namespace) {
+    try {
+      const stats = await this.pineconeService.getNamespaceStats(namespace);
+      return stats;
+    } catch (error) {
+      this.logger.error(`Error getting searchable content for ${namespace}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Create vector store for LangChain integration
+   */
+  async createVectorStore(namespace = null) {
+    if (!this.embeddings) {
+      throw new Error('Embeddings model not provided');
+    }
+
+    return await this.pineconeService.createVectorStore(this.embeddings, namespace);
+  }
+
+  /**
+   * Check connection status
+   */
+  isConnected() {
+    return this.pineconeService.isConnectedToIndex();
+  }
+
+  /**
+   * Disconnect from Pinecone
+   */
+  async disconnect() {
+    await this.pineconeService.disconnect();
+    this.logger.info('Vector search orchestrator disconnected');
   }
 }
 

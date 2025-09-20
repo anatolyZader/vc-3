@@ -15,8 +15,8 @@ The new Pinecone implementation provides:
 
 ```
 PineconeService (Core)
-├── ModernVectorStorageManager (Storage operations)
-├── ModernVectorSearchOrchestrator (Search operations)
+├── VectorStorageManager (Storage operations)
+├── VectorSearchOrchestrator (Search operations - modernized)
 └── Integration with aiLangchainAdapter & docsLangchainAdapter
 ```
 
@@ -73,7 +73,7 @@ await pineconeService.createIndex({
 ### Basic Vector Storage
 
 ```javascript
-const { ModernVectorStorageManager } = require('./vector/ModernVectorStorageManager');
+const VectorStorageManager = require('./utils/vectorStorageManager');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
 const embeddings = new OpenAIEmbeddings({
@@ -81,7 +81,7 @@ const embeddings = new OpenAIEmbeddings({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-const storageManager = new ModernVectorStorageManager({
+const storageManager = new VectorStorageManager({
   embeddings
 });
 
@@ -107,11 +107,9 @@ const result = await storageManager.storeToPinecone(
 ### Vector Search
 
 ```javascript
-const { ModernVectorSearchOrchestrator } = require('./search/ModernVectorSearchOrchestrator');
+const VectorSearchOrchestrator = require('./rag_pipelines/query/vectorSearchOrchestrator');
 
-const searchOrchestrator = new ModernVectorSearchOrchestrator({
-  embeddings
-});
+const searchOrchestrator = new VectorSearchOrchestrator(null, null, embeddings);
 
 // Semantic search
 const results = await searchOrchestrator.searchSimilar(
@@ -236,7 +234,7 @@ const rateLimiter = new Bottleneck({
   minTime: 1000 // 1 second between requests
 });
 
-const storageManager = new ModernVectorStorageManager({
+const storageManager = new VectorStorageManager({
   embeddings,
   rateLimiter
 });

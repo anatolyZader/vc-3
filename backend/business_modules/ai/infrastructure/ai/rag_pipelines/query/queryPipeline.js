@@ -1,6 +1,5 @@
 // Import Pinecone services for querying
 const PineconeService = require('../../pinecone/PineconeService');
-const ModernVectorSearchOrchestrator = require('../../search/ModernVectorSearchOrchestrator');
 
 const VectorSearchOrchestrator = require('./vectorSearchOrchestrator');
 const ContextBuilder = require('./contextBuilder');
@@ -35,20 +34,13 @@ class QueryPipeline {
         rateLimiter: options.requestQueue?.pineconeLimiter
       });
       
-      this.modernVectorSearchOrchestrator = new ModernVectorSearchOrchestrator({
-        embeddings: this.embeddings,
-        rateLimiter: options.requestQueue?.pineconeLimiter,
-        pineconeService: this.pineconeService
-      });
-      
       console.log(`[${new Date().toISOString()}] QueryPipeline: Pinecone search services initialized for user ${this.userId}`);
     } else {
       console.warn(`[${new Date().toISOString()}] QueryPipeline: Missing Pinecone API key or userId`);
       this.pineconeService = null;
-      this.modernVectorSearchOrchestrator = null;
     }
     
-    // Initialize managers (keeping existing VectorSearchOrchestrator for backward compatibility)
+    // Initialize VectorSearchOrchestrator with modern implementation
     this.vectorSearchOrchestrator = new VectorSearchOrchestrator(
       this.vectorStore, 
       this.pineconeService, 
@@ -91,11 +83,11 @@ class QueryPipeline {
   }
 
   async getVectorStore() {
-    if (!this.modernVectorSearchOrchestrator || !this.userId) {
+    if (!this.vectorSearchOrchestrator || !this.userId) {
       throw new Error('Vector search orchestrator not initialized or missing userId');
     }
     
-    return await this.modernVectorSearchOrchestrator.createVectorStore(this.userId);
+    return await this.vectorSearchOrchestrator.createVectorStore(this.userId);
   }
 
   /**

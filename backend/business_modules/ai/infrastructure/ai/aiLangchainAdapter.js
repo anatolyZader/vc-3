@@ -134,7 +134,6 @@ class AILangchainAdapter extends IAIPort {
     // Update vector store namespace with the user ID
     try {
       // Initialize vector store directly - adapter owns the vector store lifecycle
-      const ModernVectorSearchOrchestrator = require('./search/ModernVectorSearchOrchestrator');
       const PineconeService = require('./pinecone/PineconeService');
       
       if (process.env.PINECONE_API_KEY) {
@@ -142,14 +141,8 @@ class AILangchainAdapter extends IAIPort {
           rateLimiter: this.requestQueue?.pineconeLimiter
         });
         
-        const vectorSearchOrchestrator = new ModernVectorSearchOrchestrator({
-          embeddings: this.embeddings,
-          rateLimiter: this.requestQueue?.pineconeLimiter,
-          pineconeService: pineconeService
-        });
-        
         // Adapter owns and manages the vector store
-        this.vectorStore = await vectorSearchOrchestrator.createVectorStore(this.userId);
+        this.vectorStore = await pineconeService.createVectorStore(this.embeddings, this.userId);
         console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId}`);
       } else {
         console.warn(`[${new Date().toISOString()}] Missing Pinecone API key - vector store not initialized`);

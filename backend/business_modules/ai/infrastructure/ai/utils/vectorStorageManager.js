@@ -1,5 +1,5 @@
 /**
- * ModernVectorStorageManager - Clean vector storage implementation
+ * VectorStorageManager - Clean vector storage implementation
  * 
  * Replaces the old vectorStorageManager with a modern implementation
  * that uses the centralized PineconeService for all vector operations.
@@ -7,7 +7,7 @@
 
 const PineconeService = require('../pinecone/PineconeService');
 
-class ModernVectorStorageManager {
+class VectorStorageManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.rateLimiter = options.rateLimiter || options.pineconeLimiter;
@@ -242,4 +242,4 @@ class ModernVectorStorageManager {
   }
 }
 
-module.exports = ModernVectorStorageManager;
+module.exports = VectorStorageManager;

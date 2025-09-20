@@ -31,8 +31,8 @@ async function testRefactoredPipelines() {
     console.log('🎉 All refactored pipeline tests passed!');
     console.log('📋 Architecture Summary:');
     console.log('   • aiLangchainAdapter: Clean interface, delegates to pipelines');
-    console.log('   • DataPreparationPipeline: Manages own PineconeService + ModernVectorStorageManager');
-    console.log('   • QueryPipeline: Manages own PineconeService + ModernVectorSearchOrchestrator');
+    console.log('   • DataPreparationPipeline: Manages own PineconeService + VectorStorageManager');
+    console.log('   • QueryPipeline: Manages own PineconeService + VectorSearchOrchestrator (modernized)');
     console.log('   • Separation of concerns: ✅ Achieved');
     
   } catch (error) {

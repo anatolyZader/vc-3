@@ -6,7 +6,7 @@
  */
 
 const PineconeService = require('./business_modules/ai/infrastructure/ai/pinecone/PineconeService');
-const ModernVectorStorageManager = require('./business_modules/ai/infrastructure/ai/vector/ModernVectorStorageManager');
+const VectorStorageManager = require('./business_modules/ai/infrastructure/ai/utils/vectorStorageManager');
 const ModernVectorSearchOrchestrator = require('./business_modules/ai/infrastructure/ai/search/ModernVectorSearchOrchestrator');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
@@ -78,14 +78,14 @@ class PineconeIntegrationTest {
   }
 
   async testVectorStorageManager() {
-    this.logger.info('Testing ModernVectorStorageManager...');
+    this.logger.info('Testing VectorStorageManager...');
     
     const embeddings = new OpenAIEmbeddings({
       model: 'text-embedding-3-large',
       apiKey: process.env.OPENAI_API_KEY
     });
     
-    const storageManager = new ModernVectorStorageManager({
+    const storageManager = new VectorStorageManager({
       embeddings
     });
     
@@ -130,7 +130,7 @@ class PineconeIntegrationTest {
       throw new Error('Namespace should contain vectors after storage');
     }
     
-    this.logger.success('ModernVectorStorageManager tests completed');
+    this.logger.success('VectorStorageManager tests completed');
   }
 
   async testVectorSearchOrchestrator() {
@@ -187,7 +187,7 @@ class PineconeIntegrationTest {
     });
     
     // Initialize services
-    const storageManager = new ModernVectorStorageManager({ embeddings });
+    const storageManager = new VectorStorageManager({ embeddings });
     const searchOrchestrator = new ModernVectorSearchOrchestrator({ embeddings });
     
     // Create more comprehensive test data
