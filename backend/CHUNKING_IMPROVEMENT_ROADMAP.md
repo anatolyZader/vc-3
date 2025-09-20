@@ -260,7 +260,7 @@ new pipeline().runImprovementPipeline().then(console.log);
 
 2. **Review the generated improvement reports** in:
    ```
-   business_modules/ai/infrastructure/ai/chunking_reports/
+   business_modules/ai/infrastructure/ai/langsmith/chunking_reports/
    ```
 
 3. **Enable enhanced chunking** by updating your repository processor configuration

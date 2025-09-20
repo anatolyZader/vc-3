@@ -13,7 +13,7 @@
 ## 📈 **IMPROVEMENT ANALYSIS LOCATIONS**
 
 ### 1️⃣ **Latest Improvement Reports**
-📂 **Location**: `business_modules/ai/infrastructure/ai/chunking_reports/`
+📂 **Location**: `business_modules/ai/infrastructure/ai/langsmith/chunking_reports/`
 
 **Recent Reports**:
 - `chunking-improvement-2025-09-12T15-11-21.json` - ⭐ **99/100 Quality**
@@ -86,7 +86,7 @@ node enhanced_chunking_monitor.js check
 ### **Option 3: View Latest Report**
 ```bash
 cd /home/myzader/eventstorm/backend
-cat business_modules/ai/infrastructure/ai/chunking_reports/chunking-improvement-*.json | jq .summary
+cat business_modules/ai/infrastructure/ai/langsmith/chunking_reports/chunking-improvement-*.json | jq .summary
 ```
 
 ### **Option 4: Monitor Service Status**
