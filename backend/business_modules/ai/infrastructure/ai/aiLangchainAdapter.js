@@ -10,7 +10,7 @@ const RequestQueue = require('./utils/requestQueue');
 const LLMProviderManager = require('./providers/lLMProviderManager');
 
 // Import the DataPreparationPipeline for handling repository processing
-const DataPreparationPipeline = require('./rag_pipelines/data_preparation/dataPreparationPipeline');
+const ContextPipeline = require('./rag_pipelines/context/contextPipeline');
 const QueryPipeline = require('./rag_pipelines/query/queryPipeline');
 
 // LangSmith tracing (optional)
@@ -78,7 +78,7 @@ class AILangchainAdapter extends IAIPort {
       this.enableTracing = process.env.LANGSMITH_TRACING === 'true';
       if (this.enableTracing) {
         console.log(`[${new Date().toISOString()}] [TRACE] LangSmith tracing enabled (adapter level)`);
-  console.log(`[${new Date().toISOString()}] [TRACE] LangSmith env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID} organizationName=${process.env.LANGSMITH_ORGANIZATION_NAME || 'n/a'}`);
+        console.log(`[${new Date().toISOString()}] [TRACE] LangSmith env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID} organizationName=${process.env.LANGSMITH_ORGANIZATION_NAME || 'n/a'}`);
       }
 
       // Attempt to wrap underlying OpenAI client if available & tracing enabled
@@ -103,8 +103,8 @@ class AILangchainAdapter extends IAIPort {
       this.vectorStore = null;
       console.log(`[${new Date().toISOString()}] [DEBUG] Vector store set to null (will be initialized after userId).`);
 
-      // Initialize DataPreparationPipeline for repository processing
-      this.dataPreparationPipeline = new DataPreparationPipeline({
+      // Initialize ContextPipeline for repository processing
+      this.contextPipeline = new ContextPipeline({
         embeddings: this.embeddings,
         eventBus: this.eventBus,
         pineconeLimiter: this.pineconeLimiter,
@@ -133,22 +133,40 @@ class AILangchainAdapter extends IAIPort {
 
     // Update vector store namespace with the user ID
     try {
-      // Initialize QueryPipeline with userId context
+      // Initialize vector store directly - adapter owns the vector store lifecycle
+      const ModernVectorSearchOrchestrator = require('./search/ModernVectorSearchOrchestrator');
+      const PineconeService = require('./pinecone/PineconeService');
+      
+      if (process.env.PINECONE_API_KEY) {
+        const pineconeService = new PineconeService({
+          rateLimiter: this.requestQueue?.pineconeLimiter
+        });
+        
+        const vectorSearchOrchestrator = new ModernVectorSearchOrchestrator({
+          embeddings: this.embeddings,
+          rateLimiter: this.requestQueue?.pineconeLimiter,
+          pineconeService: pineconeService
+        });
+        
+        // Adapter owns and manages the vector store
+        this.vectorStore = await vectorSearchOrchestrator.createVectorStore(this.userId);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId}`);
+      } else {
+        console.warn(`[${new Date().toISOString()}] Missing Pinecone API key - vector store not initialized`);
+        this.vectorStore = null;
+      }
+
+      // Initialize QueryPipeline without userId dependency - it will receive vectorStore as parameter
       this.queryPipeline = new QueryPipeline({
         embeddings: this.embeddings,
         llm: this.llm,
         eventBus: this.eventBus,
         requestQueue: this.requestQueue,
-        userId: this.userId, // Pass userId for namespace creation
         maxRetries: this.requestQueue.maxRetries
       });
       
-      // Get vectorStore from QueryPipeline
-      this.vectorStore = await this.queryPipeline.getVectorStore();
-      
       console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
-      console.log(`[${new Date().toISOString()}] [DEBUG] Vector store initialized for userId: ${this.userId}`);
-      console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized for userId: ${this.userId}`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized without userId dependency`);
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error creating vector store for user ${this.userId}:`, error.message);
       console.log(`[${new Date().toISOString()}] [DEBUG] Vector store creation error stack:`, error.stack);
