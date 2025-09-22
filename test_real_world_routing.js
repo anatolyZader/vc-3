@@ -1,7 +1,7 @@
 // test_real_world_routing.js
 "use strict";
 
-const ContentAwareSplitterRouter = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/ContentAwareSplitterRouter');
+const ContentAwareSplitterRouter = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/contentAwareSplitterRouter');
 const fs = require('fs').promises;
 const path = require('path');
 

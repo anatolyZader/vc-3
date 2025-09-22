@@ -17,15 +17,13 @@ module.exports = {
   // Export specialized processors for advanced usage
   processors: {
   SemanticPreprocessor: require('./data_preparation/processors/semanticPreprocessor'),
-  ASTCodeSplitter: require('./data_preparation/processors/aSTCodeSplitter'),
-  EnhancedASTCodeSplitter: require('./data_preparation/processors/EnhancedASTCodeSplitter'),
-  ContentAwareSplitterRouter: require('./data_preparation/processors/ContentAwareSplitterRouter'),
+  ASTCodeSplitter: require('./context/processors/astCodeSplitter'),
+  ContentAwareSplitterRouter: require('./context/processors/contentAwareSplitterRouter'), // REFACTORED: Now provides specialized splitting methods only
   UbiquitousLanguageEnhancer: require('./data_preparation/processors/ubiquitousLanguageEnhancer'),
   RepositoryManager: require('./data_preparation/processors/repositoryManager'),
   EmbeddingManager: require('./data_preparation/processors/embeddingManager'),
   ApiSpecProcessor: require('./data_preparation/processors/apiSpecProcessor'),
   DocsProcessor: require('./data_preparation/processors/markdownDocumentationProcessor'),
-  DocumentProcessor: require('./data_preparation/processors/documentProcessor'),
   OptimizedRepositoryProcessor: require('./data_preparation/processors/optimizedRepositoryProcessor')
   }
 };

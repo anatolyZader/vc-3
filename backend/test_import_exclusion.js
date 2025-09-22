@@ -1,4 +1,4 @@
-const CodePreprocessor = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/CodePreprocessor.js');
+const CodePreprocessor = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/codePreprocessor.js');
 
 const testCode = `
 import React, { useState, useEffect } from 'react';

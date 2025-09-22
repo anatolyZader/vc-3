@@ -1,7 +1,7 @@
 // test_content_aware_routing.js
 "use strict";
 
-const ContentAwareSplitterRouter = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/ContentAwareSplitterRouter');
+const ContentAwareSplitterRouter = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/contentAwareSplitterRouter');
 
 /**
  * Test the content-aware splitter router to verify it routes different file types correctly

@@ -3,7 +3,7 @@
 
 const ChunkQualityAnalyzer = require('../../langsmith/ChunkQualityAnalyzer');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
-const ASTCodeSplitter = require('../rag_pipelines/context/processors/astCodeSplitter');
+const ASTCodeSplitter = require('./astCodeSplitter');
 const fs = require('fs').promises;
 const path = require('path');
 

@@ -1,7 +1,7 @@
 // test_repository_processor_options.js
 // Test to verify RepositoryProcessor passes correct options to ContentAwareSplitterRouter
 
-const ContentAwareSplitterRouter = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/ContentAwareSplitterRouter');
+const ContentAwareSplitterRouter = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/contentAwareSplitterRouter');
 
 async function testOptionsMatching() {
   console.log('🧪 Testing ContentAwareSplitterRouter options matching');

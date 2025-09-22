@@ -23,6 +23,19 @@ jest.mock("@langchain/pinecone", () => ({
   }))
 }));
 
+// Mock PineconeService to return vector store with correct namespace
+jest.mock(
+  "../../../../business_modules/ai/infrastructure/ai/pinecone/PineconeService",
+  () => jest.fn().mockImplementation(() => ({
+    validateConfig: jest.fn(),
+    connect: jest.fn(async () => ({})),
+    createVectorStore: jest.fn(async (embeddings, namespace) => ({
+      namespace,
+      __pineconeStore__: true
+    }))
+  }))
+);
+
 // Mock provider manager to return a fake LLM
 jest.mock(
   "../../../../business_modules/ai/infrastructure/ai/providers/lLMProviderManager",
@@ -67,7 +80,7 @@ const mockDataPreparationPipeline = jest.fn().mockImplementation((opts) => ({
 }));
 
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/dataPreparationPipeline",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline",
   () => mockDataPreparationPipeline
 );
 
@@ -80,7 +93,12 @@ describe("AI business module integration: AILangchainAdapter", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
-    process.env = { ...OLD_ENV, OPENAI_API_KEY: "test-openai", PINECONE_API_KEY: "test-pc" };
+    process.env = { 
+      ...OLD_ENV, 
+      OPENAI_API_KEY: "test-openai", 
+      PINECONE_API_KEY: "test-pc",
+      PINECONE_INDEX_NAME: "test-index" 
+    };
   });
 
   afterAll(() => {

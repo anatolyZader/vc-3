@@ -1,8 +1,8 @@
 // test_chunking_improvements.js
 "use strict";
 
-const ChunkingImprovementPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/ChunkingImprovementPipeline');
-const ChunkQualityAnalyzer = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/analyzers/ChunkQualityAnalyzer');
+const ChunkingImprovementPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/chunkingImprovementPipeline');
+const ChunkQualityAnalyzer = require('./business_modules/ai/infrastructure/ai/langsmith/ChunkQualityAnalyzer');
 const EnhancedASTCodeSplitter = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/EnhancedASTCodeSplitter');
 
 /**

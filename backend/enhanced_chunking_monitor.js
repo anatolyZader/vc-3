@@ -1,7 +1,7 @@
 // enhanced_chunking_monitor.js
 "use strict";
 
-const ChunkingImprovementPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/ChunkingImprovementPipeline');
+const ChunkingImprovementPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/chunkingImprovementPipeline');
 const fs = require('fs').promises;
 const path = require('path');
 

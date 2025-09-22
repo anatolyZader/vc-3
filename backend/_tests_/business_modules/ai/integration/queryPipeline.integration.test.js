@@ -2,12 +2,34 @@
 
 const path = require("path");
 
+// Mock PineconeService to avoid PINECONE_API_KEY requirement
+jest.mock(
+  "../../../../business_modules/ai/infrastructure/ai/pinecone/PineconeService",
+  () => jest.fn().mockImplementation(() => ({
+    validateConfig: jest.fn(),
+    connect: jest.fn(async () => ({})),
+    createVectorStore: jest.fn(async () => ({})),
+    client: {
+      listIndexes: jest.fn(async () => ({ indexes: [{ name: 'eventstorm-index' }] })),
+      createIndex: jest.fn(async () => ({})),
+      index: jest.fn(() => ({}))
+    }
+  }))
+);
+
 // Mocks
 const mockVectorSearchOrchestrator = jest.fn().mockImplementation(() => ({
   performSearch: jest.fn(async () => ([
     { pageContent: "doc1", metadata: { source: "s1", type: "apiSpec" } },
     { pageContent: "doc2", metadata: { source: "s2", repoId: "r1" } }
-  ]))
+  ])),
+  isConnected: jest.fn(() => true),
+  searchSimilar: jest.fn(async () => ({
+    matches: [
+      { pageContent: "doc1", metadata: { source: "s1", type: "apiSpec" } },
+      { pageContent: "doc2", metadata: { source: "s2", repoId: "r1" } }
+    ]
+  }))
 }));
 
 jest.mock(
@@ -57,7 +79,7 @@ describe("QueryPipeline integration", () => {
   test("respondToPrompt indicates standard response when vector store missing", async () => {
     const qp = new QueryPipeline({ pinecone: {} });
     const out = await qp.respondToPrompt("u", "c", "question", [], null);
-    expect(out).toMatchObject({ success: true, useStandardResponse: true });
+    expect(out).toMatchObject({ success: true, ragEnabled: false });
   });
 
   test("generateStandardResponse returns non-RAG payload", async () => {

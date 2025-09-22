@@ -1,25 +1,12 @@
-// Import Pinecone services for querying
-const PineconeService = require('../../pinecone/PineconeService');
-
+// Import services for RAG pipeline
 const VectorSearchOrchestrator = require('./vectorSearchOrchestrator');
 const ContextBuilder = require('./contextBuilder');
 const ResponseGenerator = require('./responseGenerator');
 
-// Optional LangSmith tracing
 let traceable;
-try {
-  ({ traceable } = require('langsmith/traceable'));
-} catch (_) {
-  // silent if not installed
-}
 
-// Import trace archiver for automatic analysis archiving
 const TraceArchiver = require('../../langsmith/trace-archiver');
 
-/**
- * Consolidated QueryPipeline that handles all RAG query processing
- * Combines functionality from both QueryPipeline and RagResponseGenerator
- */
 class QueryPipeline {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
@@ -28,24 +15,17 @@ class QueryPipeline {
     this.userId = options.userId;
     this.eventBus = options.eventBus;
     
-    // Initialize Pinecone services for querying
-    if (process.env.PINECONE_API_KEY && this.userId) {
-      this.pineconeService = new PineconeService({
-        rateLimiter: options.requestQueue?.pineconeLimiter
-      });
-      
-      console.log(`[${new Date().toISOString()}] QueryPipeline: Pinecone search services initialized for user ${this.userId}`);
-    } else {
-      console.warn(`[${new Date().toISOString()}] QueryPipeline: Missing Pinecone API key or userId`);
-      this.pineconeService = null;
-    }
-    
-    // Initialize VectorSearchOrchestrator with modern implementation
-    this.vectorSearchOrchestrator = new VectorSearchOrchestrator(
-      this.vectorStore, 
-      this.pineconeService, 
-      this.embeddings
-    );
+    // Initialize vectorSearchOrchestrator with enhanced capabilities
+    this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
+      embeddings: this.embeddings,
+      rateLimiter: this.requestQueue?.pineconeLimiter,
+      apiKey: process.env.PINECONE_API_KEY,
+      indexName: process.env.PINECONE_INDEX_NAME,
+      region: process.env.PINECONE_REGION,
+      defaultTopK: 10,
+      defaultThreshold: 0.7,
+      maxResults: 50
+    });
     this.responseGenerator = new ResponseGenerator(this.llm, this.requestQueue);
     
     // Initialize trace archiver for automatic analysis archiving
@@ -210,18 +190,33 @@ class QueryPipeline {
 
   // Helper methods
   isVectorStoreAvailable(vectorStore) {
-    return vectorStore && this.pinecone;
+    return vectorStore && this.vectorSearchOrchestrator && this.vectorSearchOrchestrator.isConnected();
   }
 
   async performVectorSearch(prompt, vectorStore, traceData = null) {
     if (vectorStore !== this.vectorStore) {
-      // Create temporary search orchestrator for different vector store
-      const tempSearchOrchestrator = new VectorSearchOrchestrator(vectorStore, this.pinecone, this.embeddings);
-      const results = await tempSearchOrchestrator.performSearch(prompt);
+      // For different vector stores, we'll use advanced search with the modern orchestrator
+      // but search in a specific namespace if provided
+      const searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
+        namespace: vectorStore?.namespace || null,
+        topK: 10,
+        threshold: 0.7,
+        includeMetadata: true
+      });
+      
+      // Convert to legacy format for compatibility
+      const results = searchResults.matches.map(match => ({
+        pageContent: match.metadata?.text || match.metadata?.content || '',
+        metadata: {
+          ...match.metadata,
+          score: match.score,
+          id: match.id
+        }
+      }));
       
       if (traceData) {
         traceData.vectorStore = 'temporary';
-        traceData.searchStrategy = 'temp_orchestrator';
+        traceData.searchStrategy = 'modern_orchestrator_temp';
         traceData.chunks = this.captureChunkData(results);
       }
       
@@ -263,10 +258,26 @@ class QueryPipeline {
     
     if (traceData) {
       traceData.vectorStore = 'primary';
-      traceData.searchStrategy = 'vector_search_orchestrator';
+      traceData.searchStrategy = 'modern_vector_search_orchestrator';
     }
     
-    const results = await this.vectorSearchOrchestrator.performSearch(prompt);
+    // Use the modern orchestrator's enhanced search capabilities
+    const searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
+      namespace: this.userId,
+      topK: 10,
+      threshold: 0.7,
+      includeMetadata: true
+    });
+    
+    // Convert to legacy format for compatibility with rest of pipeline
+    const results = searchResults.matches.map(match => ({
+      pageContent: match.metadata?.text || match.metadata?.content || '',
+      metadata: {
+        ...match.metadata,
+        score: match.score,
+        id: match.id
+      }
+    }));
     
     if (traceData) {
       traceData.chunks = this.captureChunkData(results);

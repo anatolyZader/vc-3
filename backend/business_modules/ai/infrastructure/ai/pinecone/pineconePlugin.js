@@ -56,7 +56,7 @@ class PineconePlugin {
         rateLimiter: options.rateLimiter || options.pineconeLimiter
       });
 
-      await this.pineconeService.initialize(); // Ensure connection is established
+      await this.pineconeService.connect(); // Ensure connection is established
       
       this.isInitialized = true;
       console.log(`[${new Date().toISOString()}] PineconePlugin: Shared Pinecone service initialized successfully`);

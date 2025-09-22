@@ -104,13 +104,13 @@ function mockRequire(modulePath) {
       return MockEnhancedASTCodeSplitter;
     case './markdownDocumentationProcessor':
       return MockMarkdownDocumentationProcessor;
-    case './TokenBasedSplitter':
+    case './tokenBasedSplitter':
       return MockTokenBasedSplitter;
-    case './CodePreprocessor':
+    case './codePreprocessor':
       return MockCodePreprocessor;
-    case './TextPreprocessor':
+    case './textPreprocessor':
       return MockTextPreprocessor;
-    case './ChunkPostprocessor':
+    case './chunkPostprocessor':
       return MockChunkPostprocessor;
     case 'langchain/text_splitter':
       return {
@@ -126,7 +126,7 @@ function mockRequire(modulePath) {
 require = mockRequire;
 
 // Now load the ContentAwareSplitterRouter
-const ContentAwareSplitterRouter = originalRequire('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/ContentAwareSplitterRouter.js');
+const ContentAwareSplitterRouter = originalRequire('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/contentAwareSplitterRouter.js');
 
 // Restore original require
 require = originalRequire;

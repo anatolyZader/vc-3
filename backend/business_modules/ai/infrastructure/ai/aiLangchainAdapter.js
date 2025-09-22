@@ -112,6 +112,16 @@ class AILangchainAdapter extends IAIPort {
       });
       console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with embedded Pinecone services.`);
 
+      // Initialize QueryPipeline for basic functionality (will be enhanced when userId is set)
+      this.queryPipeline = new QueryPipeline({
+        embeddings: this.embeddings,
+        llm: this.llm,
+        eventBus: this.eventBus,
+        requestQueue: this.requestQueue,
+        maxRetries: this.requestQueue.maxRetries
+      });
+      console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized in constructor`);
+
       console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully`);
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error initializing AILangchainAdapter:`, error.message);
@@ -149,17 +159,22 @@ class AILangchainAdapter extends IAIPort {
         this.vectorStore = null;
       }
 
-      // Initialize QueryPipeline without userId dependency - it will receive vectorStore as parameter
-      this.queryPipeline = new QueryPipeline({
-        embeddings: this.embeddings,
-        llm: this.llm,
-        eventBus: this.eventBus,
-        requestQueue: this.requestQueue,
-        maxRetries: this.requestQueue.maxRetries
-      });
+      // Update QueryPipeline with userId and vectorStore (if not already created)
+      if (!this.queryPipeline) {
+        this.queryPipeline = new QueryPipeline({
+          embeddings: this.embeddings,
+          llm: this.llm,
+          eventBus: this.eventBus,
+          requestQueue: this.requestQueue,
+          maxRetries: this.requestQueue.maxRetries
+        });
+        console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline created in setUserId`);
+      } else {
+        console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline already exists, updating with userId`);
+      }
       
       console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
-      console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized without userId dependency`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline ready for userId: ${this.userId}`);
     } catch (error) {
       console.error(`[${new Date().toISOString()}] Error creating vector store for user ${this.userId}:`, error.message);
       console.log(`[${new Date().toISOString()}] [DEBUG] Vector store creation error stack:`, error.stack);
@@ -187,9 +202,9 @@ class AILangchainAdapter extends IAIPort {
     }
 
     try {
-      console.log(`[${new Date().toISOString()}] � RAG REPO: Delegating to DataPreparationPipeline with ubiquitous language support`);
+      console.log(`[${new Date().toISOString()}] � RAG REPO: Delegating to ContextPipeline with ubiquitous language support`);
       
-      const result = await this.dataPreparationPipeline.processPushedRepo(userId, repoId, repoData);
+      const result = await this.contextPipeline.processPushedRepo(userId, repoId, repoData);
       
       // Emit success status
       this.emitRagStatus('processing_completed', {

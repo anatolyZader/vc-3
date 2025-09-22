@@ -173,7 +173,7 @@ async function testFallbackSplit() {
   
   try {
     // Load the actual ContentAwareSplitterRouter to test fallbackSplit
-    const routerPath = './backend/business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/processors/ContentAwareSplitterRouter.js';
+    const routerPath = './backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/contentAwareSplitterRouter.js';
     
     // Check syntax
     const content = fs.readFileSync(routerPath, 'utf-8');
