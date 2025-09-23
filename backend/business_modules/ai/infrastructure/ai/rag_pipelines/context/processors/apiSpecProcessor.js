@@ -253,7 +253,7 @@ class ApiSpecProcessor {
     }
 
     try {
-      const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
       const vectorStore = new PineconeStore(this.embeddings, {
         pineconeIndex: index,
         namespace: namespace

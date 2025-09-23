@@ -419,7 +419,7 @@ class RepoProcessorUtils {
           allChunks.push(...chunks);
         } else if (this.semanticPreprocessor) {
           console.log(`[${new Date().toISOString()}] 📄 FALLBACK: Processing ${source} with semantic preprocessor`);
-          const processed = await this.semanticPreprocessor.processDocument(document);
+          const processed = await this.semanticPreprocessor.preprocessChunk(document);
           allChunks.push(processed);
         } else {
           console.log(`[${new Date().toISOString()}] 📝 FALLBACK: No processors available, returning document as-is`);

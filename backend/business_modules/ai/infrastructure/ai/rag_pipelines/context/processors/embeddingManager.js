@@ -39,7 +39,7 @@ class EmbeddingManager {
     console.log(`[${new Date().toISOString()}] 🎯 STORAGE STRATEGY: Using namespace '${namespace}' for data isolation and generating unique IDs for ${documents.length} chunks from ${githubOwner}/${repoName}`);
 
     try {
-      const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
       const vectorStore = new PineconeStore(this.embeddings, {
         pineconeIndex: index,
         namespace: namespace // Could be userId for user docs or 'core-docs' for system docs
@@ -113,7 +113,7 @@ class EmbeddingManager {
     // Store in Pinecone with user-specific namespace
     if (this.pinecone) {
       try {
-        const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+        const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
         const vectorStore = new PineconeStore(this.embeddings, {
           pineconeIndex: index,
           namespace: userId // User-specific namespace

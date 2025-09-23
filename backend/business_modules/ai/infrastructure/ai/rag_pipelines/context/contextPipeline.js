@@ -95,8 +95,11 @@ class ContextPipeline {
     });
 
     // Get the shared Pinecone service from the connection manager for vector operations
-    this.pineconeService = this.pineconeManager?.getPineconeService();
-    this.pinecone = this.pineconeService; // For backward compatibility
+    this.pineconeService = null;
+    this.pinecone = null; // For backward compatibility
+    
+    // Initialize async - will be set when processPushedRepo is called
+    this._initializePineconeAsync();
     
     console.log(`[${new Date().toISOString()}] ✅ PIPELINE READY: DataPreparationPipeline initialized with modular architecture`);
 
@@ -118,6 +121,31 @@ class ContextPipeline {
         console.warn(`[${new Date().toISOString()}] [TRACE] Failed to enable ContextPipeline tracing: ${err.message}`);
       }
     }
+  }
+
+  /**
+   * Initialize Pinecone service asynchronously
+   */
+  async _initializePineconeAsync() {
+    try {
+      this.pineconeService = await this.pineconeManager?.getPineconeService();
+      this.pinecone = this.pineconeService; // For backward compatibility
+      console.log(`[${new Date().toISOString()}] ✅ PINECONE: Async initialization completed`);
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ PINECONE: Async initialization failed:`, error.message);
+      this.pineconeService = null;
+      this.pinecone = null;
+    }
+  }
+
+  /**
+   * Ensure Pinecone is initialized before use
+   */
+  async _ensurePineconeInitialized() {
+    if (!this.pinecone) {
+      await this._initializePineconeAsync();
+    }
+    return this.pinecone;
   }
 
   /**
@@ -324,7 +352,7 @@ class ContextPipeline {
   async processGenericDocument(document) {
     console.log(`[${new Date().toISOString()}] 📄 GENERIC PROCESSING: Using semantic preprocessor`);
     // Use semantic preprocessor for generic documents
-    const processed = await this.semanticPreprocessor.processDocument(document);
+    const processed = await this.semanticPreprocessor.preprocessChunk(document);
     return [processed]; // Return as array for consistency
   }
 
@@ -411,8 +439,9 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 🔑 COMMIT DETECTED: ${commitInfo.hash.substring(0, 8)} - ${commitInfo.subject}`);
 
       // Step 2: Enhanced duplicate check with commit hash comparison
+      const pineconeClient = await this._ensurePineconeInitialized();
       const existingRepo = await this.repoSelectionManager.findExistingRepo(
-        userId, repoId, githubOwner, repoName, commitInfo.hash
+        userId, repoId, githubOwner, repoName, commitInfo.hash, pineconeClient
       );
       
       if (existingRepo) {
@@ -493,7 +522,7 @@ class ContextPipeline {
       if (clearFirst && this.embeddingManager.pinecone) {
         console.log(`[${new Date().toISOString()}] 🧹 CORE DOCS: Clearing existing docs in namespace '${namespace}'`);
         try {
-          const index = this.embeddingManager.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+          const index = this.embeddingManager.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
           await index.namespace(namespace).deleteAll();
           console.log(`[${new Date().toISOString()}] ✅ CORE DOCS: Successfully cleared namespace '${namespace}'`);
         } catch (clearError) {
@@ -593,9 +622,10 @@ class ContextPipeline {
       const result = await this.repoProcessor.processFilteredDocuments(changedDocuments, namespace, newCommitInfo, true);
       
       // Step 5: Update repository tracking
+      const pineconeClient = await this._ensurePineconeInitialized();
       await this.repoSelectionManager.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, newCommitInfo, 
-        namespace, this.pinecone, this.embeddings
+        namespace, pineconeClient, this.embeddings
       );
 
       return {
@@ -633,9 +663,10 @@ class ContextPipeline {
       const result = await this.repoProcessor.processFilteredDocuments(documents, namespace, commitInfo, false);
       
       // Step 3: Store repository tracking info for future duplicate detection
+      const pineconeClient2 = await this._ensurePineconeInitialized();
       await this.repoSelectionManager.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, commitInfo, 
-        namespace, this.pinecone, this.embeddings
+        namespace, pineconeClient2, this.embeddings
       );
 
       return {
@@ -699,9 +730,10 @@ class ContextPipeline {
       );
       
       // Update repository tracking info
+      const pineconeClient3 = await this._ensurePineconeInitialized();
       await this.repoSelectionManager.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, commitInfo, 
-        namespace, this.pinecone, this.embeddings
+        namespace, pineconeClient3, this.embeddings
       );
       
       // Cleanup temp directory
@@ -744,7 +776,7 @@ class ContextPipeline {
     }
 
     try {
-      const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
       
       // Create vector IDs for changed files (matching the pattern used in EmbeddingManager)
       const vectorIdsToDelete = [];

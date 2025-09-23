@@ -73,24 +73,36 @@ class RepoSelectionManager {
   /**
    * Check if repository already exists and compare commit hashes
    */
-  async findExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash = null, pinecone = null) {
+  async findExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash = null, pineconeOrService = null) {
     console.log(`[${new Date().toISOString()}] 🔍 ENHANCED DUPLICATE CHECK: Querying for existing repository data with commit hash comparison`);
     console.log(`[${new Date().toISOString()}] 🎯 This optimization now checks both repository identity AND commit hashes to detect actual changes`);
     
     console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Checking for existing repo: ${githubOwner}/${repoName} with commit: ${currentCommitHash?.substring(0, 8) || 'unknown'}`);
     
-    if (!pinecone || !currentCommitHash) {
+    if (!pineconeOrService || !currentCommitHash) {
       console.log(`[${new Date().toISOString()}] ⚠️ FALLBACK: Missing pinecone client or commit hash - defaulting to safe mode (always process)`);
       return false;
     }
 
     try {
       const namespace = this.sanitizeId(`${githubOwner}_${repoName}_main`);
-      const index = pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      
+      // Handle both PineconeService and raw Pinecone client
+      let index;
+      if (pineconeOrService.client && typeof pineconeOrService.connect === 'function') {
+        // This is a PineconeService wrapper - ensure it's connected and use its client
+        await pineconeOrService.connect();
+        index = pineconeOrService.client.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      } else if (typeof pineconeOrService.index === 'function') {
+        // This is a raw Pinecone client
+        index = pineconeOrService.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      } else {
+        throw new Error('Invalid pinecone client or service provided');
+      }
       
       // Query for repository metadata with this specific repo
       const queryResponse = await index.namespace(namespace).query({
-        vector: new Array(1536).fill(0), // Dummy vector for metadata-only search
+        vector: new Array(3072).fill(0), // Dummy vector for metadata-only search (text-embedding-3-large dimensions)
         topK: 1,
         includeMetadata: true,
         filter: {
@@ -146,14 +158,25 @@ class RepoSelectionManager {
   /**
    * Store repository tracking metadata in Pinecone
    */
-  async storeRepositoryTrackingInfo(userId, repoId, githubOwner, repoName, commitInfo, namespace, pinecone, embeddings) {
-    if (!pinecone || !embeddings) {
+  async storeRepositoryTrackingInfo(userId, repoId, githubOwner, repoName, commitInfo, namespace, pineconeOrService, embeddings) {
+    if (!pineconeOrService || !embeddings) {
       console.warn(`[${new Date().toISOString()}] ⚠️ Cannot store repository tracking: missing pinecone or embeddings`);
       return;
     }
 
     try {
-      const index = pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      // Handle both PineconeService and raw Pinecone client
+      let index;
+      if (pineconeOrService.client && typeof pineconeOrService.connect === 'function') {
+        // This is a PineconeService wrapper - ensure it's connected and use its client
+        await pineconeOrService.connect();
+        index = pineconeOrService.client.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      } else if (typeof pineconeOrService.index === 'function') {
+        // This is a raw Pinecone client
+        index = pineconeOrService.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      } else {
+        throw new Error('Invalid pinecone client or service provided');
+      }
       
       // Create a dummy embedding for the tracking record
       const trackingText = `Repository tracking for ${githubOwner}/${repoName} at commit ${commitInfo.hash}`;

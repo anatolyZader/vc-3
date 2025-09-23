@@ -3,8 +3,18 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const { MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
+const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { PineconeStore } = require('@langchain/pinecone');
+
+// Import MarkdownTextSplitter from the textsplitters package (no header-based splitting available)
+let MarkdownTextSplitter;
+try {
+  MarkdownTextSplitter = require('@langchain/textsplitters').MarkdownTextSplitter;
+  console.log(`[${new Date().toISOString()}] ✅ MarkdownTextSplitter loaded successfully from @langchain/textsplitters`);
+} catch (error) {
+  console.warn(`[${new Date().toISOString()}] ⚠️ MarkdownTextSplitter not available, using RecursiveCharacterTextSplitter as fallback`);
+  MarkdownTextSplitter = null;
+}
 
 /**
  * Dedicated processor for Markdown documentation files
@@ -359,46 +369,36 @@ class DocsProcessor {
    * Split a single markdown document using header-based strategy
    */
   async splitSingleMarkdownDocument(doc) {
-    // Try header-based splitting first
-    const headerSplitter = new MarkdownHeaderTextSplitter({
-      headersToSplitOn: [
-        ["#", "Header 1"],
-        ["##", "Header 2"], 
-        ["###", "Header 3"],
-        ["####", "Header 4"]
-      ],
-      stripHeaders: false
+    // Check if MarkdownTextSplitter is available
+    if (!MarkdownTextSplitter) {
+      console.log(`[${new Date().toISOString()}] ⚠️ MarkdownTextSplitter not available, using fallback for ${doc.metadata.source}`);
+      return await this.fallbackSplitDocument(doc);
+    }
+
+    // Use MarkdownTextSplitter for markdown-aware splitting
+    const markdownSplitter = new MarkdownTextSplitter({
+      chunkSize: 1500,
+      chunkOverlap: 200
     });
 
     try {
-      const chunks = await headerSplitter.splitDocuments([doc]);
+      const chunks = await markdownSplitter.splitDocuments([doc]);
       
-      // If header splitting produces very large chunks, further split them
-      const refinedChunks = [];
-      for (const chunk of chunks) {
-        if (chunk.pageContent.length > 2000) {
-          const subChunks = await this.furtherSplitLargeChunk(chunk);
-          refinedChunks.push(...subChunks);
-        } else {
-          refinedChunks.push(chunk);
-        }
-      }
-
       // Add chunk metadata
-      return refinedChunks.map((chunk, index) => ({
+      return chunks.map((chunk, index) => ({
         ...chunk,
         metadata: {
           ...doc.metadata,
           ...chunk.metadata,
           chunk_index: index,
-          chunk_type: 'markdown_header',
-          total_chunks: refinedChunks.length,
-          splitting_method: 'header_based'
+          chunk_type: 'markdown',
+          total_chunks: chunks.length,
+          splitting_method: 'markdown_aware'
         }
       }));
 
     } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ MARKDOWN: Header splitting failed for ${doc.metadata.source}, using fallback`);
+      console.warn(`[${new Date().toISOString()}] ⚠️ MARKDOWN: Markdown splitting failed for ${doc.metadata.source}, using fallback`);
       return await this.fallbackSplitDocument(doc);
     }
   }
@@ -460,7 +460,7 @@ class DocsProcessor {
     }
 
     try {
-      const index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
       const vectorStore = new PineconeStore(this.embeddings, {
         pineconeIndex: index,
         namespace: namespace
@@ -537,15 +537,20 @@ class DocsProcessor {
     }
 
     if (hasMarkdownFiles) {
-      console.log(`[${new Date().toISOString()}] 📝 SMART SPLITTING: Using header-aware splitting for markdown documents`);
-      return new MarkdownHeaderTextSplitter({
-        headersToSplitOn: [
-          ["#", "Header 1"],
-          ["##", "Header 2"], 
-          ["###", "Header 3"],
-          ["####", "Header 4"]
-        ],
-        stripHeaders: false
+      console.log(`[${new Date().toISOString()}] 📝 SMART SPLITTING: Using markdown-aware splitting for markdown documents`);
+      
+      if (!MarkdownTextSplitter) {
+        console.log(`[${new Date().toISOString()}] ⚠️ MarkdownTextSplitter not available, using RecursiveCharacterTextSplitter as fallback`);
+        return new RecursiveCharacterTextSplitter({
+          chunkSize: 1500,
+          chunkOverlap: 250,
+          separators: ["\n\n", "\n", " ", ""]
+        });
+      }
+      
+      return new MarkdownTextSplitter({
+        chunkSize: 1500,
+        chunkOverlap: 250
       });
     }
 
