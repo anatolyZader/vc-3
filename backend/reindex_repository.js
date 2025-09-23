@@ -29,13 +29,14 @@ async function reindexRepository() {
         
         console.log('✅ AI adapter initialized');
         
-        // Set user ID for the repository namespace
-        const userId = 'anatolyzader_vc-3_main'; // Repository namespace
-        console.log(`🎯 Setting user ID: ${userId}`);
-        await aiAdapter.setUserId(userId);
+        // Set the correct user ID that matches the UUID from logs
+        const correctUserId = 'd41402df-182a-41ec-8f05-153118bf2718';
+        console.log(`🎯 Setting user ID to: ${correctUserId}`);
+        aiAdapter.setUserId(correctUserId);
         
         // Repository data
         const repoId = 'anatolyZader/vc-3';
+        // Prepare repository data - force reprocessing by using a new timestamp
         const repoData = {
             url: 'https://github.com/anatolyZader/vc-3',
             branch: 'main',
@@ -43,7 +44,7 @@ async function reindexRepository() {
             repoName: 'vc-3',
             description: 'EventStorm repository - reindexing for RAG',
             timestamp: new Date().toISOString(),
-            source: 'manual-reindex'
+            source: 'manual-reindex-namespace-fix'
         };
         
         console.log(`📦 Processing repository: ${repoId}`);
@@ -54,7 +55,7 @@ async function reindexRepository() {
         console.log('🔄 Starting repository processing...');
         const startTime = Date.now();
         
-        const result = await aiAdapter.processPushedRepo(userId, repoId, repoData);
+        const result = await aiAdapter.processPushedRepo(correctUserId, repoId, repoData);
         
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
         

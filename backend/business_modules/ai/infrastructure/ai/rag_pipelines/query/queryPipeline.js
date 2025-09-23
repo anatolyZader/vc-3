@@ -23,7 +23,7 @@ class QueryPipeline {
       indexName: process.env.PINECONE_INDEX_NAME,
       region: process.env.PINECONE_REGION,
       defaultTopK: 10,
-      defaultThreshold: 0.7,
+      defaultThreshold: 0.4,
       maxResults: 50
     });
     this.responseGenerator = new ResponseGenerator(this.llm, this.requestQueue);
@@ -200,7 +200,7 @@ class QueryPipeline {
       const searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
         namespace: vectorStore?.namespace || null,
         topK: 10,
-        threshold: 0.7,
+        threshold: 0.4,
         includeMetadata: true
       });
       
@@ -265,7 +265,7 @@ class QueryPipeline {
     const searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
       namespace: this.userId,
       topK: 10,
-      threshold: 0.7,
+      threshold: 0.4,
       includeMetadata: true
     });
     
