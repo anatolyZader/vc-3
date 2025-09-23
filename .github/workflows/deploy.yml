@@ -406,7 +406,7 @@ jobs:
           )
           
           echo "Publishing to Pub/Sub topic..."
-          echo "$PAYLOAD" | gcloud pubsub topics publish git-topic --project=${GCP_PROJECT_ID}
+          gcloud pubsub topics publish git-topic --message="$PAYLOAD" --project=${GCP_PROJECT_ID}
 
       - name: Publish docsDocsUpdated event
         env:
