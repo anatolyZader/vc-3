@@ -342,10 +342,6 @@ class PineconeService {
         includeValues
       };
 
-      if (namespace) {
-        queryOptions.namespace = namespace;
-      }
-
       if (filter) {
         queryOptions.filter = filter;
       }
@@ -356,7 +352,9 @@ class PineconeService {
         hasFilter: !!filter
       });
 
-      const results = await index.query(queryOptions);
+      // Use namespace method if namespace is provided
+      const queryTarget = namespace ? index.namespace(namespace) : index;
+      const results = await queryTarget.query(queryOptions);
       
       this.logger.debug(`Query returned ${results.matches?.length || 0} matches`);
       

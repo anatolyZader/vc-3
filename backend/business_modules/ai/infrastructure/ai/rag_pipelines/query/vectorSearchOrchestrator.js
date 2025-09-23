@@ -10,21 +10,40 @@ const PineconeService = require('../../pinecone/PineconeService');
 const VectorSearchStrategy = require('./vectorSearchStrategy');
 
 class VectorSearchOrchestrator {
-  constructor(vectorStore, pinecone, embeddings) {
-    // Legacy interface compatibility
-    this.vectorStore = vectorStore;
-    this.pinecone = pinecone;
-    this.embeddings = embeddings;
+  constructor(options = {}) {
+    // Handle both legacy and modern initialization patterns
+    if (typeof options === 'object' && !options.embedQuery) {
+      // Modern options object pattern
+      this.vectorStore = options.vectorStore || null;
+      this.pinecone = options.pinecone || null;
+      this.embeddings = options.embeddings;
+      this.defaultTopK = options.defaultTopK || 10;
+      this.defaultThreshold = options.defaultThreshold || 0.4;
+      this.maxResults = options.maxResults || 50;
+    } else {
+      // Legacy positional arguments pattern: (vectorStore, pinecone, embeddings)
+      this.vectorStore = arguments[0];
+      this.pinecone = arguments[1];  
+      this.embeddings = arguments[2];
+      this.defaultTopK = 10;
+      this.defaultThreshold = 0.4;
+      this.maxResults = 50;
+    }
     
     // Initialize PineconeService for modern functionality
     this.pineconeService = new PineconeService({
-      rateLimiter: embeddings?.rateLimiter
+      rateLimiter: this.embeddings?.rateLimiter
+    });
+
+        // Initialize PineconeService for modern functionality
+    this.pineconeService = new PineconeService({
+      rateLimiter: this.embeddings?.rateLimiter
     });
 
     // Search configuration
-    this.defaultTopK = 10;
-    this.defaultThreshold = 0.7;
-    this.maxResults = 50;
+    this.defaultTopK = this.defaultTopK || 10;
+    this.defaultThreshold = this.defaultThreshold || 0.4;
+    this.maxResults = this.maxResults || 50;
 
     this.logger = {
       info: (msg, ...args) => console.log(`[${new Date().toISOString()}] [VectorSearch] ${msg}`, ...args),
@@ -36,6 +55,18 @@ class VectorSearchOrchestrator {
         }
       }
     };
+
+    // Initialize connection to Pinecone
+    this._initializeConnection();
+  }
+
+  async _initializeConnection() {
+    try {
+      await this.pineconeService.connect();
+      this.logger.debug('VectorSearchOrchestrator connected to Pinecone');
+    } catch (error) {
+      this.logger.error('Failed to connect VectorSearchOrchestrator to Pinecone:', error.message);
+    }
   }
 
   /**
@@ -52,7 +83,7 @@ class VectorSearchOrchestrator {
       const searchResults = await this.searchSimilar(prompt, {
         namespace: this.vectorStore?.namespace || null,
         topK: searchStrategy.codeResults + searchStrategy.docsResults,
-        threshold: 0.7,
+        threshold: this.defaultThreshold,
         includeMetadata: true
       });
 
