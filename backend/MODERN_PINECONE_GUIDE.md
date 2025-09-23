@@ -117,7 +117,7 @@ const results = await searchOrchestrator.searchSimilar(
   {
     namespace: 'user-123',
     topK: 10,
-    threshold: 0.7
+    threshold: 0.4
   }
 );
 

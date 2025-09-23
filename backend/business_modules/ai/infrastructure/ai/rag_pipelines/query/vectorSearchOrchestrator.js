@@ -353,7 +353,7 @@ class VectorSearchOrchestrator {
     semanticResults.matches?.forEach(match => {
       combined.set(match.id, {
         ...match,
-        combinedScore: match.score * 0.7, // Semantic weight
+        combinedScore: match.score * 0.4, // Semantic weight
         sources: ['semantic']
       });
     });

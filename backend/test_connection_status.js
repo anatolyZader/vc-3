@@ -24,7 +24,7 @@ async function testConnectionStatus() {
             indexName: 'eventstorm-index',
             region: 'us-central1',
             defaultTopK: 5,
-            defaultThreshold: 0.7,
+            defaultThreshold: 0.4,
             maxResults: 50
         });
         

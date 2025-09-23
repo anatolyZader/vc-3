@@ -4,7 +4,7 @@
  */
 class ChunkPostprocessor {
   constructor() {
-    this.minChunkQuality = 0.7;
+    this.minChunkQuality = 0.4;
     this.maxSimilarityThreshold = 0.95;
   }
 

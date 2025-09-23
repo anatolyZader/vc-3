@@ -96,7 +96,7 @@ Based on your RAG pipeline architecture analysis, here's my comprehensive prepro
 - Cross-reference related chunks
 
 // 2. Quality Filtering
-- Remove chunks with quality score < 0.7
+- Remove chunks with quality score < 0.4
 - Filter out excessive comment-only chunks
 - Remove chunks with too much whitespace
 - Eliminate very short, meaningless chunks

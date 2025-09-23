@@ -365,15 +365,48 @@ jobs:
             backend/ARCHITECTURE.md
           retention-days: 30
 
-      - name: Publish repoPushed event
+      - name: Publish repoPushed event for RAG reindexing
         env:
           GCP_PROJECT_ID: ${{ env.GCP_PROJECT }}
-          USER_ID: 'github-actions'
+          # Use the actual user namespace that matches the chat interface
+          USER_ID: 'd41402df-182a-41ec-8f05-153118bf2718'
           REPO_ID: ${{ github.repository }}
           REPO_URL: "https://github.com/${{ github.repository }}"
           BRANCH: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          GITHUB_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          gcloud pubsub topics publish git-topic --message '{"event":"repoPushed","payload":{"userId":"'"$USER_ID"'","repoId":"'"$REPO_ID"'","repoData":{"url":"'"$REPO_URL"'","branch":"'"$BRANCH"'"}}}' --project=${GCP_PROJECT_ID}
+          echo "🚀 Publishing repoPushed event for RAG reindexing..."
+          echo "User ID: $USER_ID"
+          echo "Repository: $REPO_ID"
+          echo "Branch: $BRANCH"
+          echo "Commit: $COMMIT_SHA"
+          
+          # Enhanced payload for RAG processing
+          PAYLOAD=$(cat << EOF
+          {
+            "event": "repoPushed",
+            "payload": {
+              "userId": "$USER_ID",
+              "repoId": "$REPO_ID",
+              "repoData": {
+                "url": "$REPO_URL",
+                "branch": "$BRANCH",
+                "githubOwner": "$GITHUB_OWNER",
+                "repoName": "$REPO_NAME",
+                "commitHash": "$COMMIT_SHA",
+                "description": "EventStorm repository - automatic RAG reindexing via GitHub Actions",
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
+                "source": "github-actions-deployment"
+              }
+            }
+          }
+          EOF
+          )
+          
+          echo "Publishing to Pub/Sub topic..."
+          echo "$PAYLOAD" | gcloud pubsub topics publish git-topic --message-encoding=text --project=${GCP_PROJECT_ID}
 
       - name: Publish docsDocsUpdated event
         env:
