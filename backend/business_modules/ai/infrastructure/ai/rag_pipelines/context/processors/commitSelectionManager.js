@@ -74,7 +74,16 @@ class CommitSelectionManager {
       }
     }
     
-    throw new Error('Failed to retrieve commit information using any available method');
+    // Final fallback: return synthetic commit info to allow processing to continue
+    console.log(`[${new Date().toISOString()}] 🔄 FINAL FALLBACK: Using synthetic commit info to allow repository processing`);
+    return {
+      hash: 'synthetic-' + Date.now(),
+      subject: 'Repository processed without commit tracking',
+      message: 'Repository processed without commit tracking due to GitHub API/Git unavailability',
+      author: 'automated-processor',
+      email: 'no-reply@eventstorm.me',
+      date: new Date().toISOString()
+    };
   }
 
   /**
@@ -169,7 +178,14 @@ class CommitSelectionManager {
       return commitInfo;
 
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Error fetching commit info from GitHub API:`, error);
+      console.error(`[${new Date().toISOString()}] ❌ Error fetching commit info from GitHub API:`, error.message);
+      if (error.status === 401) {
+        console.error(`[${new Date().toISOString()}] 🔑 GitHub API authentication failed - token may be expired or invalid`);
+      } else if (error.status === 403) {
+        console.error(`[${new Date().toISOString()}] 🚫 GitHub API rate limit exceeded or insufficient permissions`);
+      } else if (error.status === 404) {
+        console.error(`[${new Date().toISOString()}] 🔍 Repository not found - check owner/repo/branch names`);
+      }
       return null; // Fallback to local git
     }
   }
