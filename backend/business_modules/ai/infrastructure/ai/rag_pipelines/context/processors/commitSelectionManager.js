@@ -135,21 +135,19 @@ class CommitSelectionManager {
         return null;
       }
 
-      // Simple fetch to GitHub API to get latest commit
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branch}`, {
-        headers: {
-          'Authorization': `token ${githubToken}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'eventstorm-rag-processor'
-        }
+      // Use Octokit REST API client (more reliable than fetch)
+      const { Octokit } = require('@octokit/rest');
+      const octokit = new Octokit({
+        auth: githubToken,
       });
 
-      if (!response.ok) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ GitHub API request failed: ${response.status} ${response.statusText}`);
-        return null;
-      }
+      // Get branch information which includes latest commit
+      const { data: branchData } = await octokit.rest.repos.getBranch({
+        owner,
+        repo,
+        branch
+      });
 
-      const branchData = await response.json();
       const commit = branchData.commit;
 
       if (!commit) {
@@ -167,7 +165,7 @@ class CommitSelectionManager {
         url: commit.html_url
       };
 
-      console.log(`[${new Date().toISOString()}] ✅ Got commit info via GitHub API: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
+      console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
       return commitInfo;
 
     } catch (error) {
