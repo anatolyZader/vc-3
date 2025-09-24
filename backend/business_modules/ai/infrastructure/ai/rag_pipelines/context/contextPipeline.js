@@ -478,6 +478,18 @@ class ContextPipeline {
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Error in orchestration for repository ${repoId}:`, error.message);
       
+      // CRITICAL FALLBACK: Try direct GitHub API document loading when orchestration fails
+      console.log(`[${new Date().toISOString()}] 🆘 FALLBACK: Attempting direct GitHub API document loading`);
+      try {
+        const result = await this.processRepositoryDirectFallback(userId, repoId, url, branch, githubOwner, repoName);
+        if (result.success) {
+          console.log(`[${new Date().toISOString()}] ✅ FALLBACK SUCCESS: Direct GitHub API processing completed`);
+          return result;
+        }
+      } catch (fallbackError) {
+        console.error(`[${new Date().toISOString()}] ❌ FALLBACK FAILED:`, fallbackError.message);
+      }
+      
       this.eventManager.emitProcessingError(userId, repoId, error, 'repository_orchestration');
       
       return {
@@ -804,6 +816,70 @@ class ContextPipeline {
 
   emitRagStatus(status, details = {}) {
     return this.eventManager.emitRagStatus(status, details);
+  }
+
+  /**
+   * EMERGENCY FALLBACK: Direct GitHub API document loading when all else fails
+   */
+  async processRepositoryDirectFallback(userId, repoId, repoUrl, branch, githubOwner, repoName) {
+    console.log(`[${new Date().toISOString()}] 🆘 DIRECT FALLBACK: Processing repository without commit tracking or git operations`);
+    
+    try {
+      // Create synthetic commit info
+      const fallbackCommitInfo = {
+        hash: 'fallback-' + Date.now(),
+        subject: 'Direct API processing - no commit tracking',
+        message: 'Repository processed via direct GitHub API fallback',
+        author: 'automated-fallback-processor',
+        email: 'fallback@eventstorm.me',
+        date: new Date().toISOString()
+      };
+
+      // Load documents directly using LangChain GitHub API loader
+      console.log(`[${new Date().toISOString()}] 📥 DIRECT API: Loading documents via LangChain GithubRepoLoader`);
+      const documents = await this.repoProcessor.loadDocumentsWithLangchain(
+        repoUrl, branch, githubOwner, repoName, fallbackCommitInfo
+      );
+
+      if (!documents || documents.length === 0) {
+        throw new Error('No documents loaded via direct GitHub API');
+      }
+
+      console.log(`[${new Date().toISOString()}] ✅ DIRECT API: Loaded ${documents.length} documents`);
+
+      // Process documents directly
+      const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const result = await this.repoProcessor.processFilteredDocuments(
+        documents, namespace, fallbackCommitInfo, false
+      );
+
+      console.log(`[${new Date().toISOString()}] ✅ DIRECT FALLBACK SUCCESS: Processed ${result.documentsProcessed || 0} documents`);
+
+      // Store basic tracking info
+      const pineconeClient = await this._ensurePineconeInitialized();
+      await this.repoSelectionManager.storeRepositoryTrackingInfo(
+        userId, repoId, githubOwner, repoName, fallbackCommitInfo, 
+        namespace, pineconeClient, this.embeddings
+      );
+
+      this.eventManager.emitProcessingCompleted(userId, repoId, result);
+
+      return {
+        success: true,
+        message: 'Direct GitHub API fallback processing completed',
+        totalDocuments: result.documentsProcessed || 0,
+        totalChunks: result.chunksGenerated || 0,
+        commitHash: fallbackCommitInfo.hash,
+        commitInfo: fallbackCommitInfo,
+        userId, repoId, githubOwner, repoName,
+        namespace,
+        processingType: 'direct-api-fallback'
+      };
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ DIRECT FALLBACK FAILED:`, error.message);
+      throw error;
+    }
   }
 }
 
