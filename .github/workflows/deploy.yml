@@ -330,7 +330,7 @@ jobs:
       - name: Deploy backend to Cloud Run
         working-directory: backend
         run: |
-          echo "Deploying..."
+          echo "Deploying backend (now uses GitHub API instead of Git cloning)..."
           gcloud run deploy eventstorm-backend \
             --source . \
             --region $REGION \

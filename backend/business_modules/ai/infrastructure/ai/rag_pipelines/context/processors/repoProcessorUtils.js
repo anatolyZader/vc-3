@@ -38,16 +38,16 @@ class RepoProcessorUtils {
    * ENHANCED: Use Langchain GitLoader with smart commit tracking
    */
   async processRepository(repoUrl, branch = 'main', namespace = null) {
-    console.log(`[${new Date().toISOString()}] 🚀 OPTIMIZED PROCESSING: Using enhanced Langchain-first approach`);
+    console.log(`[${new Date().toISOString()}] 🚀 OPTIMIZED PROCESSING: Using enhanced GitHub API approach (no local cloning)`);
     
     const { githubOwner, repoName } = this.parseRepoUrl(repoUrl);
     if (!namespace) {
       namespace = this.repoManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
     }
 
-    // GitHub API methods are currently stubbed, using local git processing
-    console.log(`[${new Date().toISOString()}] 🔄 PROCESSING: Using local git clone for repository processing`);
-    return await this.processWithLocalGit(repoUrl, githubOwner, repoName, branch, namespace);
+    // Use GitHub API directly - no local git cloning required
+    console.log(`[${new Date().toISOString()}] 🔄 PROCESSING: Using GitHub API via LangChain (Cloud Run compatible)`);
+    return await this.processWithGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace);
   }
 
   /**
@@ -96,6 +96,76 @@ class RepoProcessorUtils {
       if (tempDir) {
         await this.repoManager.cleanupTempDir(tempDir);
       }
+    }
+  }
+
+  /**
+   * NEW: Process repository using GitHub API (Cloud Run compatible - no Git required)
+   */
+  async processWithGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace) {
+    try {
+      // Get current commit info from GitHub API using LangChain's built-in capability
+      const commitInfo = await this.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
+      const commitHash = commitInfo?.hash;
+      
+      if (!commitHash) {
+        console.log(`[${new Date().toISOString()}] ⚠️ Could not get commit hash from GitHub API, using simplified processing`);
+        return await this.processWithSimplifiedGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace);
+      }
+
+      // Check existing processing
+      const existingRepo = await this.checkExistingRepo(githubOwner, repoName, commitHash);
+      
+      if (existingRepo?.reason === 'same_commit') {
+        console.log(`[${new Date().toISOString()}] ✅ SKIP: Repository ${githubOwner}/${repoName} already processed for commit ${commitHash}`);
+        return { success: true, skipped: true, reason: 'same_commit' };
+      }
+
+      // Load documents using LangChain GitHub API loader
+      const documents = await this.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
+      
+      if (existingRepo?.reason === 'commit_changed') {
+        // For GitHub API, we don't have easy diff detection, so process all files
+        // In future, we could implement GitHub API diff detection
+        console.log(`[${new Date().toISOString()}] 🔄 COMMIT CHANGED: Processing all documents (GitHub API doesn't support incremental diff yet)`);
+        return await this.processFilteredDocuments(documents, namespace, commitInfo, false);
+      }
+
+      // Full processing
+      console.log(`[${new Date().toISOString()}] 📥 FULL PROCESSING: Processing ${documents.length} documents via GitHub API`);
+      return await this.processFilteredDocuments(documents, namespace, commitInfo, false);
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ ERROR in GitHub API processing:`, error);
+      // Fallback to simplified processing without commit tracking
+      return await this.processWithSimplifiedGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace);
+    }
+  }
+
+  /**
+   * FALLBACK: Simplified GitHub API processing without commit tracking
+   */
+  async processWithSimplifiedGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace) {
+    try {
+      console.log(`[${new Date().toISOString()}] 🔧 FALLBACK: Using simplified GitHub API processing`);
+      
+      // Create basic commit info
+      const commitInfo = {
+        hash: 'unknown',
+        message: 'Processed via GitHub API',
+        author: 'automated',
+        date: new Date().toISOString()
+      };
+
+      // Load documents using LangChain
+      const documents = await this.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
+      
+      console.log(`[${new Date().toISOString()}] 📥 SIMPLIFIED: Processing ${documents.length} documents`);
+      return await this.processFilteredDocuments(documents, namespace, commitInfo, false);
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ CRITICAL ERROR in simplified GitHub API processing:`, error);
+      throw error;
     }
   }
 
@@ -316,13 +386,56 @@ class RepoProcessorUtils {
   }
 
   /**
-   * Get commit info from GitHub API (STUB - NOT IMPLEMENTED)
-   * TODO: Implement actual GitHub API integration with Octokit
+   * Get commit info from GitHub API using Octokit
    */
   async getCommitInfoFromGitHubAPI(owner, repo, branch) {
-    // STUB: This method is not implemented and should not be called
-    console.warn(`[${new Date().toISOString()}] ⚠️ STUB: getCommitInfoFromGitHubAPI called but not implemented`);
-    throw new Error('GitHub API integration not implemented - use local git instead');
+    try {
+      console.log(`[${new Date().toISOString()}] 🔍 Fetching commit info from GitHub API for ${owner}/${repo}@${branch}`);
+      
+      const githubToken = process.env.GITHUB_TOKEN;
+      if (!githubToken) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ No GitHub token available, using fallback`);
+        return null;
+      }
+
+      // Simple fetch to GitHub API to get latest commit
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branch}`, {
+        headers: {
+          'Authorization': `token ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'eventstorm-rag-processor'
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ GitHub API request failed: ${response.status} ${response.statusText}`);
+        return null;
+      }
+
+      const branchData = await response.json();
+      const commit = branchData.commit;
+
+      if (!commit) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in GitHub API response`);
+        return null;
+      }
+
+      const commitInfo = {
+        hash: commit.sha,
+        message: commit.commit.message,
+        author: commit.commit.author.name,
+        email: commit.commit.author.email,
+        date: commit.commit.author.date,
+        url: commit.html_url
+      };
+
+      console.log(`[${new Date().toISOString()}] ✅ Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
+      return commitInfo;
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error fetching commit info from GitHub API:`, error);
+      return null;
+    }
   }
 
   /**
