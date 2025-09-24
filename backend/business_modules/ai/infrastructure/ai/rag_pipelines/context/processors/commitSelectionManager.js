@@ -127,7 +127,7 @@ class CommitSelectionManager {
    */
   async getCommitInfoFromGitHubAPI(owner, repo, branch) {
     try {
-      console.log(`[${new Date().toISOString()}] 🔍 Fetching commit info from GitHub API for ${owner}/${repo}@${branch}`);
+      console.log(`[${new Date().toISOString()}] 🔍 GITHUB API: Fetching commit info from GitHub API for ${owner}/${repo}@${branch} [v2]`);
       
       const githubToken = process.env.GITHUB_TOKEN;
       if (!githubToken) {
