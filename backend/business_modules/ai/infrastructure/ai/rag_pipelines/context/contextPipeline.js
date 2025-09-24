@@ -436,24 +436,24 @@ class ContextPipeline {
         throw new Error('Failed to retrieve commit information');
       }
 
-      console.log(`[${new Date().toISOString()}] 🔑 COMMIT DETECTED: ${commitInfo.hash.substring(0, 8)} - ${commitInfo.subject}`);
+      console.log(`[${new Date().toISOString()}] 🔑 COMMIT DETECTED: ${commitInfo?.hash?.substring(0, 8) ?? 'unknown'} - ${commitInfo?.subject ?? 'No subject'}`);
 
       // Step 2: Enhanced duplicate check with commit hash comparison
       const pineconeClient = await this._ensurePineconeInitialized();
       const existingRepo = await this.repoSelectionManager.findExistingRepo(
-        userId, repoId, githubOwner, repoName, commitInfo.hash, pineconeClient
+        userId, repoId, githubOwner, repoName, commitInfo?.hash ?? null, pineconeClient, this.embeddings
       );
       
       if (existingRepo) {
         if (existingRepo.reason === 'same_commit') {
-          console.log(`[${new Date().toISOString()}] ⏭️ SKIPPING: Repository at same commit (${commitInfo.hash.substring(0, 8)}), no changes to process`);
-          this.eventManager.emitProcessingSkipped(userId, repoId, 'No changes - same commit hash', commitInfo.hash);
+          console.log(`[${new Date().toISOString()}] ⏭️ SKIPPING: Repository at same commit (${commitInfo?.hash?.substring(0, 8) ?? 'unknown'}), no changes to process`);
+          this.eventManager.emitProcessingSkipped(userId, repoId, 'No changes - same commit hash', commitInfo?.hash ?? null);
           
           return { 
             success: true, 
             message: 'Repository already processed at same commit', 
             repoId, userId,
-            commitHash: commitInfo.hash,
+            commitHash: commitInfo?.hash ?? null,
             skipped: true
           };
         } else if (existingRepo.reason === 'commit_changed' && existingRepo.requiresIncremental) {
@@ -581,12 +581,12 @@ class ContextPipeline {
    */
   async processIncrementalOptimized(userId, repoId, repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo) {
     console.log(`[${new Date().toISOString()}] 🔄 OPTIMIZED INCREMENTAL: Processing changes between commits`);
-    console.log(`[${new Date().toISOString()}] 📊 From: ${oldCommitHash.substring(0, 8)} → To: ${newCommitInfo.hash.substring(0, 8)}`);
+    console.log(`[${new Date().toISOString()}] 📊 From: ${oldCommitHash.substring(0, 8)} → To: ${newCommitInfo?.hash?.substring(0, 8) ?? 'unknown'}`);
     
     try {
       // Step 1: Get changed files efficiently
       const changedFiles = await this.commitSelectionManager.getChangedFilesOptimized(
-        repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo.hash
+        repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo?.hash ?? null
       );
       
       if (changedFiles.length === 0) {
@@ -636,7 +636,7 @@ class ContextPipeline {
         documentsProcessed: result.documentsProcessed || 0,
         chunksGenerated: result.chunksGenerated || 0,
         oldCommitHash, 
-        newCommitHash: newCommitInfo.hash,
+        newCommitHash: newCommitInfo?.hash ?? null,
         userId, repoId, githubOwner, repoName,
         namespace,
         processedAt: new Date().toISOString()
@@ -674,7 +674,7 @@ class ContextPipeline {
         message: 'Optimized repository processing completed with Langchain-first approach',
         totalDocuments: result.documentsProcessed || 0,
         totalChunks: result.chunksGenerated || 0,
-        commitHash: commitInfo.hash,
+        commitHash: commitInfo?.hash ?? null,
         commitInfo,
         userId, repoId, githubOwner, repoName,
         namespace,

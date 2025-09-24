@@ -51,7 +51,7 @@ class UbiquitousLanguageEnhancer {
     const contextualAnnotation = this.generateContextualAnnotation(businessModule, content);
     
     // Enhanced document with ubiquitous language metadata
-    return {
+    const enhancedDocument = {
       ...document,
       pageContent: contextualAnnotation + document.pageContent,
       metadata: {
@@ -64,6 +64,13 @@ class UbiquitousLanguageEnhancer {
         ubiq_enhancement_timestamp: new Date().toISOString()
       }
     };
+
+    // Safely handle commitInfo - only add if it exists and is valid
+    if (document.metadata?.commitInfo && typeof document.metadata.commitInfo === 'object') {
+      enhancedDocument.metadata.commitInfo = document.metadata.commitInfo;
+    }
+
+    return enhancedDocument;
   }
 
   /**

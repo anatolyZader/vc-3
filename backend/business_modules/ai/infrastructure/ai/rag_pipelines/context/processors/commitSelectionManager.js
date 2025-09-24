@@ -34,7 +34,7 @@ class CommitSelectionManager {
         console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get commit info via API`);
         const apiCommitInfo = await this.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
         if (apiCommitInfo) {
-          console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Retrieved commit ${apiCommitInfo.hash.substring(0, 8)} via API`);
+          console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Retrieved commit ${apiCommitInfo?.hash?.substring(0, 8) ?? 'unknown'} via API`);
           return apiCommitInfo;
         }
       } catch (apiError) {
@@ -99,7 +99,12 @@ class CommitSelectionManager {
     let tempDir = null;
     try {
       console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Using local git for changed files detection`);
-      tempDir = await this.repositoryManager.cloneRepository(repoUrl, branch);
+      // Pass additional commits needed for diff operation
+      const additionalCommits = [oldCommitHash];
+      if (newCommitHash && newCommitHash !== 'HEAD') {
+        additionalCommits.push(newCommitHash);
+      }
+      tempDir = await this.repositoryManager.cloneRepository(repoUrl, branch, { additionalCommits });
       const changedFiles = await this.getChangedFilesFromLocalGit(tempDir, oldCommitHash, newCommitHash);
       console.log(`[${new Date().toISOString()}] ✅ LOCAL GIT: Found ${changedFiles.length} changed files via local git`);
       return changedFiles;
@@ -168,7 +173,7 @@ class CommitSelectionManager {
         date: new Date(parseInt(timestamp) * 1000).toISOString()
       };
       
-      console.log(`[${new Date().toISOString()}] 📝 LOCAL GIT COMMIT INFO: ${hash.substring(0, 8)} by ${author} on ${commitInfo.date}`);
+      console.log(`[${new Date().toISOString()}] 📝 LOCAL GIT COMMIT INFO: ${hash.substring(0, 8)} by ${author} on ${commitInfo?.date ?? 'unknown date'}`);
       return commitInfo;
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Failed to get commit info from local git:`, error.message);
@@ -181,6 +186,32 @@ class CommitSelectionManager {
    */
   async getChangedFilesFromLocalGit(repoPath, fromCommit, toCommit = 'HEAD') {
     try {
+      // First, verify that both commits exist in the repository
+      try {
+        await this.execAsync(`cd "${repoPath}" && git cat-file -e ${fromCommit}`);
+      } catch (commitError) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ COMMIT NOT FOUND: ${fromCommit.substring(0, 8)} not in shallow clone, attempting fetch...`);
+        
+        // Try to fetch the missing commit
+        try {
+          await this.execAsync(`git -C "${repoPath}" fetch origin ${fromCommit}`, { timeout: 30000 });
+          console.log(`[${new Date().toISOString()}] ✅ COMMIT FETCH: Successfully fetched missing commit ${fromCommit.substring(0, 8)}`);
+        } catch (fetchError) {
+          // Fallback: fetch more history
+          console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Fetching extended history to find commit`);
+          try {
+            await this.execAsync(`git -C "${repoPath}" fetch --depth=50 origin`, { timeout: 45000 });
+            console.log(`[${new Date().toISOString()}] ✅ EXTENDED FETCH: Successfully fetched more history`);
+            
+            // Verify commit is now available
+            await this.execAsync(`cd "${repoPath}" && git cat-file -e ${fromCommit}`);
+          } catch (extendedError) {
+            console.error(`[${new Date().toISOString()}] ❌ COMMIT UNAVAILABLE: Cannot access commit ${fromCommit.substring(0, 8)} even after extended fetch`);
+            throw new Error(`Commit ${fromCommit.substring(0, 8)} not accessible for diff operation`);
+          }
+        }
+      }
+      
       const command = `cd "${repoPath}" && git diff --name-only ${fromCommit} ${toCommit}`;
       const { stdout } = await this.execAsync(command);
       const changedFiles = stdout.trim().split('\n').filter(file => file.length > 0);

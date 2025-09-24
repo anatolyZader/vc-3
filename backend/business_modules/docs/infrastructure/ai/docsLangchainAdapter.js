@@ -826,7 +826,8 @@ Focus on both the technical implementation and the business value delivered by e
     const chunkOverlap = 250;
     const languageCount = {};
     documents.forEach(doc => {
-      const extension = (doc.metadata.source || '').split('.').pop().toLowerCase();
+      const src = doc.metadata.source || '';
+      const extension = src.includes('.') ? src.split('.').pop().toLowerCase() : '';
       if (['js', 'jsx', 'ts', 'tsx'].includes(extension)) languageCount.javascript = (languageCount.javascript || 0) + 1;
     });
     const predominantLanguage = Object.keys(languageCount).length > 0 ? 'javascript' : 'text';

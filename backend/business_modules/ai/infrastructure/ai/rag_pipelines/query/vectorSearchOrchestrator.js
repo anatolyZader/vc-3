@@ -12,15 +12,7 @@ const VectorSearchStrategy = require('./vectorSearchStrategy');
 class VectorSearchOrchestrator {
   constructor(options = {}) {
     // Handle both legacy and modern initialization patterns
-    if (typeof options === 'object' && !options.embedQuery) {
-      // Modern options object pattern
-      this.vectorStore = options.vectorStore || null;
-      this.pinecone = options.pinecone || null;
-      this.embeddings = options.embeddings;
-      this.defaultTopK = options.defaultTopK || 10;
-      this.defaultThreshold = options.defaultThreshold || 0.4;
-      this.maxResults = options.maxResults || 50;
-    } else {
+    if (arguments.length > 1) {
       // Legacy positional arguments pattern: (vectorStore, pinecone, embeddings)
       this.vectorStore = arguments[0];
       this.pinecone = arguments[1];  
@@ -28,6 +20,14 @@ class VectorSearchOrchestrator {
       this.defaultTopK = 10;
       this.defaultThreshold = 0.4;
       this.maxResults = 50;
+    } else {
+      // Modern options object pattern
+      this.vectorStore = options.vectorStore || null;
+      this.pinecone = options.pinecone || null;
+      this.embeddings = options.embeddings;
+      this.defaultTopK = options.defaultTopK || 10;
+      this.defaultThreshold = options.defaultThreshold || 0.4;
+      this.maxResults = options.maxResults || 50;
     }
     
     // Initialize PineconeService for modern functionality
@@ -79,16 +79,35 @@ class VectorSearchOrchestrator {
     this.logSearchStrategy(searchStrategy);
 
     try {
-      // Use modern search with strategy-based parameters
-      const searchResults = await this.searchSimilar(prompt, {
-        namespace: this.vectorStore?.namespace || null,
-        topK: searchStrategy.codeResults + searchStrategy.docsResults,
-        threshold: this.defaultThreshold,
-        includeMetadata: true
-      });
+      const allResults = [];
+      
+      // Search user vector store if available
+      if (this.vectorStore && typeof this.vectorStore.similaritySearch === 'function') {
+        try {
+          const userResults = await this.vectorStore.similaritySearch(prompt, searchStrategy.codeResults, {});
+          allResults.push(...userResults);
+        } catch (error) {
+          this.logger.warn('User vector store search failed:', error.message);
+        }
+      }
 
-      // Convert modern format to legacy format
-      return this.convertToLegacyFormat(searchResults.matches || []);
+      // Search core Pinecone store
+      try {
+        const coreResults = await this.searchSimilar(prompt, {
+          namespace: this.vectorStore?.namespace || null,
+          topK: searchStrategy.docsResults,
+          threshold: this.defaultThreshold,
+          includeMetadata: true
+        });
+        
+        // Convert core results to legacy format and add to all results
+        const legacyFormatResults = this.convertToLegacyFormat(coreResults.matches || []);
+        allResults.push(...legacyFormatResults);
+      } catch (error) {
+        this.logger.warn('Core vector store search failed:', error.message);
+      }
+
+      return allResults;
 
     } catch (error) {
       this.logger.error('Error in performSearch:', error.message);

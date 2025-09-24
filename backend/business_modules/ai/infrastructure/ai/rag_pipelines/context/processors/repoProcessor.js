@@ -22,36 +22,21 @@ class RepoProcessor {
 
   /**
    * OPTIMIZED: Load documents using Langchain exclusively (no manual filesystem operations)
+   * Thin wrapper - delegates to RepoProcessorUtils for sophisticated batched processing
    */
   async loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo) {
-    console.log(`[${new Date().toISOString()}] 📥 LANGCHAIN OPTIMIZED: Loading documents via native GitHubRepoLoader`);
+    console.log(`[${new Date().toISOString()}] 📥 DELEGATING: Using RepoProcessorUtils for optimized document loading`);
     
     try {
-      // Use the repository processor's optimized Langchain loading
+      // Delegate to the sophisticated batched loader in RepoProcessorUtils
+      // RepoProcessorUtils already handles commit metadata enrichment
       const documents = await this.repositoryProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
       
-      // Enrich with commit information
-      const enrichedDocuments = documents.map(doc => ({
-        ...doc,
-        metadata: {
-          ...doc.metadata,
-          githubOwner,
-          repoName,
-          branch,
-          commitHash: commitInfo.hash,
-          commitTimestamp: commitInfo.timestamp,
-          commitAuthor: commitInfo.author,
-          commitSubject: commitInfo.subject,
-          commitDate: commitInfo.date,
-          loading_method: 'optimized_langchain_github_loader'
-        }
-      }));
-
-      console.log(`[${new Date().toISOString()}] ✅ LANGCHAIN SUCCESS: Loaded ${enrichedDocuments.length} documents with commit metadata`);
-      return enrichedDocuments;
+      console.log(`[${new Date().toISOString()}] ✅ DELEGATION SUCCESS: Loaded ${documents.length} documents via RepoProcessorUtils`);
+      return documents;
       
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ LANGCHAIN LOADING ERROR:`, error.message);
+      console.error(`[${new Date().toISOString()}] ❌ DELEGATION ERROR:`, error.message);
       throw error;
     }
   }
@@ -207,11 +192,15 @@ class RepoProcessor {
       console.warn(`[${new Date().toISOString()}] ⚠️ Markdown Documentation processing failed: ${error.message}`);
     }
 
-    // Process 4: Repository Source Code (using tempDir)
+    // Process 4: Repository Source Code (using proper orchestration path)
     console.log(`[${new Date().toISOString()}] 🎯 PROCESSOR 4: REPOSITORY CODE PROCESSING`);
     try {
-      processingResults.repositoryCode = await this.repositoryProcessor.loadDocumentsWithLangchain(
-        `file://${tempDir}`, branch, githubOwner, repoName, null
+      // Use the dedicated processRepositoryCode method for consistent orchestration
+      // Use GitHub HTTPS URL instead of local file:// path - GithubRepoLoader needs the actual GitHub URL
+      const githubUrl = `https://github.com/${githubOwner}/${repoName}`;
+      // This calls repositoryProcessor.processRepository which does full processing (load + process + store)
+      processingResults.repositoryCode = await this.processRepositoryCode(
+        githubUrl, branch, namespace
       );
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] ⚠️ Repository Code processing failed: ${error.message}`);
@@ -237,7 +226,7 @@ class RepoProcessor {
       totalDocuments,
       totalChunks,
       processingResults,
-      commitHash: commitInfo.hash,
+      commitHash: commitInfo?.hash || 'local',
       commitInfo,
       userId, repoId, githubOwner, repoName,
       namespace,

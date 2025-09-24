@@ -15,10 +15,14 @@ class RepoSelectionManager {
     this.execAsync = promisify(exec);
   }
 
-  /**
-   * Clone repository to temporary directory
+    /**
+   * Clone repository to temporary directory for analysis  
+   * @param {string} url - Repository URL
+   * @param {string} branch - Branch to clone
+   * @param {Object} options - Additional options
+   * @param {string[]} options.additionalCommits - Additional commit hashes to fetch for diff operations
    */
-  async cloneRepository(url, branch) {
+  async cloneRepository(url, branch, options = {}) {
     console.log(`[${new Date().toISOString()}] 🎯 CLONING EXPLANATION: Creating isolated temporary workspace for safe repository analysis`);
     console.log(`[${new Date().toISOString()}] 🎯 We use 'git clone --depth 1' for efficiency (only latest commit) and create a unique temporary directory to avoid conflicts with concurrent processing`);
     
@@ -36,6 +40,32 @@ class RepoSelectionManager {
       
       await this.execAsync(cloneCommand, { timeout: 60000 }); // 60 second timeout
       console.log(`[${new Date().toISOString()}] ✅ CLONE SUCCESS: Repository cloned successfully to temporary workspace`);
+      
+      // If additional commits are needed for diff operations, fetch them
+      if (options.additionalCommits && options.additionalCommits.length > 0) {
+        console.log(`[${new Date().toISOString()}] 🔄 FETCHING ADDITIONAL COMMITS: Need ${options.additionalCommits.length} commits for diff operations`);
+        
+        for (const commitHash of options.additionalCommits) {
+          try {
+            // First try to fetch specific commit
+            const fetchCommitCommand = `git -C "${tempDir}" fetch origin ${commitHash}`;
+            await this.execAsync(fetchCommitCommand, { timeout: 30000 });
+            console.log(`[${new Date().toISOString()}] ✅ COMMIT FETCH: Successfully fetched commit ${commitHash.substring(0, 8)}`);
+          } catch (error) {
+            // Fallback: fetch more history
+            console.log(`[${new Date().toISOString()}] 🔄 FALLBACK FETCH: Specific commit fetch failed, trying broader history`);
+            try {
+              const fetchDepthCommand = `git -C "${tempDir}" fetch --depth=50 origin ${branch}`;
+              await this.execAsync(fetchDepthCommand, { timeout: 45000 });
+              console.log(`[${new Date().toISOString()}] ✅ DEPTH FETCH: Successfully fetched extended history`);
+              break; // If this succeeds, we probably have what we need
+            } catch (depthError) {
+              console.warn(`[${new Date().toISOString()}] ⚠️ FETCH WARNING: Could not fetch commit ${commitHash.substring(0, 8)}: ${error.message}`);
+            }
+          }
+        }
+      }
+      
       console.log(`[${new Date().toISOString()}] 📂 Ready to analyze source files from ${url}`);
       
       return tempDir;
@@ -72,15 +102,22 @@ class RepoSelectionManager {
 
   /**
    * Check if repository already exists and compare commit hashes
+   * @param {string} userId - User ID
+   * @param {string} repoId - Repository ID 
+   * @param {string} githubOwner - GitHub owner
+   * @param {string} repoName - Repository name
+   * @param {string} currentCommitHash - Current commit hash
+   * @param {Object} pineconeOrService - Pinecone client or service
+   * @param {Object} embeddings - Embeddings instance to generate query vector
    */
-  async findExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash = null, pineconeOrService = null) {
+  async findExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash = null, pineconeOrService = null, embeddings = null) {
     console.log(`[${new Date().toISOString()}] 🔍 ENHANCED DUPLICATE CHECK: Querying for existing repository data with commit hash comparison`);
     console.log(`[${new Date().toISOString()}] 🎯 This optimization now checks both repository identity AND commit hashes to detect actual changes`);
     
     console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Checking for existing repo: ${githubOwner}/${repoName} with commit: ${currentCommitHash?.substring(0, 8) || 'unknown'}`);
     
-    if (!pineconeOrService || !currentCommitHash) {
-      console.log(`[${new Date().toISOString()}] ⚠️ FALLBACK: Missing pinecone client or commit hash - defaulting to safe mode (always process)`);
+    if (!pineconeOrService || !currentCommitHash || !embeddings) {
+      console.log(`[${new Date().toISOString()}] ⚠️ FALLBACK: Missing pinecone client, commit hash, or embeddings - defaulting to safe mode (always process)`);
       return false;
     }
 
@@ -100,9 +137,14 @@ class RepoSelectionManager {
         throw new Error('Invalid pinecone client or service provided');
       }
       
+      // Create a proper query vector using the same embeddings used for tracking
+      // This ensures dimension compatibility with the index
+      const trackingText = `Repository tracking query for ${githubOwner}/${repoName}`;
+      const queryVector = await embeddings.embedQuery(trackingText);
+      
       // Query for repository metadata with this specific repo
       const queryResponse = await index.namespace(namespace).query({
-        vector: new Array(3072).fill(0), // Dummy vector for metadata-only search (text-embedding-3-large dimensions)
+        vector: queryVector, // Use proper embedding vector instead of hardcoded zero vector
         topK: 1,
         includeMetadata: true,
         filter: {
@@ -179,7 +221,7 @@ class RepoSelectionManager {
       }
       
       // Create a dummy embedding for the tracking record
-      const trackingText = `Repository tracking for ${githubOwner}/${repoName} at commit ${commitInfo.hash}`;
+      const trackingText = `Repository tracking for ${githubOwner}/${repoName} at commit ${commitInfo?.hash || 'local'}`;
       const embedding = await embeddings.embedQuery(trackingText);
 
       const trackingRecord = {
@@ -190,10 +232,12 @@ class RepoSelectionManager {
           repoId: repoId,
           githubOwner: githubOwner,
           repoName: repoName,
-          commitHash: commitInfo.hash,
-          commitTimestamp: commitInfo.timestamp,
-          commitAuthor: commitInfo.author,
-          commitSubject: commitInfo.subject,
+          ...(commitInfo && {
+            commitHash: commitInfo?.hash ?? null,
+            commitTimestamp: commitInfo?.timestamp ?? null,
+            commitAuthor: commitInfo?.author ?? null,
+            commitSubject: commitInfo?.subject ?? null,
+          }),
           lastProcessed: new Date().toISOString(),
           source: 'repository_tracking',
           namespace: namespace
@@ -212,7 +256,8 @@ class RepoSelectionManager {
    * Helper method to determine file type from file path
    */
   getFileType(filePath) {
-    const extension = filePath.split('.').pop().toLowerCase();
+    const src = filePath || '';
+    const extension = src.includes('.') ? src.split('.').pop().toLowerCase() : '';
     
     const typeMap = {
       'js': 'javascript',

@@ -180,7 +180,7 @@ class RepoProcessorUtils {
 
     console.log(`[${new Date().toISOString()}] 🎉 BATCHED PROCESSING COMPLETE: Loaded ${allDocuments.length} total documents`);
     
-    // Enrich with commit information
+    // Enrich with commit information - safely handle null commitInfo
     const enrichedDocuments = allDocuments.map(doc => ({
       ...doc,
       metadata: {
@@ -188,9 +188,13 @@ class RepoProcessorUtils {
         githubOwner,
         repoName,
         branch,
-        commitHash: commitInfo.hash,
-        commitTimestamp: commitInfo.timestamp,
-        commitAuthor: commitInfo.author,
+        ...(commitInfo && {
+          commitHash: commitInfo?.hash ?? null,
+          commitTimestamp: commitInfo?.timestamp ?? null,
+          commitAuthor: commitInfo?.author ?? null,
+          commitSubject: commitInfo?.subject ?? null,
+          commitDate: commitInfo?.date ?? null,
+        }),
         file_type: this.repoManager.getFileType(doc.metadata.source || ''),
         repository_url: repoUrl,
         loaded_at: new Date().toISOString(),
@@ -215,16 +219,15 @@ class RepoProcessorUtils {
     const loaderOptions = {
       branch: branch,
       recursive: batchConfig.recursive,
-      unknown: 'warn',
       maxConcurrency: batchConfig.maxConcurrency,
-      ignoreFiles: batchConfig.ignoreFiles
+      ignorePaths: batchConfig.ignoreFiles  // GithubRepoLoader expects ignorePaths, not ignoreFiles
     };
 
     // Add path filtering if specified
     if (batchConfig.pathFilter) {
       console.log(`[${new Date().toISOString()}] 🎯 Focusing on path: ${batchConfig.pathFilter}`);
       // Note: GithubRepoLoader doesn't have built-in path filtering,
-      // so we'll filter after loading and use ignoreFiles to exclude other paths
+      // so we'll filter after loading and use ignorePaths to exclude other paths
     }
 
     // Configure GitHub authentication
@@ -271,7 +274,8 @@ class RepoProcessorUtils {
         const beforeCount = filteredDocuments.length;
         filteredDocuments = filteredDocuments.filter(doc => {
           if (!doc.metadata.source) return false;
-          const fileExtension = doc.metadata.source.split('.').pop()?.toLowerCase();
+          const src = doc.metadata.source || '';
+          const fileExtension = src.includes('.') ? src.split('.').pop().toLowerCase() : '';
           return batchConfig.fileTypeFilter.includes(fileExtension);
         });
         console.log(`[${new Date().toISOString()}] 🔍 File type filtering (${batchConfig.fileTypeFilter.join(', ')}): ${beforeCount} → ${filteredDocuments.length} documents`);
@@ -356,7 +360,7 @@ class RepoProcessorUtils {
    */
   async checkExistingRepo(githubOwner, repoName, currentCommitHash) {
     return await this.repoManager.findExistingRepo(
-      null, null, githubOwner, repoName, currentCommitHash, this.pinecone
+      null, null, githubOwner, repoName, currentCommitHash, this.pinecone, this.embeddings
     );
   }
 
@@ -457,7 +461,86 @@ class RepoProcessorUtils {
   }
 
   async storeRepositoryDocuments(documents, namespace) {
-    // Same implementation as original
+    if (!documents || documents.length === 0) {
+      console.log(`[${new Date().toISOString()}] ℹ️ No documents to store`);
+      return { success: true, chunksStored: 0, namespace };
+    }
+
+    console.log(`[${new Date().toISOString()}] 📋 REPOSITORY STORAGE: Storing ${documents.length} processed document chunks`);
+    
+    // Log chunk breakdown for repository documents
+    documents.forEach((doc, index) => {
+      const preview = doc.pageContent.substring(0, 100).replace(/\n/g, ' ').trim();
+      const semanticInfo = doc.metadata.enhanced ? 
+        `${doc.metadata.semantic_role || 'unknown'}|${doc.metadata.layer || 'unknown'}|${doc.metadata.eventstorm_module || 'unknown'}` : 
+        'not-enhanced';
+      const astInfo = doc.metadata.chunk_type || 'regular';
+      const astDetails = doc.metadata.semantic_unit ? 
+        `${doc.metadata.semantic_unit}(${doc.metadata.function_name || 'unknown'})` : 
+        'n/a';
+      
+      console.log(`[${new Date().toISOString()}] 📄 [CHUNK ${index + 1}/${documents.length}] ${doc.metadata.source || 'unknown'} (${doc.pageContent.length} chars)`);
+      console.log(`[${new Date().toISOString()}] 📝 Preview: ${preview}${doc.pageContent.length > 100 ? '...' : ''}`);
+      console.log(`[${new Date().toISOString()}] 🏷️  FileType: ${doc.metadata.file_type || 'unknown'}, Loading: ${doc.metadata.loading_method || 'unknown'}`);
+      console.log(`[${new Date().toISOString()}] 🧠 Semantic: ${semanticInfo}, EntryPoint: ${doc.metadata.is_entrypoint || false}, Complexity: ${doc.metadata.complexity || 'unknown'}`);
+      console.log(`[${new Date().toISOString()}] 🌳 AST: ${astInfo}, Unit: ${astDetails}, Lines: ${doc.metadata.start_line || '?'}-${doc.metadata.end_line || '?'}`);
+    });
+
+    // Generate unique IDs for each chunk
+    const documentIds = documents.map((doc, index) => {
+      const sourceFile = doc.metadata.source || 'unknown';
+      const sanitizedSource = sourceFile.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^_+|_+$/g, '');
+      const timestamp = Date.now();
+      return `${namespace}_${sanitizedSource}_chunk_${index}_${timestamp}`;
+    });
+
+    console.log(`[${new Date().toISOString()}] 🚀 PINECONE STORAGE: Storing ${documents.length} vector embeddings in namespace '${namespace}'`);
+
+    try {
+      // Get Pinecone client - try service first, then fallback to direct client
+      let pineconeClient = null;
+      
+      if (this.pineconeService) {
+        await this.pineconeService.connect();
+        pineconeClient = this.pineconeService.client;
+      } else if (this.pineconeManager?.getPineconeClient) {
+        pineconeClient = await this.pineconeManager.getPineconeClient();
+      } else {
+        throw new Error('No Pinecone client available');
+      }
+
+      if (!pineconeClient) {
+        throw new Error('Failed to get Pinecone client');
+      }
+
+      const index = pineconeClient.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const vectorStore = new PineconeStore(this.embeddings, {
+        pineconeIndex: index,
+        namespace: namespace
+      });
+
+      // Use bottleneck limiter for Pinecone operations if available
+      if (this.pineconeLimiter) {
+        await this.pineconeLimiter.schedule(async () => {
+          await vectorStore.addDocuments(documents, { ids: documentIds });
+        });
+      } else {
+        await vectorStore.addDocuments(documents, { ids: documentIds });
+      }
+
+      console.log(`[${new Date().toISOString()}] ✅ REPOSITORY STORAGE: Successfully indexed ${documents.length} document chunks to Pinecone`);
+
+      return {
+        success: true,
+        chunksStored: documents.length,
+        namespace: namespace,
+        documentIds
+      };
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ REPOSITORY STORAGE: Error storing in Pinecone:`, error.message);
+      throw error;
+    }
   }
 }
 
