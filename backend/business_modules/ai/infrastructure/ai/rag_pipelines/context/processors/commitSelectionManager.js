@@ -126,9 +126,54 @@ class CommitSelectionManager {
    * Placeholder: Get commit info from GitHub API (to be implemented)
    */
   async getCommitInfoFromGitHubAPI(owner, repo, branch) {
-    console.log(`[${new Date().toISOString()}] 🌐 TODO: Implement GitHub API commit info for ${owner}/${repo}@${branch}`);
-    // TODO: Implement actual GitHub API call using Octokit
-    return null; // Fallback to local git
+    try {
+      console.log(`[${new Date().toISOString()}] 🔍 Fetching commit info from GitHub API for ${owner}/${repo}@${branch}`);
+      
+      const githubToken = process.env.GITHUB_TOKEN;
+      if (!githubToken) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ No GitHub token available, using fallback`);
+        return null;
+      }
+
+      // Simple fetch to GitHub API to get latest commit
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branch}`, {
+        headers: {
+          'Authorization': `token ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'eventstorm-rag-processor'
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ GitHub API request failed: ${response.status} ${response.statusText}`);
+        return null;
+      }
+
+      const branchData = await response.json();
+      const commit = branchData.commit;
+
+      if (!commit) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in GitHub API response`);
+        return null;
+      }
+
+      const commitInfo = {
+        hash: commit.sha,
+        subject: commit.commit.message.split('\n')[0], // First line as subject
+        message: commit.commit.message,
+        author: commit.commit.author.name,
+        email: commit.commit.author.email,
+        date: commit.commit.author.date,
+        url: commit.html_url
+      };
+
+      console.log(`[${new Date().toISOString()}] ✅ Got commit info via GitHub API: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
+      return commitInfo;
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error fetching commit info from GitHub API:`, error);
+      return null; // Fallback to local git
+    }
   }
 
   /**
