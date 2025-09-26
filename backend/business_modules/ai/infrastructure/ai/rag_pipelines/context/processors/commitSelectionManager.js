@@ -86,16 +86,12 @@ class CommitSelectionManager {
   }
 
   /**
-   * Check if git binary is available in the environment
+   * Check if git binary is available in the environment (always returns false for cloud-native)
    */
   async checkGitAvailability() {
-    try {
-      await this.execAsync('git --version', { timeout: 5000 });
-      return true;
-    } catch (error) {
-      console.log(`[${new Date().toISOString()}] ℹ️ Git not available in environment (cloud deployment): ${error.message}`);
-      return false;
-    }
+    console.log(`[${new Date().toISOString()}] 🌐 CLOUD-NATIVE: Git availability check - always false for cloud-native architecture`);
+    console.log(`[${new Date().toISOString()}] ℹ️ Cloud-native mode uses GitHub API exclusively, no git binary required`);
+    return false; // Always return false to force cloud-native behavior
   }
 
   /**
@@ -392,31 +388,6 @@ class CommitSelectionManager {
     
     console.log(`[${new Date().toISOString()}] ⚠️ CLOUD-NATIVE: Cannot get commit info, returning synthetic values`);
     return this.createSyntheticCommitInfo();
-  }
-
-  /**
-   * Get detailed commit information from local git repository
-   */
-  async getCommitInfoFromLocalGit(repoPath, commitHash = 'HEAD') {
-    try {
-      const command = `cd "${repoPath}" && git show --format="%H|%ct|%an|%s" -s ${commitHash}`;
-      const { stdout } = await this.execAsync(command);
-      const [hash, timestamp, author, subject] = stdout.trim().split('|');
-      
-      const commitInfo = {
-        hash,
-        timestamp: parseInt(timestamp),
-        author,
-        subject,
-        date: new Date(parseInt(timestamp) * 1000).toISOString()
-      };
-      
-      console.log(`[${new Date().toISOString()}] 📝 LOCAL GIT COMMIT INFO: ${hash.substring(0, 8)} by ${author} on ${commitInfo?.date ?? 'unknown date'}`);
-      return commitInfo;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to get commit info from local git:`, error.message);
-      return null;
-    }
   }
 
   /**
