@@ -61,7 +61,7 @@ class LLMProviderManager {
         case 'ollama': {
           console.log(`[${new Date().toISOString()}] Initializing Ollama provider`);
           // Import here to avoid requiring if not using this provider
-          const { ChatOllama } = require('@langchain/community/chat_models/ollama');
+          const { ChatOllama } = require('@langchain/ollama');
           this.llm = new ChatOllama({
             model: process.env.OLLAMA_MODEL || 'llama2',
             baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',

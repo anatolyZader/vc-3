@@ -51,9 +51,9 @@ class AILangchainAdapter extends IAIPort {
 
     // Initialize request queue for rate limiting and queuing
     this.requestQueue = new RequestQueue({
-      maxRequestsPerMinute: 60,
-      retryDelay: 5000,
-      maxRetries: 10
+      maxRequestsPerMinute: 20,  // Conservative rate to avoid API limits
+      retryDelay: 5000,          // 5 seconds between retries
+      maxRetries: 3              // Reasonable retry count (15s max retry time)
     });
 
     // Keep direct access to pineconeLimiter for backward compatibility
@@ -108,7 +108,8 @@ class AILangchainAdapter extends IAIPort {
         embeddings: this.embeddings,
         eventBus: this.eventBus,
         pineconeLimiter: this.pineconeLimiter,
-        maxChunkSize: 2000
+        maxChunkSize: 1500,  // Optimized for better semantic chunking and embedding quality
+        chunkOverlap: 200    // Add overlap for better context preservation
       });
       console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with embedded Pinecone services.`);
 

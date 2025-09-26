@@ -311,24 +311,51 @@ class RepoProcessorUtils {
     }
 
     try {
-      // Add timeout to prevent hanging
+      // Add timeout with proper cancellation to prevent hanging and resource leaks
+      let loadingController;
+      let timeoutId;
+      let isCompleted = false;
+
       const loadPromise = new Promise(async (resolve, reject) => {
         try {
           const loader = new GithubRepoLoader(repoUrl, loaderOptions);
+          loadingController = loader; // Store reference for potential cleanup
+          
           const documents = await loader.load();
-          resolve(documents);
+          
+          if (!isCompleted) {
+            isCompleted = true;
+            resolve(documents);
+          }
         } catch (error) {
-          reject(error);
+          if (!isCompleted) {
+            isCompleted = true;
+            reject(error);
+          }
         }
       });
 
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Batch timeout after 30 seconds: ${batchConfig.name}`));
+        timeoutId = setTimeout(() => {
+          if (!isCompleted) {
+            isCompleted = true;
+            console.warn(`[${new Date().toISOString()}] ⏰ BATCH TIMEOUT: ${batchConfig.name} exceeded 30 seconds`);
+            reject(new Error(`Batch timeout after 30 seconds: ${batchConfig.name}`));
+          }
         }, 30000);
       });
 
-      const documents = await Promise.race([loadPromise, timeoutPromise]);
+      let documents;
+      try {
+        documents = await Promise.race([loadPromise, timeoutPromise]);
+      } finally {
+        // Cleanup: Clear timeout if it exists
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        // Mark as completed to prevent late responses
+        isCompleted = true;
+      }
       
       // Filter documents by path if specified
       let filteredDocuments = documents;

@@ -98,8 +98,9 @@ class ContextPipeline {
     this.pineconeService = null;
     this.pinecone = null; // For backward compatibility
     
-    // Initialize async - will be set when processPushedRepo is called
-    this._initializePineconeAsync();
+    // Pinecone will be initialized on first use
+    this._pineconeInitialized = false;
+    this._pineconeInitializationPromise = null; // Track ongoing initialization
     
     console.log(`[${new Date().toISOString()}] ✅ PIPELINE READY: DataPreparationPipeline initialized with modular architecture`);
 
@@ -130,22 +131,52 @@ class ContextPipeline {
     try {
       this.pineconeService = await this.pineconeManager?.getPineconeService();
       this.pinecone = this.pineconeService; // For backward compatibility
+      this._pineconeInitialized = true;
       console.log(`[${new Date().toISOString()}] ✅ PINECONE: Async initialization completed`);
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] ⚠️ PINECONE: Async initialization failed:`, error.message);
       this.pineconeService = null;
       this.pinecone = null;
+      this._pineconeInitialized = false;
+      throw error; // Re-throw to be handled by _ensurePineconeInitialized
     }
   }
 
   /**
-   * Ensure Pinecone is initialized before use
+   * Ensure Pinecone is initialized before use - prevents race conditions
    */
   async _ensurePineconeInitialized() {
-    if (!this.pinecone) {
-      await this._initializePineconeAsync();
+    // If already initialized, return immediately
+    if (this._pineconeInitialized && this.pinecone) {
+      return this.pinecone;
     }
-    return this.pinecone;
+
+    // If initialization is already in progress, wait for it
+    if (this._pineconeInitializationPromise !== null) {
+      try {
+        await this._pineconeInitializationPromise;
+        return this.pinecone;
+      } catch (error) {
+        // If the ongoing initialization failed, we'll try again below
+        console.warn(`[${new Date().toISOString()}] ⚠️ PINECONE: Previous initialization failed, retrying:`, error.message);
+        this._pineconeInitializationPromise = null;
+      }
+    }
+
+    // Start new initialization
+    this._pineconeInitializationPromise = this._initializePineconeAsync();
+    
+    try {
+      await this._pineconeInitializationPromise;
+      return this.pinecone;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ PINECONE: Initialization failed:`, error.message);
+      this._pineconeInitializationPromise = null;
+      return null;
+    } finally {
+      // Clear the promise reference once initialization is complete (success or failure)
+      this._pineconeInitializationPromise = null;
+    }
   }
 
   /**
@@ -458,17 +489,17 @@ class ContextPipeline {
           };
         } else if (existingRepo.reason === 'commit_changed' && existingRepo.requiresIncremental) {
           console.log(`[${new Date().toISOString()}] 🔄 INCREMENTAL PROCESSING: Repository has changes, using integrated strategy`);
-          return await this.processIncrementalOptimized(
-            userId, repoId, url, branch, githubOwner, repoName,
-            existingRepo.existingCommitHash, commitInfo
-          );
+          return await this.processIncrementalOptimized({
+            userId, repoId, repoUrl: url, branch, githubOwner, repoName,
+            oldCommitHash: existingRepo.existingCommitHash, newCommitInfo: commitInfo
+          });
         }
       }
 
       console.log(`[${new Date().toISOString()}] 🆕 FULL PROCESSING: New repository or major changes, using integrated strategy`);
-      const result = await this.processFullRepositoryOptimized(
-        userId, repoId, url, branch, githubOwner, repoName, commitInfo
-      );
+      const result = await this.processFullRepositoryOptimized({
+        userId, repoId, repoUrl: url, branch, githubOwner, repoName, commitInfo
+      });
 
       // Emit completion event
       this.eventManager.emitProcessingCompleted(userId, repoId, result);
@@ -481,7 +512,9 @@ class ContextPipeline {
       // CRITICAL FALLBACK: Try direct GitHub API document loading when orchestration fails
       console.log(`[${new Date().toISOString()}] 🆘 FALLBACK: Attempting direct GitHub API document loading`);
       try {
-        const result = await this.processRepositoryDirectFallback(userId, repoId, url, branch, githubOwner, repoName);
+        const result = await this.processRepositoryDirectFallback({
+          userId, repoId, repoUrl: url, branch, githubOwner, repoName
+        });
         if (result.success) {
           console.log(`[${new Date().toISOString()}] ✅ FALLBACK SUCCESS: Direct GitHub API processing completed`);
           return result;
@@ -503,20 +536,42 @@ class ContextPipeline {
   /**
    * Process incremental changes between commits - now integrated directly
    */
-  async processIncrementalChanges(userId, repoId, repoData, tempDir, githubOwner, repoName, branch, oldCommitHash, newCommitHash, commitInfo) {
+  async processIncrementalChanges(params) {
+    const {
+      userId,
+      repoId,
+      tempDir,
+      githubOwner,
+      repoName,
+      branch,
+      oldCommitHash,
+      newCommitHash,
+      commitInfo
+    } = params;
+
     // Group parameters to reduce count
     const repoInfo = { githubOwner, repoName, branch };
     const commitHashes = { oldCommitHash, newCommitHash };
     
     return await this.processIncrementalChangesInternal(
-      userId, repoId, repoData, tempDir, repoInfo, commitHashes, commitInfo
+      userId, repoId, tempDir, repoInfo, commitHashes, commitInfo
     );
   }
 
   /**
    * Process full repository - delegates to RepoProcessor
    */
-  async processFullRepository(userId, repoId, repoData, tempDir, githubOwner, repoName, branch, commitInfo) {
+  async processFullRepository(params) {
+    const {
+      userId,
+      repoId,
+      tempDir,
+      githubOwner,
+      repoName,
+      branch,
+      commitInfo
+    } = params;
+
     return await this.repoProcessor.processFullRepositoryWithProcessors(
       userId, repoId, tempDir, githubOwner, repoName, branch, commitInfo
     );
@@ -591,7 +646,18 @@ class ContextPipeline {
   /**
    * OPTIMIZED: Incremental processing using Langchain-first approach  
    */
-  async processIncrementalOptimized(userId, repoId, repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo) {
+  async processIncrementalOptimized(params) {
+    const {
+      userId,
+      repoId,
+      repoUrl,
+      branch,
+      githubOwner,
+      repoName,
+      oldCommitHash,
+      newCommitInfo
+    } = params;
+
     console.log(`[${new Date().toISOString()}] 🔄 OPTIMIZED INCREMENTAL: Processing changes between commits`);
     console.log(`[${new Date().toISOString()}] 📊 From: ${oldCommitHash.substring(0, 8)} → To: ${newCommitInfo?.hash?.substring(0, 8) ?? 'unknown'}`);
     
@@ -626,7 +692,9 @@ class ContextPipeline {
 
       if (changedDocuments.length === 0) {
         console.log(`[${new Date().toISOString()}] ⚠️ No documents found for changed files, processing all files as fallback`);
-        return await this.processFullRepositoryOptimized(userId, repoId, repoUrl, branch, githubOwner, repoName, newCommitInfo);
+        return await this.processFullRepositoryOptimized({
+          userId, repoId, repoUrl, branch, githubOwner, repoName, commitInfo: newCommitInfo
+        });
       }
 
       // Step 4: Process changed documents
@@ -663,7 +731,17 @@ class ContextPipeline {
   /**
    * OPTIMIZED: Full repository processing using Langchain-first approach
    */
-  async processFullRepositoryOptimized(userId, repoId, repoUrl, branch, githubOwner, repoName, commitInfo) {
+  async processFullRepositoryOptimized(params) {
+    const {
+      userId,
+      repoId,
+      repoUrl,
+      branch,
+      githubOwner,
+      repoName,
+      commitInfo
+    } = params;
+
     console.log(`[${new Date().toISOString()}] 🔵 OPTIMIZED FULL PROCESSING: Using Langchain-first approach for complete repository`);
     
     try {
@@ -700,9 +778,10 @@ class ContextPipeline {
   }
 
   /**
+  /**
    * Process incremental changes between commits (legacy method with updated signature)
    */
-  async processIncrementalChangesInternal(userId, repoId, repoData, tempDir, repoInfo, commitHashes, commitInfo) {
+  async processIncrementalChangesInternal(userId, repoId, tempDir, repoInfo, commitHashes, commitInfo) {
     const { githubOwner, repoName, branch } = repoInfo;
     const { oldCommitHash, newCommitHash } = commitHashes;
     
@@ -788,24 +867,10 @@ class ContextPipeline {
     }
 
     try {
-      const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
-      
-      // Create vector IDs for changed files (matching the pattern used in EmbeddingManager)
-      const vectorIdsToDelete = [];
-      
-      changedFiles.forEach(filePath => {
-        const sanitizedFile = this.repoSelectionManager.sanitizeId(filePath);
-        // Generate pattern to match all chunks from this file
-        // Note: This is a simplified approach - in practice, you might need to query first to find exact IDs
-        const filePattern = `${githubOwner}_*_${sanitizedFile}_chunk_*`;
-        vectorIdsToDelete.push(filePattern);
-      });
-
-      console.log(`[${new Date().toISOString()}] 🗑️ CLEANUP: Removing vectors for ${changedFiles.length} changed files from namespace ${namespace}`);
-      
       // Note: Pinecone doesn't support wildcard deletion directly
       // We'll need to query first to find matching vectors, then delete them
       // For now, we'll log this limitation
+      console.log(`[${new Date().toISOString()}] 🗑️ CLEANUP: Would remove vectors for ${changedFiles.length} changed files from namespace ${namespace}`);
       console.log(`[${new Date().toISOString()}] 📝 TODO: Implement precise vector deletion for changed files`);
       console.log(`[${new Date().toISOString()}] 💡 Current approach will overwrite existing vectors when new ones are added`);
       
@@ -821,7 +886,16 @@ class ContextPipeline {
   /**
    * EMERGENCY FALLBACK: Direct GitHub API document loading when all else fails
    */
-  async processRepositoryDirectFallback(userId, repoId, repoUrl, branch, githubOwner, repoName) {
+  async processRepositoryDirectFallback(params) {
+    const {
+      userId,
+      repoId,
+      repoUrl,
+      branch,
+      githubOwner,
+      repoName
+    } = params;
+
     console.log(`[${new Date().toISOString()}] 🆘 DIRECT FALLBACK: Processing repository without commit tracking or git operations`);
     
     try {
