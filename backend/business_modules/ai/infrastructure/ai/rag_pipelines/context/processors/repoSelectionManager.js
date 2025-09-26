@@ -23,80 +23,93 @@ class RepoSelectionManager {
    * @param {string[]} options.additionalCommits - Additional commit hashes to fetch for diff operations
    */
   async cloneRepository(url, branch, options = {}) {
-    console.log(`[${new Date().toISOString()}] 🎯 CLONING EXPLANATION: Creating isolated temporary workspace for safe repository analysis`);
-    console.log(`[${new Date().toISOString()}] 🎯 We use 'git clone --depth 1' for efficiency (only latest commit) and create a unique temporary directory to avoid conflicts with concurrent processing`);
+    console.log(`[${new Date().toISOString()}] � CLOUD-NATIVE: Repository operation called - using GitHub API instead of git clone`);
+    console.log(`[${new Date().toISOString()}] 🎯 Cloud-native approach eliminates git dependencies and works in any deployment environment`);
     
-    // Create temp directory using OS temp directory
-    const tempDir = path.join(os.tmpdir(), 'eventstorm-repos', `repo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    // Parse repository URL to extract owner and repo name
+    const urlParts = url.split('/');
+    const repoName = urlParts[urlParts.length - 1].replace('.git', '');
+    const owner = urlParts[urlParts.length - 2];
+    
+    console.log(`[${new Date().toISOString()}] � PARSED REPO: ${owner}/${repoName} @ ${branch}`);
     
     try {
-      await fs.mkdir(tempDir, { recursive: true });
-      console.log(`[${new Date().toISOString()}] 📁 TEMP WORKSPACE: Created isolated directory: ${tempDir}`);
+      // Instead of cloning, we'll use the CloudNativeRepoLoader to fetch repository data
+      const CloudNativeRepoLoader = require('./cloudNativeRepoLoader');
       
-      // Clone the repository
-      const cloneCommand = `git clone --depth 1 --branch ${branch} ${url} ${tempDir}`;
-      console.log(`[${new Date().toISOString()}] 📥 GIT OPERATION: Executing shallow clone - ${cloneCommand}`);
-      console.log(`[${new Date().toISOString()}] 🎯 This downloads only the latest commit from branch '${branch}' to minimize transfer time and storage`);
+      const cloudLoader = new CloudNativeRepoLoader({
+        owner: owner,
+        repo: repoName,
+        branch: branch,
+        focusPath: null, // Load all files for this operation
+        maxFiles: 200, // Reasonable limit
+        timeout: 30000
+      });
       
-      await this.execAsync(cloneCommand, { timeout: 60000 }); // 60 second timeout
-      console.log(`[${new Date().toISOString()}] ✅ CLONE SUCCESS: Repository cloned successfully to temporary workspace`);
+      console.log(`[${new Date().toISOString()}] 📥 CLOUD API: Loading repository content via GitHub API`);
+      const documents = await cloudLoader.load();
       
-      // If additional commits are needed for diff operations, fetch them
-      if (options.additionalCommits && options.additionalCommits.length > 0) {
-        console.log(`[${new Date().toISOString()}] 🔄 FETCHING ADDITIONAL COMMITS: Need ${options.additionalCommits.length} commits for diff operations`);
+      if (documents && documents.length > 0) {
+        console.log(`[${new Date().toISOString()}] ✅ CLOUD SUCCESS: Retrieved ${documents.length} files via GitHub API`);
         
-        for (const commitHash of options.additionalCommits) {
-          try {
-            // First try to fetch specific commit
-            const fetchCommitCommand = `git -C "${tempDir}" fetch origin ${commitHash}`;
-            await this.execAsync(fetchCommitCommand, { timeout: 30000 });
-            console.log(`[${new Date().toISOString()}] ✅ COMMIT FETCH: Successfully fetched commit ${commitHash.substring(0, 8)}`);
-          } catch (error) {
-            // Fallback: fetch more history
-            console.log(`[${new Date().toISOString()}] 🔄 FALLBACK FETCH: Specific commit fetch failed, trying broader history`);
-            try {
-              const fetchDepthCommand = `git -C "${tempDir}" fetch --depth=50 origin ${branch}`;
-              await this.execAsync(fetchDepthCommand, { timeout: 45000 });
-              console.log(`[${new Date().toISOString()}] ✅ DEPTH FETCH: Successfully fetched extended history`);
-              break; // If this succeeds, we probably have what we need
-            } catch (depthError) {
-              console.warn(`[${new Date().toISOString()}] ⚠️ FETCH WARNING: Could not fetch commit ${commitHash.substring(0, 8)}: ${error.message}`);
-            }
-          }
-        }
+        // Create a virtual "temp directory" reference for compatibility
+        // This allows existing code to work without actual file system operations
+        const virtualTempDir = {
+          type: 'cloud-native',
+          owner: owner,
+          repo: repoName,
+          branch: branch,
+          documents: documents,
+          path: `cloud://${owner}/${repoName}/${branch}`,
+          isVirtual: true
+        };
+        
+        console.log(`[${new Date().toISOString()}] 📂 VIRTUAL WORKSPACE: Created cloud-native document collection`);
+        return virtualTempDir;
+        
+      } else {
+        throw new Error('No documents retrieved from repository');
       }
       
-      console.log(`[${new Date().toISOString()}] 📂 Ready to analyze source files from ${url}`);
-      
-      return tempDir;
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error cloning repository:`, error.message);
-      
-      // Cleanup on failure
-      try {
-        await fs.rm(tempDir, { recursive: true, force: true });
-      } catch (cleanupError) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Could not cleanup temp directory:`, cleanupError.message);
-      }
-      
-      throw new Error(`Failed to clone repository: ${error.message}`);
+      console.error(`[${new Date().toISOString()}] ❌ CLOUD-NATIVE ERROR: Failed to load repository via GitHub API:`, error.message);
+      throw new Error(`Failed to load repository via cloud-native API: ${error.message}`);
     }
   }
 
   /**
-   * Clean up temporary directory
+   * Clean up temporary directory (cloud-native compatible)
    */
   async cleanupTempDir(tempDir) {
-    console.log(`[${new Date().toISOString()}] 🧹 CLEANUP EXPLANATION: Removing temporary repository clone to free disk space`);
-    console.log(`[${new Date().toISOString()}] 🎯 Since all source files have been processed and stored as vector embeddings in Pinecone, the local copy is no longer needed. This prevents disk space accumulation from multiple repository processings`);
+    // Handle cloud-native virtual directories
+    if (tempDir && typeof tempDir === 'object' && tempDir.isVirtual) {
+      console.log(`[${new Date().toISOString()}] 🌐 CLOUD CLEANUP: Releasing cloud-native document collection`);
+      console.log(`[${new Date().toISOString()}] 💾 Memory optimization - cloud-native approach requires no disk cleanup`);
+      
+      // Clear references to allow garbage collection
+      if (tempDir.documents) {
+        tempDir.documents = null;
+      }
+      
+      console.log(`[${new Date().toISOString()}] ✅ CLEANUP SUCCESS: Cloud-native resources released`);
+      return;
+    }
     
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-      console.log(`[${new Date().toISOString()}] ✅ CLEANUP SUCCESS: Removed temporary directory: ${tempDir}`);
-      console.log(`[${new Date().toISOString()}] 💾 Disk space preserved - only vector embeddings retained for fast retrieval`);
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP WARNING: Could not remove temp directory ${tempDir}:`, error.message);
-      console.log(`[${new Date().toISOString()}] 🎯 This may require manual cleanup, but doesn't affect the processing success`);
+    // Handle traditional file system directories (fallback)
+    if (typeof tempDir === 'string') {
+      console.log(`[${new Date().toISOString()}] 🧹 CLEANUP EXPLANATION: Removing temporary repository clone to free disk space`);
+      console.log(`[${new Date().toISOString()}] 🎯 Since all source files have been processed and stored as vector embeddings in Pinecone, the local copy is no longer needed. This prevents disk space accumulation from multiple repository processings`);
+      
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        console.log(`[${new Date().toISOString()}] ✅ CLEANUP SUCCESS: Removed temporary directory: ${tempDir}`);
+        console.log(`[${new Date().toISOString()}] 💾 Disk space preserved - only vector embeddings retained for fast retrieval`);
+      } catch (error) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP WARNING: Could not remove temp directory ${tempDir}:`, error.message);
+        console.log(`[${new Date().toISOString()}] 🎯 This may require manual cleanup, but doesn't affect the processing success`);
+      }
+    } else {
+      console.log(`[${new Date().toISOString()}] ℹ️ CLEANUP: No cleanup needed for this resource type`);
     }
   }
 
