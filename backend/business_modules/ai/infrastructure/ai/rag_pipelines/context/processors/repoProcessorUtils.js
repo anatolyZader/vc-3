@@ -298,6 +298,7 @@ class RepoProcessorUtils {
    */
   async loadBackendDirectoryFiles(repoUrl, branch = 'main') {
     console.log(`[${new Date().toISOString()}] 🏗️ BACKEND LOADER: Loading backend directory files with cloud-native approach`);
+    console.log(`[${new Date().toISOString()}] 🚀 DEPLOYMENT: Force cache-bust ${Date.now()}`);
     
     // Extract owner/repo from URL
     const { githubOwner, repoName } = this.parseRepoUrl(repoUrl);
