@@ -509,6 +509,16 @@ class ContextPipeline {
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Error in orchestration for repository ${repoId}:`, error.message);
       
+      // IMMEDIATE GITHUB API FALLBACK: Detect Git-related errors and skip to API approach
+      const isGitError = error.message.includes('git: not found') || 
+                        error.message.includes('Command failed: git') || 
+                        error.message.includes('Failed to clone repository');
+                        
+      if (isGitError) {
+        console.log(`[${new Date().toISOString()}] 🚨 GIT NOT AVAILABLE: Detected Git installation issue, switching directly to GitHub API`);
+        console.log(`[${new Date().toISOString()}] 🔄 CLOUD-NATIVE MODE: Processing repository without local Git dependencies`);
+      }
+      
       // CRITICAL FALLBACK: Try direct GitHub API document loading when orchestration fails
       console.log(`[${new Date().toISOString()}] 🆘 FALLBACK: Attempting direct GitHub API document loading`);
       try {
