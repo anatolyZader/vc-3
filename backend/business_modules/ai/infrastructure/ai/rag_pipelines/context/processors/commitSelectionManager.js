@@ -129,8 +129,16 @@ class CommitSelectionManager {
         console.warn(`[${new Date().toISOString()}] ⚠️ GitHub API changed files failed:`, apiError.message);
       }
     }
-    
-    // Strategy 2: Fallback to local git
+
+    // Strategy 2: Check if git is available before attempting local operations
+    const isGitAvailable = await this.checkGitAvailability();
+    if (!isGitAvailable) {
+      console.log(`[${new Date().toISOString()}] 🚨 GIT NOT AVAILABLE: Skipping local git changed files detection in cloud environment`);
+      console.log(`[${new Date().toISOString()}] 📭 NO CHANGES: No files modified between commits, skipping processing`);
+      return []; // Return empty array to indicate no changes detectable
+    }
+
+    // Strategy 3: Fallback to local git (only if git is available)
     let tempDir = null;
     try {
       console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Using local git for changed files detection`);
@@ -276,12 +284,62 @@ class CommitSelectionManager {
   }
 
   /**
-   * Placeholder: Get changed files from GitHub API (to be implemented)
+   * IMPLEMENTED: Get changed files from GitHub API
    */
   async getChangedFilesFromGitHubAPI(owner, repo, fromCommit, toCommit) {
-    console.log(`[${new Date().toISOString()}] 🌐 TODO: Implement GitHub API changed files for ${owner}/${repo} ${fromCommit}...${toCommit}`);
-    // TODO: Implement actual GitHub API call using Octokit
-    return null; // Fallback to local git
+    try {
+      console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Getting changed files for ${owner}/${repo} ${fromCommit.substring(0, 8)}...${toCommit.substring(0, 8)}`);
+      
+      // Use GitHub compare API to get changed files
+      const url = `https://api.github.com/repos/${owner}/${repo}/compare/${fromCommit}...${toCommit}`;
+      
+      const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'eventstorm-commit-compare'
+      };
+      
+      if (githubToken) {
+        headers['Authorization'] = `token ${githubToken}`;
+        console.log(`[${new Date().toISOString()}] 🔑 Using authenticated GitHub API for changed files`);
+      } else {
+        console.log(`[${new Date().toISOString()}] 🌐 PUBLIC API: Using public GitHub API for changed files`);
+      }
+      
+      const response = await fetch(url, { headers, timeout: 15000 });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ Compare not found (commits may be identical or not exist)`);
+          return []; // No changes found
+        }
+        throw new Error(`GitHub compare API failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const compareData = await response.json();
+      
+      if (compareData.files && Array.isArray(compareData.files)) {
+        const changedFiles = compareData.files.map(file => ({
+          filename: file.filename,
+          status: file.status, // 'added', 'modified', 'removed', etc.
+          changes: file.changes,
+          additions: file.additions,
+          deletions: file.deletions
+        }));
+        
+        console.log(`[${new Date().toISOString()}] ✅ GITHUB COMPARE API: Found ${changedFiles.length} changed files`);
+        console.log(`[${new Date().toISOString()}] 📊 Files: ${changedFiles.length} total, ${compareData.ahead_by || 0} commits ahead, ${compareData.behind_by || 0} behind`);
+        
+        return changedFiles;
+      } else {
+        console.log(`[${new Date().toISOString()}] 📭 No changed files found in comparison`);
+        return [];
+      }
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ GitHub API changed files failed:`, error.message);
+      return null; // Fallback to local git (will be skipped if git not available)
+    }
   }
 
   /**
