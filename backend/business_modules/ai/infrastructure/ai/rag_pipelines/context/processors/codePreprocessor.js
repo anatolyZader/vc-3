@@ -36,21 +36,29 @@ class CodePreprocessor {
     // 4. Normalize whitespace and indentation
     processedContent = this.normalizeWhitespace(processedContent, fileExtension);
     
-    // 5. Add structural markers for better chunking (but not for imports)
-    processedContent = this.addStructuralMarkers(processedContent, fileExtension);
+    // 5. Extract structural information (safe alternative to code markers)
+    const structuralInfo = this.extractStructuralInfo(processedContent, fileExtension);
     
-    // 6. Extract and enhance metadata
+    // 6. Add structural markers ONLY if explicitly requested (unsafe for code execution)
+    if (options.addStructuralMarkers === true) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ WARNING: Adding structural markers to code content - unsafe for execution/testing`);
+      processedContent = this.addStructuralMarkers(processedContent, fileExtension);
+    }
+    
+    // 7. Extract and enhance metadata
     const enhancedMetadata = await this.extractCodeMetadata(processedContent, filePath, metadata, extractedImports);
     
     return {
       content: processedContent,
       metadata: enhancedMetadata,
+      structuralInfo, // Safe structural information without code modification
       extractedImports, // Available for context if needed
       preprocessingApplied: {
         normalization: true,
         importSeparation: true,
         commentProcessing: true,
-        structuralMarkers: true,
+        structuralAnalysis: true,
+        structuralMarkers: options.addStructuralMarkers === true,
         metadataExtraction: true
       }
     };
@@ -307,39 +315,92 @@ class CodePreprocessor {
   }
 
   /**
-   * 4. Add Structural Markers for Better Chunking
+   * Extract Structural Information (Safe alternative to markers)
+   * Returns metadata about code structure without modifying content
+   */
+  extractStructuralInfo(content, fileExtension) {
+    if (!this.supportedLanguages.has(fileExtension)) {
+      return { classes: [], functions: [], imports: [], totalLines: content.split('\n').length };
+    }
+
+    const lines = content.split('\n');
+    const structuralInfo = {
+      classes: [],
+      functions: [],
+      imports: [],
+      totalLines: lines.length,
+      complexity: 'low' // Will be computed based on structure count
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (this.isClassDeclaration(trimmed, fileExtension)) {
+        structuralInfo.classes.push({ 
+          line: i + 1, 
+          declaration: trimmed.substring(0, 100) // Limit length
+        });
+      } else if (this.isFunctionDeclaration(trimmed, fileExtension)) {
+        structuralInfo.functions.push({ 
+          line: i + 1, 
+          declaration: trimmed.substring(0, 100)
+        });
+      } else if (this.isImportStatement(trimmed, fileExtension)) {
+        structuralInfo.imports.push({ 
+          line: i + 1, 
+          statement: trimmed.substring(0, 100)
+        });
+      }
+    }
+
+    // Compute complexity based on structure density
+    const totalStructures = structuralInfo.classes.length + structuralInfo.functions.length;
+    const density = totalStructures / lines.length;
+    if (density > 0.1) structuralInfo.complexity = 'high';
+    else if (density > 0.05) structuralInfo.complexity = 'medium';
+
+    return structuralInfo;
+  }
+
+  /**
+   * 4. Add Structural Markers for Better Chunking (DEPRECATED - Unsafe for execution)
+   * Returns an object with both the original content and structural metadata
    */
   addStructuralMarkers(content, fileExtension) {
     if (!this.supportedLanguages.has(fileExtension)) {
       return content;
     }
 
-    // Add semantic boundaries that splitters can use
+    // Extract structural information without modifying the code
     const lines = content.split('\n');
-    const markedLines = [];
+    const structuralInfo = [];
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmed = line.trim();
 
-      // Mark important structural elements
+      // Record structural elements with line numbers
       if (this.isClassDeclaration(trimmed, fileExtension)) {
-        markedLines.push(`\n// === CLASS BOUNDARY ===`);
-        markedLines.push(line);
+        structuralInfo.push({ type: 'class', line: i + 1, content: trimmed });
       } else if (this.isFunctionDeclaration(trimmed, fileExtension)) {
-        markedLines.push(`\n// === FUNCTION BOUNDARY ===`);
-        markedLines.push(line);
+        structuralInfo.push({ type: 'function', line: i + 1, content: trimmed });
       } else if (this.isImportStatement(trimmed, fileExtension)) {
-        if (markedLines.length > 0 && !markedLines[markedLines.length - 1].includes('IMPORT SECTION')) {
-          markedLines.push(`// === IMPORT SECTION ===`);
-        }
-        markedLines.push(line);
-      } else {
-        markedLines.push(line);
+        structuralInfo.push({ type: 'import', line: i + 1, content: trimmed });
       }
     }
 
-    return markedLines.join('\n');
+    // DEPRECATED: Adding markers directly to code is unsafe for execution
+    // Return original content with structural metadata as comments at the top
+    if (structuralInfo.length > 0) {
+      const structuralComments = structuralInfo.map(info => 
+        `// [STRUCTURE] Line ${info.line}: ${info.type.toUpperCase()} - ${info.content.substring(0, 50)}${info.content.length > 50 ? '...' : ''}`
+      ).join('\n');
+      
+      return `${structuralComments}\n// [END STRUCTURE INFO]\n\n${content}`;
+    }
+
+    return content;
   }
 
   isClassDeclaration(line, ext) {

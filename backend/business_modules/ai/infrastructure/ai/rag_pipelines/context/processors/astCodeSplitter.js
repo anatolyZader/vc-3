@@ -642,12 +642,18 @@ class ASTCodeSplitter {
     traverse(ast, {
       ImportDeclaration: (path) => {
         const startLine = path.node.loc.start.line - 1;
-        imports.push(lines[startLine]);
+        const endLine = path.node.loc.end.line - 1;
+        // Collect all lines from start to end for multi-line imports
+        const importLines = lines.slice(startLine, endLine + 1);
+        imports.push(importLines.join('\n'));
       },
       CallExpression: (path) => {
         if (path.node.callee.name === 'require') {
           const startLine = path.node.loc.start.line - 1;
-          imports.push(lines[startLine]);
+          const endLine = path.node.loc.end.line - 1;
+          // Collect all lines for multi-line require statements
+          const requireLines = lines.slice(startLine, endLine + 1);
+          imports.push(requireLines.join('\n'));
         }
       }
     });

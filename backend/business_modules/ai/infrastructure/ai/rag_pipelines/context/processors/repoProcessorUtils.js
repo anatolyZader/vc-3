@@ -195,6 +195,17 @@ class RepoProcessorUtils {
           console.log(`[${new Date().toISOString()}] 🏗️ Using specialized backend loader...`);
           batchDocuments = await this.loadBackendDirectoryFiles(repoUrl, branch);
           
+          // CRITICAL: Validate backend file coverage
+          if (batchDocuments.length === 0) {
+            console.error(`[${new Date().toISOString()}] ❌ BACKEND COVERAGE FAILURE: No backend files loaded - this will result in poor AI responses`);
+            console.error(`[${new Date().toISOString()}] 🔍 DIAGNOSIS: Repository ${githubOwner}/${repoName} may have no backend/ directory, or all loading methods failed`);
+            
+            // For now, log error but continue (could be changed to throw error in production)
+            console.warn(`[${new Date().toISOString()}] ⚠️ Continuing processing without backend files - AI responses will be limited`);
+          } else {
+            console.log(`[${new Date().toISOString()}] ✅ BACKEND COVERAGE: Successfully loaded ${batchDocuments.length} backend files`);
+          }
+          
           // Add batch metadata to specialized documents
           batchDocuments = batchDocuments.map(doc => ({
             ...doc,
@@ -235,6 +246,27 @@ class RepoProcessorUtils {
 
     console.log(`[${new Date().toISOString()}] 🎉 BATCHED PROCESSING COMPLETE: Loaded ${allDocuments.length} total documents`);
     
+    // Log detailed breakdown by source directory
+    const directoryBreakdown = {};
+    allDocuments.forEach(doc => {
+      const source = doc.metadata.source || 'unknown';
+      const dir = source.includes('/') ? source.split('/')[0] : 'root';
+      directoryBreakdown[dir] = (directoryBreakdown[dir] || 0) + 1;
+    });
+    
+    console.log(`[${new Date().toISOString()}] 📊 DIRECTORY BREAKDOWN:`);
+    Object.entries(directoryBreakdown).forEach(([dir, count]) => {
+      console.log(`[${new Date().toISOString()}]   📂 ${dir}/: ${count} files`);
+    });
+    
+    // Highlight backend coverage specifically
+    const backendCount = directoryBreakdown['backend'] || 0;
+    if (backendCount === 0) {
+      console.error(`[${new Date().toISOString()}] ❌ CRITICAL: No backend files loaded - AI responses will lack code context`);
+    } else {
+      console.log(`[${new Date().toISOString()}] ✅ Backend files loaded: ${backendCount}`);
+    }
+    
     // Enrich with commit information - safely handle null commitInfo
     const enrichedDocuments = allDocuments.map(doc => ({
       ...doc,
@@ -262,10 +294,56 @@ class RepoProcessorUtils {
   }
 
   /**
-   * SPECIALIZED: Load only backend directory files efficiently
+   * ENHANCED: Load only backend directory files using cloud-native approach
    */
   async loadBackendDirectoryFiles(repoUrl, branch = 'main') {
-    console.log(`[${new Date().toISOString()}] 🏗️ BACKEND LOADER: Loading backend directory files specifically`);
+    console.log(`[${new Date().toISOString()}] 🏗️ BACKEND LOADER: Loading backend directory files with cloud-native approach`);
+    
+    // Extract owner/repo from URL
+    const { githubOwner, repoName } = this.parseRepoUrl(repoUrl);
+    
+    try {
+      // Try cloud-native loader first (no authentication required for public repos)
+      const CloudNativeRepoLoader = require('./cloudNativeRepoLoader');
+      const cloudLoader = new CloudNativeRepoLoader({
+        owner: githubOwner,
+        repo: repoName,
+        branch: branch,
+        focusPath: 'backend/',
+        maxFiles: 150, // Reasonable limit for backend files
+        timeout: 25000 // Shorter timeout than full repo loading
+      });
+      
+      console.log(`[${new Date().toISOString()}] 🌐 CLOUD-NATIVE: Attempting direct GitHub API tree traversal for backend/`);
+      const backendFiles = await cloudLoader.load();
+      
+      if (backendFiles && backendFiles.length > 0) {
+        console.log(`[${new Date().toISOString()}] ✅ CLOUD-NATIVE SUCCESS: Loaded ${backendFiles.length} backend files via direct API`);
+        
+        // Log sample files
+        console.log(`[${new Date().toISOString()}] 📋 Sample backend files:`);
+        backendFiles.slice(0, 5).forEach(doc => {
+          console.log(`  - ${doc.metadata.source} (${doc.pageContent.length} chars)`);
+        });
+        
+        return backendFiles;
+      }
+      
+      console.warn(`[${new Date().toISOString()}] ⚠️ Cloud-native loader returned 0 files, trying LangChain fallback`);
+      
+    } catch (cloudError) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Cloud-native loader failed: ${cloudError.message}, trying LangChain fallback`);
+    }
+    
+    // Fallback to original LangChain approach (but with better error handling)
+    return await this.loadBackendFilesLangChainFallback(repoUrl, branch, githubOwner, repoName);
+  }
+
+  /**
+   * Fallback: Original LangChain approach with enhanced error handling
+   */
+  async loadBackendFilesLangChainFallback(repoUrl, branch, githubOwner, repoName) {
+    console.log(`[${new Date().toISOString()}] 🔄 LANGCHAIN FALLBACK: Attempting LangChain GithubRepoLoader for backend files`);
     
     const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
     
@@ -295,11 +373,15 @@ class RepoProcessorUtils {
 
     if (githubToken) {
       backendLoaderOptions.accessToken = githubToken;
+      console.log(`[${new Date().toISOString()}] 🔑 Using GitHub token for authenticated access`);
+    } else {
+      console.log(`[${new Date().toISOString()}] 🔓 No GitHub token - using public access`);
     }
 
     try {
-      console.log(`[${new Date().toISOString()}] ⏳ Loading backend files with minimal scope...`);
+      console.log(`[${new Date().toISOString()}] ⏳ Loading backend files with LangChain (reduced timeout)...`);
       
+      const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
       const loader = new GithubRepoLoader(repoUrl, backendLoaderOptions);
       
       // Use a shorter timeout for this focused loading
@@ -308,39 +390,12 @@ class RepoProcessorUtils {
         setTimeout(() => reject(new Error('Backend loading timeout')), 20000);
       });
       
-      let allDocs;
+      let allDocs = [];
       try {
         allDocs = await Promise.race([loadPromise, timeoutPromise]);
       } catch (timeoutError) {
-        console.warn(`[${new Date().toISOString()}] ⏰ Backend loading timed out, trying with even more restrictions...`);
-        
-        // Ultra-restricted fallback
-        const ultraRestrictedOptions = {
-          ...backendLoaderOptions,
-          recursive: true,
-          maxConcurrency: 1,
-          ignorePaths: [
-            ...backendLoaderOptions.ignorePaths,
-            // Exclude even more backend subdirectories
-            'backend/business_modules/*/infrastructure/**',
-            'backend/business_modules/*/domain/**',
-            'backend/business_modules/*/application/**',
-            'backend/aop_modules/**'
-          ]
-        };
-        
-        const fallbackLoader = new GithubRepoLoader(repoUrl, ultraRestrictedOptions);
-        const fallbackPromise = fallbackLoader.load();
-        const fallbackTimeout = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Fallback timeout')), 15000);
-        });
-        
-        try {
-          allDocs = await Promise.race([fallbackPromise, fallbackTimeout]);
-        } catch (fallbackError) {
-          console.error(`[${new Date().toISOString()}] ❌ Both backend loading attempts failed`);
-          return [];
-        }
+        console.warn(`[${new Date().toISOString()}] ⏰ LangChain backend loading timed out - this indicates the repository is too large for recursive loading`);
+        return []; // Return empty rather than attempting more fallbacks
       }
       
       // Filter to only backend files
@@ -349,19 +404,16 @@ class RepoProcessorUtils {
         return source.startsWith('backend/') && !source.includes('/test') && !source.includes('_tests_');
       });
       
-      console.log(`[${new Date().toISOString()}] ✅ BACKEND LOADER: Found ${backendFiles.length} backend files from ${allDocs.length} total`);
-      
       if (backendFiles.length > 0) {
-        console.log(`[${new Date().toISOString()}] 📋 Sample backend files:`);
-        backendFiles.slice(0, 5).forEach(doc => {
-          console.log(`  - ${doc.metadata.source} (${doc.pageContent.length} chars)`);
-        });
+        console.log(`[${new Date().toISOString()}] ✅ LANGCHAIN FALLBACK: Found ${backendFiles.length} backend files from ${allDocs.length} total`);
+      } else {
+        console.warn(`[${new Date().toISOString()}] ⚠️ LANGCHAIN FALLBACK: No backend files found in ${allDocs.length} documents`);
       }
       
       return backendFiles;
       
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Backend loading failed: ${error.message}`);
+      console.error(`[${new Date().toISOString()}] ❌ LangChain fallback failed: ${error.message}`);
       return [];
     }
   }

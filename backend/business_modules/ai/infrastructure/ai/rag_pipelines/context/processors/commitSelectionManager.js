@@ -42,7 +42,14 @@ class CommitSelectionManager {
       }
     }
     
-    // Strategy 2: Fallback to minimal local git operations
+    // Strategy 2: Check if git is available before attempting local operations
+    const isGitAvailable = await this.checkGitAvailability();
+    if (!isGitAvailable) {
+      console.log(`[${new Date().toISOString()}] 🚨 GIT NOT AVAILABLE: Skipping local git operations in cloud environment`);
+      return this.createSyntheticCommitInfo();
+    }
+    
+    // Strategy 3: Fallback to minimal local git operations (only if git is available)
     if (this.processingStrategy.fallbackToLocalGit) {
       console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Using minimal local git clone for commit info`);
       let tempDir = null;
@@ -61,7 +68,6 @@ class CommitSelectionManager {
         
       } catch (gitError) {
         console.error(`[${new Date().toISOString()}] ❌ Local git failed:`, gitError.message);
-        throw gitError;
       } finally {
         // Always cleanup temp directory immediately
         if (tempDir) {
@@ -75,13 +81,33 @@ class CommitSelectionManager {
     }
     
     // Final fallback: return synthetic commit info to allow processing to continue
-    console.log(`[${new Date().toISOString()}] 🔄 FINAL FALLBACK: Using synthetic commit info to allow repository processing`);
+    console.log(`[${new Date().toISOString()}] 🔄 FINAL FALLBACK: Using synthetic commit info for cloud-native processing`);
+    return this.createSyntheticCommitInfo();
+  }
+
+  /**
+   * Check if git binary is available in the environment
+   */
+  async checkGitAvailability() {
+    try {
+      await this.execAsync('git --version', { timeout: 5000 });
+      return true;
+    } catch (error) {
+      console.log(`[${new Date().toISOString()}] ℹ️ Git not available in environment (cloud deployment): ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Create synthetic commit info for cloud environments where git/API are unavailable
+   */
+  createSyntheticCommitInfo() {
     return {
-      hash: 'synthetic-' + Date.now(),
-      subject: 'Repository processed without commit tracking',
-      message: 'Repository processed without commit tracking due to GitHub API/Git unavailability',
-      author: 'automated-processor',
-      email: 'no-reply@eventstorm.me',
+      hash: 'cloud-' + Date.now(),
+      subject: 'Cloud-native repository processing',
+      message: 'Repository processed in cloud environment without commit tracking',
+      author: 'cloud-processor',
+      email: 'cloud@eventstorm.me',
       date: new Date().toISOString()
     };
   }
@@ -132,41 +158,107 @@ class CommitSelectionManager {
   }
 
   /**
-   * Placeholder: Get commit info from GitHub API (to be implemented)
+   * ENHANCED: Get commit info from GitHub API with robust error handling
    */
   async getCommitInfoFromGitHubAPI(owner, repo, branch) {
     try {
-      console.log(`[${new Date().toISOString()}] 🔍 GITHUB API: Fetching commit info from GitHub API for ${owner}/${repo}@${branch} [v2]`);
+      console.log(`[${new Date().toISOString()}] 🔍 GITHUB API: Fetching commit info from GitHub API for ${owner}/${repo}@${branch} [v3-enhanced]`);
       
-      const githubToken = process.env.GITHUB_TOKEN;
+      const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
       if (!githubToken) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ No GitHub token available, using fallback`);
+        console.warn(`[${new Date().toISOString()}] ⚠️ No GitHub token available, attempting public API access`);
+        // Try public API access for public repositories
+        return await this.tryPublicGitHubAPI(owner, repo, branch);
+      }
+
+      // Validate token format
+      if (!githubToken.startsWith('ghp_') && !githubToken.startsWith('github_pat_')) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ GitHub token format may be invalid (expected ghp_ or github_pat_ prefix)`);
+      }
+
+      try {
+        // Use Octokit REST API client (more reliable than fetch)
+        const { Octokit } = require('@octokit/rest');
+        const octokit = new Octokit({
+          auth: githubToken,
+        });
+
+        // Get branch information which includes latest commit
+        const { data: branchData } = await octokit.rest.repos.getBranch({
+          owner,
+          repo,
+          branch
+        });
+
+        const commit = branchData.commit;
+
+        if (!commit) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in GitHub API response`);
+          return null;
+        }
+
+        const commitInfo = {
+          hash: commit.sha,
+          subject: commit.commit.message.split('\n')[0], // First line as subject
+          message: commit.commit.message,
+          author: commit.commit.author.name,
+          email: commit.commit.author.email,
+          date: commit.commit.author.date,
+          url: commit.html_url
+        };
+
+        console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
+        return commitInfo;
+
+      } catch (authError) {
+        if (authError.status === 401) {
+          console.warn(`[${new Date().toISOString()}] 🔑 GitHub API authentication failed - trying public API fallback`);
+          return await this.tryPublicGitHubAPI(owner, repo, branch);
+        }
+        throw authError;
+      }
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error fetching commit info from GitHub API:`, error.message);
+      if (error.status === 403) {
+        console.error(`[${new Date().toISOString()}] � GitHub API rate limit exceeded or insufficient permissions`);
+      } else if (error.status === 404) {
+        console.error(`[${new Date().toISOString()}] � Repository not found - check owner/repo/branch names`);
+      }
+      return null; // Fallback to synthetic commit
+    }
+  }
+
+  /**
+   * Try to access GitHub API without authentication (for public repos)
+   */
+  async tryPublicGitHubAPI(owner, repo, branch) {
+    try {
+      console.log(`[${new Date().toISOString()}] 🌐 PUBLIC API: Attempting public GitHub API access`);
+      
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branch}`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'eventstorm-rag-processor'
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ Public GitHub API request failed: ${response.status} ${response.statusText}`);
         return null;
       }
 
-      // Use Octokit REST API client (more reliable than fetch)
-      const { Octokit } = require('@octokit/rest');
-      const octokit = new Octokit({
-        auth: githubToken,
-      });
-
-      // Get branch information which includes latest commit
-      const { data: branchData } = await octokit.rest.repos.getBranch({
-        owner,
-        repo,
-        branch
-      });
-
+      const branchData = await response.json();
       const commit = branchData.commit;
 
       if (!commit) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in GitHub API response`);
+        console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in public API response`);
         return null;
       }
 
       const commitInfo = {
         hash: commit.sha,
-        subject: commit.commit.message.split('\n')[0], // First line as subject
+        subject: commit.commit.message.split('\n')[0],
         message: commit.commit.message,
         author: commit.commit.author.name,
         email: commit.commit.author.email,
@@ -174,19 +266,12 @@ class CommitSelectionManager {
         url: commit.html_url
       };
 
-      console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
+      console.log(`[${new Date().toISOString()}] ✅ PUBLIC API SUCCESS: Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
       return commitInfo;
 
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Error fetching commit info from GitHub API:`, error.message);
-      if (error.status === 401) {
-        console.error(`[${new Date().toISOString()}] 🔑 GitHub API authentication failed - token may be expired or invalid`);
-      } else if (error.status === 403) {
-        console.error(`[${new Date().toISOString()}] 🚫 GitHub API rate limit exceeded or insufficient permissions`);
-      } else if (error.status === 404) {
-        console.error(`[${new Date().toISOString()}] 🔍 Repository not found - check owner/repo/branch names`);
-      }
-      return null; // Fallback to local git
+    } catch (publicError) {
+      console.error(`[${new Date().toISOString()}] ❌ Public GitHub API failed:`, publicError.message);
+      return null;
     }
   }
 
