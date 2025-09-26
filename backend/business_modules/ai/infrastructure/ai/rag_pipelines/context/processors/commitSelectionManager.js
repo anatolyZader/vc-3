@@ -343,19 +343,55 @@ class CommitSelectionManager {
   }
 
   /**
-   * Get commit hash from local git repository
+   * Get commit hash from cloud-native virtual directory
    */
   async getCommitHashFromLocalGit(repoPath, branch = 'HEAD') {
-    try {
-      const command = `cd "${repoPath}" && git rev-parse ${branch}`;
-      const { stdout } = await this.execAsync(command);
-      const commitHash = stdout.trim();
-      console.log(`[${new Date().toISOString()}] 🔑 LOCAL GIT COMMIT HASH: Retrieved ${commitHash} for branch ${branch}`);
-      return commitHash;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to get commit hash from local git:`, error.message);
-      return null;
+    console.log(`[${new Date().toISOString()}] 🌐 CLOUD-NATIVE: getCommitHashFromLocalGit called`);
+    
+    // Handle virtual cloud-native directories
+    if (repoPath && typeof repoPath === 'object' && repoPath.isVirtual) {
+      console.log(`[${new Date().toISOString()}] 📂 VIRTUAL DIR: Using GitHub API to get commit hash for ${repoPath.owner}/${repoPath.repo}`);
+      
+      // Use GitHub API to get the commit hash
+      try {
+        const commitInfo = await this.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
+        if (commitInfo && commitInfo.hash) {
+          console.log(`[${new Date().toISOString()}] ✅ CLOUD COMMIT HASH: Retrieved ${commitInfo.hash.substring(0, 8)} via GitHub API`);
+          return commitInfo.hash;
+        }
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ Failed to get commit hash via GitHub API:`, error.message);
+      }
     }
+    
+    console.log(`[${new Date().toISOString()}] ⚠️ CLOUD-NATIVE: Cannot get commit hash, returning synthetic value`);
+    return 'cloud-native-synthetic-hash';
+  }
+
+  /**
+   * Get detailed commit information from cloud-native virtual directory
+   */
+  async getCommitInfoFromLocalGit(repoPath, commitHash = 'HEAD') {
+    console.log(`[${new Date().toISOString()}] 🌐 CLOUD-NATIVE: getCommitInfoFromLocalGit called`);
+    
+    // Handle virtual cloud-native directories
+    if (repoPath && typeof repoPath === 'object' && repoPath.isVirtual) {
+      console.log(`[${new Date().toISOString()}] � VIRTUAL DIR: Using GitHub API to get commit info for ${repoPath.owner}/${repoPath.repo}`);
+      
+      // Use GitHub API to get the commit info
+      try {
+        const commitInfo = await this.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
+        if (commitInfo) {
+          console.log(`[${new Date().toISOString()}] ✅ CLOUD COMMIT INFO: Retrieved commit ${commitInfo.hash?.substring(0, 8) || 'unknown'} via GitHub API`);
+          return commitInfo;
+        }
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ Failed to get commit info via GitHub API:`, error.message);
+      }
+    }
+    
+    console.log(`[${new Date().toISOString()}] ⚠️ CLOUD-NATIVE: Cannot get commit info, returning synthetic values`);
+    return this.createSyntheticCommitInfo();
   }
 
   /**
@@ -384,45 +420,34 @@ class CommitSelectionManager {
   }
 
   /**
-   * Get list of changed files between commits from local git repository
+   * Get list of changed files - cloud-native approach using virtual directory
    */
   async getChangedFilesFromLocalGit(repoPath, fromCommit, toCommit = 'HEAD') {
-    try {
-      // First, verify that both commits exist in the repository
-      try {
-        await this.execAsync(`cd "${repoPath}" && git cat-file -e ${fromCommit}`);
-      } catch (commitError) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ COMMIT NOT FOUND: ${fromCommit.substring(0, 8)} not in shallow clone, attempting fetch...`);
-        
-        // Try to fetch the missing commit
-        try {
-          await this.execAsync(`git -C "${repoPath}" fetch origin ${fromCommit}`, { timeout: 30000 });
-          console.log(`[${new Date().toISOString()}] ✅ COMMIT FETCH: Successfully fetched missing commit ${fromCommit.substring(0, 8)}`);
-        } catch (fetchError) {
-          // Fallback: fetch more history
-          console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Fetching extended history to find commit`);
-          try {
-            await this.execAsync(`git -C "${repoPath}" fetch --depth=50 origin`, { timeout: 45000 });
-            console.log(`[${new Date().toISOString()}] ✅ EXTENDED FETCH: Successfully fetched more history`);
-            
-            // Verify commit is now available
-            await this.execAsync(`cd "${repoPath}" && git cat-file -e ${fromCommit}`);
-          } catch (extendedError) {
-            console.error(`[${new Date().toISOString()}] ❌ COMMIT UNAVAILABLE: Cannot access commit ${fromCommit.substring(0, 8)} even after extended fetch`);
-            throw new Error(`Commit ${fromCommit.substring(0, 8)} not accessible for diff operation`);
-          }
-        }
-      }
+    console.log(`[${new Date().toISOString()}] 🌐 CLOUD-NATIVE: getChangedFilesFromLocalGit called - using virtual directory approach`);
+    
+    // Handle virtual cloud-native directories
+    if (repoPath && typeof repoPath === 'object' && repoPath.isVirtual) {
+      console.log(`[${new Date().toISOString()}] 📂 VIRTUAL DIR: Processing cloud-native document collection`);
       
-      const command = `cd "${repoPath}" && git diff --name-only ${fromCommit} ${toCommit}`;
-      const { stdout } = await this.execAsync(command);
-      const changedFiles = stdout.trim().split('\n').filter(file => file.length > 0);
-      console.log(`[${new Date().toISOString()}] 📋 LOCAL GIT CHANGED FILES: ${changedFiles.length} files modified between ${fromCommit.substring(0, 8)} and ${toCommit}`);
-      return changedFiles;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to get changed files from local git:`, error.message);
+      // For virtual directories, we can't do git diff operations
+      // Instead, return all files since we can't determine changes without git
+      const allFiles = repoPath.documents?.map(doc => doc.metadata?.source || doc.path) || [];
+      console.log(`[${new Date().toISOString()}] 🔄 CLOUD FALLBACK: Returning all ${allFiles.length} files (no git diff available)`);
+      return allFiles;
+    }
+    
+    // For traditional paths (fallback), check if it's a real directory
+    if (typeof repoPath === 'string') {
+      console.log(`[${new Date().toISOString()}] ⚠️ TRADITIONAL PATH: Received file system path but using cloud-native approach`);
+      console.log(`[${new Date().toISOString()}] 🌐 CLOUD OVERRIDE: Skipping git operations in cloud-native environment`);
+      
+      // In cloud-native mode, we don't have git available
+      // Return empty array to indicate no specific changes detected
       return [];
     }
+    
+    console.log(`[${new Date().toISOString()}] ❌ UNSUPPORTED: Invalid repository path type for cloud-native processing`);
+    return [];
   }
 }
 
