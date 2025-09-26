@@ -27,9 +27,26 @@ class DocsProcessor {
     this.repositoryManager = options.repositoryManager;
     this.pineconeManager = options.pineconeManager;
     
-    // Get the shared Pinecone service from the connection manager
-    this.pineconeService = this.pineconeManager?.getPineconeService();
-    this.pinecone = this.pineconeService; // For backward compatibility
+    // Defer pinecone resolution; don't assign unresolved promise
+    this._pineconeService = null;
+    this._pineconeServicePromise = this.pineconeManager?.getPineconeService?.();
+    this.pinecone = null; // Backward compatibility alias after resolution
+  }
+
+  async _getPineconeService() {
+    if (this._pineconeService) return this._pineconeService;
+    if (this._pineconeServicePromise) {
+      try {
+        this._pineconeService = await this._pineconeServicePromise;
+      } catch (err) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ DocsProcessor: Pinecone initialization failed: ${err.message}`);
+        this._pineconeService = null;
+      } finally {
+        this._pineconeServicePromise = null;
+      }
+      this.pinecone = this._pineconeService;
+    }
+    return this._pineconeService;
   }
 
   /**
@@ -453,14 +470,17 @@ class DocsProcessor {
    */
   async storeMarkdownDocuments(documents, namespace) {
     console.log(`[${new Date().toISOString()}] 🗄️ MARKDOWN STORAGE: Storing ${documents.length} documentation chunks in namespace '${namespace}'`);
-
-    if (!this.pinecone) {
+    const pineconeService = await this._getPineconeService();
+    if (!pineconeService) {
       console.warn(`[${new Date().toISOString()}] ⚠️ MARKDOWN: Pinecone not available, skipping storage`);
-      return;
+      return { success: true, skipped: true, reason: 'pinecone_unavailable', chunksStored: 0 };
     }
 
     try {
-      const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+      const index = typeof pineconeService.index === 'function'
+        ? pineconeService.index(indexName)
+        : (pineconeService.client ? pineconeService.client.index(indexName) : pineconeService);
       const vectorStore = new PineconeStore(this.embeddings, {
         pineconeIndex: index,
         namespace: namespace
@@ -483,120 +503,12 @@ class DocsProcessor {
       }
 
       console.log(`[${new Date().toISOString()}] ✅ MARKDOWN STORAGE: Successfully stored ${documents.length} documentation chunks`);
+      return { success: true, chunksStored: documents.length };
 
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ MARKDOWN STORAGE: Error storing documents:`, error.message);
       throw error;
     }
-  }
-
-  /**
-   * UTILITY METHODS: Document processing utilities extracted from aiLangchainAdapter
-   */
-
-  /**
-   * Create an intelligent text splitter based on document content and language
-   * Extracted from aiLangchainAdapter.js for better separation of concerns
-   */
-  createSmartSplitter(documents) {
-    console.log(`[${new Date().toISOString()}] 🧠 SMART SPLITTING: Analyzing ${documents.length} documents for optimal splitting strategy`);
-    
-    if (!documents || documents.length === 0) {
-      console.log(`[${new Date().toISOString()}] ⚠️ WARNING: No documents provided, using default splitter`);
-      return new RecursiveCharacterTextSplitter({
-        chunkSize: 1500,
-        chunkOverlap: 250
-      });
-    }
-
-    // Analyze document types to determine splitting strategy
-    const hasCodeFiles = documents.some(doc => 
-      doc.metadata?.source?.match(/\.(js|ts|jsx|tsx|py|java|cpp|c|cs|php|rb|go|rs|swift)$/i)
-    );
-    
-    const hasMarkdownFiles = documents.some(doc => 
-      doc.metadata?.source?.match(/\.md$/i)
-    );
-
-    console.log(`[${new Date().toISOString()}] 📊 ANALYSIS: Code files: ${hasCodeFiles ? 'Yes' : 'No'}, Markdown files: ${hasMarkdownFiles ? 'Yes' : 'No'}`);
-
-    if (hasCodeFiles) {
-      // Detect primary language
-      const languages = documents
-        .map(doc => doc.metadata?.source?.split('.').pop()?.toLowerCase())
-        .filter(Boolean);
-      
-      const primaryLanguage = this.getMostCommonLanguage(languages);
-      console.log(`[${new Date().toISOString()}] 🔧 SMART SPLITTING: Using ${primaryLanguage}-aware separators for better code chunking`);
-      
-      return new RecursiveCharacterTextSplitter({
-        chunkSize: 1500,
-        chunkOverlap: 300,
-        separators: this.getCodeAwareSeparators(primaryLanguage)
-      });
-    }
-
-    if (hasMarkdownFiles) {
-      console.log(`[${new Date().toISOString()}] 📝 SMART SPLITTING: Using markdown-aware splitting for markdown documents`);
-      
-      if (!MarkdownTextSplitter) {
-        console.log(`[${new Date().toISOString()}] ⚠️ MarkdownTextSplitter not available, using RecursiveCharacterTextSplitter as fallback`);
-        return new RecursiveCharacterTextSplitter({
-          chunkSize: 1500,
-          chunkOverlap: 250,
-          separators: ["\n\n", "\n", " ", ""]
-        });
-      }
-      
-      return new MarkdownTextSplitter({
-        chunkSize: 1500,
-        chunkOverlap: 250
-      });
-    }
-
-    console.log(`[${new Date().toISOString()}] 📝 SMART SPLITTING: Using standard text splitter for general documents`);
-    return new RecursiveCharacterTextSplitter({
-      chunkSize: 1500,
-      chunkOverlap: 250
-    });
-  }
-
-  /**
-   * Get code-aware separators based on programming language
-   * Extracted from aiLangchainAdapter.js for better separation of concerns
-   */
-  getCodeAwareSeparators(language) {
-    console.log(`[${new Date().toISOString()}] 🔍 SEPARATOR SELECTION: Getting language-specific separators for ${language}`);
-    
-    const separatorMap = {
-      'javascript': ['\nclass ', '\nfunction ', '\nconst ', '\nlet ', '\nvar ', '\n\n', '\n', ' ', ''],
-      'typescript': ['\nclass ', '\ninterface ', '\ntype ', '\nfunction ', '\nconst ', '\nlet ', '\n\n', '\n', ' ', ''],
-      'python': ['\nclass ', '\ndef ', '\n\n', '\n', ' ', ''],
-      'java': ['\nclass ', '\npublic ', '\nprivate ', '\nprotected ', '\n\n', '\n', ' ', ''],
-      'markdown': ['\n## ', '\n### ', '\n#### ', '\n\n', '\n', ' ', ''],
-      'default': ['\n\n', '\n', ' ', '']
-    };
-
-    const separators = separatorMap[language?.toLowerCase()] || separatorMap['default'];
-    console.log(`[${new Date().toISOString()}] 🔧 SEPARATORS: Using ${separators.length} separators for ${language}: [${separators.slice(0, 3).join(', ')}...]`);
-    
-    return separators;
-  }
-
-  /**
-   * Helper method to determine most common language from file extensions
-   */
-  getMostCommonLanguage(languages) {
-    if (!languages || languages.length === 0) return 'javascript';
-    
-    const languageCount = languages.reduce((acc, lang) => {
-      acc[lang] = (acc[lang] || 0) + 1;
-      return acc;
-    }, {});
-    
-    return Object.keys(languageCount).reduce((a, b) => 
-      languageCount[a] > languageCount[b] ? a : b
-    ) || 'javascript';
   }
 }
 

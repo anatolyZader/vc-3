@@ -28,9 +28,33 @@ class RepoProcessorUtils {
     this.pineconeManager = options.pineconeManager;
     this.routingProvider = options.routingProvider; // Access to centralized routing
     
-    // Get the shared Pinecone service from the connection manager
-    this.pineconeService = this.pineconeManager?.getPineconeService();
-    this.pinecone = this.pineconeService; // For backward compatibility
+    // Store promise (not the resolved instance) to avoid using an unresolved Promise as a client
+    this._pineconeService = null; // resolved instance once available
+    this._pineconeServicePromise = this.pineconeManager?.getPineconeService?.();
+    // Backward compatibility alias will be assigned lazily after resolution
+    this.pinecone = null;
+  }
+
+  /**
+   * Lazily resolve and cache the Pinecone service instance.
+   * Ensures we never accidentally treat a pending Promise as the client.
+   */
+  async _getPineconeService() {
+    if (this._pineconeService) return this._pineconeService;
+    if (this._pineconeServicePromise) {
+      try {
+        this._pineconeService = await this._pineconeServicePromise;
+      } catch (err) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ RepoProcessorUtils: Pinecone service initialization failed: ${err.message}`);
+        this._pineconeService = null;
+      } finally {
+        // Prevent re-awaiting same promise
+        this._pineconeServicePromise = null;
+      }
+      // Backward compatibility alias
+      this.pinecone = this._pineconeService;
+    }
+    return this._pineconeService;
   }
 
   /**
@@ -136,44 +160,24 @@ class RepoProcessorUtils {
   async loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo) {
     console.log(`[${new Date().toISOString()}] 📥 BATCHED LOADER: Using progressive batched processing for large repositories`);
     
-    // Define processing batches with different priorities and scopes
+    // Define processing batches optimized for your actual vc-3 repository structure
     const processingBatches = [
       {
-        name: 'Core Documentation',
+        name: 'Root Level Files',
         recursive: false,
         priority: 1,
-        maxConcurrency: 2,
-        ignoreFiles: [
-          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
-          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
-          'backend/**', 'client/**', 'tools/**' // Skip large directories in this batch
+        maxConcurrency: 1,
+        ignorePaths: [
+          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 
+          'temp/**', '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
+          'backend/**', 'client/**', '.github/**', '.vscode/**' // Exclude directories we'll process separately
         ]
       },
       {
-        name: 'Backend JavaScript/TypeScript',
-        recursive: true,
+        name: 'Backend Directory (Specialized)',
+        isSpecialized: true, // Flag to use specialized backend loader
         priority: 2,
-        maxConcurrency: 2,
-        fileTypeFilter: ['js', 'ts', 'jsx', 'tsx'],
-        ignoreFiles: [
-          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
-          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
-          'client/**', 'tools/**', // Focus only on backend
-          '**/*.test.js', '**/*.spec.js', '**/*.test.ts', '**/*.spec.ts'
-        ]
-      },
-      {
-        name: 'Backend Configuration & Docs',
-        recursive: true,
-        priority: 3,
-        maxConcurrency: 2,
-        fileTypeFilter: ['md', 'json', 'yml', 'yaml'],
-        ignoreFiles: [
-          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
-          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
-          'client/**', 'tools/**', // Focus only on backend
-          'package-lock.json', 'yarn.lock'
-        ]
+        maxConcurrency: 1
       }
     ];
 
@@ -184,7 +188,27 @@ class RepoProcessorUtils {
       try {
         console.log(`[${new Date().toISOString()}] 🔄 BATCH ${batchNumber}/${processingBatches.length}: Processing ${batch.name}`);
         
-        const batchDocuments = await this.processBatch(repoUrl, branch, batch);
+        let batchDocuments;
+        
+        // Check if this is the specialized backend batch
+        if (batch.isSpecialized && batch.name.includes('Backend')) {
+          console.log(`[${new Date().toISOString()}] 🏗️ Using specialized backend loader...`);
+          batchDocuments = await this.loadBackendDirectoryFiles(repoUrl, branch);
+          
+          // Add batch metadata to specialized documents
+          batchDocuments = batchDocuments.map(doc => ({
+            ...doc,
+            metadata: {
+              ...doc.metadata,
+              batch_name: batch.name,
+              batch_priority: batch.priority,
+              batch_processed_at: new Date().toISOString()
+            }
+          }));
+        } else {
+          // Use standard batch processing
+          batchDocuments = await this.processBatch(repoUrl, branch, batch);
+        }
         
         if (batchDocuments.length > 0) {
           allDocuments.push(...batchDocuments);
@@ -238,6 +262,111 @@ class RepoProcessorUtils {
   }
 
   /**
+   * SPECIALIZED: Load only backend directory files efficiently
+   */
+  async loadBackendDirectoryFiles(repoUrl, branch = 'main') {
+    console.log(`[${new Date().toISOString()}] 🏗️ BACKEND LOADER: Loading backend directory files specifically`);
+    
+    const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+    
+    // Very targeted loading for backend files only
+    const backendLoaderOptions = {
+      branch: branch,
+      recursive: true,
+      maxConcurrency: 1,
+      ignorePaths: [
+        // Exclude ALL non-backend directories completely
+        'client/**', '.github/**', '.vscode/**',
+        // Exclude ALL root files
+        'package.json', 'README.md', 'bfg.jar', '*.txt', '*.log', '*.js',
+        '.gitignore', 'package-lock.json', '*.jar',
+        // Standard excludes
+        'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**',
+        'temp/**', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
+        // Backend excludes - be very specific about what to exclude
+        'backend/node_modules/**', 'backend/dist/**', 'backend/build/**',
+        'backend/coverage/**', 'backend/_tests_/**', 'backend/test_*.js',
+        'backend/**/*.test.js', 'backend/**/*.spec.js', 
+        'backend/package-lock.json', 'backend/*.log', 'backend/server.log',
+        'backend/jest.*.config.js', 'backend/bfg.jar', 'backend/cookie*.txt',
+        'backend/cloud-sql-proxy', 'backend/*-credentials.json'
+      ]
+    };
+
+    if (githubToken) {
+      backendLoaderOptions.accessToken = githubToken;
+    }
+
+    try {
+      console.log(`[${new Date().toISOString()}] ⏳ Loading backend files with minimal scope...`);
+      
+      const loader = new GithubRepoLoader(repoUrl, backendLoaderOptions);
+      
+      // Use a shorter timeout for this focused loading
+      const loadPromise = loader.load();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Backend loading timeout')), 20000);
+      });
+      
+      let allDocs;
+      try {
+        allDocs = await Promise.race([loadPromise, timeoutPromise]);
+      } catch (timeoutError) {
+        console.warn(`[${new Date().toISOString()}] ⏰ Backend loading timed out, trying with even more restrictions...`);
+        
+        // Ultra-restricted fallback
+        const ultraRestrictedOptions = {
+          ...backendLoaderOptions,
+          recursive: true,
+          maxConcurrency: 1,
+          ignorePaths: [
+            ...backendLoaderOptions.ignorePaths,
+            // Exclude even more backend subdirectories
+            'backend/business_modules/*/infrastructure/**',
+            'backend/business_modules/*/domain/**',
+            'backend/business_modules/*/application/**',
+            'backend/aop_modules/**'
+          ]
+        };
+        
+        const fallbackLoader = new GithubRepoLoader(repoUrl, ultraRestrictedOptions);
+        const fallbackPromise = fallbackLoader.load();
+        const fallbackTimeout = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Fallback timeout')), 15000);
+        });
+        
+        try {
+          allDocs = await Promise.race([fallbackPromise, fallbackTimeout]);
+        } catch (fallbackError) {
+          console.error(`[${new Date().toISOString()}] ❌ Both backend loading attempts failed`);
+          return [];
+        }
+      }
+      
+      // Filter to only backend files
+      const backendFiles = allDocs.filter(doc => {
+        const source = doc.metadata.source || '';
+        return source.startsWith('backend/') && !source.includes('/test') && !source.includes('_tests_');
+      });
+      
+      console.log(`[${new Date().toISOString()}] ✅ BACKEND LOADER: Found ${backendFiles.length} backend files from ${allDocs.length} total`);
+      
+      if (backendFiles.length > 0) {
+        console.log(`[${new Date().toISOString()}] 📋 Sample backend files:`);
+        backendFiles.slice(0, 5).forEach(doc => {
+          console.log(`  - ${doc.metadata.source} (${doc.pageContent.length} chars)`);
+        });
+      }
+      
+      return backendFiles;
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Backend loading failed: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
    * Process a single batch of repository content
    */
   async processBatch(repoUrl, branch, batchConfig) {
@@ -251,19 +380,11 @@ class RepoProcessorUtils {
       branch: branch,
       recursive: batchConfig.recursive,
       maxConcurrency: batchConfig.maxConcurrency,
-      ignorePaths: batchConfig.ignoreFiles  // GithubRepoLoader expects ignorePaths, not ignoreFiles
+      ignorePaths: batchConfig.ignorePaths  // Use ignorePaths consistently
     };
 
-    // Add path filtering if specified
-    if (batchConfig.pathFilter) {
-      console.log(`[${new Date().toISOString()}] 🎯 Focusing on path: ${batchConfig.pathFilter}`);
-      // Note: GithubRepoLoader doesn't have built-in path filtering,
-      // so we'll filter after loading and use ignorePaths to exclude other paths
-    }
-
-    // Configure GitHub authentication
+    // Add GitHub token if available
     const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
-    
     if (githubToken) {
       loaderOptions.accessToken = githubToken;
       console.log(`[${new Date().toISOString()}] 🔑 BATCH AUTH: Using authenticated requests`);
@@ -271,29 +392,38 @@ class RepoProcessorUtils {
       console.log(`[${new Date().toISOString()}] 🔓 BATCH AUTH: Using unauthenticated requests`);
     }
 
+    console.log(`[${new Date().toISOString()}] 🔧 Loader options:`, {
+      branch: loaderOptions.branch,
+      recursive: loaderOptions.recursive,
+      maxConcurrency: loaderOptions.maxConcurrency,
+      ignorePaths: loaderOptions.ignorePaths?.slice(0, 5) + (loaderOptions.ignorePaths?.length > 5 ? '...' : ''),
+      hasToken: !!githubToken
+    });
+
     try {
       // Add timeout with proper cancellation to prevent hanging and resource leaks
       let loadingController;
       let timeoutId;
       let isCompleted = false;
 
-      const loadPromise = new Promise(async (resolve, reject) => {
-        try {
-          const loader = new GithubRepoLoader(repoUrl, loaderOptions);
-          loadingController = loader; // Store reference for potential cleanup
-          
-          const documents = await loader.load();
-          
-          if (!isCompleted) {
-            isCompleted = true;
-            resolve(documents);
+      const loadPromise = new Promise((resolve, reject) => {
+        (async () => {
+          try {
+            const loader = new GithubRepoLoader(repoUrl, loaderOptions);
+            loadingController = loader; // retained for potential future abort logic
+            const docs = await loader.load();
+            if (!isCompleted) {
+              isCompleted = true;
+              resolve(docs);
+            }
+          } catch (err) {
+            if (!isCompleted) {
+              isCompleted = true;
+              // Ensure rejection reason is an Error instance
+              reject(err instanceof Error ? err : new Error(String(err)));
+            }
           }
-        } catch (error) {
-          if (!isCompleted) {
-            isCompleted = true;
-            reject(error);
-          }
-        }
+        })();
       });
 
       const timeoutPromise = new Promise((_, reject) => {
@@ -303,7 +433,7 @@ class RepoProcessorUtils {
             console.warn(`[${new Date().toISOString()}] ⏰ BATCH TIMEOUT: ${batchConfig.name} exceeded 30 seconds`);
             reject(new Error(`Batch timeout after 30 seconds: ${batchConfig.name}`));
           }
-        }, 30000);
+        }, 30000); // Reduced back to 30s for faster detection
       });
 
       let documents;
@@ -318,29 +448,26 @@ class RepoProcessorUtils {
         isCompleted = true;
       }
       
-      // Filter documents by path if specified
-      let filteredDocuments = documents;
-      if (batchConfig.pathFilter) {
-        filteredDocuments = documents.filter(doc => 
-          doc.metadata.source && doc.metadata.source.startsWith(batchConfig.pathFilter)
-        );
-        console.log(`[${new Date().toISOString()}] 🔍 Path filtering: ${documents.length} → ${filteredDocuments.length} documents`);
-      }
+      // Log batch results
+      console.log(`[${new Date().toISOString()}] 📄 Loaded ${documents.length} documents for batch "${batchConfig.name}"`);
       
-      // Filter documents by file type if specified
-      if (batchConfig.fileTypeFilter && batchConfig.fileTypeFilter.length > 0) {
-        const beforeCount = filteredDocuments.length;
-        filteredDocuments = filteredDocuments.filter(doc => {
-          if (!doc.metadata.source) return false;
-          const src = doc.metadata.source || '';
-          const fileExtension = src.includes('.') ? src.split('.').pop().toLowerCase() : '';
-          return batchConfig.fileTypeFilter.includes(fileExtension);
+      if (documents.length > 0) {
+        console.log(`[${new Date().toISOString()}] 📋 Sample files:`);
+        documents.slice(0, 5).forEach(doc => {
+          console.log(`  - ${doc.metadata.source}`);
         });
-        console.log(`[${new Date().toISOString()}] 🔍 File type filtering (${batchConfig.fileTypeFilter.join(', ')}): ${beforeCount} → ${filteredDocuments.length} documents`);
+        
+        // Log backend files specifically
+        const backendFiles = documents.filter(doc => doc.metadata?.source?.startsWith('backend/'));
+        if (backendFiles.length > 0) {
+          console.log(`[${new Date().toISOString()}] 🏗️ Backend files found: ${backendFiles.length}`);
+        }
+      } else {
+        console.log(`[${new Date().toISOString()}] ⚠️ No documents loaded for batch "${batchConfig.name}"`);
       }
       
       // Add batch metadata
-      const batchDocuments = filteredDocuments.map(doc => ({
+      const batchDocuments = documents.map(doc => ({
         ...doc,
         metadata: {
           ...doc.metadata,
@@ -457,8 +584,10 @@ class RepoProcessorUtils {
    * Check existing repository processing (same as before)
    */
   async checkExistingRepo(githubOwner, repoName, currentCommitHash) {
+    // Ensure pinecone service is resolved before passing to repoManager
+    const pineconeService = await this._getPineconeService();
     return await this.repoManager.findExistingRepo(
-      null, null, githubOwner, repoName, currentCommitHash, this.pinecone, this.embeddings
+      null, null, githubOwner, repoName, currentCommitHash, pineconeService, this.embeddings
     );
   }
 
@@ -587,7 +716,9 @@ class RepoProcessorUtils {
     // Generate unique IDs for each chunk
     const documentIds = documents.map((doc, index) => {
       const sourceFile = doc.metadata.source || 'unknown';
-      const sanitizedSource = sourceFile.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^_+|_+$/g, '');
+      const sanitizedSource = sourceFile
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .replace(/^(?:_+)|(?:_+)$/g, '');
       const timestamp = Date.now();
       return `${namespace}_${sanitizedSource}_chunk_${index}_${timestamp}`;
     });
@@ -595,46 +726,39 @@ class RepoProcessorUtils {
     console.log(`[${new Date().toISOString()}] 🚀 PINECONE STORAGE: Storing ${documents.length} vector embeddings in namespace '${namespace}'`);
 
     try {
-      // Get Pinecone client - try service first, then fallback to direct client
+      // Resolve Pinecone service safely
+      const pineconeService = await this._getPineconeService();
       let pineconeClient = null;
-      
-      if (this.pineconeService) {
-        await this.pineconeService.connect();
-        pineconeClient = this.pineconeService.client;
+
+      if (pineconeService) {
+        // Service already connects internally during initialization; connect() should be idempotent
+        if (typeof pineconeService.connect === 'function') {
+          try { await pineconeService.connect(); } catch (e) { /* idempotent connect swallow */ }
+        }
+        pineconeClient = pineconeService.client || pineconeService;
       } else if (this.pineconeManager?.getPineconeClient) {
+        // Legacy fallback path
         pineconeClient = await this.pineconeManager.getPineconeClient();
-      } else {
-        throw new Error('No Pinecone client available');
       }
 
       if (!pineconeClient) {
-        throw new Error('Failed to get Pinecone client');
+        console.warn(`[${new Date().toISOString()}] ⚠️ REPOSITORY STORAGE: Pinecone client unavailable, skipping vector indexing`);
+        return { success: false, skipped: true, reason: 'pinecone_unavailable', namespace };
       }
 
-      const index = pineconeClient.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
-      const vectorStore = new PineconeStore(this.embeddings, {
-        pineconeIndex: index,
-        namespace: namespace
-      });
+      const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+      const index = typeof pineconeClient.index === 'function' ? pineconeClient.index(indexName) : pineconeClient;
+      const vectorStore = new PineconeStore(this.embeddings, { pineconeIndex: index, namespace });
 
-      // Use bottleneck limiter for Pinecone operations if available
+      const addDocs = async () => vectorStore.addDocuments(documents, { ids: documentIds });
       if (this.pineconeLimiter) {
-        await this.pineconeLimiter.schedule(async () => {
-          await vectorStore.addDocuments(documents, { ids: documentIds });
-        });
+        await this.pineconeLimiter.schedule(addDocs);
       } else {
-        await vectorStore.addDocuments(documents, { ids: documentIds });
+        await addDocs();
       }
 
       console.log(`[${new Date().toISOString()}] ✅ REPOSITORY STORAGE: Successfully indexed ${documents.length} document chunks to Pinecone`);
-
-      return {
-        success: true,
-        chunksStored: documents.length,
-        namespace: namespace,
-        documentIds
-      };
-
+      return { success: true, chunksStored: documents.length, namespace, documentIds };
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ REPOSITORY STORAGE: Error storing in Pinecone:`, error.message);
       throw error;

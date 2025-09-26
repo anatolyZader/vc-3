@@ -61,9 +61,19 @@ class LLMProviderManager {
         case 'ollama': {
           console.log(`[${new Date().toISOString()}] Initializing Ollama provider`);
           // Import here to avoid requiring if not using this provider
-          const { ChatOllama } = require('@langchain/ollama');
+          // Some versions expose ChatOllama under @langchain/ollama, others under @langchain/community/chat_models/ollama
+          let ChatOllama;
+          try {
+            ({ ChatOllama } = require('@langchain/community/chat_models/ollama'));
+          } catch (e) {
+            try {
+              ({ ChatOllama } = require('@langchain/ollama'));
+            } catch (inner) {
+              throw new Error('ChatOllama module not found in either @langchain/community or @langchain/ollama');
+            }
+          }
           this.llm = new ChatOllama({
-            model: process.env.OLLAMA_MODEL || 'llama2',
+            model: process.env.OLLAMA_MODEL || 'llama3',
             baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
             maxRetries: this.maxRetries
           });

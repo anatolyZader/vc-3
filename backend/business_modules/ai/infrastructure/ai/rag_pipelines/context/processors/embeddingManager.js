@@ -13,8 +13,26 @@ class EmbeddingManager {
     this.repositoryManager = options.repositoryManager;
     this.pineconeManager = options.pineconeManager;
     
-    // Get the shared Pinecone service from the connection manager
-    this.pinecone = this.pineconeManager?.getPineconeService();
+    // Store promise; don't treat pending Promise as client
+    this._pineconeService = null;
+    this._pineconeServicePromise = this.pineconeManager?.getPineconeService?.();
+    this.pinecone = null; // backward compatibility alias after resolution
+  }
+
+  async _getPineconeService() {
+    if (this._pineconeService) return this._pineconeService;
+    if (this._pineconeServicePromise) {
+      try {
+        this._pineconeService = await this._pineconeServicePromise;
+      } catch (err) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ EmbeddingManager: Pinecone initialization failed: ${err.message}`);
+        this._pineconeService = null;
+      } finally {
+        this._pineconeServicePromise = null;
+      }
+      this.pinecone = this._pineconeService;
+    }
+    return this._pineconeService;
   }
 
   /**
@@ -24,9 +42,9 @@ class EmbeddingManager {
     console.log(`[${new Date().toISOString()}] 🗄️ PINECONE STORAGE EXPLANATION: Converting ${documents?.length || 0} document chunks into searchable vector embeddings`);
     console.log(`[${new Date().toISOString()}] 🎯 Each document chunk will be processed by OpenAI's text-embedding-3-large model to create high-dimensional vectors that capture semantic meaning. These vectors are then stored in Pinecone with unique IDs and metadata for lightning-fast similarity search during RAG queries`);
     
-    if (!this.pinecone) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Pinecone client not initialized, cannot store documents`);
-      console.warn(`[${new Date().toISOString()}] 💡 Vector storage skipped - ensure Pinecone credentials are properly configured`);
+    const pineconeService = await this._getPineconeService();
+    if (!pineconeService) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Pinecone client unavailable (skipping vector storage)`);
       return;
     }
 
@@ -39,7 +57,15 @@ class EmbeddingManager {
     console.log(`[${new Date().toISOString()}] 🎯 STORAGE STRATEGY: Using namespace '${namespace}' for data isolation and generating unique IDs for ${documents.length} chunks from ${githubOwner}/${repoName}`);
 
     try {
-      const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+      let index;
+      if (typeof pineconeService.index === 'function') {
+        index = pineconeService.index(indexName);
+      } else if (pineconeService.client && typeof pineconeService.client.index === 'function') {
+        index = pineconeService.client.index(indexName);
+      } else {
+        index = pineconeService; // fallback
+      }
       const vectorStore = new PineconeStore(this.embeddings, {
         pineconeIndex: index,
         namespace: namespace // Could be userId for user docs or 'core-docs' for system docs
@@ -111,9 +137,18 @@ class EmbeddingManager {
     console.log(`[${new Date().toISOString()}] 🚀 PINECONE STORAGE: Storing ${splitDocs.length} vector embeddings with unique IDs in user-specific namespace '${userId}'`);
 
     // Store in Pinecone with user-specific namespace
-    if (this.pinecone) {
+    const pineconeService = await this._getPineconeService();
+    if (pineconeService) {
       try {
-        const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+        const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+        let index;
+        if (typeof pineconeService.index === 'function') {
+          index = pineconeService.index(indexName);
+        } else if (pineconeService.client && typeof pineconeService.client.index === 'function') {
+          index = pineconeService.client.index(indexName);
+        } else {
+          index = pineconeService;
+        }
         const vectorStore = new PineconeStore(this.embeddings, {
           pineconeIndex: index,
           namespace: userId // User-specific namespace

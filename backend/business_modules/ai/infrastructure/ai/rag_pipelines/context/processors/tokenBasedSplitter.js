@@ -152,15 +152,24 @@ class TokenBasedSplitter {
    * Find the best place to split based on separators
    */
   findBestSeparatorBoundary(text, separators) {
+    let bestCut = null;
     for (const separator of separators) {
+      if (!separator) continue; // ignore empty string separator
       const lastIndex = text.lastIndexOf(separator);
-      if (lastIndex > text.length * 0.7) { // Don't cut too early
-        return text.substring(0, lastIndex + separator.length);
+      if (lastIndex === -1) continue;
+      // Skip if separator only appears at absolute end (wouldn't trim)
+      if (lastIndex + separator.length >= text.length) continue;
+      // Accept if past heuristic threshold and better than existing
+      if (lastIndex > text.length * 0.7) {
+        if (!bestCut || lastIndex > bestCut.index) {
+          bestCut = { index: lastIndex, separator };
+        }
       }
     }
-    
-    // If no good separator found, return as-is
-    return text;
+    if (bestCut) {
+      return text.substring(0, bestCut.index + bestCut.separator.length);
+    }
+    return text; // fallback
   }
 
   /**
@@ -193,24 +202,38 @@ class TokenBasedSplitter {
    */
   extractOverlapText(chunkText, overlapTokens) {
     if (overlapTokens <= 0) return '';
-    
-    // Start from the end and work backwards
+
+    // Prefer exact token-based overlap to avoid character/token drift
+    if (this.encoding) {
+      try {
+        const allTokens = this.encoding.encode(chunkText);
+        if (allTokens.length <= overlapTokens) {
+          return chunkText; // whole chunk overlaps (small chunk)
+        }
+        const overlapTokenSlice = allTokens.slice(-overlapTokens);
+        const overlapStr = this.encoding.decode(overlapTokenSlice);
+        // Ensure decoded overlap actually matches a suffix (it should, but double check)
+        if (chunkText.endsWith(overlapStr)) {
+          return overlapStr;
+        }
+        // If for some reason decode produced something different (rare), fall through to heuristic
+      } catch (e) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ TOKEN OVERLAP DECODE FAILED: ${e.message}, falling back to word heuristic`);
+      }
+    }
+
+    // Fallback: previous word-based heuristic (may drift slightly)
     const words = chunkText.split(' ');
     let overlapText = '';
-    let tokenCount = 0;
-
     for (let i = words.length - 1; i >= 0; i--) {
       const candidate = words.slice(i).join(' ');
       const candidateTokens = this.countTokens(candidate);
-      
       if (candidateTokens <= overlapTokens) {
         overlapText = candidate;
-        tokenCount = candidateTokens;
       } else {
         break;
       }
     }
-
     return overlapText;
   }
 

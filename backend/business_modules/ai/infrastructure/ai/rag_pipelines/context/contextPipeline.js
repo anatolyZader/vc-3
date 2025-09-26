@@ -440,19 +440,27 @@ class ContextPipeline {
     // Emit starting status
     this.eventManager.emitProcessingStarted(userId, repoId);
 
+    // Pre-process repository data outside try-catch for use in fallback
+    let url, branch, githubOwner, repoName;
+    
     try {
       console.log(`[${new Date().toISOString()}] 🔵 STAGE 1: REPOSITORY VALIDATION & SETUP`);
       console.log(`[${new Date().toISOString()}] 🎯 EXPLANATION: Validating repository data and checking for duplicates`);
       
       // Validate repoData structure
       if (!repoData?.url || !repoData?.branch) {
-        throw new Error(`Invalid repository data: ${JSON.stringify(repoData)}`);
+        console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Invalid repository data received: ${JSON.stringify(repoData)}`);
+        const invalidResult = { success: false, reason: 'invalid_repo_data', repoId, userId };
+        this.eventManager.emitProcessingError(userId, repoId, new Error('Invalid repository data'));
+        return invalidResult;
       }
 
-      const { url, branch } = repoData;
+      // Extract repository information (moved outside try for fallback access)
+      url = repoData.url;
+      branch = repoData.branch;
       const urlParts = url.split('/');
-      const githubOwner = urlParts[urlParts.length - 2];
-      const repoName = urlParts[urlParts.length - 1].replace('.git', '');
+      githubOwner = urlParts[urlParts.length - 2];
+      repoName = urlParts[urlParts.length - 1].replace('.git', '');
 
       console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Extracted GitHub owner: ${githubOwner}, repo name: ${repoName}`);
 

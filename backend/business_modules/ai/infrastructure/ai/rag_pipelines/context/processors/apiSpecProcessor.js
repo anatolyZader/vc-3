@@ -16,9 +16,26 @@ class ApiSpecProcessor {
     this.repositoryManager = options.repositoryManager;
     this.pineconeManager = options.pineconeManager;
     
-    // Get the shared Pinecone service from the connection manager
-    this.pineconeService = this.pineconeManager?.getPineconeService();
-    this.pinecone = this.pineconeService; // For backward compatibility
+    // Defer pinecone resolution
+    this._pineconeService = null;
+    this._pineconeServicePromise = this.pineconeManager?.getPineconeService?.();
+    this.pinecone = null; // Backward compatibility alias after resolution
+  }
+
+  async _getPineconeService() {
+    if (this._pineconeService) return this._pineconeService;
+    if (this._pineconeServicePromise) {
+      try {
+        this._pineconeService = await this._pineconeServicePromise;
+      } catch (err) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ ApiSpecProcessor: Pinecone initialization failed: ${err.message}`);
+        this._pineconeService = null;
+      } finally {
+        this._pineconeServicePromise = null;
+      }
+      this.pinecone = this._pineconeService;
+    }
+    return this._pineconeService;
   }
 
   /**
@@ -246,14 +263,22 @@ class ApiSpecProcessor {
    */
   async storeApiSpecDocuments(documents, namespace) {
     console.log(`[${new Date().toISOString()}] 🗄️ API-SPEC STORAGE: Storing ${documents.length} API spec chunks in namespace '${namespace}'`);
-
-    if (!this.pinecone) {
+    const pineconeService = await this._getPineconeService();
+    if (!pineconeService) {
       console.warn(`[${new Date().toISOString()}] ⚠️ API-SPEC: Pinecone not available, skipping storage`);
-      return;
+      return { success: true, skipped: true, reason: 'pinecone_unavailable', chunksStored: 0 };
     }
 
     try {
-      const index = this.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+      let index;
+      if (typeof pineconeService.index === 'function') {
+        index = pineconeService.index(indexName);
+      } else if (pineconeService.client && typeof pineconeService.client.index === 'function') {
+        index = pineconeService.client.index(indexName);
+      } else {
+        index = pineconeService;
+      }
       const vectorStore = new PineconeStore(this.embeddings, {
         pineconeIndex: index,
         namespace: namespace
@@ -276,6 +301,7 @@ class ApiSpecProcessor {
       }
 
       console.log(`[${new Date().toISOString()}] ✅ API-SPEC STORAGE: Successfully stored ${documents.length} API spec chunks`);
+      return { success: true, chunksStored: documents.length };
 
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ API-SPEC STORAGE: Error storing documents:`, error.message);

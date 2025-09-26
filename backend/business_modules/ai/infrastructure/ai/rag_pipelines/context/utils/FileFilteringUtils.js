@@ -366,7 +366,7 @@ class FileFilteringUtils {
       '**/*.bundle.js',
       '**/*.chunk.js',
       
-      // CLIENT CODE EXCLUSION - Frontend directories and files
+      // CLIENT CODE EXCLUSION - Only exclude actual client/frontend directories, not all subdirs
       'client/**',
       'frontend/**',
       'web/**',
@@ -376,8 +376,6 @@ class FileFilteringUtils {
       'assets/**',
       
       // Frontend build outputs
-      'dist/**',
-      'build/**',
       '.next/**',
       '.nuxt/**',
       'public/build/**',
@@ -389,7 +387,7 @@ class FileFilteringUtils {
       '**/*.sass',
       '**/*.less',
       
-      // Frontend framework files (unless in backend context)
+      // Frontend framework files (be more specific - only in actual frontend dirs)
       'client/**/*.js',
       'client/**/*.jsx',
       'frontend/**/*.js',
@@ -399,14 +397,10 @@ class FileFilteringUtils {
       '**/*.vue',
       '**/*.svelte',
       
-      // Frontend entry points
-      '**/index.html',
+      // Frontend entry points (only specific ones, not broad patterns)
       'client/index.js',
       'frontend/index.js',
-      'web/index.js',
-      'src/main.jsx',
-      'src/main.js',
-      'src/app.js'
+      'web/index.js'
     ];
   }
 
@@ -423,8 +417,8 @@ class FileFilteringUtils {
         continue;
       }
       
-      // Check if content looks like binary
-      if (await this.isBinaryContent(source) || this.looksLikeBinaryContent(doc.pageContent)) {
+      // Only check content for binary patterns (source might be virtual GitHub path)
+      if (this.looksLikeBinaryContent(doc.pageContent)) {
         console.log(`[FILTER] ❌ Binary content detected, skipping: ${source}`);
         continue;
       }

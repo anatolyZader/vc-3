@@ -373,14 +373,12 @@ class PineconeService {
     try {
       const index = await this.connect();
       
-      const deleteOptions = { ids };
-      if (namespace) {
-        deleteOptions.namespace = namespace;
-      }
+      const deleteOptions = namespace ? { ids, namespace } : { ids };
 
       this.logger.info(`Deleting ${ids.length} vectors`, { namespace });
       
-      await index.deleteMany(deleteOptions);
+      // Pinecone serverless SDK: index.delete({ ids, namespace })
+      await index.delete(deleteOptions);
       
       this.logger.info(`Successfully deleted ${ids.length} vectors`);
       
@@ -400,8 +398,8 @@ class PineconeService {
       const index = await this.connect();
       
       this.logger.info(`Deleting all vectors in namespace: ${namespace}`);
-      
-      await index.deleteAll({ namespace });
+      // Pinecone serverless SDK: index.delete({ deleteAll: true, namespace })
+      await index.delete({ deleteAll: true, namespace });
       
       this.logger.info(`Successfully deleted namespace: ${namespace}`);
       
