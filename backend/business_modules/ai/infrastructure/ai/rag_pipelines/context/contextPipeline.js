@@ -685,6 +685,16 @@ class ContextPipeline {
         repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo?.hash ?? null
       );
       
+      // Handle special case where change detection failed and full reload is required
+      if (changedFiles === 'FULL_RELOAD_REQUIRED') {
+        console.log(`[${new Date().toISOString()}] 🔄 FULL RELOAD TRIGGERED: Change detection failed, processing entire repository`);
+        console.log(`[${new Date().toISOString()}] 🌐 Cloud-native approach: Loading all files when specific changes cannot be determined`);
+        
+        return await this.processFullRepositoryOptimized({
+          userId, repoId, repoUrl, branch, githubOwner, repoName, commitInfo: newCommitInfo
+        });
+      }
+      
       if (changedFiles.length === 0) {
         console.log(`[${new Date().toISOString()}] 📭 NO CHANGES: No files modified between commits, skipping processing`);
         return { 

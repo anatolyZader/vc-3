@@ -130,8 +130,15 @@ class CommitSelectionManager {
     const isGitAvailable = await this.checkGitAvailability();
     if (!isGitAvailable) {
       console.log(`[${new Date().toISOString()}] 🚨 GIT NOT AVAILABLE: Skipping local git changed files detection in cloud environment`);
-      console.log(`[${new Date().toISOString()}] 📭 NO CHANGES: No files modified between commits, skipping processing`);
-      return []; // Return empty array to indicate no changes detectable
+      console.log(`[${new Date().toISOString()}] � CLOUD-NATIVE FALLBACK: Using full repository reload when change detection fails`);
+      
+      // Instead of skipping, trigger a full reload using cloud-native approach
+      // This ensures that when we can't detect specific changes, we still process the repository
+      console.log(`[${new Date().toISOString()}] 🌐 FULL RELOAD: Triggering complete repository reprocessing due to failed change detection`);
+      console.log(`[${new Date().toISOString()}] 🎯 This ensures latest commit ${newCommitHash?.substring(0, 8)} is processed even without specific file change info`);
+      
+      // Return a special marker to indicate full reload is needed
+      return 'FULL_RELOAD_REQUIRED';
     }
 
     // Strategy 3: Fallback to local git (only if git is available)

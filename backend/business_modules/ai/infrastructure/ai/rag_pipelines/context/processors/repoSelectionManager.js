@@ -2,8 +2,6 @@
 "use strict";
 
 const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
