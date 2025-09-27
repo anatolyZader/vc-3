@@ -13,6 +13,7 @@ const ASTCodeSplitter = require('./processors/astCodeSplitter');
 const RepoProcessorUtils = require('./processors/repoProcessorUtils');
 const RepoProcessor = require('./processors/repoProcessor');
 const EmbeddingManager = require('./processors/embeddingManager');
+const RepoWorkerManager = require('./processors/RepoWorkerManager');
 
 let traceable;
 try {
@@ -88,6 +89,12 @@ class ContextPipeline {
       markdownDocumentationProcessor: this.docsProcessor,
       repositoryProcessor: this.repoProcessorUtils,
       repositoryManager: this.repoSelectionManager
+    });
+
+    // Initialize horizontal scaling worker manager
+    this.workerManager = new RepoWorkerManager({
+      maxWorkers: options.maxWorkers || 4,
+      maxRequestsPerMinute: options.maxRequestsPerMinute || 300
     });
 
     this.eventManager = new EventManager({
@@ -758,6 +765,7 @@ class ContextPipeline {
 
   /**
    * OPTIMIZED: Full repository processing using Langchain-first approach
+   * Enhanced with horizontal scaling for large repositories
    */
   async processFullRepositoryOptimized(params) {
     const {
@@ -770,7 +778,131 @@ class ContextPipeline {
       commitInfo
     } = params;
 
-    console.log(`[${new Date().toISOString()}] 🔵 OPTIMIZED FULL PROCESSING: Using Langchain-first approach for complete repository`);
+    console.log(`[${new Date().toISOString()}] 🔵 OPTIMIZED FULL PROCESSING: Analyzing repository size for processing strategy`);
+    
+    try {
+      // Step 1: Analyze repository size to determine processing strategy
+      const shouldUseHorizontalScaling = await this.shouldUseHorizontalScaling(githubOwner, repoName, branch);
+      
+      if (shouldUseHorizontalScaling.useWorkers) {
+        console.log(`[${new Date().toISOString()}] 🏭 HORIZONTAL SCALING: Repository size (${shouldUseHorizontalScaling.estimatedFiles} files) exceeds threshold, using worker-based processing`);
+        
+        // Use worker-based horizontal scaling for large repositories
+        return await this.processLargeRepositoryWithWorkers({
+          userId,
+          repoId,
+          repoUrl,
+          branch,
+          githubOwner,
+          repoName,
+          commitInfo
+        });
+        
+      } else {
+        console.log(`[${new Date().toISOString()}] 🔵 STANDARD PROCESSING: Repository size (${shouldUseHorizontalScaling.estimatedFiles} files) within threshold, using standard approach`);
+        
+        // Use standard Langchain-first approach for smaller repositories
+        return await this.processStandardRepository({
+          userId,
+          repoId,
+          repoUrl,
+          branch,
+          githubOwner,
+          repoName,
+          commitInfo
+        });
+      }
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error in optimized processing for repository ${repoId}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Process large repository using horizontal scaling with workers
+   */
+  async processLargeRepositoryWithWorkers(params) {
+    const {
+      userId,
+      repoId,
+      repoUrl,
+      branch,
+      githubOwner,
+      repoName,
+      commitInfo
+    } = params;
+
+    console.log(`[${new Date().toISOString()}] 🏭 WORKER PROCESSING: Starting horizontal scaling for ${githubOwner}/${repoName}`);
+    
+    try {
+      // Create repository job for worker processing
+      const repositoryJob = {
+        userId,
+        repoId,
+        repoUrl,
+        branch,
+        githubOwner,
+        repoName,
+        commitInfo
+      };
+      
+      // Process using worker manager
+      const result = await this.workerManager.processLargeRepository(repositoryJob);
+      
+      if (result.success) {
+        // Step 2: Store repository tracking info for future duplicate detection
+        const pineconeClient2 = await this._ensurePineconeInitialized();
+        const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+        
+        await this.repoSelectionManager.storeRepositoryTrackingInfo(
+          userId, repoId, githubOwner, repoName, commitInfo, 
+          namespace, pineconeClient2, this.embeddings
+        );
+
+        return {
+          success: true,
+          message: 'Large repository processing completed with horizontal scaling',
+          totalDocuments: result.totalDocuments || 0,
+          totalChunks: result.totalChunks || 0,
+          commitHash: commitInfo?.hash ?? null,
+          commitInfo,
+          userId, repoId, githubOwner, repoName,
+          namespace,
+          processedAt: new Date().toISOString(),
+          processingStrategy: 'horizontal_scaling',
+          workersUsed: result.workersUsed,
+          processingTime: result.processingTime,
+          jobId: result.jobId
+        };
+      } else {
+        throw new Error(`Worker processing failed: ${result.error}`);
+      }
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Worker processing failed for ${repoId}:`, error.message);
+      
+      // Fallback to standard processing
+      console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Attempting standard processing after worker failure`);
+      return await this.processStandardRepository(params);
+    }
+  }
+
+  /**
+   * Process standard repository using existing Langchain approach
+   */
+  async processStandardRepository(params) {
+    const {
+      userId,
+      repoId,
+      repoUrl,
+      branch,
+      githubOwner,
+      repoName,
+      commitInfo
+    } = params;
+
+    console.log(`[${new Date().toISOString()}] 🔵 STANDARD PROCESSING: Using Langchain-first approach for repository`);
     
     try {
       // Step 1: Load ALL documents using Langchain (no manual filesystem operations)
@@ -789,23 +921,124 @@ class ContextPipeline {
 
       return {
         success: true,
-        message: 'Optimized repository processing completed with Langchain-first approach',
+        message: 'Standard repository processing completed with Langchain-first approach',
         totalDocuments: result.documentsProcessed || 0,
         totalChunks: result.chunksGenerated || 0,
         commitHash: commitInfo?.hash ?? null,
         commitInfo,
         userId, repoId, githubOwner, repoName,
         namespace,
-        processedAt: new Date().toISOString()
+        processedAt: new Date().toISOString(),
+        processingStrategy: 'standard_langchain'
       };
       
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Error in optimized full processing:`, error.message);
+      console.error(`[${new Date().toISOString()}] ❌ Standard processing error for ${repoId}:`, error.message);
       throw error;
     }
   }
 
   /**
+   * Determine if horizontal scaling should be used based on repository characteristics
+   */
+  async shouldUseHorizontalScaling(githubOwner, repoName, branch) {
+    try {
+      console.log(`[${new Date().toISOString()}] 📊 ANALYZING: Repository size for ${githubOwner}/${repoName}`);
+      
+      // Get repository statistics from GitHub API
+      const headers = {};
+      if (process.env.GITHUB_TOKEN) {
+        headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+        headers['User-Agent'] = 'eventstorm-context-pipeline';
+      }
+      
+      // Get repository info
+      const repoResponse = await fetch(`https://api.github.com/repos/${githubOwner}/${repoName}`, {
+        headers
+      });
+      
+      if (!repoResponse.ok) {
+        console.warn(`[${new Date().toISOString()}] ⚠️  Failed to get repo info, using standard processing`);
+        return { useWorkers: false, estimatedFiles: 'unknown', reason: 'api_error' };
+      }
+      
+      const repoData = await repoResponse.json();
+      const repoSize = repoData.size; // Size in KB
+      
+      // Get file tree to count processable files
+      const treeResponse = await fetch(`https://api.github.com/repos/${githubOwner}/${repoName}/git/trees/${branch}?recursive=1`, {
+        headers
+      });
+      
+      if (!treeResponse.ok) {
+        console.warn(`[${new Date().toISOString()}] ⚠️  Failed to get file tree, using repo size for estimation`);
+        // Estimate based on repository size
+        const estimatedFiles = Math.floor(repoSize / 10); // Rough estimation: 10KB per file
+        return {
+          useWorkers: estimatedFiles > 100, // Use workers for repos with >100 estimated files
+          estimatedFiles: estimatedFiles,
+          repoSize: repoSize,
+          reason: 'size_estimation'
+        };
+      }
+      
+      const treeData = await treeResponse.json();
+      
+      // Count processable files
+      const processableFiles = treeData.tree?.filter(item => 
+        item.type === 'blob' && 
+        this.isProcessableFileForScaling(item.path)
+      ) || [];
+      
+      const fileCount = processableFiles.length;
+      const shouldScale = fileCount > 50; // Threshold: 50+ files
+      
+      console.log(`[${new Date().toISOString()}] 📊 REPOSITORY ANALYSIS: ${fileCount} processable files, size: ${repoSize}KB`);
+      console.log(`[${new Date().toISOString()}] 📊 SCALING DECISION: ${shouldScale ? 'USE WORKERS' : 'STANDARD PROCESSING'}`);
+      
+      return {
+        useWorkers: shouldScale,
+        estimatedFiles: fileCount,
+        repoSize: repoSize,
+        reason: shouldScale ? 'file_count_threshold' : 'below_threshold',
+        threshold: 50
+      };
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error analyzing repository size:`, error.message);
+      // Default to standard processing on error
+      return { useWorkers: false, estimatedFiles: 'error', reason: 'analysis_error' };
+    }
+  }
+
+  /**
+   * Check if file should be processed (for scaling analysis)
+   */
+  isProcessableFileForScaling(filePath) {
+    const excludePatterns = [
+      /node_modules\//,
+      /\.git\//,
+      /dist\//,
+      /build\//,
+      /coverage\//,
+      /\.log$/,
+      /\.(png|jpg|jpeg|gif|ico|svg)$/i,
+      /\.DS_Store$/
+    ];
+    
+    for (const pattern of excludePatterns) {
+      if (pattern.test(filePath)) return false;
+    }
+    
+    // Focus on backend files for EventStorm
+    if (filePath.includes('backend/')) {
+      const sourceExtensions = /\.(js|ts|jsx|tsx|json|md|sql|yaml|yml|txt|env)$/i;
+      return sourceExtensions.test(filePath);
+    }
+    
+    return false;
+  }
+
   /**
    * Process incremental changes between commits (legacy method with updated signature)
    */
