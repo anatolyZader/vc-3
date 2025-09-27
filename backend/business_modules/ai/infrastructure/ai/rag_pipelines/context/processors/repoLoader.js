@@ -1,4 +1,4 @@
-// RepoSelectionManager.js
+// RepoLoader.js
 "use strict";
 
 const fs = require('fs').promises;
@@ -7,10 +7,10 @@ const { promisify } = require('util');
 
 /**
  * =====================================================================================
- * REPOSITORY SELECTION MANAGER - Cloud-Native Repository Processing System
+ * REPO LOADER - Cloud-Native Repository Processing System
  * =====================================================================================
  * 
- * The RepoSelectionManager is a core component of EventStorm's RAG (Retrieval-Augmented 
+ * The RepoLoader is a core component of EventStorm's RAG (Retrieval-Augmented 
  * Generation) pipeline that handles all repository-related operations in a cloud-native 
  * environment. This class abstracts repository access, processing, and metadata management 
  * to enable efficient AI-powered code analysis and question answering.
@@ -183,7 +183,7 @@ const { promisify } = require('util');
  * 
  * BASIC REPOSITORY PROCESSING:
  * ```javascript
- * const repoManager = new RepoSelectionManager();
+ * const repoManager = new RepoLoader();
  * const virtualDir = await repoManager.cloneRepository(
  *   'https://github.com/myzader/eventstorm',
  *   'main'
@@ -215,7 +215,7 @@ const { promisify } = require('util');
  * 
  * ==================================================================================
  */
-class RepoSelectionManager {
+class RepoLoader {
   constructor() {
     this.execAsync = promisify(exec);
   }
@@ -531,4 +531,4 @@ class RepoSelectionManager {
   }
 }
 
-module.exports = RepoSelectionManager;
+module.exports = RepoLoader;

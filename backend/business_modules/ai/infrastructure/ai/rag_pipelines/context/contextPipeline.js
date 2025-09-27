@@ -1,4 +1,71 @@
-// DataPreparationPipeline.js - REFACTORED WITH MODULAR ORCHESTRATORS
+/**
+ * contextPipeline.js - EventStorm RAG Document Processing Pipeline
+ * 
+ * OVERVIEW:
+ * The ContextPipeline is the main orchestrator for processing GitHub repositories into a RAG
+ * (Retrieval-Augmented Generation) system. It intelligently routes different document types
+ * to specialized processors, manages the complete ingestion workflow, and handles both full
+ * repository processing and incremental updates.
+ * 
+ * CORE FUNCTIONALITY:
+ * - Intelligent document routing based on content type detection
+ * - Specialized processing for code, markdown, OpenAPI specs, and generic documents  
+ * - Repository-level orchestration with commit tracking and duplicate detection
+ * - Horizontal scaling support for large repositories using worker processes
+ * - Comprehensive error handling with fallback strategies
+ * - Integration with Pinecone vector database and LangSmith tracing
+ * 
+ * MAIN SECTIONS:
+ * 
+ * 1. INITIALIZATION & SETUP
+ *    - constructor(): Lazy initialization pattern with inline processor creation
+ *    - _initializeTracing(): LangSmith tracing setup for observability
+ *    - getPineconeClient(): Inline lazy initialization of Pinecone vector database client
+ * 
+ * 2. DOCUMENT ROUTING & PROCESSING
+ *    - routeDocumentToProcessor(): Main routing logic based on content type detection
+ *    - detectContentType(): Intelligent content classification (code, markdown, OpenAPI, etc.)
+ *    - processCodeDocument(): Routes to ASTCodeSplitter for syntax-aware code chunking
+ *    - processMarkdownDocument(): Routes to DocsProcessor for structured markdown processing
+ *    - processOpenAPIDocument(): Routes to ApiSpecProcessor for API specification processing
+ *    - processGenericDocument(): Routes to SemanticPreprocessor for fallback text processing
+ *    - routeDocumentsToProcessors(): Batch processing with comprehensive statistics tracking
+ * 
+ * 3. REPOSITORY ORCHESTRATION
+ *    - processPushedRepo(): Main entry point for repository processing workflow
+ *    - processFullRepositoryOptimized(): Full repository processing with scaling decisions
+ *    - processIncrementalOptimized(): Incremental processing for repository updates
+ *    - processStandardRepository(): Standard Langchain-based document loading and processing
+ *    - processLargeRepositoryWithWorkers(): Horizontal scaling using worker processes
+ * 
+ * 4. SCALING & OPTIMIZATION
+ *    - shouldUseHorizontalScaling(): Repository size analysis for scaling decisions
+ *    - isProcessableFileForScaling(): File filtering for performance optimization
+ *    - processIncrementalChangesInternal(): Legacy incremental processing with Git operations
+ * 
+ * 5. UTILITY & HELPERS
+ *    - Content type detection helpers (isCodeFile, isOpenAPIFile, isJSONSchemaFile, etc.)
+ *    - File path utilities (getFileExtension, getBasename)
+ *    - removeChangedFilesFromPinecone(): Vector cleanup for incremental updates
+ *    - processRepositoryDirectFallback(): Emergency fallback using direct GitHub API
+ * 
+ * KEY FEATURES:
+ * - Inline lazy initialization pattern for all processors
+ * - Intelligent content-type routing with specialized processors
+ * - Comprehensive error handling with multi-tier fallbacks
+ * - Horizontal scaling support based on repository size analysis
+ * - Integration with vector databases (Pinecone) and observability (LangSmith)
+ * - Support for both full and incremental repository processing
+ * - Cloud-native fallback strategies for environments without Git
+ * 
+ * ARCHITECTURE PATTERNS:
+ * - Strategy Pattern: Different processors for different content types
+ * - Factory Pattern: Inline lazy initialization of processors
+ * - Pipeline Pattern: Sequential document processing with accumulation
+ * - Observer Pattern: Event emission for processing status updates
+ */
+
+// contextPipeline.js
 "use strict";
 
 const EventManager = require('./eventManager');
@@ -7,8 +74,8 @@ const SemanticPreprocessor = require('./processors/semanticPreprocessor');
 const UbiquitousLanguageEnhancer = require('./processors/ubiquitousLanguageEnhancer');
 const ApiSpecProcessor = require('./processors/apiSpecProcessor');
 const DocsProcessor = require('./processors/docsProcessor');
-const RepoSelectionManager = require('./processors/repoSelectionManager');
-const CommitSelectionManager = require('./processors/commitSelectionManager');
+const RepoLoader = require('./processors/repoLoader');
+const repoSelector = require('./processors/repoSelector');
 const ASTCodeSplitter = require('./processors/astCodeSplitter');
 const RepoProcessorUtils = require('./processors/repoProcessorUtils');
 const RepoProcessor = require('./processors/repoProcessor');
@@ -26,169 +93,66 @@ try {
 
 class ContextPipeline {
   constructor(options = {}) {
-    console.log(`[${new Date().toISOString()}] 🎯 INITIALIZING ContextPipeline with modular architecture`);
-
-    // Store dependencies passed from the adapter
+    console.log(`[${new Date().toISOString()}] 🎯 INITIALIZING ContextPipeline`);
+    
+    // Store options for lazy initialization
+    this.options = options;
     this.embeddings = options.embeddings;
     this.eventBus = options.eventBus;
     this.pineconeLimiter = options.pineconeLimiter;
+    
+    // Initialize core components only
     this.pineconeManager = new PineconePlugin();
-    this.semanticPreprocessor = new SemanticPreprocessor();
-
-    this.astCodeSplitter = new ASTCodeSplitter({
-      maxChunkSize: options.maxChunkSize || 2000,
-      includeComments: true,
-      includeImports: true
-    });
-
-    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
-    this.repoSelectionManager = new RepoSelectionManager();
+    this.repoLoader = new RepoLoader();
     
-    this.embeddingManager = new EmbeddingManager({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repoSelectionManager,
-      pineconeManager: this.pineconeManager
-    });
-
-    // Initialize dedicated processors for each information source
-    this.apiSpecProcessor = new ApiSpecProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repoSelectionManager,
-      pineconeManager: this.pineconeManager
-    });
-
-    this.docsProcessor = new DocsProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repoSelectionManager,
-      pineconeManager: this.pineconeManager
-    });
-
-    // Initialize modular managers
-    this.commitSelectionManager = new CommitSelectionManager({
-      repositoryManager: this.repoSelectionManager
-    });
-
-    this.repoProcessorUtils = new RepoProcessorUtils({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repositoryManager: this.repoSelectionManager,
-      commitManager: this.commitSelectionManager,
-      pineconeManager: this.pineconeManager,
-      ubiquitousLanguageProcessor: this.ubiquitousLanguageProcessor,
-      astBasedSplitter: this.astCodeSplitter,
-      semanticPreprocessor: this.semanticPreprocessor,
-      routingProvider: this // Provide access to centralized routing methods
-    });
-
-    this.repoProcessor = new RepoProcessor({
-      ubiquitousLanguageProcessor: this.ubiquitousLanguageProcessor,
-      apiSpecProcessor: this.apiSpecProcessor,
-      markdownDocumentationProcessor: this.docsProcessor,
-      repositoryProcessor: this.repoProcessorUtils,
-      repositoryManager: this.repoSelectionManager
-    });
-
-    // Initialize horizontal scaling worker manager
-    this.workerManager = new RepoWorkerManager({
-      maxWorkers: options.maxWorkers || 4,
-      maxRequestsPerMinute: options.maxRequestsPerMinute || 300
-    });
-
-    this.eventManager = new EventManager({
-      eventBus: this.eventBus
-    });
-
-    // Get the shared Pinecone service from the connection manager for vector operations
-    this.pineconeService = null;
-    this.pinecone = null; // For backward compatibility
+    // Pinecone will be initialized inline when needed
+    this.pinecone = null;
     
-    // Pinecone will be initialized on first use
-    this._pineconeInitialized = false;
-    this._pineconeInitializationPromise = null; // Track ongoing initialization
+    // Initialize tracing if enabled
+    this._initializeTracing();
     
-    console.log(`[${new Date().toISOString()}] ✅ PIPELINE READY: DataPreparationPipeline initialized with modular architecture`);
+    console.log(`[${new Date().toISOString()}] ✅ PIPELINE READY: ContextPipeline`);
+  }
 
+  _initializeTracing() {
     this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
-    if (this.enableTracing) {
-      try {
-        this.processPushedRepo = traceable(
-          this.processPushedRepo.bind(this),
-          {
-            name: 'ContextPipeline.processPushedRepo',
-            project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
-            metadata: { component: 'ContextPipeline' },
-            tags: ['rag', 'ingestion']
-          }
-        );
-        console.log(`[${new Date().toISOString()}] [TRACE] ContextPipeline tracing enabled.`);
-  console.log(`[${new Date().toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
-      } catch (err) {
-        console.warn(`[${new Date().toISOString()}] [TRACE] Failed to enable ContextPipeline tracing: ${err.message}`);
-      }
-    }
-  }
-
-  /**
-   * Initialize Pinecone service asynchronously
-   */
-  async _initializePineconeAsync() {
-    try {
-      this.pineconeService = await this.pineconeManager?.getPineconeService();
-      this.pinecone = this.pineconeService; // For backward compatibility
-      this._pineconeInitialized = true;
-      console.log(`[${new Date().toISOString()}] ✅ PINECONE: Async initialization completed`);
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ PINECONE: Async initialization failed:`, error.message);
-      this.pineconeService = null;
-      this.pinecone = null;
-      this._pineconeInitialized = false;
-      throw error; // Re-throw to be handled by _ensurePineconeInitialized
-    }
-  }
-
-  /**
-   * Ensure Pinecone is initialized before use - prevents race conditions
-   */
-  async _ensurePineconeInitialized() {
-    // If already initialized, return immediately
-    if (this._pineconeInitialized && this.pinecone) {
-      return this.pinecone;
-    }
-
-    // If initialization is already in progress, wait for it
-    if (this._pineconeInitializationPromise !== null) {
-      try {
-        await this._pineconeInitializationPromise;
-        return this.pinecone;
-      } catch (error) {
-        // If the ongoing initialization failed, we'll try again below
-        console.warn(`[${new Date().toISOString()}] ⚠️ PINECONE: Previous initialization failed, retrying:`, error.message);
-        this._pineconeInitializationPromise = null;
-      }
-    }
-
-    // Start new initialization
-    this._pineconeInitializationPromise = this._initializePineconeAsync();
     
+    if (!this.enableTracing) {
+      return;
+    }
+
     try {
-      await this._pineconeInitializationPromise;
-      return this.pinecone;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ PINECONE: Initialization failed:`, error.message);
-      this._pineconeInitializationPromise = null;
-      return null;
-    } finally {
-      // Clear the promise reference once initialization is complete (success or failure)
-      this._pineconeInitializationPromise = null;
+      this.processPushedRepo = traceable(
+        this.processPushedRepo.bind(this),
+        {
+          name: 'ContextPipeline.processPushedRepo',
+          project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+          metadata: { component: 'ContextPipeline' },
+          tags: ['rag', 'ingestion']
+        }
+      );
+      
+      console.log(`[${new Date().toISOString()}] [TRACE] ContextPipeline tracing enabled.`);
+      console.log(`[${new Date().toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
+    } catch (err) {
+      console.warn(`[${new Date().toISOString()}] [TRACE] Failed to enable ContextPipeline tracing: ${err.message}`);
     }
   }
 
-  /**
-   * Route document to appropriate processor based on content type
-   */
+  async getPineconeClient() {
+    if (!this.pinecone) {
+      try {
+        console.log(`[${new Date().toISOString()}] ⚙️ PINECONE: Initializing client...`);
+        this.pinecone = await this.pineconeManager?.getPineconeService();
+        console.log(`[${new Date().toISOString()}] ✅ PINECONE: Client initialized`);
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ PINECONE: Initialization failed:`, error.message);
+        return null;
+      }
+    }
+    return this.pinecone;
+  }
+
   async routeDocumentToProcessor(document) {
     const contentType = this.detectContentType(document);
     const source = document.metadata?.source || 'unknown';
@@ -350,16 +314,27 @@ class ContextPipeline {
     return lastDot === -1 ? filename : filename.substring(0, lastDot);
   }
 
-  /**
-   * Content type specific processors
-   */
+
   async processCodeDocument(document) {
     console.log(`[${new Date().toISOString()}] 💻 CODE PROCESSING: Using AST splitter`);
+    // Initialize inline when needed
+    this.astCodeSplitter = this.astCodeSplitter || new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: true,
+      includeImports: true
+    });
     return await this.astCodeSplitter.splitDocument(document);
   }
 
   async processMarkdownDocument(document) {
     console.log(`[${new Date().toISOString()}] 📝 MARKDOWN PROCESSING: Using docs processor`);
+    // Initialize inline when needed
+    this.docsProcessor = this.docsProcessor || new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoLoader: this.repoLoader,
+      pineconeManager: this.pineconeManager
+    });
     // Use the existing docsProcessor for markdown files
     const docs = [document];
     const splitDocs = await this.docsProcessor.splitMarkdownDocuments(docs);
@@ -368,6 +343,13 @@ class ContextPipeline {
 
   async processOpenAPIDocument(document) {
     console.log(`[${new Date().toISOString()}] 🔌 OPENAPI PROCESSING: Using API spec processor`);
+    // Initialize inline when needed
+    this.apiSpecProcessor = this.apiSpecProcessor || new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoLoader: this.repoLoader,
+      pineconeManager: this.pineconeManager
+    });
     // Use the existing apiSpecProcessor for OpenAPI files
     return await this.apiSpecProcessor.processApiSpecDocument(document);
   }
@@ -381,6 +363,13 @@ class ContextPipeline {
 
   async processDocumentationFile(document) {
     console.log(`[${new Date().toISOString()}] 📖 DOCUMENTATION PROCESSING: Using docs processor`);
+    // Initialize inline when needed
+    this.docsProcessor = this.docsProcessor || new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoLoader: this.repoLoader,
+      pineconeManager: this.pineconeManager
+    });
     // Use docsProcessor for general documentation
     const docs = [document];
     const splitDocs = await this.docsProcessor.splitMarkdownDocuments(docs);
@@ -389,6 +378,8 @@ class ContextPipeline {
 
   async processGenericDocument(document) {
     console.log(`[${new Date().toISOString()}] 📄 GENERIC PROCESSING: Using semantic preprocessor`);
+    // Initialize inline when needed
+    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
     // Use semantic preprocessor for generic documents
     const processed = await this.semanticPreprocessor.preprocessChunk(document);
     return [processed]; // Return as array for consistency
@@ -417,6 +408,7 @@ class ContextPipeline {
         const contentType = this.detectContentType(document);
         stats[contentType] = (stats[contentType] || 0) + 1;
         
+        // Route and process each document, return chunks
         const chunks = await this.routeDocumentToProcessor(document);
         allChunks.push(...chunks);
       } catch (error) {
@@ -445,6 +437,9 @@ class ContextPipeline {
     console.log(`[${new Date().toISOString()}] 🎯 ORCHESTRATION: Using modular managers for coordinated processing`);
     
     // Emit starting status
+    this.eventManager = this.eventManager || new EventManager({
+      eventBus: this.eventBus
+    });
     this.eventManager.emitProcessingStarted(userId, repoId);
 
     // Pre-process repository data outside try-catch for use in fallback
@@ -476,7 +471,10 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Processing ${githubOwner}/${repoName} with optimized strategy`);
 
       // Step 1: Try to get commit info efficiently using CommitManager
-      const commitInfo = await this.commitSelectionManager.getCommitInfoOptimized(url, branch, githubOwner, repoName);
+      this.repoSelector = this.repoSelector || new repoSelector({
+        repoLoader: this.repoLoader
+      });
+      const commitInfo = await this.repoSelector.getCommitInfoOptimized(url, branch, githubOwner, repoName);
       
       if (!commitInfo) {
         throw new Error('Failed to retrieve commit information');
@@ -485,8 +483,8 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 🔑 COMMIT DETECTED: ${commitInfo?.hash?.substring(0, 8) ?? 'unknown'} - ${commitInfo?.subject ?? 'No subject'}`);
 
       // Step 2: Enhanced duplicate check with commit hash comparison
-      const pineconeClient = await this._ensurePineconeInitialized();
-      const existingRepo = await this.repoSelectionManager.findExistingRepo(
+      const pineconeClient = await this.getPineconeClient();
+      const existingRepo = await this.repoLoader.findExistingRepo(
         userId, repoId, githubOwner, repoName, commitInfo?.hash ?? null, pineconeClient, this.embeddings
       );
       
@@ -597,6 +595,16 @@ class ContextPipeline {
       commitInfo
     } = params;
 
+    // Initialize inline when needed
+    this.ubiquitousLanguageEnhancer = this.ubiquitousLanguageEnhancer || new UbiquitousLanguageEnhancer();
+    this.repoProcessor = this.repoProcessor || new RepoProcessor({
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer,
+      apiSpecProcessor: this.apiSpecProcessor,
+      docsProcessor: this.docsProcessor,
+      repoProcessorUtils: this.repoProcessorUtils,
+      repoLoader: this.repoLoader
+    });
+
     return await this.repoProcessor.processFullRepositoryWithProcessors(
       userId, repoId, tempDir, githubOwner, repoName, branch, commitInfo
     );
@@ -608,6 +616,9 @@ class ContextPipeline {
   async indexCoreDocsToPinecone(namespace = 'core-docs', clearFirst = false) {
     console.log(`[${new Date().toISOString()}] 🎯 CORE DOCS: Starting comprehensive core documentation processing`);
     console.log(`[${new Date().toISOString()}] 🎯 Using specialized processors: API specs + markdown documentation`);
+    
+    // Initialize inline when needed
+    this.embeddingManager = this.embeddingManager || new EmbeddingManager({ config: this.config });
     
     try {
       // Clear namespace if requested
@@ -688,7 +699,7 @@ class ContextPipeline {
     
     try {
       // Step 1: Get changed files efficiently
-      const changedFiles = await this.commitSelectionManager.getChangedFilesOptimized(
+      const changedFiles = await this.repoSelector.getChangedFilesOptimized(
         repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo?.hash ?? null
       );
       
@@ -733,12 +744,14 @@ class ContextPipeline {
       }
 
       // Step 4: Process changed documents
-      const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
-      const result = await this.repoProcessor.processFilteredDocuments(changedDocuments, namespace, newCommitInfo, true);
+      const namespace = this.repoLoader.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const result = await this.repoProcessor.processFilteredDocuments(
+        changedDocuments, namespace, newCommitInfo, true, this.routeDocumentsToProcessors.bind(this)
+      );
       
       // Step 5: Update repository tracking
-      const pineconeClient = await this._ensurePineconeInitialized();
-      await this.repoSelectionManager.storeRepositoryTrackingInfo(
+      const pineconeClient = await this.getPineconeClient();
+      await this.repoLoader.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, newCommitInfo, 
         namespace, pineconeClient, this.embeddings
       );
@@ -852,10 +865,10 @@ class ContextPipeline {
       
       if (result.success) {
         // Step 2: Store repository tracking info for future duplicate detection
-        const pineconeClient2 = await this._ensurePineconeInitialized();
-        const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+        const pineconeClient2 = await this.getPineconeClient();
+        const namespace = this.repoLoader.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
         
-        await this.repoSelectionManager.storeRepositoryTrackingInfo(
+        await this.repoLoader.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, commitInfo, 
           namespace, pineconeClient2, this.embeddings
         );
@@ -909,12 +922,14 @@ class ContextPipeline {
       const documents = await this.repoProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
       
       // Step 2: Process all documents
-      const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
-      const result = await this.repoProcessor.processFilteredDocuments(documents, namespace, commitInfo, false);
+      const namespace = this.repoLoader.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const result = await this.repoProcessor.processFilteredDocuments(
+        documents, namespace, commitInfo, false, this.routeDocumentsToProcessors.bind(this)
+      );
       
       // Step 3: Store repository tracking info for future duplicate detection
-      const pineconeClient2 = await this._ensurePineconeInitialized();
-      await this.repoSelectionManager.storeRepositoryTrackingInfo(
+      const pineconeClient2 = await this.getPineconeClient();
+      await this.repoLoader.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, commitInfo, 
         namespace, pineconeClient2, this.embeddings
       );
@@ -1046,16 +1061,22 @@ class ContextPipeline {
     const { githubOwner, repoName, branch } = repoInfo;
     const { oldCommitHash, newCommitHash } = commitHashes;
     
+    // Initialize inline when needed
+    this.repoProcessorUtils = this.repoProcessorUtils || new RepoProcessorUtils(
+      this.routeDocumentToProcessor.bind(this),
+      this.routeDocumentsToProcessors.bind(this)
+    );
+    
     console.log(`[${new Date().toISOString()}] 🔄 INCREMENTAL PROCESSING: Analyzing changes between commits`);
     console.log(`[${new Date().toISOString()}] 📊 From: ${oldCommitHash.substring(0, 8)} → To: ${newCommitHash.substring(0, 8)}`);
     
     try {
       // Get list of changed files
-      const changedFiles = await this.commitSelectionManager.getChangedFilesFromLocalGit(tempDir, oldCommitHash, newCommitHash);
+      const changedFiles = await this.repoSelector.getChangedFilesFromLocalGit(tempDir, oldCommitHash, newCommitHash);
       
       if (changedFiles.length === 0) {
         console.log(`[${new Date().toISOString()}] 📭 NO CHANGES: No files modified between commits, skipping processing`);
-        await this.repoSelectionManager.cleanupTempDir(tempDir);
+        await this.repoLoader.cleanupTempDir(tempDir);
         return { 
           success: true, 
           message: 'No files changed between commits', 
@@ -1071,7 +1092,7 @@ class ContextPipeline {
       });
 
       // Create namespace for this repository
-      const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const namespace = this.repoLoader.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
       
       // Remove vectors for changed files from Pinecone
       await this.removeChangedFilesFromPinecone(changedFiles, namespace, githubOwner, repoName);
@@ -1082,14 +1103,14 @@ class ContextPipeline {
       );
       
       // Update repository tracking info
-      const pineconeClient3 = await this._ensurePineconeInitialized();
-      await this.repoSelectionManager.storeRepositoryTrackingInfo(
+      const pineconeClient3 = await this.getPineconeClient();
+      await this.repoLoader.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, commitInfo, 
         namespace, pineconeClient3, this.embeddings
       );
       
       // Cleanup temp directory
-      await this.repoSelectionManager.cleanupTempDir(tempDir);
+      await this.repoLoader.cleanupTempDir(tempDir);
 
       return {
         success: true,
@@ -1109,7 +1130,7 @@ class ContextPipeline {
       
       // Cleanup temp directory on error
       try {
-        await this.repoSelectionManager.cleanupTempDir(tempDir);
+        await this.repoLoader.cleanupTempDir(tempDir);
       } catch (cleanupError) {
         console.warn(`[${new Date().toISOString()}] ⚠️ Failed to cleanup temp directory:`, cleanupError.message);
       }
@@ -1183,16 +1204,16 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] ✅ DIRECT API: Loaded ${documents.length} documents`);
 
       // Process documents directly
-      const namespace = this.repoSelectionManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const namespace = this.repoLoader.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
       const result = await this.repoProcessor.processFilteredDocuments(
-        documents, namespace, fallbackCommitInfo, false
+        documents, namespace, fallbackCommitInfo, false, this.routeDocumentsToProcessors.bind(this)
       );
 
       console.log(`[${new Date().toISOString()}] ✅ DIRECT FALLBACK SUCCESS: Processed ${result.documentsProcessed || 0} documents`);
 
       // Store basic tracking info
-      const pineconeClient = await this._ensurePineconeInitialized();
-      await this.repoSelectionManager.storeRepositoryTrackingInfo(
+      const pineconeClient = await this.getPineconeClient();
+      await this.repoLoader.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, fallbackCommitInfo, 
         namespace, pineconeClient, this.embeddings
       );

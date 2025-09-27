@@ -4,7 +4,7 @@ const path = require("path");
 
 // Stub orchestrators and processors used inside ContextPipeline to avoid heavy work
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/commitSelectionManager",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoSelector",
   () => jest.fn().mockImplementation(() => ({
     getCommitInfoOptimized: jest.fn(async () => ({ hash: "h1", subject: "s" }))
   }))

@@ -26,7 +26,6 @@ class RepoProcessorUtils {
     this.astBasedSplitter = options.astBasedSplitter;
     this.semanticPreprocessor = options.semanticPreprocessor;
     this.pineconeManager = options.pineconeManager;
-    this.routingProvider = options.routingProvider; // Access to centralized routing
     
     // Store promise (not the resolved instance) to avoid using an unresolved Promise as a client
     this._pineconeService = null; // resolved instance once available
@@ -647,7 +646,7 @@ class RepoProcessorUtils {
   /**
    * Process filtered documents (incremental or full)
    */
-  async processFilteredDocuments(documents, namespace, commitInfo, isIncremental) {
+  async processFilteredDocuments(documents, namespace, commitInfo, isIncremental, routingFunction = null) {
     if (documents.length === 0) {
       return { success: true, documentsProcessed: 0, chunksGenerated: 0, isIncremental };
     }
@@ -655,8 +654,8 @@ class RepoProcessorUtils {
     // Apply semantic and AST processing
     const processedDocuments = await this.intelligentProcessDocuments(documents);
     
-    // Split with AST intelligence
-    const splitDocuments = await this.intelligentSplitDocuments(processedDocuments);
+    // Split with AST intelligence - pass routing function if provided
+    const splitDocuments = await this.intelligentSplitDocuments(processedDocuments, routingFunction);
     
     // Store in Pinecone
     await this.storeRepositoryDocuments(splitDocuments, namespace);
@@ -679,17 +678,17 @@ class RepoProcessorUtils {
     return documents;
   }
 
-  async intelligentSplitDocuments(documents) {
-    console.log(`[${new Date().toISOString()}] 🎯 INTELLIGENT SPLITTING: Processing ${documents.length} documents with centralized routing`);
+  async intelligentSplitDocuments(documents, routingFunction = null) {
+    console.log(`[${new Date().toISOString()}] 🎯 INTELLIGENT SPLITTING: Processing ${documents.length} documents`);
     
-    // Use centralized routing from contextPipeline if available
-    if (this.routingProvider && typeof this.routingProvider.routeDocumentsToProcessors === 'function') {
-      console.log(`[${new Date().toISOString()}] 🚦 Using centralized content-aware routing for document processing`);
-      return await this.routingProvider.routeDocumentsToProcessors(documents);
+    // Use provided routing function if available
+    if (routingFunction && typeof routingFunction === 'function') {
+      console.log(`[${new Date().toISOString()}] 🚦 Using provided content-aware routing for document processing`);
+      return await routingFunction(documents);
     }
     
     // Fallback: Use basic AST splitter for code files, semantic preprocessor for others
-    console.log(`[${new Date().toISOString()}] ⚠️ Centralized routing not available, using fallback processing`);
+    console.log(`[${new Date().toISOString()}] ⚠️ No routing function provided, using fallback processing`);
     
     const allChunks = [];
     for (const document of documents) {
