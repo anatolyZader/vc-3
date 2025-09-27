@@ -23,57 +23,65 @@ class RepoSelectionManager {
    * @param {string[]} options.additionalCommits - Additional commit hashes to fetch for diff operations
    */
   async cloneRepository(url, branch, options = {}) {
-    console.log(`[${new Date().toISOString()}] � CLOUD-NATIVE: Repository operation called - using GitHub API instead of git clone`);
-    console.log(`[${new Date().toISOString()}] 🎯 Cloud-native approach eliminates git dependencies and works in any deployment environment`);
+    console.log(`[${new Date().toISOString()}] 🚀 PRIMARY CLOUD-NATIVE: Using enhanced cloud-native approach as primary repository loading method`);
+    console.log(`[${new Date().toISOString()}] 🎯 This approach loads files by priority, handles rate limits intelligently, and works in any deployment environment`);
     
     // Parse repository URL to extract owner and repo name
     const urlParts = url.split('/');
     const repoName = urlParts[urlParts.length - 1].replace('.git', '');
     const owner = urlParts[urlParts.length - 2];
     
-    console.log(`[${new Date().toISOString()}] � PARSED REPO: ${owner}/${repoName} @ ${branch}`);
+    console.log(`[${new Date().toISOString()}] 📋 PARSED REPO: ${owner}/${repoName} @ ${branch}`);
     
     try {
-      // Instead of cloning, we'll use the CloudNativeRepoLoader to fetch repository data
+      // Use the enhanced CloudNativeRepoLoader as the primary method
       const CloudNativeRepoLoader = require('./cloudNativeRepoLoader');
       
       const cloudLoader = new CloudNativeRepoLoader({
         owner: owner,
         repo: repoName,
         branch: branch,
-        focusPath: null, // Load all files for this operation
-        maxFiles: 200, // Reasonable limit
-        timeout: 30000
+        focusPath: 'backend/', // Focus on backend files for EventStorm
+        maxFiles: 150, // Reasonable limit with priority-based selection
+        timeout: 60000 // Longer timeout for enhanced loading
       });
       
-      console.log(`[${new Date().toISOString()}] 📥 CLOUD API: Loading repository content via GitHub API`);
+      console.log(`[${new Date().toISOString()}] 📥 ENHANCED LOADING: Loading repository content via priority-based GitHub API`);
       const documents = await cloudLoader.load();
       
       if (documents && documents.length > 0) {
-        console.log(`[${new Date().toISOString()}] ✅ CLOUD SUCCESS: Retrieved ${documents.length} files via GitHub API`);
+        console.log(`[${new Date().toISOString()}] ✅ PRIMARY SUCCESS: Retrieved ${documents.length} prioritized files via enhanced cloud-native loader`);
         
         // Create a virtual "temp directory" reference for compatibility
         // This allows existing code to work without actual file system operations
         const virtualTempDir = {
-          type: 'cloud-native',
+          type: 'enhanced-cloud-native',
           owner: owner,
           repo: repoName,
           branch: branch,
           documents: documents,
-          path: `cloud://${owner}/${repoName}/${branch}`,
-          isVirtual: true
+          path: `cloud-priority://${owner}/${repoName}/${branch}`,
+          isVirtual: true,
+          loadingMethod: 'priority-based-github-api',
+          fileCount: documents.length,
+          maxFilesConfigured: cloudLoader.maxFiles,
+          focusPath: cloudLoader.focusPath
         };
         
-        console.log(`[${new Date().toISOString()}] 📂 VIRTUAL WORKSPACE: Created cloud-native document collection`);
+        console.log(`[${new Date().toISOString()}] 📂 ENHANCED WORKSPACE: Created priority-based cloud-native document collection`);
+        console.log(`[${new Date().toISOString()}] 🎯 File distribution: ${documents.length} files loaded with intelligent priority ranking`);
         return virtualTempDir;
         
       } else {
-        throw new Error('No documents retrieved from repository');
+        throw new Error('No documents retrieved from repository using enhanced loader');
       }
       
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ CLOUD-NATIVE ERROR: Failed to load repository via GitHub API:`, error.message);
-      throw new Error(`Failed to load repository via cloud-native API: ${error.message}`);
+      console.error(`[${new Date().toISOString()}] ❌ ENHANCED CLOUD-NATIVE ERROR: Failed to load repository via priority-based API:`, error.message);
+      
+      // Since this is now the primary method, we should fail rather than fallback
+      // This ensures we identify and fix any issues with the cloud-native approach
+      throw new Error(`Failed to load repository via enhanced cloud-native API: ${error.message}`);
     }
   }
 

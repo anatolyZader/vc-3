@@ -21,10 +21,10 @@ class CloudNativeRepoLoader {
   }
 
   /**
-   * Load documents from GitHub repository using direct API calls
+   * Load documents from GitHub repository using direct API calls with priority-based loading
    */
   async load() {
-    console.log(`[${new Date().toISOString()}] 🌐 CLOUD LOADER: Loading ${this.owner}/${this.repo}/${this.focusPath || 'all'} via direct API`);
+    console.log(`[${new Date().toISOString()}] 🌐 PRIORITY LOADER: Loading ${this.owner}/${this.repo}/${this.focusPath || 'all'} via direct API`);
     
     try {
       // Get repository tree
@@ -41,16 +41,28 @@ class CloudNativeRepoLoader {
         console.log(`[${new Date().toISOString()}] 🎯 FILTERED: ${targetFiles.length} files in ${this.focusPath} from ${tree.length} total`);
       }
 
-      // Limit to prevent overload
+      // Prioritize files by importance
+      console.log(`[${new Date().toISOString()}] 📊 PRIORITIZING: Sorting ${targetFiles.length} files by importance`);
+      targetFiles = this.prioritizeFiles(targetFiles);
+      
+      // Show top priority files
+      const topFiles = targetFiles.slice(0, 10);
+      console.log(`[${new Date().toISOString()}] 🔥 TOP PRIORITY FILES:`);
+      topFiles.forEach((file, i) => {
+        const priority = this.getFilePriority(file.path);
+        console.log(`[${new Date().toISOString()}]   ${i+1}. ${file.path} (priority: ${priority})`);
+      });
+
+      // Limit to prevent overload, but keep the most important files
       if (targetFiles.length > this.maxFiles) {
-        console.log(`[${new Date().toISOString()}] ⚠️ LIMITING: Reducing from ${targetFiles.length} to ${this.maxFiles} files`);
+        console.log(`[${new Date().toISOString()}] ⚠️ SMART LIMITING: Reducing from ${targetFiles.length} to ${this.maxFiles} most important files`);
         targetFiles = targetFiles.slice(0, this.maxFiles);
       }
 
-      // Load file contents in batches
+      // Load file contents with enhanced rate limiting
       const documents = await this.loadFileContents(targetFiles);
       
-      console.log(`[${new Date().toISOString()}] ✅ CLOUD LOADER: Successfully loaded ${documents.length} documents`);
+      console.log(`[${new Date().toISOString()}] ✅ FINAL RESULT: Successfully loaded ${documents.length}/${targetFiles.length} files from ${this.owner}/${this.repo}`);
       return documents;
 
     } catch (error) {
@@ -60,67 +72,123 @@ class CloudNativeRepoLoader {
   }
 
   /**
-   * Get repository tree using GitHub API
+   * Get repository tree using GitHub API with retry logic
    */
   async getRepositoryTree() {
-    try {
-      // Use public API endpoint
-      const url = `https://api.github.com/repos/${this.owner}/${this.repo}/git/trees/${this.branch}?recursive=1`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'eventstorm-cloud-loader'
-        },
-        timeout: this.timeout
-      });
+    const maxRetries = 3;
+    const retryDelay = 3000; // 3 seconds
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Use public API endpoint with authentication fallback
+        const url = `https://api.github.com/repos/${this.owner}/${this.repo}/git/trees/${this.branch}?recursive=1`;
+        
+        // Try with authentication first if available, then fall back to public API
+        const headers = {};
+        if (process.env.GITHUB_TOKEN) {
+          headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+          headers['User-Agent'] = 'eventstorm-cloud-native-loader';
+        }
+        
+        console.log(`[${new Date().toISOString()}] 🌳 TREE API: Fetching repository tree (attempt ${attempt + 1}/${maxRetries + 1})`);
+        
+        const response = await fetch(url, {
+          headers,
+          timeout: this.timeout
+        });
 
-      if (!response.ok) {
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (!data.tree || !Array.isArray(data.tree)) {
+            throw new Error('Invalid tree response from GitHub API');
+          }
+
+          console.log(`[${new Date().toISOString()}] 📂 TREE: Found ${data.tree.length} items in repository`);
+          return data.tree;
+        }
+        
+        // Handle rate limiting
+        if (response.status === 403 || response.status === 429) {
+          if (attempt < maxRetries) {
+            console.warn(`[${new Date().toISOString()}] ⚠️ Rate limit hit on tree API, retrying in ${retryDelay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            continue;
+          }
+        }
+        
+        // Other errors
         throw new Error(`GitHub tree API failed: ${response.status} ${response.statusText}`);
+        
+      } catch (error) {
+        if (attempt === maxRetries) {
+          console.error(`[${new Date().toISOString()}] ❌ Failed to get repository tree after ${maxRetries + 1} attempts:`, error.message);
+          throw error;
+        }
+        
+        if (error.message.includes('rate limit') || error.message.includes('403') || error.message.includes('429')) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ Rate limit error, retrying in ${retryDelay}ms`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          continue;
+        }
+        
+        // Non-rate-limit errors should be thrown immediately
+        throw error;
       }
-
-      const data = await response.json();
-      
-      if (!data.tree || !Array.isArray(data.tree)) {
-        throw new Error('Invalid tree response from GitHub API');
-      }
-
-      console.log(`[${new Date().toISOString()}] 📂 TREE: Found ${data.tree.length} items in repository`);
-      return data.tree;
-
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to get repository tree:`, error.message);
-      throw error;
     }
   }
 
   /**
-   * Load file contents for multiple files
+   * Load file contents for multiple files with enhanced rate limiting and retry logic
    */
   async loadFileContents(files) {
     const documents = [];
-    const batchSize = 5; // Process in small batches to avoid rate limits
+    const batchSize = 3; // Smaller batches to avoid rate limits
+    const delayBetweenBatches = 1000; // Longer delay between batches
+    const retryDelay = 2000; // Delay for rate limit retries
     
-    console.log(`[${new Date().toISOString()}] 📥 LOADING: Processing ${files.length} files in batches of ${batchSize}`);
+    console.log(`[${new Date().toISOString()}] 📥 ENHANCED LOADING: Processing ${files.length} files in batches of ${batchSize} with rate limiting`);
 
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);
       
       try {
-        const batchPromises = batch.map(file => this.loadSingleFile(file));
-        const batchResults = await Promise.allSettled(batchPromises);
-        
-        batchResults.forEach((result, index) => {
-          if (result.status === 'fulfilled' && result.value) {
-            documents.push(result.value);
-          } else if (result.status === 'rejected') {
-            console.warn(`[${new Date().toISOString()}] ⚠️ Failed to load ${batch[index].path}:`, result.reason?.message);
+        // Process batch sequentially to avoid overwhelming the API
+        for (const file of batch) {
+          let retries = 0;
+          const maxRetries = 3;
+          
+          while (retries <= maxRetries) {
+            try {
+              const document = await this.loadSingleFile(file);
+              if (document) {
+                documents.push(document);
+              }
+              break; // Success, exit retry loop
+              
+            } catch (error) {
+              if (error.message.includes('rate limit') || error.message.includes('429') || error.message.includes('403')) {
+                retries++;
+                if (retries <= maxRetries) {
+                  console.warn(`[${new Date().toISOString()}] ⚠️ Rate limit hit, retrying ${file.path} in ${retryDelay}ms (attempt ${retries}/${maxRetries})`);
+                  await new Promise(resolve => setTimeout(resolve, retryDelay));
+                  continue;
+                }
+              }
+              console.warn(`[${new Date().toISOString()}] ⚠️ Failed to load ${file.path} after ${maxRetries} retries:`, error.message);
+              break; // Exit retry loop
+            }
           }
-        });
+          
+          // Small delay between individual file requests
+          await new Promise(resolve => setTimeout(resolve, 150));
+        }
         
-        // Small delay between batches
+        console.log(`[${new Date().toISOString()}] 📊 BATCH ${Math.floor(i/batchSize) + 1}/${Math.ceil(files.length/batchSize)}: Loaded ${documents.length} total documents`);
+        
+        // Rate limiting - wait between batches
         if (i + batchSize < files.length) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
         }
         
       } catch (batchError) {
@@ -187,8 +255,8 @@ class CloudNativeRepoLoader {
     }
   }
 
-  /**
-   * Check if file is a source file we want to index
+    /**
+   * Check if file is a source file we want to index with priority scoring
    */
   isSourceFile(path) {
     // Skip non-source files
@@ -198,35 +266,62 @@ class CloudNativeRepoLoader {
       /dist\//,
       /build\//,
       /coverage\//,
-      /\.tmp$/,
+      /\.nyc_output\//,
+      /logs?\//,
       /\.log$/,
-      /\.lock$/,
-      /package-lock\.json$/,
+      /\.(png|jpg|jpeg|gif|ico|svg)$/i,
       /\.DS_Store$/,
-      /\.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i
+      /thumbs\.db$/i,
     ];
 
-    const includePatterns = [
-      /\.(js|jsx|ts|tsx|mjs|cjs)$/,
-      /\.(py|pyx|pyi)$/,
-      /\.(java|kt|scala)$/,
-      /\.(md|txt|json|yaml|yml)$/,
-      /\.(html|css|scss|sass)$/,
-      /^[^.]*$/ // Files without extension (like README, Dockerfile, etc.)
-    ];
-
-    // Check excludes first
-    if (excludePatterns.some(pattern => pattern.test(path))) {
-      return false;
+    for (const pattern of excludePatterns) {
+      if (pattern.test(path)) {
+        return false;
+      }
     }
 
-    // Check includes
-    if (includePatterns.some(pattern => pattern.test(path))) {
-      return true;
-    }
+    // Focus on specific file extensions
+    const sourceExtensions = /\.(js|ts|jsx|tsx|json|md|sql|yaml|yml|txt|env)$/i;
+    return sourceExtensions.test(path);
+  }
 
-    // Default to include if unsure
-    return true;
+  /**
+   * Get priority score for file (higher = more important)
+   */
+  getFilePriority(path) {
+    // High priority files (core application files)
+    if (/\/(diPlugin|app|server|index)\.(js|ts)$/.test(path)) return 100;
+    if (/ARCHITECTURE\.md$/.test(path)) return 95;
+    if (/ROOT_DOCUMENTATION\.md$/.test(path)) return 90;
+    
+    // Medium-high priority (services and controllers)
+    if (/Service\.(js|ts)$/.test(path)) return 80;
+    if (/Controller\.(js|ts)$/.test(path)) return 75;
+    if (/Adapter\.(js|ts)$/.test(path)) return 70;
+    
+    // Medium priority (domain and infrastructure)
+    if (/\/domain\//.test(path)) return 60;
+    if (/\/infrastructure\//.test(path)) return 55;
+    if (/\/application\//.test(path)) return 50;
+    
+    // Lower priority (tests, configs, docs)
+    if (/\.test\.(js|ts)$/.test(path)) return 30;
+    if (/\.config\.(js|ts|json)$/.test(path)) return 25;
+    if (/\.md$/.test(path)) return 20;
+    
+    // Default priority
+    return 10;
+  }
+
+  /**
+   * Sort files by priority (most important first)
+   */
+  prioritizeFiles(files) {
+    return files.sort((a, b) => {
+      const priorityA = this.getFilePriority(a.path);
+      const priorityB = this.getFilePriority(b.path);
+      return priorityB - priorityA; // Higher priority first
+    });
   }
 }
 
