@@ -976,6 +976,13 @@ class ContextPipeline {
 
     console.log(`[${new Date().toISOString()}] 🔵 STANDARD PROCESSING: Using Langchain-first approach for repository`);
     
+    // Initialize repoProcessor if not already done
+    this.repoProcessor = this.repoProcessor || new RepoProcessor({
+      embeddings: this.embeddings,
+      pinecone: await this.getPineconeClient(),
+      repoProcessorUtils: this.repoProcessorUtils,
+    });
+    
     try {
       // Step 1: Load ALL documents using Langchain (no manual filesystem operations)
       const documents = await this.repoProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
