@@ -406,6 +406,7 @@ const { promisify } = require('util');
 class repoSelector {
   constructor(options = {}) {
     this.repositoryManager = options.repositoryManager;
+    this.repoLoader = options.repoLoader || new (require('./repoLoader'))();
     this.execAsync = promisify(exec);
     this.processingStrategy = {
       preferGitHubAPI: true,
@@ -422,8 +423,8 @@ class repoSelector {
     // Strategy 1: Try GitHub API (fastest, no cloning required)
     if (this.processingStrategy.preferGitHubAPI) {
       try {
-        console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get commit info via API`);
-        const apiCommitInfo = await this.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
+        console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get commit info via API (delegated to repoLoader)`);
+        const apiCommitInfo = await this.repoLoader.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
         if (apiCommitInfo) {
           console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Retrieved commit ${apiCommitInfo?.hash?.substring(0, 8) ?? 'unknown'} via API`);
           return apiCommitInfo;
@@ -506,8 +507,8 @@ class repoSelector {
     // Strategy 1: Try GitHub API for changed files
     if (this.processingStrategy.preferGitHubAPI) {
       try {
-        console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get changed files via API`);
-        const apiChangedFiles = await this.getChangedFilesFromGitHubAPI(githubOwner, repoName, oldCommitHash, newCommitHash);
+        console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get changed files via API (delegated to repoLoader)`);
+        const apiChangedFiles = await this.repoLoader.getChangedFilesFromGitHubAPI(githubOwner, repoName, oldCommitHash, newCommitHash);
         if (apiChangedFiles && apiChangedFiles.length >= 0) {
           console.log(`[${new Date().toISOString()}] ✅ GITHUB API: Found ${apiChangedFiles.length} changed files via API`);
           return apiChangedFiles;

@@ -26,6 +26,7 @@
  *    - getPineconeClient(): Inline lazy initialization of Pinecone vector database client
  * 
  * 2. DOCUMENT ROUTING & PROCESSING
+ * 
  *    - routeDocumentToProcessor(): Main routing logic based on content type detection
  *    - detectContentType(): Intelligent content classification (code, markdown, OpenAPI, etc.)
  *    - processCodeDocument(): Splits code using ASTCodeSplitter, then applies SemanticPreprocessor to each chunk
@@ -36,6 +37,13 @@
  *    - routeDocumentsToProcessors(): Batch processing with comprehensive statistics tracking
  * 
  * 3. REPOSITORY ORCHESTRATION
+ * 📥 processPushedRepo() [ENTRY POINT]
+    ├─ Check if same commit → SKIP
+    ├─ Check if commit changed → processIncrementalOptimized()
+    └─ New repo/major changes → processFullRepositoryOptimized()
+                                   ├─ Size analysis
+                                   ├─ Large repo → processLargeRepositoryWithWorkers()
+                                   └─ Small repo → processStandardRepository()
  *    - processPushedRepo(): Main entry point for repository processing workflow
  *    - processFullRepositoryOptimized(): Full repository processing with scaling decisions
  *    - processIncrementalOptimized(): Incremental processing for repository updates
@@ -210,7 +218,6 @@ class ContextPipeline {
    */
   detectContentType(document) {
     const source = document.metadata?.source || '';
-    const content = document.pageContent || document.content || '';
     const extension = this.getFileExtension(source).toLowerCase();
     const basename = this.getBasename(source).toLowerCase();
 
@@ -410,9 +417,6 @@ class ContextPipeline {
     return enhancedChunks;
   }
 
-  /**
-   * Batch process multiple documents with intelligent routing
-   */
   async routeDocumentsToProcessors(documents) {
     console.log(`[${new Date().toISOString()}] 🚦 BATCH ROUTING: Processing ${documents.length} documents`);
     
@@ -562,7 +566,8 @@ class ContextPipeline {
       try {
         // Ensure repoSelector is initialized
         this.repoSelector = this.repoSelector || new repoSelector({
-          repositoryManager: this.repositoryManager || null  // Handle optional repositoryManager
+          repositoryManager: this.repositoryManager || null,  // Handle optional repositoryManager
+          repoLoader: this.repoLoader  // Add repoLoader for GitHub API delegation
         });
         
         // Ensure required processors are initialized
