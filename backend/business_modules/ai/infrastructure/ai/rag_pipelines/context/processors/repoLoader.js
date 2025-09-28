@@ -7,37 +7,46 @@ const { promisify } = require('util');
 
 /**
  * =====================================================================================
- * REPO LOADER - Cloud-Native Repository Processing System
+ * REPO LOADER - Cloud-Native Repository Access & GitHub API Operations Manager
  * =====================================================================================
  * 
  * The RepoLoader is a core component of EventStorm's RAG (Retrieval-Augmented 
- * Generation) pipeline that handles all repository-related operations in a cloud-native 
- * environment. This class abstracts repository access, processing, and metadata management 
- * to enable efficient AI-powered code analysis and question answering.
+ * Generation) pipeline that handles all repository access operations, GitHub API 
+ * interactions, and metadata management in a cloud-native environment. Following 
+ * the refactored architecture, this class now centralizes GitHub API operations 
+ * that were previously distributed across multiple components, providing clean 
+ * separation of concerns with repoSelector handling strategy and contextPipeline 
+ * handling document processing orchestration.
  * 
  * ==================================================================================
  * CORE FUNCTIONALITY OVERVIEW
  * ==================================================================================
  * 
- * 1. CLOUD-NATIVE REPOSITORY ACCESS
- *    - Primary method uses GitHub API for file retrieval (no local cloning required)
+ * 1. CENTRALIZED GITHUB API OPERATIONS
+ *    - Primary GitHub API interface for commit information retrieval
+ *    - Advanced GitHub Compare API for change detection between commits
+ *    - Public repository fallback for unauthenticated access scenarios
+ *    - Comprehensive rate limiting and error handling for API operations
+ * 
+ * 2. CLOUD-NATIVE REPOSITORY ACCESS
+ *    - GitHub API-based file retrieval (no local cloning required)
  *    - Enhanced CloudNativeRepoLoader integration with priority-based file selection
  *    - Optimized for serverless/containerized deployment environments (Cloud Run)
  *    - Intelligent rate limiting and batch processing for large repositories
  * 
- * 2. DUPLICATE DETECTION & OPTIMIZATION
+ * 3. DUPLICATE DETECTION & OPTIMIZATION
  *    - Advanced commit hash comparison to avoid redundant processing
  *    - Pinecone-based repository tracking with vector similarity matching
  *    - Incremental processing support for repository updates
  *    - Smart caching mechanisms to reduce processing overhead
  * 
- * 3. VIRTUAL DIRECTORY ABSTRACTION
+ * 4. VIRTUAL DIRECTORY ABSTRACTION
  *    - Creates virtual "temp directory" objects for cloud compatibility
  *    - Eliminates disk I/O operations while maintaining API compatibility
  *    - Memory-optimized document collections with automatic cleanup
  *    - Seamless integration with existing processing pipelines
  * 
- * 4. METADATA MANAGEMENT
+ * 5. METADATA MANAGEMENT
  *    - Repository tracking information storage in Pinecone vector database
  *    - Commit hash-based change detection and processing optimization
  *    - File type classification and processing route determination
@@ -46,6 +55,12 @@ const { promisify } = require('util');
  * ==================================================================================
  * KEY ARCHITECTURAL DECISIONS
  * ==================================================================================
+ * 
+ * CENTRALIZED GITHUB API OPERATIONS:
+ * - Consolidated GitHub API methods from repoSelector for better separation of concerns
+ * - Single point of responsibility for all GitHub API interactions
+ * - Comprehensive error handling and rate limiting management
+ * - Public repository fallback handling for unauthenticated scenarios
  * 
  * CLOUD-FIRST APPROACH:
  * - Designed for Cloud Run deployment where local git operations are unreliable
@@ -68,6 +83,26 @@ const { promisify } = require('util');
  * ==================================================================================
  * METHOD DOCUMENTATION
  * ==================================================================================
+ * 
+ * CENTRALIZED GITHUB API OPERATIONS (MOVED FROM REPOSELECTOR):
+ * 
+ * getCommitInfoFromGitHubAPI(githubOwner, repoName, branch)
+ * └─ Primary GitHub API method for commit information retrieval
+ * └─ Handles authentication with GitHub tokens when available
+ * └─ Comprehensive error handling for API failures and rate limiting
+ * └─ Returns structured commit info (hash, author, timestamp, subject)
+ * 
+ * getChangedFilesFromGitHubAPI(githubOwner, repoName, oldCommitHash, newCommitHash)
+ * └─ Advanced GitHub Compare API for commit-to-commit change detection
+ * └─ File-level change analysis for incremental processing optimization
+ * └─ Returns list of modified, added, and removed files between commits
+ * └─ Handles large change sets with pagination and rate limiting
+ * 
+ * tryPublicGitHubAPI(githubOwner, repoName, branch)
+ * └─ Fallback method for public repositories without authentication
+ * └─ Enables processing of public repos when GitHub tokens unavailable
+ * └─ Graceful degradation for unauthenticated access scenarios
+ * └─ Rate limiting awareness for anonymous API usage
  * 
  * PRIMARY REPOSITORY ACCESS:
  * 
@@ -160,6 +195,34 @@ const { promisify } = require('util');
  * - Concurrent repository processing support with namespace isolation
  * - Rate limiting coordination for multiple simultaneous operations
  * - Vector database scaling through Pinecone managed infrastructure
+ * 
+ * ==================================================================================
+ * REFACTORING NOTES
+ * ==================================================================================
+ * 
+ * CENTRALIZED GITHUB API OPERATIONS:
+ * - Moved GitHub API methods from repoSelector to repoLoader for better separation
+ * - getCommitInfoFromGitHubAPI: Centralized commit information retrieval
+ * - getChangedFilesFromGitHubAPI: Centralized change detection via GitHub Compare API
+ * - tryPublicGitHubAPI: Centralized public repository fallback handling
+ * - Enhanced error handling and rate limiting in centralized location
+ * 
+ * IMPROVED SEPARATION OF CONCERNS:
+ * - repoLoader: GitHub API operations, repository access, and data management
+ * - repoSelector: Strategy, decisions, and processing coordination  
+ * - contextPipeline: Document processing orchestration and workflow management
+ * 
+ * ELIMINATED CODE DUPLICATION:
+ * - Removed duplicate execAsync initialization between components
+ * - Single source of truth for GitHub API error handling
+ * - Centralized rate limiting and authentication management
+ * - Unified approach to public repository fallback scenarios
+ * 
+ * ENHANCED MAINTAINABILITY:
+ * - Clear boundaries between components enable independent testing
+ * - Single responsibility principle better enforced across components
+ * - Easier debugging through centralized GitHub API operations
+ * - Better modularity enabling independent component evolution
  * 
  * ==================================================================================
  * ERROR HANDLING & RESILIENCE

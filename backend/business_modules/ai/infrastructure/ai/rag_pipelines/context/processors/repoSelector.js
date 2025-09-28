@@ -6,98 +6,146 @@ const { promisify } = require('util');
 
 /**
  * =====================================================================================
- * COMMIT SELECTION MANAGER - Cloud-Native Git Operations & GitHub API Integration
+ * REPOSITORY PROCESSING STRATEGY MANAGER - Decision-Making & Orchestration
  * =====================================================================================
  * 
- * The repoSelector is a specialized component within EventStorm's RAG pipeline 
- * that manages all git commit-related operations, change detection, GitHub API 
- * integration, and processing optimization strategies. This class is designed for 
- * cloud-native environments where traditional git operations may be unreliable or 
- * unavailable, providing intelligent fallback mechanisms and API-first approaches.
+ * The repoSelector is a specialized strategy component within EventStorm's RAG pipeline 
+ * that manages repository processing decisions, commit operations coordination, and 
+ * processing optimization strategies. This class follows clean separation of concerns
+ * by handling processing strategy decisions while delegating GitHub API operations
+ * to repoLoader and document processing orchestration to contextPipeline.
  * 
- * Following clean separation of concerns, this class handles ALL Git/GitHub operations
- * while contextPipeline focuses on document processing orchestration.
+ * Following refactored architecture, this class focuses on STRATEGY and DECISIONS
+ * while delegating GitHub API operations to repoLoader for better separation of concerns.
  * 
  * ==================================================================================
  * CORE FUNCTIONALITY OVERVIEW
  * ==================================================================================
  * 
- * 1. MULTI-STRATEGY COMMIT INFORMATION RETRIEVAL
- *    - Primary: GitHub API-based commit information gathering (cloud-native)
- *    - Secondary: Local git operations with environment detection
- *    - Tertiary: Synthetic commit generation for processing continuity
+ * 1. MULTI-STRATEGY COMMIT INFORMATION COORDINATION
+ *    - Orchestrates commit information gathering through repoLoader delegation
  *    - Intelligent strategy selection based on deployment environment
+ *    - Fallback mechanism coordination for processing continuity
+ *    - Environment detection and optimal approach recommendation
  * 
- * 2. ADVANCED CHANGE DETECTION
- *    - Commit-to-commit file change analysis using GitHub Compare API
- *    - Differential processing to avoid redundant operations
- *    - File-level change tracking for incremental repository updates
- *    - Smart fallback mechanisms when API limits are exceeded
+ * 2. CHANGE DETECTION STRATEGY COORDINATION
+ *    - Coordinates commit-to-commit file change analysis via repoLoader
+ *    - Differential processing strategy recommendations
+ *    - File-level change tracking coordination for incremental updates
+ *    - Smart fallback strategies when API operations fail
  * 
- * 3. CLOUD-NATIVE PROCESSING OPTIMIZATION
- *    - GitHub API rate limiting awareness and coordination
- *    - Serverless environment compatibility (Cloud Run, Lambda, etc.)
- *    - Stateless design enabling horizontal scaling
- *    - Memory-efficient operation without disk dependencies
+ * 3. PROCESSING STRATEGY OPTIMIZATION
+ *    - Processing approach decisions (incremental vs. full)
+ *    - Cloud-native compatibility strategy coordination
+ *    - Horizontal scaling decision support
+ *    - Memory-efficient processing strategy selection
  * 
- * 4. GITHUB API EMERGENCY FALLBACK PROCESSING
+ * 4. EMERGENCY FALLBACK PROCESSING ORCHESTRATION
  *    - Complete repository processing when all other strategies fail
- *    - Direct GitHub API document loading and processing coordination
+ *    - Coordinates document loading through repoLoader delegation
  *    - Synthetic commit info generation for tracking continuity
- *    - Integration with document processors through delegation
+ *    - Integration with document processors through parameter passing
  * 
- * 5. PROCESSING STRATEGY COORDINATION
- *    - Integration with RepoLoader for repository access
- *    - Horizontal scaling compatibility with RepoWorkerManager
- *    - ContextPipeline orchestration for incremental vs. full processing
- *    - Intelligent processing recommendation based on change analysis
+ * 5. DELEGATION PATTERN IMPLEMENTATION
+ *    - GitHub API operations delegated to repoLoader for clean separation
+ *    - Repository access coordination through repoLoader integration
+ *    - Processing strategy recommendations to contextPipeline
+ *    - Maintains decision-making responsibility while delegating execution
  * 
  * ==================================================================================
  * KEY ARCHITECTURAL DECISIONS
  * ==================================================================================
  * 
- * API-FIRST APPROACH:
- * - GitHub API preferred over local git operations for cloud compatibility
- * - Comprehensive error handling for API failures and rate limiting
- * - Public repository fallback for unauthenticated access scenarios
- * - Intelligent request batching and caching strategies
+ * DELEGATION-FIRST APPROACH:
+ * - GitHub API operations delegated to repoLoader for better separation of concerns
+ * - Strategy and decision-making responsibilities retained in repoSelector
+ * - Clean interface boundaries between strategy and execution
+ * - Comprehensive error handling for delegated operations
  * 
- * CLOUD-NATIVE DESIGN:
- * - No dependency on git binary installation in deployment environment
- * - Virtual directory handling for cloud-native repository processing
- * - Stateless operation enabling container restart resilience
+ * STRATEGY-FOCUSED DESIGN:
+ * - Focuses on processing decisions rather than direct API operations
+ * - Repository access strategy coordination through repoLoader
+ * - Processing approach recommendations based on repository characteristics
  * - Environment detection for optimal strategy selection
  * 
- * PROCESSING OPTIMIZATION:
- * - Commit hash comparison for redundant processing avoidance
- * - Change detection optimization for large repository efficiency
- * - Incremental processing support with file-level granularity
+ * PROCESSING OPTIMIZATION COORDINATION:
+ * - Commit hash comparison strategy for redundant processing avoidance
+ * - Change detection coordination for large repository efficiency
+ * - Incremental processing support with strategy recommendations
  * - FULL_RELOAD_REQUIRED fallback for processing continuity
  * 
- * RESILIENCE & FALLBACK STRATEGIES:
- * - Multi-layered fallback system for operation continuity
- * - Graceful degradation when external services are unavailable
- * - Synthetic data generation for processing pipeline continuity
- * - Emergency GitHub API processing when all orchestration fails
- * - Comprehensive error handling with detailed logging
+ * RESILIENCE & FALLBACK COORDINATION:
+ * - Multi-layered fallback system coordination for operation continuity
+ * - Graceful degradation strategies when external services are unavailable
+ * - Synthetic data generation coordination for processing pipeline continuity
+ * - Emergency processing coordination when all orchestration fails
  * 
- * SEPARATION OF CONCERNS:
- * - Handles ALL Git/GitHub operations for the entire pipeline
- * - Delegates document processing to specialized processors
- * - Provides clean interface for ContextPipeline orchestration
- * - Maintains single responsibility for repository state management
+ * CLEAN SEPARATION OF CONCERNS:
+ * - Handles processing STRATEGY and DECISIONS for the entire pipeline
+ * - Delegates GitHub API operations to repoLoader
+ * - Provides clean strategy interface for ContextPipeline orchestration
+ * - Maintains single responsibility for processing decision-making
  * 
  * ==================================================================================
  * METHOD DOCUMENTATION
  * ==================================================================================
  * 
- * PRIMARY COMMIT INFORMATION RETRIEVAL:
+ * PRIMARY COMMIT INFORMATION COORDINATION:
  * 
  * getCommitInfoOptimized(repoUrl, branch, githubOwner, repoName)
- * └─ Multi-strategy commit information retrieval with intelligent fallback
- * └─ Strategy 1: GitHub API (fastest, no local dependencies)
- * └─ Strategy 2: Git availability check and local operations
- * └─ Strategy 3: Synthetic commit info generation
+ * └─ Multi-strategy commit information coordination with intelligent fallback
+ * └─ Strategy 1: Delegate to repoLoader for GitHub API operations
+ * └─ Strategy 2: Coordinate git availability check through repoLoader
+ * └─ Strategy 3: Coordinate synthetic commit info generation
+ * 
+ * getChangedFilesOptimized(repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitHash)
+ * └─ Advanced change detection coordination through repoLoader delegation
+ * └─ GitHub Compare API coordination for commit-to-commit analysis
+ * └─ File-level change detection with processing recommendations
+ * └─ FULL_RELOAD_REQUIRED fallback coordination when detection fails
+ * 
+ * EMERGENCY PROCESSING COORDINATION:
+ * 
+ * processRepositoryViaDirectAPIFallback(params)
+ * └─ Emergency fallback processing coordination when all other methods fail
+ * └─ Coordinates repoLoader for GitHub API document loading
+ * └─ Synthetic commit info generation for processing continuity
+ * └─ Integration with document processors through parameter delegation
+ * 
+ * DELEGATION HELPER METHODS:
+ * 
+ * isGitError(error)
+ * └─ Git-related error detection for strategy selection
+ * └─ Environment compatibility analysis
+ * └─ Fallback strategy recommendation based on error type
+ * 
+ * getChangedFilesFromLocalGit(tempDir, oldCommitHash, newCommitHash)
+ * └─ Legacy local git operations coordination (maintained for compatibility)
+ * └─ File change detection using local git when available
+ * └─ Integration with temporary directory management
+ * 
+ * ==================================================================================
+ * REFACTORING NOTES
+ * ==================================================================================
+ * 
+ * DELEGATION PATTERN IMPLEMENTATION:
+ * - Moved GitHub API methods (getCommitInfoFromGitHubAPI, getChangedFilesFromGitHubAPI, 
+ *   tryPublicGitHubAPI) to repoLoader for better separation of concerns
+ * - Implemented delegation pattern where repoSelector coordinates strategy
+ *   while repoLoader handles GitHub API execution
+ * - Enhanced error handling delegation to maintain clean boundaries
+ * - Maintained backward compatibility while improving internal architecture
+ * 
+ * CLEAN SEPARATION ACHIEVED:
+ * - repoSelector: Strategy, decisions, and processing coordination
+ * - repoLoader: GitHub API operations, repository access, and data management
+ * - contextPipeline: Document processing orchestration and workflow management
+ * 
+ * IMPROVED ARCHITECTURE:
+ * - Single responsibility principle better enforced
+ * - Easier testing and maintenance through clear boundaries
+ * - Enhanced modularity enabling independent component evolution
+ * - Better error handling through specialized component delegation
  * └─ Returns comprehensive commit metadata including hash, author, message
  * └─ Parameters:
  *    ├─ repoUrl: Full GitHub repository URL
