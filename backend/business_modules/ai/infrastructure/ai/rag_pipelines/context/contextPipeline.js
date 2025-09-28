@@ -5,14 +5,16 @@
  * The ContextPipeline is the main orchestrator for processing GitHub repositories into a RAG
  * (Retrieval-Augmented Generation) system. It intelligently routes different document types
  * to specialized processors, manages the complete ingestion workflow, and handles both full
- * repository processing and incremental updates.
+ * repository processing and incremental updates. This class follows a clean separation of 
+ * concerns pattern, delegating Git/GitHub operations to repoSelector while focusing on 
+ * document processing orchestration.
  * 
  * CORE FUNCTIONALITY:
  * - Intelligent document routing based on content type detection
  * - Specialized processing for code, markdown, OpenAPI specs, and generic documents  
  * - Repository-level orchestration with commit tracking and duplicate detection
  * - Horizontal scaling support for large repositories using worker processes
- * - Comprehensive error handling with fallback strategies
+ * - Comprehensive error handling with delegation to specialized components
  * - Integration with Pinecone vector database and LangSmith tracing
  * 
  * MAIN SECTIONS:
@@ -25,10 +27,11 @@
  * 2. DOCUMENT ROUTING & PROCESSING
  *    - routeDocumentToProcessor(): Main routing logic based on content type detection
  *    - detectContentType(): Intelligent content classification (code, markdown, OpenAPI, etc.)
- *    - processCodeDocument(): Routes to ASTCodeSplitter for syntax-aware code chunking
- *    - processMarkdownDocument(): Routes to DocsProcessor for structured markdown processing
- *    - processOpenAPIDocument(): Routes to ApiSpecProcessor for API specification processing
- *    - processGenericDocument(): Routes to SemanticPreprocessor for fallback text processing
+ *    - processCodeDocument(): Applies SemanticPreprocessor + ASTCodeSplitter for enhanced code processing
+ *    - processMarkdownDocument(): Applies SemanticPreprocessor + DocsProcessor for enhanced markdown/documentation processing
+ *    - processOpenAPIDocument(): Applies SemanticPreprocessor + ApiSpecProcessor for enhanced API processing
+ *    - processConfigDocument(): Applies SemanticPreprocessor for enhanced config processing
+ *    - processGenericDocument(): Applies SemanticPreprocessor for fallback semantic enhancement
  *    - routeDocumentsToProcessors(): Batch processing with comprehensive statistics tracking
  * 
  * 3. REPOSITORY ORCHESTRATION
@@ -47,22 +50,36 @@
  *    - Content type detection helpers (isCodeFile, isOpenAPIFile, isJSONSchemaFile, etc.)
  *    - File path utilities (getFileExtension, getBasename)
  *    - removeChangedFilesFromPinecone(): Vector cleanup for incremental updates
- *    - processRepositoryDirectFallback(): Emergency fallback using direct GitHub API
+ *    - emitRagStatus(): Status event emission (delegates to EventManager)
+ * 
+ * 6. DELEGATION & ERROR HANDLING
+ *    - Git error detection and GitHub API fallback delegation to repoSelector
+ *    - Repository commit operations delegated to repoSelector
+ *    - Change detection operations delegated to repoSelector
+ *    - Maintains clean separation between document processing and Git operations
  * 
  * KEY FEATURES:
  * - Inline lazy initialization pattern for all processors
  * - Intelligent content-type routing with specialized processors
- * - Comprehensive error handling with multi-tier fallbacks
+ * - Clean separation of concerns: document processing vs Git/GitHub operations
+ * - Comprehensive error handling with delegation to specialized components
  * - Horizontal scaling support based on repository size analysis
  * - Integration with vector databases (Pinecone) and observability (LangSmith)
  * - Support for both full and incremental repository processing
- * - Cloud-native fallback strategies for environments without Git
+ * - Cloud-native compatibility through delegated operations
  * 
  * ARCHITECTURE PATTERNS:
  * - Strategy Pattern: Different processors for different content types
  * - Factory Pattern: Inline lazy initialization of processors
  * - Pipeline Pattern: Sequential document processing with accumulation
  * - Observer Pattern: Event emission for processing status updates
+ * - Delegation Pattern: Git/GitHub operations delegated to repoSelector
+ * 
+ * REFACTORING NOTES:
+ * - Removed direct GitHub API operations (moved to repoSelector)
+ * - Enhanced error handling delegation to maintain clean boundaries
+ * - Improved separation of concerns between document processing and Git operations
+ * - Maintained backward compatibility while improving internal architecture
  */
 
 // contextPipeline.js
@@ -121,9 +138,10 @@ class ContextPipeline {
       return;
     }
 
+    // bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.
     try {
       this.processPushedRepo = traceable(
-        this.processPushedRepo.bind(this),
+        this.processPushedRepo.bind(this), // 
         {
           name: 'ContextPipeline.processPushedRepo',
           project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
@@ -155,6 +173,7 @@ class ContextPipeline {
 
   async routeDocumentToProcessor(document) {
     const contentType = this.detectContentType(document);
+    // document.metadata is a property of LangChain Document objects. In your RAG pipeline, documents are created by LangChain's document loaders when they process files from repositories. CloudNativeRepoLoader creates LangChain-compatible documents with metadata fields including source file path, etc.
     const source = document.metadata?.source || 'unknown';
     
     console.log(`[${new Date().toISOString()}] 🎯 ROUTING: ${source} → ${contentType}`);
@@ -174,9 +193,6 @@ class ContextPipeline {
         case 'json_config':
         case 'json_schema':
           return await this.processConfigDocument(document, contentType);
-          
-        case 'documentation':
-          return await this.processDocumentationFile(document);
           
         case 'generic':
         default:
@@ -202,34 +218,9 @@ class ContextPipeline {
       return 'code';
     }
 
-    // Markdown files
-    if (extension === '.md' || extension === '.markdown') {
+    // Markdown and Documentation files - consolidated handling
+    if (extension === '.md' || extension === '.markdown' || this.isDocumentationFile(extension, basename)) {
       return 'markdown';
-    }
-
-    // OpenAPI/Swagger specifications
-    if (this.isOpenAPIFile(source, content)) {
-      return 'openapi';
-    }
-
-    // JSON Schema files
-    if (this.isJSONSchemaFile(source, content)) {
-      return 'json_schema';
-    }
-
-    // YAML configuration files
-    if (extension === '.yml' || extension === '.yaml') {
-      return 'yaml_config';
-    }
-
-    // JSON configuration files
-    if (extension === '.json' && !this.isOpenAPIFile(source, content) && !this.isJSONSchemaFile(source, content)) {
-      return 'json_config';
-    }
-
-    // Documentation files
-    if (this.isDocumentationFile(extension, basename)) {
-      return 'documentation';
     }
 
     return 'generic';
@@ -316,64 +307,72 @@ class ContextPipeline {
 
 
   async processCodeDocument(document) {
-    console.log(`[${new Date().toISOString()}] 💻 CODE PROCESSING: Using AST splitter`);
-    // Initialize inline when needed
+    console.log(`[${new Date().toISOString()}] 💻 CODE PROCESSING: Applying semantic preprocessing + AST splitting`);
+    
+    // Step 1: Apply semantic preprocessing for domain intelligence
+    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
+    const semanticallyEnhanced = await this.semanticPreprocessor.preprocessChunk(document);
+    
+    // Step 2: Apply AST-based code splitting
     this.astCodeSplitter = this.astCodeSplitter || new ASTCodeSplitter({
       maxChunkSize: this.options.maxChunkSize || 2000,
       includeComments: true,
       includeImports: true
     });
-    return await this.astCodeSplitter.splitDocument(document);
+    
+    // Split the semantically enhanced document
+    return await this.astCodeSplitter.splitDocument(semanticallyEnhanced);
   }
 
   async processMarkdownDocument(document) {
-    console.log(`[${new Date().toISOString()}] 📝 MARKDOWN PROCESSING: Using docs processor`);
-    // Initialize inline when needed
+    console.log(`[${new Date().toISOString()}] 📝 MARKDOWN/DOCS PROCESSING: Applying semantic preprocessing + docs processing`);
+    
+    // Step 1: Apply semantic preprocessing for domain intelligence
+    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
+    const semanticallyEnhanced = await this.semanticPreprocessor.preprocessChunk(document);
+    
+    // Step 2: Apply markdown/documentation-specific processing
     this.docsProcessor = this.docsProcessor || new DocsProcessor({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
       repoLoader: this.repoLoader,
       pineconeManager: this.pineconeManager
     });
-    // Use the existing docsProcessor for markdown files
-    const docs = [document];
+    
+    // Process the semantically enhanced document
+    const docs = [semanticallyEnhanced];
     const splitDocs = await this.docsProcessor.splitMarkdownDocuments(docs);
     return splitDocs;
   }
 
   async processOpenAPIDocument(document) {
-    console.log(`[${new Date().toISOString()}] 🔌 OPENAPI PROCESSING: Using API spec processor`);
-    // Initialize inline when needed
+    console.log(`[${new Date().toISOString()}] 🔌 OPENAPI PROCESSING: Applying semantic preprocessing + API spec processing`);
+    
+    // Step 1: Apply semantic preprocessing for domain intelligence
+    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
+    const semanticallyEnhanced = await this.semanticPreprocessor.preprocessChunk(document);
+    
+    // Step 2: Apply OpenAPI-specific processing
     this.apiSpecProcessor = this.apiSpecProcessor || new ApiSpecProcessor({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
       repoLoader: this.repoLoader,
       pineconeManager: this.pineconeManager
     });
-    // Use the existing apiSpecProcessor for OpenAPI files
-    return await this.apiSpecProcessor.processApiSpecDocument(document);
+    
+    // Process the semantically enhanced document
+    return await this.apiSpecProcessor.processApiSpecDocument(semanticallyEnhanced);
   }
 
   async processConfigDocument(document, contentType) {
-    console.log(`[${new Date().toISOString()}] ⚙️ CONFIG PROCESSING: ${contentType.toUpperCase()}`);
-    // For now, use generic processing for config files
-    // Can be enhanced later with specific config processors
-    return await this.processGenericDocument(document);
-  }
-
-  async processDocumentationFile(document) {
-    console.log(`[${new Date().toISOString()}] 📖 DOCUMENTATION PROCESSING: Using docs processor`);
-    // Initialize inline when needed
-    this.docsProcessor = this.docsProcessor || new DocsProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repoLoader: this.repoLoader,
-      pineconeManager: this.pineconeManager
-    });
-    // Use docsProcessor for general documentation
-    const docs = [document];
-    const splitDocs = await this.docsProcessor.splitMarkdownDocuments(docs);
-    return splitDocs;
+    console.log(`[${new Date().toISOString()}] ⚙️ CONFIG PROCESSING: Applying semantic preprocessing for ${contentType.toUpperCase()}`);
+    
+    // Step 1: Apply semantic preprocessing for domain intelligence
+    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
+    const semanticallyEnhanced = await this.semanticPreprocessor.preprocessChunk(document);
+    
+    // Step 2: For now, return as single chunk (can be enhanced later with specific config processors)
+    return [semanticallyEnhanced];
   }
 
   async processGenericDocument(document) {
@@ -399,7 +398,6 @@ class ContextPipeline {
       yaml_config: 0,
       json_config: 0,
       json_schema: 0,
-      documentation: 0,
       generic: 0
     };
 
@@ -523,7 +521,8 @@ class ContextPipeline {
       console.error(`[${new Date().toISOString()}] ❌ Error in orchestration for repository ${repoId}:`, error.message);
       
       // IMMEDIATE GITHUB API FALLBACK: Detect Git-related errors and skip to API approach
-      const isGitError = error.message.includes('git: not found') || 
+      const isGitError = this.repoSelector?.constructor.isGitError?.(error) || 
+                        error.message.includes('git: not found') || 
                         error.message.includes('Command failed: git') || 
                         error.message.includes('Failed to clone repository');
                         
@@ -535,8 +534,37 @@ class ContextPipeline {
       // CRITICAL FALLBACK: Try direct GitHub API document loading when orchestration fails
       console.log(`[${new Date().toISOString()}] 🆘 FALLBACK: Attempting direct GitHub API document loading`);
       try {
-        const result = await this.processRepositoryDirectFallback({
-          userId, repoId, repoUrl: url, branch, githubOwner, repoName
+        // Ensure repoSelector is initialized
+        this.repoSelector = this.repoSelector || new repoSelector({
+          repositoryManager: this.repositoryManager || null  // Handle optional repositoryManager
+        });
+        
+        // Ensure required processors are initialized
+        if (!this.repoProcessor) {
+          this.repoProcessor = new RepoProcessor({
+            embeddings: this.embeddings,
+            pineconeLimiter: this.pineconeLimiter,
+            eventBus: this.eventBus
+          });
+        }
+        
+        if (!this.eventManager) {
+          this.eventManager = new EventManager({
+            eventBus: this.eventBus,
+            userId: userId,
+            repoId: repoId
+          });
+        }
+        
+        // Delegate to repoSelector for GitHub API fallback processing
+        const result = await this.repoSelector.processRepositoryViaDirectAPIFallback({
+          userId, repoId, repoUrl: url, branch, githubOwner, repoName,
+          repoProcessor: this.repoProcessor,
+          repoLoader: this.repoLoader,
+          pineconeClient: await this.getPineconeClient(),
+          embeddings: this.embeddings,
+          routeDocumentsToProcessors: this.routeDocumentsToProcessors.bind(this),
+          eventManager: this.eventManager
         });
         if (result.success) {
           console.log(`[${new Date().toISOString()}] ✅ FALLBACK SUCCESS: Direct GitHub API processing completed`);
@@ -1163,79 +1191,6 @@ class ContextPipeline {
 
   emitRagStatus(status, details = {}) {
     return this.eventManager.emitRagStatus(status, details);
-  }
-
-  /**
-   * EMERGENCY FALLBACK: Direct GitHub API document loading when all else fails
-   */
-  async processRepositoryDirectFallback(params) {
-    const {
-      userId,
-      repoId,
-      repoUrl,
-      branch,
-      githubOwner,
-      repoName
-    } = params;
-
-    console.log(`[${new Date().toISOString()}] 🆘 DIRECT FALLBACK: Processing repository without commit tracking or git operations`);
-    
-    try {
-      // Create synthetic commit info
-      const fallbackCommitInfo = {
-        hash: 'fallback-' + Date.now(),
-        subject: 'Direct API processing - no commit tracking',
-        message: 'Repository processed via direct GitHub API fallback',
-        author: 'automated-fallback-processor',
-        email: 'fallback@eventstorm.me',
-        date: new Date().toISOString()
-      };
-
-      // Load documents directly using LangChain GitHub API loader
-      console.log(`[${new Date().toISOString()}] 📥 DIRECT API: Loading documents via LangChain GithubRepoLoader`);
-      const documents = await this.repoProcessor.loadDocumentsWithLangchain(
-        repoUrl, branch, githubOwner, repoName, fallbackCommitInfo
-      );
-
-      if (!documents || documents.length === 0) {
-        throw new Error('No documents loaded via direct GitHub API');
-      }
-
-      console.log(`[${new Date().toISOString()}] ✅ DIRECT API: Loaded ${documents.length} documents`);
-
-      // Process documents directly
-      const namespace = this.repoLoader.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
-      const result = await this.repoProcessor.processFilteredDocuments(
-        documents, namespace, fallbackCommitInfo, false, this.routeDocumentsToProcessors.bind(this)
-      );
-
-      console.log(`[${new Date().toISOString()}] ✅ DIRECT FALLBACK SUCCESS: Processed ${result.documentsProcessed || 0} documents`);
-
-      // Store basic tracking info
-      const pineconeClient = await this.getPineconeClient();
-      await this.repoLoader.storeRepositoryTrackingInfo(
-        userId, repoId, githubOwner, repoName, fallbackCommitInfo, 
-        namespace, pineconeClient, this.embeddings
-      );
-
-      this.eventManager.emitProcessingCompleted(userId, repoId, result);
-
-      return {
-        success: true,
-        message: 'Direct GitHub API fallback processing completed',
-        totalDocuments: result.documentsProcessed || 0,
-        totalChunks: result.chunksGenerated || 0,
-        commitHash: fallbackCommitInfo.hash,
-        commitInfo: fallbackCommitInfo,
-        userId, repoId, githubOwner, repoName,
-        namespace,
-        processingType: 'direct-api-fallback'
-      };
-
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ DIRECT FALLBACK FAILED:`, error.message);
-      throw error;
-    }
   }
 }
 

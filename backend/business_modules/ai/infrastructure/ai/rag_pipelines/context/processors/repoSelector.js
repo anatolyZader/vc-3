@@ -1,4 +1,4 @@
-// repoSelector.js - Handles all commit-related operations
+// repoSelector.js - Comprehensive Git Operations & GitHub API Integration Manager
 "use strict";
 
 const { exec } = require('child_process');
@@ -6,14 +6,17 @@ const { promisify } = require('util');
 
 /**
  * =====================================================================================
- * COMMIT SELECTION MANAGER - Cloud-Native Git Operations & Change Detection System
+ * COMMIT SELECTION MANAGER - Cloud-Native Git Operations & GitHub API Integration
  * =====================================================================================
  * 
  * The repoSelector is a specialized component within EventStorm's RAG pipeline 
- * that manages all git commit-related operations, change detection, and processing 
- * optimization strategies. This class is designed for cloud-native environments where 
- * traditional git operations may be unreliable or unavailable, providing intelligent 
- * fallback mechanisms and API-first approaches.
+ * that manages all git commit-related operations, change detection, GitHub API 
+ * integration, and processing optimization strategies. This class is designed for 
+ * cloud-native environments where traditional git operations may be unreliable or 
+ * unavailable, providing intelligent fallback mechanisms and API-first approaches.
+ * 
+ * Following clean separation of concerns, this class handles ALL Git/GitHub operations
+ * while contextPipeline focuses on document processing orchestration.
  * 
  * ==================================================================================
  * CORE FUNCTIONALITY OVERVIEW
@@ -37,7 +40,13 @@ const { promisify } = require('util');
  *    - Stateless design enabling horizontal scaling
  *    - Memory-efficient operation without disk dependencies
  * 
- * 4. PROCESSING STRATEGY COORDINATION
+ * 4. GITHUB API EMERGENCY FALLBACK PROCESSING
+ *    - Complete repository processing when all other strategies fail
+ *    - Direct GitHub API document loading and processing coordination
+ *    - Synthetic commit info generation for tracking continuity
+ *    - Integration with document processors through delegation
+ * 
+ * 5. PROCESSING STRATEGY COORDINATION
  *    - Integration with RepoLoader for repository access
  *    - Horizontal scaling compatibility with RepoWorkerManager
  *    - ContextPipeline orchestration for incremental vs. full processing
@@ -69,7 +78,14 @@ const { promisify } = require('util');
  * - Multi-layered fallback system for operation continuity
  * - Graceful degradation when external services are unavailable
  * - Synthetic data generation for processing pipeline continuity
+ * - Emergency GitHub API processing when all orchestration fails
  * - Comprehensive error handling with detailed logging
+ * 
+ * SEPARATION OF CONCERNS:
+ * - Handles ALL Git/GitHub operations for the entire pipeline
+ * - Delegates document processing to specialized processors
+ * - Provides clean interface for ContextPipeline orchestration
+ * - Maintains single responsibility for repository state management
  * 
  * ==================================================================================
  * METHOD DOCUMENTATION
@@ -140,6 +156,28 @@ const { promisify } = require('util');
  * └─ Provides basic commit information for public repositories
  * └─ Subject to GitHub's public API rate limiting (60 requests/hour)
  * 
+ * EMERGENCY FALLBACK PROCESSING:
+ * 
+ * processRepositoryViaDirectAPIFallback(params)
+ * └─ CONSOLIDATED: Emergency repository processing via GitHub API
+ * └─ Handles complete repository processing when all orchestration fails
+ * └─ Creates synthetic commit info for tracking continuity
+ * └─ Delegates document loading and processing to specialized components
+ * └─ Provides structured result compatible with normal processing flow
+ * └─ Parameters (object):
+ *    ├─ userId, repoId, repoUrl, branch, githubOwner, repoName: Repository identification
+ *    ├─ repoProcessor: Document loading and processing delegate
+ *    ├─ repoLoader: Repository tracking and namespace management
+ *    ├─ pineconeClient, embeddings: Vector storage components
+ *    ├─ routeDocumentsToProcessors: Document routing function
+ *    └─ eventManager: Event emission for status updates
+ * 
+ * isGitError(error) [STATIC]
+ * └─ Centralized Git error detection for fallback strategy selection
+ * └─ Identifies git-related failures that require GitHub API fallback
+ * └─ Used by ContextPipeline for intelligent error handling delegation
+ * └─ Returns boolean indicating whether error is git-related
+ * 
  * CLOUD-NATIVE COMPATIBILITY METHODS:
  * 
  * getCommitHashFromLocalGit(repoPath, branch)
@@ -176,6 +214,12 @@ const { promisify } = require('util');
  * ├─ RepoWorkerManager: Distributed processing coordination
  * └─ ProcessingOrchestrator: Change-based processing workflow coordination
  * 
+ * DELEGATED COMPONENTS (for emergency fallback):
+ * ├─ RepoProcessor: Document loading via GitHub API
+ * ├─ RepoLoader: Repository tracking and namespace management
+ * ├─ EventManager: Processing status event emission
+ * └─ DocumentProcessors: Specialized document routing and processing
+ * 
  * ==================================================================================
  * PROCESSING STRATEGIES
  * ==================================================================================
@@ -198,6 +242,29 @@ const { promisify } = require('util');
  *    ├─ Timestamp-based commit hash generation
  *    ├─ Maintains processing pipeline integrity
  *    └─ Enables graceful degradation when all external services fail
+ * 
+ * 4. Emergency GitHub API Processing (Ultimate Fallback)
+ *    ├─ Complete repository processing when orchestration fails
+ *    ├─ Direct GitHub API document loading
+ *    ├─ Synthetic commit tracking for continuity
+ *    └─ Structured result compatible with normal processing flow
+ * 
+ * ==================================================================================
+ * REFACTORING NOTES
+ * ==================================================================================
+ * 
+ * CONSOLIDATION IMPROVEMENTS:
+ * - Added processRepositoryViaDirectAPIFallback() for emergency processing
+ * - Centralized all GitHub API operations in single class
+ * - Added static isGitError() method for centralized error detection
+ * - Enhanced separation of concerns with ContextPipeline
+ * 
+ * ARCHITECTURAL BENEFITS:
+ * - Single responsibility for all Git/GitHub operations
+ * - Clean delegation interface for document processing
+ * - Reduced duplication between repoSelector and ContextPipeline
+ * - Improved maintainability and testability
+ * - Enhanced error handling with centralized Git error detection
  * 
  * FALLBACK MECHANISMS:
  * - API Authentication Failure → Public API Fallback → Synthetic Generation
@@ -747,6 +814,105 @@ class repoSelector {
     
     console.log(`[${new Date().toISOString()}] ❌ UNSUPPORTED: Invalid repository path type for cloud-native processing`);
     return [];
+  }
+
+  /**
+   * GITHUB API FALLBACK: Process repository directly via GitHub API when all else fails
+   * This method consolidates the emergency fallback processing that was previously in contextPipeline.js
+   */
+  async processRepositoryViaDirectAPIFallback(params) {
+    const {
+      userId,
+      repoId, 
+      repoUrl,
+      branch,
+      githubOwner,
+      repoName,
+      repoProcessor,
+      repoLoader,
+      pineconeClient,
+      embeddings,
+      routeDocumentsToProcessors,
+      eventManager
+    } = params;
+
+    console.log(`[${new Date().toISOString()}] 🆘 DIRECT GITHUB API FALLBACK: Processing repository without commit tracking or git operations`);
+    
+    try {
+      // Create synthetic commit info for fallback processing
+      const fallbackCommitInfo = {
+        hash: 'fallback-' + Date.now(),
+        subject: 'Direct API processing - no commit tracking', 
+        message: 'Repository processed via direct GitHub API fallback',
+        author: 'automated-fallback-processor',
+        email: 'fallback@eventstorm.me',
+        date: new Date().toISOString()
+      };
+
+      // Load documents directly using LangChain GitHub API loader (delegated to repoProcessor)
+      console.log(`[${new Date().toISOString()}] 📥 DIRECT API: Loading documents via LangChain GithubRepoLoader`);
+      const documents = await repoProcessor.loadDocumentsWithLangchain(
+        repoUrl, branch, githubOwner, repoName, fallbackCommitInfo
+      );
+
+      if (!documents || documents.length === 0) {
+        throw new Error('No documents loaded via direct GitHub API');
+      }
+
+      console.log(`[${new Date().toISOString()}] ✅ DIRECT API: Loaded ${documents.length} documents`);
+
+      // Process documents directly (delegated to repoProcessor)
+      const namespace = repoLoader.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const result = await repoProcessor.processFilteredDocuments(
+        documents, namespace, fallbackCommitInfo, false, routeDocumentsToProcessors
+      );
+
+      console.log(`[${new Date().toISOString()}] ✅ DIRECT FALLBACK SUCCESS: Processed ${result.documentsProcessed || 0} documents`);
+
+      // Store basic tracking info (delegated to repoLoader)
+      await repoLoader.storeRepositoryTrackingInfo(
+        userId, repoId, githubOwner, repoName, fallbackCommitInfo, 
+        namespace, pineconeClient, embeddings
+      );
+
+      // Emit completion event if eventManager provided
+      if (eventManager) {
+        eventManager.emitProcessingCompleted(userId, repoId, result);
+      }
+
+      return {
+        success: true,
+        message: 'Direct GitHub API fallback processing completed',
+        totalDocuments: result.documentsProcessed || 0,
+        totalChunks: result.chunksGenerated || 0,
+        commitHash: fallbackCommitInfo.hash,
+        commitInfo: fallbackCommitInfo,
+        userId, repoId, githubOwner, repoName,
+        namespace,
+        processingType: 'direct-api-fallback'
+      };
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ DIRECT GITHUB API FALLBACK FAILED:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if an error indicates git-related issues that require GitHub API fallback
+   */
+  static isGitError(error) {
+    const gitErrorPatterns = [
+      'git: not found',
+      'Command failed: git',
+      'Failed to clone repository',
+      'git clone failed',
+      'git command not available'
+    ];
+    
+    return gitErrorPatterns.some(pattern => 
+      error.message && error.message.includes(pattern)
+    );
   }
 }
 
