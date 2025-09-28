@@ -11,6 +11,7 @@
  * 
  * CORE FUNCTIONALITY:
  * - Intelligent document routing based on content type detection
+ * - Document splitting followed by chunk-level semantic preprocessing for optimal RAG performance
  * - Specialized processing for code, markdown, OpenAPI specs, and generic documents  
  * - Repository-level orchestration with commit tracking and duplicate detection
  * - Horizontal scaling support for large repositories using worker processes
@@ -27,11 +28,11 @@
  * 2. DOCUMENT ROUTING & PROCESSING
  *    - routeDocumentToProcessor(): Main routing logic based on content type detection
  *    - detectContentType(): Intelligent content classification (code, markdown, OpenAPI, etc.)
- *    - processCodeDocument(): Applies SemanticPreprocessor + ASTCodeSplitter for enhanced code processing
- *    - processMarkdownDocument(): Applies SemanticPreprocessor + DocsProcessor for enhanced markdown/documentation processing
- *    - processOpenAPIDocument(): Applies SemanticPreprocessor + ApiSpecProcessor for enhanced API processing
+ *    - processCodeDocument(): Splits code using ASTCodeSplitter, then applies SemanticPreprocessor to each chunk
+ *    - processMarkdownDocument(): Splits markdown using DocsProcessor, then applies SemanticPreprocessor to each chunk
+ *    - processOpenAPIDocument(): Applies SemanticPreprocessor to API spec chunks for enhanced API processing
  *    - processConfigDocument(): Applies SemanticPreprocessor for enhanced config processing
- *    - processGenericDocument(): Applies SemanticPreprocessor for fallback semantic enhancement
+ *    - processGenericDocument(): Splits text using RecursiveCharacterTextSplitter, then applies SemanticPreprocessor to each chunk
  *    - routeDocumentsToProcessors(): Batch processing with comprehensive statistics tracking
  * 
  * 3. REPOSITORY ORCHESTRATION
@@ -305,33 +306,35 @@ class ContextPipeline {
     return lastDot === -1 ? filename : filename.substring(0, lastDot);
   }
 
-
+  // Specialized processors for different content types
+  //--------------------------------------------------
+  
   async processCodeDocument(document) {
-    console.log(`[${new Date().toISOString()}] 💻 CODE PROCESSING: Applying semantic preprocessing + AST splitting`);
+    console.log(`[${new Date().toISOString()}] 💻 CODE PROCESSING: AST splitting + semantic preprocessing of chunks`);
     
-    // Step 1: Apply semantic preprocessing for domain intelligence
-    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
-    const semanticallyEnhanced = await this.semanticPreprocessor.preprocessChunk(document);
-    
-    // Step 2: Apply AST-based code splitting
+    // Step 1: Apply AST-based code splitting first
     this.astCodeSplitter = this.astCodeSplitter || new ASTCodeSplitter({
       maxChunkSize: this.options.maxChunkSize || 2000,
       includeComments: true,
       includeImports: true
     });
+    const chunks = await this.astCodeSplitter.splitDocument(document);
     
-    // Split the semantically enhanced document
-    return await this.astCodeSplitter.splitDocument(semanticallyEnhanced);
+    // Step 2: Apply semantic preprocessing to each chunk
+    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
+    const enhancedChunks = [];
+    for (const chunk of chunks) {
+      const enhanced = await this.semanticPreprocessor.preprocessChunk(chunk);
+      enhancedChunks.push(enhanced);
+    }
+    
+    return enhancedChunks;
   }
 
   async processMarkdownDocument(document) {
-    console.log(`[${new Date().toISOString()}] 📝 MARKDOWN/DOCS PROCESSING: Applying semantic preprocessing + docs processing`);
+    console.log(`[${new Date().toISOString()}] 📝 MARKDOWN/DOCS PROCESSING: Docs splitting + semantic preprocessing of chunks`);
     
-    // Step 1: Apply semantic preprocessing for domain intelligence
-    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
-    const semanticallyEnhanced = await this.semanticPreprocessor.preprocessChunk(document);
-    
-    // Step 2: Apply markdown/documentation-specific processing
+    // Step 1: Apply markdown/documentation-specific splitting first
     this.docsProcessor = this.docsProcessor || new DocsProcessor({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
@@ -339,29 +342,37 @@ class ContextPipeline {
       pineconeManager: this.pineconeManager
     });
     
-    // Process the semantically enhanced document
-    const docs = [semanticallyEnhanced];
+    const docs = [document];
     const splitDocs = await this.docsProcessor.splitMarkdownDocuments(docs);
-    return splitDocs;
+    
+    // Step 2: Apply semantic preprocessing to each chunk
+    this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
+    const enhancedChunks = [];
+    for (const chunk of splitDocs) {
+      const enhanced = await this.semanticPreprocessor.preprocessChunk(chunk);
+      enhancedChunks.push(enhanced);
+    }
+    
+    return enhancedChunks;
   }
 
   async processOpenAPIDocument(document) {
-    console.log(`[${new Date().toISOString()}] 🔌 OPENAPI PROCESSING: Applying semantic preprocessing + API spec processing`);
+    console.log(`[${new Date().toISOString()}] 🔌 OPENAPI PROCESSING: API spec splitting + semantic preprocessing of chunks`);
     
-    // Step 1: Apply semantic preprocessing for domain intelligence
+    // Step 1: For OpenAPI documents, they typically don't need heavy splitting as they're structured
+    // However, we can still create logical chunks based on endpoints, schemas, etc.
+    // For now, we'll treat the whole document as one chunk since ApiSpecProcessor handles internal structuring
+    const chunks = [document];
+    
+    // Step 2: Apply semantic preprocessing to each chunk
     this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
-    const semanticallyEnhanced = await this.semanticPreprocessor.preprocessChunk(document);
+    const enhancedChunks = [];
+    for (const chunk of chunks) {
+      const enhanced = await this.semanticPreprocessor.preprocessChunk(chunk);
+      enhancedChunks.push(enhanced);
+    }
     
-    // Step 2: Apply OpenAPI-specific processing
-    this.apiSpecProcessor = this.apiSpecProcessor || new ApiSpecProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repoLoader: this.repoLoader,
-      pineconeManager: this.pineconeManager
-    });
-    
-    // Process the semantically enhanced document
-    return await this.apiSpecProcessor.processApiSpecDocument(semanticallyEnhanced);
+    return enhancedChunks;
   }
 
   async processConfigDocument(document, contentType) {
@@ -376,12 +387,27 @@ class ContextPipeline {
   }
 
   async processGenericDocument(document) {
-    console.log(`[${new Date().toISOString()}] 📄 GENERIC PROCESSING: Using semantic preprocessor`);
-    // Initialize inline when needed
+    console.log(`[${new Date().toISOString()}] 📄 GENERIC PROCESSING: Text splitting + semantic preprocessing of chunks`);
+    
+    // Step 1: Split document into manageable chunks first
+    const { RecursiveCharacterTextSplitter } = require('@langchain/textsplitters');
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: this.options.maxChunkSize || 1500,
+      chunkOverlap: 200,
+      separators: ['\n\n', '\n', '. ', ' ', '']  // Generic text splitting
+    });
+    
+    const splitDocs = await textSplitter.splitDocuments([document]);
+    
+    // Step 2: Apply semantic preprocessing to each chunk
     this.semanticPreprocessor = this.semanticPreprocessor || new SemanticPreprocessor();
-    // Use semantic preprocessor for generic documents
-    const processed = await this.semanticPreprocessor.preprocessChunk(document);
-    return [processed]; // Return as array for consistency
+    const enhancedChunks = [];
+    for (const chunk of splitDocs) {
+      const enhanced = await this.semanticPreprocessor.preprocessChunk(chunk);
+      enhancedChunks.push(enhanced);
+    }
+    
+    return enhancedChunks;
   }
 
   /**
