@@ -451,7 +451,7 @@ const { promisify } = require('util');
  * 
  * ==================================================================================
  */
-class repoSelector {
+class RepoSelector {
   constructor(options = {}) {
     this.repositoryManager = options.repositoryManager;
     this.repoLoader = options.repoLoader || new (require('./repoLoader'))();
@@ -609,177 +609,24 @@ class repoSelector {
   }
 
   /**
-   * ENHANCED: Get commit info from GitHub API with robust error handling
+   * DELEGATION: Get commit info from GitHub API - delegates to repoLoader
    */
   async getCommitInfoFromGitHubAPI(owner, repo, branch) {
-    try {
-      console.log(`[${new Date().toISOString()}] 🔍 GITHUB API: Fetching commit info from GitHub API for ${owner}/${repo}@${branch} [v3-enhanced]`);
-      
-      const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
-      if (!githubToken) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ No GitHub token available, attempting public API access`);
-        // Try public API access for public repositories
-        return await this.tryPublicGitHubAPI(owner, repo, branch);
-      }
-
-      // Validate token format
-      if (!githubToken.startsWith('ghp_') && !githubToken.startsWith('github_pat_')) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ GitHub token format may be invalid (expected ghp_ or github_pat_ prefix)`);
-      }
-
-      try {
-        // Use Octokit REST API client (more reliable than fetch)
-        const { Octokit } = require('@octokit/rest');
-        const octokit = new Octokit({
-          auth: githubToken,
-        });
-
-        // Get branch information which includes latest commit
-        const { data: branchData } = await octokit.rest.repos.getBranch({
-          owner,
-          repo,
-          branch
-        });
-
-        const commit = branchData.commit;
-
-        if (!commit) {
-          console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in GitHub API response`);
-          return null;
-        }
-
-        const commitInfo = {
-          hash: commit.sha,
-          subject: commit.commit.message.split('\n')[0], // First line as subject
-          message: commit.commit.message,
-          author: commit.commit.author.name,
-          email: commit.commit.author.email,
-          date: commit.commit.author.date,
-          url: commit.html_url
-        };
-
-        console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
-        return commitInfo;
-
-      } catch (authError) {
-        if (authError.status === 401) {
-          console.warn(`[${new Date().toISOString()}] 🔑 GitHub API authentication failed - trying public API fallback`);
-          return await this.tryPublicGitHubAPI(owner, repo, branch);
-        }
-        throw authError;
-      }
-
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Error fetching commit info from GitHub API:`, error.message);
-      if (error.status === 403) {
-        console.error(`[${new Date().toISOString()}] � GitHub API rate limit exceeded or insufficient permissions`);
-      } else if (error.status === 404) {
-        console.error(`[${new Date().toISOString()}] � Repository not found - check owner/repo/branch names`);
-      }
-      return null; // Fallback to synthetic commit
-    }
+    return await this.repoLoader.getCommitInfoFromGitHubAPI(owner, repo, branch);
   }
 
   /**
-   * Try to access GitHub API without authentication (for public repos)
+   * DELEGATION: Try to access GitHub API without authentication - delegates to repoLoader
    */
   async tryPublicGitHubAPI(owner, repo, branch) {
-    try {
-      console.log(`[${new Date().toISOString()}] 🌐 PUBLIC API: Attempting public GitHub API access`);
-      
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branch}`, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'eventstorm-rag-processor'
-        }
-      });
-
-      if (!response.ok) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ Public GitHub API request failed: ${response.status} ${response.statusText}`);
-        return null;
-      }
-
-      const branchData = await response.json();
-      const commit = branchData.commit;
-
-      if (!commit) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in public API response`);
-        return null;
-      }
-
-      const commitInfo = {
-        hash: commit.sha,
-        subject: commit.commit.message.split('\n')[0],
-        message: commit.commit.message,
-        author: commit.commit.author.name,
-        email: commit.commit.author.email,
-        date: commit.commit.author.date,
-        url: commit.html_url
-      };
-
-      console.log(`[${new Date().toISOString()}] ✅ PUBLIC API SUCCESS: Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
-      return commitInfo;
-
-    } catch (publicError) {
-      console.error(`[${new Date().toISOString()}] ❌ Public GitHub API failed:`, publicError.message);
-      return null;
-    }
+    return await this.repoLoader.tryPublicGitHubAPI(owner, repo, branch);
   }
 
+  /**
+   * DELEGATION: Get changed files from GitHub API - delegates to repoLoader
+   */
   async getChangedFilesFromGitHubAPI(owner, repo, fromCommit, toCommit) {
-    try {
-      console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Getting changed files for ${owner}/${repo} ${fromCommit.substring(0, 8)}...${toCommit.substring(0, 8)}`);
-      
-      // Use GitHub compare API to get changed files
-      const url = `https://api.github.com/repos/${owner}/${repo}/compare/${fromCommit}...${toCommit}`;
-      
-      const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
-      const headers = {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'eventstorm-commit-compare'
-      };
-      
-      if (githubToken) {
-        headers['Authorization'] = `token ${githubToken}`;
-        console.log(`[${new Date().toISOString()}] 🔑 Using authenticated GitHub API for changed files`);
-      } else {
-        console.log(`[${new Date().toISOString()}] 🌐 PUBLIC API: Using public GitHub API for changed files`);
-      }
-      
-      const response = await fetch(url, { headers, timeout: 15000 });
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.warn(`[${new Date().toISOString()}] ⚠️ Compare not found (commits may be identical or not exist)`);
-          return []; // No changes found
-        }
-        throw new Error(`GitHub compare API failed: ${response.status} ${response.statusText}`);
-      }
-      
-      const compareData = await response.json();
-      
-      if (compareData.files && Array.isArray(compareData.files)) {
-        const changedFiles = compareData.files.map(file => ({
-          filename: file.filename,
-          status: file.status, // 'added', 'modified', 'removed', etc.
-          changes: file.changes,
-          additions: file.additions,
-          deletions: file.deletions
-        }));
-        
-        console.log(`[${new Date().toISOString()}] ✅ GITHUB COMPARE API: Found ${changedFiles.length} changed files`);
-        console.log(`[${new Date().toISOString()}] 📊 Files: ${changedFiles.length} total, ${compareData.ahead_by || 0} commits ahead, ${compareData.behind_by || 0} behind`);
-        
-        return changedFiles;
-      } else {
-        console.log(`[${new Date().toISOString()}] 📭 No changed files found in comparison`);
-        return [];
-      }
-      
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ GitHub API changed files failed:`, error.message);
-      return null; // Fallback to local git (will be skipped if git not available)
-    }
+    return await this.repoLoader.getChangedFilesFromGitHubAPI(owner, repo, fromCommit, toCommit);
   }
 
   /**
@@ -792,9 +639,9 @@ class repoSelector {
     if (repoPath && typeof repoPath === 'object' && repoPath.isVirtual) {
       console.log(`[${new Date().toISOString()}] 📂 VIRTUAL DIR: Using GitHub API to get commit hash for ${repoPath.owner}/${repoPath.repo}`);
       
-      // Use GitHub API to get the commit hash
+      // Use GitHub API to get the commit hash (delegate to repoLoader)
       try {
-        const commitInfo = await this.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
+        const commitInfo = await this.repoLoader.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
         if (commitInfo && commitInfo.hash) {
           console.log(`[${new Date().toISOString()}] ✅ CLOUD COMMIT HASH: Retrieved ${commitInfo.hash.substring(0, 8)} via GitHub API`);
           return commitInfo.hash;
@@ -818,9 +665,9 @@ class repoSelector {
     if (repoPath && typeof repoPath === 'object' && repoPath.isVirtual) {
       console.log(`[${new Date().toISOString()}] � VIRTUAL DIR: Using GitHub API to get commit info for ${repoPath.owner}/${repoPath.repo}`);
       
-      // Use GitHub API to get the commit info
+      // Use GitHub API to get the commit info (delegate to repoLoader)
       try {
-        const commitInfo = await this.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
+        const commitInfo = await this.repoLoader.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
         if (commitInfo) {
           console.log(`[${new Date().toISOString()}] ✅ CLOUD COMMIT INFO: Retrieved commit ${commitInfo.hash?.substring(0, 8) || 'unknown'} via GitHub API`);
           return commitInfo;
@@ -965,4 +812,4 @@ class repoSelector {
   }
 }
 
-module.exports = repoSelector;
+module.exports = RepoSelector;

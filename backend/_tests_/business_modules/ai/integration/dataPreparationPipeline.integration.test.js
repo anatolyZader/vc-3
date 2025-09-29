@@ -37,7 +37,7 @@ jest.mock(
 );
 
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoSelectionManager",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoLoader",
   () => jest.fn().mockImplementation(() => ({
     findExistingRepo: jest.fn(async () => null),
     sanitizeId: jest.fn(id => id.replace(/[^a-zA-Z0-9_-]/g, '_')),

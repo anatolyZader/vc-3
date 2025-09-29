@@ -222,6 +222,27 @@ class ContextPipeline {
     const source = document.metadata?.source || '';
     const extension = this.getFileExtension(source).toLowerCase();
     const basename = this.getBasename(source).toLowerCase();
+    const content = document.pageContent ?? '';
+
+    // OpenAPI/Swagger files - check content and filename patterns
+    if (this.isOpenAPIFile(source, content)) {
+      return 'openapi';
+    }
+
+    // JSON Schema files - check content and filename patterns  
+    if (this.isJSONSchemaFile(source, content)) {
+      return 'json_schema';
+    }
+
+    // YAML configuration files
+    if (extension === '.yml' || extension === '.yaml') {
+      return 'yaml_config';
+    }
+
+    // JSON configuration files (but not OpenAPI/schema which are handled above)
+    if (extension === '.json') {
+      return 'json_config';
+    }
 
     // Code files - use AST splitter
     if (this.isCodeFile(extension)) {
@@ -460,6 +481,9 @@ class ContextPipeline {
     return allChunks;
   }
 
+
+  // entry point for processing a pushed repository
+
   async processPushedRepo(userId, repoId, repoData) {
     console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Processing repo for user ${userId}: ${repoId}`);
     console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Received repoData structure:`, JSON.stringify(repoData, null, 2)); 
@@ -537,6 +561,8 @@ class ContextPipeline {
             oldCommitHash: existingRepo.existingCommitHash, newCommitInfo: commitInfo
           });
         }
+        // If existingRepo exists but doesn't match above conditions, fall through to full processing
+        console.log(`[${new Date().toISOString()}] 🔄 FULL PROCESSING REQUIRED: Repository exists but requires full reprocessing (reason: ${existingRepo.reason})`);
       }
 
       console.log(`[${new Date().toISOString()}] 🆕 FULL PROCESSING: New repository or major changes, using integrated strategy`);
