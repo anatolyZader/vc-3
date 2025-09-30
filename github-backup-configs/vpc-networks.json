@@ -1,0 +1,114 @@
+[
+  {
+    "autoCreateSubnetworks": true,
+    "creationTimestamp": "2024-12-19T23:09:48.148-08:00",
+    "description": "Default network for the project",
+    "id": "8223185546710132435",
+    "kind": "compute#network",
+    "name": "default",
+    "networkFirewallPolicyEnforcementOrder": "AFTER_CLASSIC_FIREWALL",
+    "peerings": [
+      {
+        "autoCreateRoutes": true,
+        "connectionStatus": {
+          "trafficConfiguration": {
+            "exportCustomRoutesToPeer": false,
+            "exportSubnetRoutesWithPublicIpToPeer": true,
+            "importCustomRoutesFromPeer": false,
+            "importSubnetRoutesWithPublicIpFromPeer": true,
+            "stackType": "IPV4_ONLY"
+          },
+          "updateStrategy": "INDEPENDENT"
+        },
+        "exchangeSubnetRoutes": true,
+        "exportCustomRoutes": false,
+        "exportSubnetRoutesWithPublicIp": true,
+        "importCustomRoutes": false,
+        "importSubnetRoutesWithPublicIp": true,
+        "name": "redis-peer-186255404674",
+        "network": "https://www.googleapis.com/compute/v1/projects/l41ba8b382979fafep-tp/global/networks/default-redis-e619463a-57d4-4053-a70d-b8c275ad4d49",
+        "stackType": "IPV4_ONLY",
+        "state": "ACTIVE",
+        "stateDetails": "[2025-09-08T08:35:43.080-07:00]: Connected.",
+        "updateStrategy": "INDEPENDENT"
+      },
+      {
+        "autoCreateRoutes": true,
+        "connectionStatus": {
+          "trafficConfiguration": {
+            "exportCustomRoutesToPeer": false,
+            "exportSubnetRoutesWithPublicIpToPeer": false,
+            "importCustomRoutesFromPeer": false,
+            "importSubnetRoutesWithPublicIpFromPeer": false,
+            "stackType": "IPV4_ONLY"
+          },
+          "updateStrategy": "INDEPENDENT"
+        },
+        "exchangeSubnetRoutes": true,
+        "exportCustomRoutes": false,
+        "exportSubnetRoutesWithPublicIp": false,
+        "importCustomRoutes": false,
+        "importSubnetRoutesWithPublicIp": false,
+        "name": "servicenetworking-googleapis-com",
+        "network": "https://www.googleapis.com/compute/v1/projects/n787734d710386aafp-tp/global/networks/servicenetworking",
+        "stackType": "IPV4_ONLY",
+        "state": "ACTIVE",
+        "stateDetails": "[2025-09-09T01:09:30.257-07:00]: Connected.",
+        "updateStrategy": "INDEPENDENT"
+      }
+    ],
+    "routingConfig": {
+      "bgpBestPathSelectionMode": "LEGACY",
+      "routingMode": "REGIONAL"
+    },
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/eventstorm-1/global/networks/default",
+    "selfLinkWithId": "https://www.googleapis.com/compute/v1/projects/eventstorm-1/global/networks/8223185546710132435",
+    "subnetworks": [
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-south1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-east5/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-north1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west6/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-east1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west9/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-west4/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west12/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-northeast2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/me-west1/subnetworks/aet-mewest1-cr--vpc--conn-sbnt",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-west1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-southeast2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/northamerica-south1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-central1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/australia-southeast1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west8/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/southamerica-east1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/me-central1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-central2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-west2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-east1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west10/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/me-west1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-east2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-north2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-west3/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west4/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-south2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/australia-southeast2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-south1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-northeast3/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-southeast1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/southamerica-west1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west3/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/northamerica-northeast1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/africa-south1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/us-east4/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-west2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/asia-northeast1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/northamerica-northeast2/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/europe-southwest1/subnetworks/default",
+      "https://www.googleapis.com/compute/v1/projects/eventstorm-1/regions/me-west1/subnetworks/es-load-balancer-subnet"
+    ],
+    "x_gcloud_bgp_routing_mode": "REGIONAL",
+    "x_gcloud_subnet_mode": "AUTO"
+  }
+]

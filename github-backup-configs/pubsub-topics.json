@@ -1,0 +1,49 @@
+[
+  {
+    "name": "projects/eventstorm-1/topics/container-analysis-notes-v1beta1"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/container-analysis-occurrences-v1beta1"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/container-analysis-notes-v1"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/container-analysis-occurrences-v1"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/chat-topic"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/ai-topic"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/ai-topic-dead-filter"
+  },
+  {
+    "messageTransforms": [
+      {
+        "javascriptUdf": {
+          "code": "/**\n * Transforms a Pub/Sub Message.\n * @return {(Object<string, (string | Object<string, string>)>|null)} -  To filter a message,\n * return null. To transform a message return a map with the following keys:\n *   - (required) 'data' : {string}\n *   - (optional) 'attributes' : {Object<string, string>}\n *\n * @param  {(Object<string, (string | Object<string, string>)>} Pub/Sub message with keys:\n *   - (required) 'data' : {string}\n *   - (optional) 'attributes' : {Object<string, string>}\n *\n * @param  {Object<string, any>} metadata - Pub/Sub message metadata with keys:\n *   - (optional) 'message_id'  : {string}\n *   - (optional) 'publish_time': {string} YYYY-MM-DDTHH:MM:SSZ format\n *   - (optional) 'ordering_key': {string}\n */\n\nfunction functionName(message, metadata) {\n  return message;\n}\n",
+          "functionName": "functionName"
+        }
+      }
+    ],
+    "name": "projects/eventstorm-1/topics/main-topic"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/ai-topic-dead-letter"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/chat-topic-dead-filter"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/chat-topic-dead-letter"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/git-topic"
+  },
+  {
+    "name": "projects/eventstorm-1/topics/wiki-topic"
+  }
+]

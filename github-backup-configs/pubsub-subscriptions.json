@@ -1,0 +1,46 @@
+[
+  {
+    "ackDeadlineSeconds": 60,
+    "deadLetterPolicy": {
+      "deadLetterTopic": "projects/eventstorm-1/topics/ai-topic-dead-filter",
+      "maxDeliveryAttempts": 5
+    },
+    "expirationPolicy": {},
+    "messageRetentionDuration": "604800s",
+    "name": "projects/eventstorm-1/subscriptions/ai-sub",
+    "pushConfig": {},
+    "state": "ACTIVE",
+    "topic": "projects/eventstorm-1/topics/ai-topic"
+  },
+  {
+    "ackDeadlineSeconds": 600,
+    "expirationPolicy": {},
+    "messageRetentionDuration": "604800s",
+    "name": "projects/eventstorm-1/subscriptions/ai-dead-letter-sub",
+    "pushConfig": {},
+    "retryPolicy": {
+      "maximumBackoff": "600s",
+      "minimumBackoff": "10s"
+    },
+    "state": "ACTIVE",
+    "topic": "projects/eventstorm-1/topics/ai-topic-dead-filter"
+  },
+  {
+    "ackDeadlineSeconds": 10,
+    "expirationPolicy": {},
+    "messageRetentionDuration": "604800s",
+    "name": "projects/eventstorm-1/subscriptions/main-sub",
+    "pushConfig": {},
+    "state": "ACTIVE",
+    "topic": "projects/eventstorm-1/topics/main-topic"
+  },
+  {
+    "ackDeadlineSeconds": 10,
+    "expirationPolicy": {},
+    "messageRetentionDuration": "604800s",
+    "name": "projects/eventstorm-1/subscriptions/gi-sub",
+    "pushConfig": {},
+    "state": "ACTIVE",
+    "topic": "projects/eventstorm-1/topics/git-topic"
+  }
+]

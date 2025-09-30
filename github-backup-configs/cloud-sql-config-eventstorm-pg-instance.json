@@ -1,0 +1,124 @@
+{
+  "availableMaintenanceVersions": [
+    "POSTGRES_16_10.R20250727.00_26"
+  ],
+  "backendType": "SECOND_GEN",
+  "connectionName": "eventstorm-1:me-west1:eventstorm-pg-instance",
+  "createTime": "2024-12-20T08:20:13.916Z",
+  "databaseInstalledVersion": "POSTGRES_16_9",
+  "databaseVersion": "POSTGRES_16",
+  "etag": "e04e52293dcb1b90c888839c37fb6f9e1a12c4d22c85bb8ac837c3b5ea54fe4f",
+  "gceZone": "me-west1-b",
+  "geminiConfig": {
+    "activeQueryEnabled": false,
+    "entitled": false,
+    "googleVacuumMgmtEnabled": false,
+    "indexAdvisorEnabled": false,
+    "oomSessionCancelEnabled": true
+  },
+  "includeReplicasForMajorVersionUpgrade": false,
+  "instanceType": "CLOUD_SQL_INSTANCE",
+  "ipAddresses": [
+    {
+      "ipAddress": "34.165.10.206",
+      "type": "PRIMARY"
+    },
+    {
+      "ipAddress": "34.165.88.36",
+      "type": "OUTGOING"
+    },
+    {
+      "ipAddress": "10.26.208.3",
+      "type": "PRIVATE"
+    }
+  ],
+  "kind": "sql#instance",
+  "maintenanceVersion": "POSTGRES_16_9.R20250302.00_31",
+  "name": "eventstorm-pg-instance",
+  "project": "eventstorm-1",
+  "region": "me-west1",
+  "satisfiesPzi": true,
+  "selfLink": "https://sqladmin.googleapis.com/sql/v1beta4/projects/eventstorm-1/instances/eventstorm-pg-instance",
+  "serverCaCert": {
+    "cert": "-----BEGIN CERTIFICATE-----\nMIIDfzCCAmegAwIBAgIBADANBgkqhkiG9w0BAQsFADB3MS0wKwYDVQQuEyQ0ZmE3\nMmYyMS0wZTUxLTQ0ZGMtYWM3ZC1mZWE3NDc3MWM1MjIxIzAhBgNVBAMTGkdvb2ds\nZSBDbG91ZCBTUUwgU2VydmVyIENBMRQwEgYDVQQKEwtHb29nbGUsIEluYzELMAkG\nA1UEBhMCVVMwHhcNMjQxMjIwMDgyMjU3WhcNMzQxMjE4MDgyMzU3WjB3MS0wKwYD\nVQQuEyQ0ZmE3MmYyMS0wZTUxLTQ0ZGMtYWM3ZC1mZWE3NDc3MWM1MjIxIzAhBgNV\nBAMTGkdvb2dsZSBDbG91ZCBTUUwgU2VydmVyIENBMRQwEgYDVQQKEwtHb29nbGUs\nIEluYzELMAkGA1UEBhMCVVMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIB\nAQCLX2+xq240jOqFKWrrnPcYzsRe8OLA6bEylv2+XVJsThWiGYdM+shXuxXsfMEM\nqyCC3yIar9UVL5xzTrVcPHkaKGdhEjTTc9igLEpn0AFzeJQLZ6nuWvMktoG7Xlfa\ne6bnMQGKzMeAKmeTt7h4mWBHTl2vHTAbJvRKwvQ/vPVeSK+5rLqN0iKrJzcvS42O\nVY9RXmi1q5onXdihhICrd/HwGGzOraHiXwpma0EA1rfTsFwkLInN6MLRyHm4ztGq\n3UtnTKFH40/A1eUqyteLxfHQ0Vm+8YqEdWOLzNA+Gg62DIhQ3/1XahI5kSD5JLv8\nWNFvIPBQg6B4v4wYwWCp3RdfAgMBAAGjFjAUMBIGA1UdEwEB/wQIMAYBAf8CAQAw\nDQYJKoZIhvcNAQELBQADggEBACL/w3T8DZ0Bu/zKf1JxOeUvKZuDLUsN+1Rcld4B\n/OAHesYFdo00Xj58K+tUWoqjRNo45OsOd034kIk3nZfkWCJ0aeTk54kFMnwmqj5t\npVR4IsFUlif4EpXSJLK0Clt8bQaT+bRbahkPT7dd9SQtpNfr6lD/naWS+uih1QZl\neaAPi+Z8WPtw/s5YTsi7JezMltpKDDlzrxRzVsecZFa4M2oQvTQ0mxHpeg8Omm5b\nwVxqgfzkut3p+MNc4O5LolF4V/CPFLmwL70MYPB5WXEhtOanH0t0cKvVjvdTSpD9\nG8nzyWW+e71x4Cz/HPW6ioVXrk4JgGZuYlOYtiyp7n873RA=\n-----END CERTIFICATE-----",
+    "certSerialNumber": "0",
+    "commonName": "C=US,O=Google\\, Inc,CN=Google Cloud SQL Server CA,dnQualifier=4fa72f21-0e51-44dc-ac7d-fea74771c522",
+    "createTime": "2024-12-20T08:22:57.906Z",
+    "expirationTime": "2034-12-18T08:23:57.906Z",
+    "instance": "eventstorm-pg-instance",
+    "kind": "sql#sslCert",
+    "sha1Fingerprint": "4c3d12cffc8557bc855e42bebda741b773c26602"
+  },
+  "serviceAccountEmailAddress": "p979848823566-smf4oa@gcp-sa-cloud-sql.iam.gserviceaccount.com",
+  "settings": {
+    "activationPolicy": "NEVER",
+    "availabilityType": "ZONAL",
+    "backupConfiguration": {
+      "backupRetentionSettings": {
+        "retainedBackups": 7,
+        "retentionUnit": "COUNT"
+      },
+      "backupTier": "STANDARD",
+      "enabled": true,
+      "kind": "sql#backupConfiguration",
+      "location": "eu",
+      "pointInTimeRecoveryEnabled": true,
+      "replicationLogArchivingEnabled": true,
+      "startTime": "17:00",
+      "transactionLogRetentionDays": 7,
+      "transactionalLogStorageState": "CLOUD_STORAGE"
+    },
+    "connectorEnforcement": "NOT_REQUIRED",
+    "dataDiskSizeGb": "100",
+    "dataDiskType": "PD_SSD",
+    "deletionProtectionEnabled": true,
+    "edition": "ENTERPRISE",
+    "insightsConfig": {
+      "queryInsightsEnabled": true,
+      "queryPlansPerMinute": 5,
+      "queryStringLength": 1024
+    },
+    "ipConfiguration": {
+      "authorizedNetworks": [
+        {
+          "kind": "sql#aclEntry",
+          "name": "eventstorm",
+          "value": "34.165.29.245"
+        }
+      ],
+      "enablePrivatePathForGoogleCloudServices": true,
+      "ipv4Enabled": true,
+      "privateNetwork": "projects/eventstorm-1/global/networks/default",
+      "requireSsl": false,
+      "serverCaMode": "GOOGLE_MANAGED_INTERNAL_CA",
+      "sslMode": "ALLOW_UNENCRYPTED_AND_ENCRYPTED"
+    },
+    "kind": "sql#settings",
+    "locationPreference": {
+      "kind": "sql#locationPreference",
+      "zone": "me-west1-b"
+    },
+    "maintenanceWindow": {
+      "day": 0,
+      "hour": 0,
+      "kind": "sql#maintenanceWindow",
+      "updateTrack": "canary"
+    },
+    "pricingPlan": "PER_USE",
+    "replicationLagMaxSeconds": 31536000,
+    "replicationType": "SYNCHRONOUS",
+    "settingsVersion": "921",
+    "storageAutoResize": true,
+    "storageAutoResizeLimit": "0",
+    "tier": "db-custom-4-16384"
+  },
+  "sqlNetworkArchitecture": "NEW_NETWORK_ARCHITECTURE",
+  "state": "STOPPED",
+  "upgradableDatabaseVersions": [
+    {
+      "displayName": "PostgreSQL 17",
+      "majorVersion": "POSTGRES_17",
+      "name": "POSTGRES_17"
+    }
+  ]
+}

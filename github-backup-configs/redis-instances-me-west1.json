@@ -1,0 +1,31 @@
+[
+  {
+    "authorizedNetwork": "projects/eventstorm-1/global/networks/default",
+    "connectMode": "PRIVATE_SERVICE_ACCESS",
+    "createTime": "2025-09-09T08:08:48.463581449Z",
+    "currentLocationId": "me-west1-b",
+    "host": "10.26.209.3",
+    "locationId": "me-west1-b",
+    "maintenanceVersion": "20250806_01_00",
+    "memorySizeGb": 2,
+    "name": "projects/eventstorm-1/locations/me-west1/instances/es",
+    "nodes": [
+      {
+        "id": "node-0",
+        "zone": "me-west1-b"
+      }
+    ],
+    "persistenceConfig": {
+      "persistenceMode": "DISABLED"
+    },
+    "persistenceIamIdentity": "serviceAccount:service-979848823566@cloud-redis.iam.gserviceaccount.com",
+    "port": 6379,
+    "readReplicasMode": "READ_REPLICAS_DISABLED",
+    "redisVersion": "REDIS_7_2",
+    "reservedIpRange": "10.26.209.0/29",
+    "satisfiesPzi": true,
+    "state": "READY",
+    "tier": "BASIC",
+    "transitEncryptionMode": "DISABLED"
+  }
+]

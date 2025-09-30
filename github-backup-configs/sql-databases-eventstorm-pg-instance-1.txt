@@ -1,0 +1,3 @@
+NAME           CHARSET  COLLATION
+postgres       UTF8     en_US.UTF8
+eventstorm_db  UTF8     en_US.UTF8
