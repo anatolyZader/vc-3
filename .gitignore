@@ -1,1 +1,61 @@
 temp/
+
+# ================================================
+# SENSITIVE FILES - NEVER COMMIT TO GITHUB  
+# ================================================
+
+# Backup directories with sensitive data
+eventstorm-backup-*/
+*backup*/
+*.backup-*
+
+# Environment files with secrets
+.env
+.env.*
+env.backup-*
+*.env
+
+# Google Cloud credentials
+*-credentials.json
+service-account*.json
+user-oauth2-credentials.json
+google-creds*.json
+**/service-account-credentials.json
+**/user-oauth2-credentials.json
+
+# OAuth2 and API keys
+oauth2-credentials.json
+*oauth2*.json
+
+# Cloud Run configs (contain API keys)
+cloudrun-*.json
+*cloudrun*.json
+
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+ssl/
+certificates/
+
+# Cookie and session secrets
+cookie.txt
+cookies.txt
+
+# Cloud SQL proxy binary
+cloud-sql-proxy*
+
+# Log files that may contain sensitive data
+*.log
+logs/
+cloud_run_logs.txt
+logs_run.txt
+
+# Redis dumps and database backups
+dump.rdb
+*.sql
+*.dump
+
+# Archives that might contain sensitive data
+*.tar.gz
+*.zip
