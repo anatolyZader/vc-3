@@ -4,9 +4,9 @@ const path = require("path");
 
 // Stub orchestrators and processors used inside ContextPipeline to avoid heavy work
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoSelector",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoPreparation",
   () => jest.fn().mockImplementation(() => ({
-    getCommitInfoOptimized: jest.fn(async () => ({ hash: "h1", subject: "s" }))
+    getPushedCommitInfo: jest.fn(async () => ({ hash: "h1", subject: "s" }))
   }))
 );
 
@@ -15,8 +15,8 @@ jest.mock(
 jest.mock(
   "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/data_preparation/orchestrators/processingStrategyManager",
   () => jest.fn().mockImplementation(() => ({
-    processIncrementalOptimized: jest.fn(async () => ({ success: true, mode: "incremental" })),
-    processFullRepositoryOptimized: jest.fn(async () => ({ success: true, mode: "full" }))
+    processRepoChanges: jest.fn(async () => ({ success: true, mode: "incremental" })),
+    processFullRepo: jest.fn(async () => ({ success: true, mode: "full" }))
   }))
 );
 
@@ -37,11 +37,13 @@ jest.mock(
 );
 
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoLoader",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoPreparation",
   () => jest.fn().mockImplementation(() => ({
     findExistingRepo: jest.fn(async () => null),
     sanitizeId: jest.fn(id => id.replace(/[^a-zA-Z0-9_-]/g, '_')),
-    storeRepositoryTrackingInfo: jest.fn(async () => ({ success: true }))
+    storeRepositoryTrackingInfo: jest.fn(async () => ({ success: true })),
+    getPushedCommitInfo: jest.fn(async () => ({ hash: 'abc123', subject: 'test commit', author: 'test' })),
+    getChangedFilesOptimized: jest.fn(async () => [])
   }))
 );
 

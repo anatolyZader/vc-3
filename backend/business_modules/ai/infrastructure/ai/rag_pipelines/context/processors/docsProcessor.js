@@ -24,7 +24,6 @@ class DocsProcessor {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
-    this.repositoryManager = options.repositoryManager;
     this.pineconeManager = options.pineconeManager;
     
     // Defer pinecone resolution; don't assign unresolved promise
@@ -486,10 +485,10 @@ class DocsProcessor {
         namespace: namespace
       });
 
-      // Generate unique IDs
+      // Generate unique IDs using built-in sanitization
       const documentIds = documents.map((doc, index) => {
-        const sanitizedSource = this.repositoryManager.sanitizeId(doc.metadata.source || 'markdown');
-        const sanitizedType = this.repositoryManager.sanitizeId(doc.metadata.type || 'unknown');
+        const sanitizedSource = this.sanitizeId(doc.metadata.source || 'markdown');
+        const sanitizedType = this.sanitizeId(doc.metadata.type || 'unknown');
         return `system_markdown_${sanitizedSource}_${sanitizedType}_chunk_${index}`;
       });
 
@@ -509,6 +508,16 @@ class DocsProcessor {
       console.error(`[${new Date().toISOString()}] ❌ MARKDOWN STORAGE: Error storing documents:`, error.message);
       throw error;
     }
+  }
+
+  /**
+   * Sanitize string for use as identifiers
+   */
+  sanitizeId(input) {
+    if (!input || typeof input !== 'string') {
+      return 'unknown';
+    }
+    return input.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
   }
 }
 

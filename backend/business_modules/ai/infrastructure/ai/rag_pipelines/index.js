@@ -20,7 +20,6 @@ module.exports = {
   ASTCodeSplitter: require('./context/processors/astCodeSplitter'),
   ContentAwareSplitterRouter: require('./context/processors/contentAwareSplitterRouter'), // REFACTORED: Now provides specialized splitting methods only
   UbiquitousLanguageEnhancer: require('./data_preparation/processors/ubiquitousLanguageEnhancer'),
-  RepositoryManager: require('./data_preparation/processors/repositoryManager'),
   EmbeddingManager: require('./data_preparation/processors/embeddingManager'),
   ApiSpecProcessor: require('./data_preparation/processors/apiSpecProcessor'),
   DocsProcessor: require('./data_preparation/processors/markdownDocumentationProcessor'),

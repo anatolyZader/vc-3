@@ -11,7 +11,6 @@ class VectorStorageManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.rateLimiter = options.rateLimiter || options.pineconeLimiter;
-    this.repositoryManager = options.repositoryManager;
     
     // Initialize PineconeService
     this.pineconeService = new PineconeService({
@@ -142,12 +141,8 @@ class VectorStorageManager {
    */
   generateDocumentIds(documents, githubOwner, repoName) {
     return documents.map((doc, index) => {
-      const source = this.repositoryManager ? 
-        this.repositoryManager.sanitizeId(doc.metadata.source || 'unknown') :
-        this.sanitizeId(doc.metadata.source || 'unknown');
-      const repoId = this.repositoryManager ? 
-        this.repositoryManager.sanitizeId(doc.metadata.repoId || 'unknown') :
-        this.sanitizeId(repoName || 'unknown');
+      const source = this.sanitizeId(doc.metadata.source || 'unknown');
+      const repoId = this.sanitizeId(repoName || 'unknown');
       
       return PineconeService.generateDocumentId('doc', [githubOwner, repoId, source, 'chunk', index]);
     });
@@ -239,6 +234,13 @@ class VectorStorageManager {
   async disconnect() {
     await this.pineconeService.disconnect();
     this.logger.info('Vector storage manager disconnected');
+  }
+
+  /**
+   * Sanitize identifier for use as Pinecone namespace
+   */
+  sanitizeId(id) {
+    return id.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
   }
 }
 

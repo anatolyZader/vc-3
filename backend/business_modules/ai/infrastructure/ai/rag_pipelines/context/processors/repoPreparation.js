@@ -1,56 +1,56 @@
-// repoSelector.js - Comprehensive Git Operations & GitHub API Integration Manager
+// repoPreparation.js - Unified Repository Management & GitHub API Operations
 "use strict";
 
+const fs = require('fs').promises;
 const { exec } = require('child_process');
 const { promisify } = require('util');
 
 /**
  * =====================================================================================
- * REPOSITORY PROCESSING STRATEGY MANAGER - Decision-Making & Orchestration
+ * UNIFIED REPOSITORY MANAGER - Git Operations, GitHub API & Cloud-Native Processing
  * =====================================================================================
  * 
- * The repoSelector is a specialized strategy component within EventStorm's RAG pipeline 
- * that manages repository processing decisions, commit operations coordination, and 
- * processing optimization strategies. This class follows clean separation of concerns
- * by handling processing strategy decisions while delegating GitHub API operations
- * to repoLoader and document processing orchestration to contextPipeline.
+ * The RepoPreparation is a comprehensive repository management component within EventStorm's 
+ * RAG pipeline that consolidates all repository operations, GitHub API interactions, and 
+ * cloud-native processing capabilities. This unified class combines the previous separation
+ * between repoPreparation and repoLoader for better maintainability and reduced complexity.
  * 
- * Following refactored architecture, this class focuses on STRATEGY and DECISIONS
- * while delegating GitHub API operations to repoLoader for better separation of concerns.
+ * This consolidation provides a single point of responsibility for all repository-related
+ * operations while maintaining the cloud-native architecture and GitHub API integration.
  * 
  * ==================================================================================
  * CORE FUNCTIONALITY OVERVIEW
  * ==================================================================================
  * 
- * 1. MULTI-STRATEGY COMMIT INFORMATION COORDINATION
- *    - Orchestrates commit information gathering through repoLoader delegation
- *    - Intelligent strategy selection based on deployment environment
- *    - Fallback mechanism coordination for processing continuity
- *    - Environment detection and optimal approach recommendation
+ * 1. COMPREHENSIVE GITHUB API OPERATIONS
+ *    - Primary GitHub API interface for commit information retrieval
+ *    - Advanced GitHub Compare API for change detection between commits
+ *    - Public repository fallback for unauthenticated access scenarios
+ *    - Comprehensive rate limiting and error handling for API operations
  * 
- * 2. CHANGE DETECTION STRATEGY COORDINATION
- *    - Coordinates commit-to-commit file change analysis via repoLoader
- *    - Differential processing strategy recommendations
- *    - File-level change tracking coordination for incremental updates
- *    - Smart fallback strategies when API operations fail
+ * 2. CLOUD-NATIVE REPOSITORY ACCESS
+ *    - GitHub API-based file retrieval (no local cloning required)
+ *    - Enhanced CloudNativeRepoLoader integration with priority-based file selection
+ *    - Optimized for serverless/containerized deployment environments (Cloud Run)
+ *    - Intelligent rate limiting and batch processing for large repositories
  * 
- * 3. PROCESSING STRATEGY OPTIMIZATION
- *    - Processing approach decisions (incremental vs. full)
- *    - Cloud-native compatibility strategy coordination
- *    - Horizontal scaling decision support
- *    - Memory-efficient processing strategy selection
+ * 3. DUPLICATE DETECTION & OPTIMIZATION
+ *    - Advanced commit hash comparison to avoid redundant processing
+ *    - Pinecone-based repository tracking with vector similarity matching
+ *    - Incremental processing support for repository updates
+ *    - Smart caching mechanisms to reduce processing overhead
  * 
- * 4. EMERGENCY FALLBACK PROCESSING ORCHESTRATION
- *    - Complete repository processing when all other strategies fail
- *    - Coordinates document loading through repoLoader delegation
- *    - Synthetic commit info generation for tracking continuity
- *    - Integration with document processors through parameter passing
+ * 4. VIRTUAL DIRECTORY ABSTRACTION
+ *    - Creates virtual "temp directory" objects for cloud compatibility
+ *    - Eliminates disk I/O operations while maintaining API compatibility
+ *    - Memory-optimized document collections with automatic cleanup
+ *    - Seamless integration with existing processing pipelines
  * 
- * 5. DELEGATION PATTERN IMPLEMENTATION
- *    - GitHub API operations delegated to repoLoader for clean separation
- *    - Repository access coordination through repoLoader integration
- *    - Processing strategy recommendations to contextPipeline
- *    - Maintains decision-making responsibility while delegating execution
+ * 5. PROCESSING STRATEGY COORDINATION
+ *    - Multi-strategy commit information gathering with intelligent fallbacks
+ *    - Change detection strategy coordination for incremental processing
+ *    - Emergency fallback processing orchestration when all strategies fail
+ *    - Synthetic commit info generation for processing continuity
  * 
  * ==================================================================================
  * KEY ARCHITECTURAL DECISIONS
@@ -58,7 +58,7 @@ const { promisify } = require('util');
  * 
  * DELEGATION-FIRST APPROACH:
  * - GitHub API operations delegated to repoLoader for better separation of concerns
- * - Strategy and decision-making responsibilities retained in repoSelector
+ * - Strategy and decision-making responsibilities retained in repoPreparation
  * - Clean interface boundaries between strategy and execution
  * - Comprehensive error handling for delegated operations
  * 
@@ -92,7 +92,7 @@ const { promisify } = require('util');
  * 
  * PRIMARY COMMIT INFORMATION COORDINATION:
  * 
- * getCommitInfoOptimized(repoUrl, branch, githubOwner, repoName)
+ * getPushedCommitInfo(repoUrl, branch, githubOwner, repoName)
  * └─ Multi-strategy commit information coordination with intelligent fallback
  * └─ Strategy 1: Delegate to repoLoader for GitHub API operations
  * └─ Strategy 2: Coordinate git availability check through repoLoader
@@ -131,13 +131,13 @@ const { promisify } = require('util');
  * DELEGATION PATTERN IMPLEMENTATION:
  * - Moved GitHub API methods (getCommitInfoFromGitHubAPI, getChangedFilesFromGitHubAPI, 
  *   tryPublicGitHubAPI) to repoLoader for better separation of concerns
- * - Implemented delegation pattern where repoSelector coordinates strategy
+ * - Implemented delegation pattern where repoPreparation coordinates strategy
  *   while repoLoader handles GitHub API execution
  * - Enhanced error handling delegation to maintain clean boundaries
  * - Maintained backward compatibility while improving internal architecture
  * 
  * CLEAN SEPARATION ACHIEVED:
- * - repoSelector: Strategy, decisions, and processing coordination
+ * - repoPreparation: Strategy, decisions, and processing coordination
  * - repoLoader: GitHub API operations, repository access, and data management
  * - contextPipeline: Document processing orchestration and workflow management
  * 
@@ -310,7 +310,7 @@ const { promisify } = require('util');
  * ARCHITECTURAL BENEFITS:
  * - Single responsibility for all Git/GitHub operations
  * - Clean delegation interface for document processing
- * - Reduced duplication between repoSelector and ContextPipeline
+ * - Reduced duplication between repoPreparation and ContextPipeline
  * - Improved maintainability and testability
  * - Enhanced error handling with centralized Git error detection
  * 
@@ -392,8 +392,8 @@ const { promisify } = require('util');
  * 
  * BASIC COMMIT INFORMATION RETRIEVAL:
  * ```javascript
- * const commitManager = new repoSelector({ repositoryManager });
- * const commitInfo = await commitManager.getCommitInfoOptimized(
+ * const repoManager = new RepoPreparation();
+ * const commitInfo = await repoManager.getPushedCommitInfo(
  *   'https://github.com/myzader/eventstorm',
  *   'main',
  *   'myzader',
@@ -404,7 +404,7 @@ const { promisify } = require('util');
  * 
  * CHANGE DETECTION FOR INCREMENTAL PROCESSING:
  * ```javascript
- * const changedFiles = await commitManager.getChangedFilesOptimized(
+ * const changedFiles = await repoManager.getChangedFilesOptimized(
  *   repoUrl, branch, owner, repo, oldCommit, newCommit
  * );
  * 
@@ -422,20 +422,20 @@ const { promisify } = require('util');
  * 
  * ENVIRONMENT DETECTION AND STRATEGY SELECTION:
  * ```javascript
- * const isGitAvailable = await commitManager.checkGitAvailability();
+ * const isGitAvailable = await repoManager.checkGitAvailability();
  * if (!isGitAvailable) {
  *   console.log('Cloud-native mode: Using GitHub API exclusively');
  * }
  * 
- * const syntheticCommit = commitManager.createSyntheticCommitInfo();
+ * const syntheticCommit = repoManager.createSyntheticCommitInfo();
  * console.log('Fallback commit info generated:', syntheticCommit);
  * ```
  * 
  * INTEGRATION WITH PROCESSING PIPELINE:
  * ```javascript
  * // In ContextPipeline integration
- * const commitManager = new repoSelector({ repositoryManager });
- * const commitInfo = await commitManager.getCommitInfoOptimized(
+ * const repoManager = new RepoPreparation();
+ * const commitInfo = await repoManager.getPushedCommitInfo(
  *   repoUrl, branch, owner, repo
  * );
  * 
@@ -451,10 +451,8 @@ const { promisify } = require('util');
  * 
  * ==================================================================================
  */
-class RepoSelector {
+class RepoPreparation {
   constructor(options = {}) {
-    this.repositoryManager = options.repositoryManager;
-    this.repoLoader = options.repoLoader || new (require('./repoLoader'))();
     this.execAsync = promisify(exec);
     this.processingStrategy = {
       preferGitHubAPI: true,
@@ -463,16 +461,16 @@ class RepoSelector {
   }
 
   /**
-   * OPTIMIZED: Get commit info with smart strategy (GitHub API first, local git fallback)
+   * Get commit info with smart strategy (GitHub API first, local git fallback)
    */
-  async getCommitInfoOptimized(repoUrl, branch, githubOwner, repoName) {
+  async getPushedCommitInfo(repoUrl, branch, githubOwner, repoName) {
     console.log(`[${new Date().toISOString()}] 🎯 SMART COMMIT DETECTION: Trying optimized approaches for ${githubOwner}/${repoName}`);
     
     // Strategy 1: Try GitHub API (fastest, no cloning required)
     if (this.processingStrategy.preferGitHubAPI) {
       try {
-        console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get commit info via API (delegated to repoLoader)`);
-        const apiCommitInfo = await this.repoLoader.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
+        console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get commit info via API`);
+        const apiCommitInfo = await this.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
         if (apiCommitInfo) {
           console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Retrieved commit ${apiCommitInfo?.hash?.substring(0, 8) ?? 'unknown'} via API`);
           return apiCommitInfo;
@@ -496,7 +494,7 @@ class RepoSelector {
       
       try {
         // Minimal clone just for git metadata
-        tempDir = await this.repositoryManager.cloneRepository(repoUrl, branch);
+        tempDir = await this.cloneRepository(repoUrl, branch);
         
         const commitHash = await this.getCommitHashFromLocalGit(tempDir);
         const commitInfo = await this.getCommitInfoFromLocalGit(tempDir);
@@ -512,7 +510,7 @@ class RepoSelector {
         // Always cleanup temp directory immediately
         if (tempDir) {
           try {
-            await this.repositoryManager.cleanupTempDir(tempDir);
+            await this.cleanupTempDir(tempDir);
           } catch (cleanupError) {
             console.warn(`[${new Date().toISOString()}] ⚠️ Failed to cleanup temp directory:`, cleanupError.message);
           }
@@ -555,8 +553,8 @@ class RepoSelector {
     // Strategy 1: Try GitHub API for changed files
     if (this.processingStrategy.preferGitHubAPI) {
       try {
-        console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get changed files via API (delegated to repoLoader)`);
-        const apiChangedFiles = await this.repoLoader.getChangedFilesFromGitHubAPI(githubOwner, repoName, oldCommitHash, newCommitHash);
+        console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Attempting to get changed files via API`);
+        const apiChangedFiles = await this.getChangedFilesFromGitHubAPI(githubOwner, repoName, oldCommitHash, newCommitHash);
         if (apiChangedFiles && apiChangedFiles.length >= 0) {
           console.log(`[${new Date().toISOString()}] ✅ GITHUB API: Found ${apiChangedFiles.length} changed files via API`);
           return apiChangedFiles;
@@ -590,7 +588,7 @@ class RepoSelector {
       if (newCommitHash && newCommitHash !== 'HEAD') {
         additionalCommits.push(newCommitHash);
       }
-      tempDir = await this.repositoryManager.cloneRepository(repoUrl, branch, { additionalCommits });
+      tempDir = await this.cloneRepository(repoUrl, branch, { additionalCommits });
       const changedFiles = await this.getChangedFilesFromLocalGit(tempDir, oldCommitHash, newCommitHash);
       console.log(`[${new Date().toISOString()}] ✅ LOCAL GIT: Found ${changedFiles.length} changed files via local git`);
       return changedFiles;
@@ -600,7 +598,7 @@ class RepoSelector {
     } finally {
       if (tempDir) {
         try {
-          await this.repositoryManager.cleanupTempDir(tempDir);
+          await this.cleanupTempDir(tempDir);
         } catch (cleanupError) {
           console.warn(`[${new Date().toISOString()}] ⚠️ Failed to cleanup temp directory:`, cleanupError.message);
         }
@@ -609,25 +607,493 @@ class RepoSelector {
   }
 
   /**
-   * DELEGATION: Get commit info from GitHub API - delegates to repoLoader
+   * Clone repository to temporary directory for analysis  
+   * @param {string} url - Repository URL
+   * @param {string} branch - Branch to clone
+   * @param {Object} options - Additional options
+   * @param {string[]} options.additionalCommits - Additional commit hashes to fetch for diff operations
+   */
+  async cloneRepository(url, branch, options = {}) {
+    console.log(`[${new Date().toISOString()}] 🚀 PRIMARY CLOUD-NATIVE: Using enhanced cloud-native approach as primary repository loading method`);
+    console.log(`[${new Date().toISOString()}] 🎯 This approach loads files by priority, handles rate limits intelligently, and works in any deployment environment`);
+    
+    // Parse repository URL to extract owner and repo name
+    const urlParts = url.split('/');
+    const repoName = urlParts[urlParts.length - 1].replace('.git', '');
+    const owner = urlParts[urlParts.length - 2];
+    
+    console.log(`[${new Date().toISOString()}] 📋 PARSED REPO: ${owner}/${repoName} @ ${branch}`);
+    
+    try {
+      // Use the enhanced CloudNativeRepoLoader as the primary method
+      const CloudNativeRepoLoader = require('./cloudNativeRepoLoader');
+      
+      const cloudLoader = new CloudNativeRepoLoader({
+        owner: owner,
+        repo: repoName,
+        branch: branch,
+        focusPath: 'backend/', // Focus on backend files for EventStorm
+        maxFiles: 150, // Reasonable limit with priority-based selection
+        timeout: 60000 // Longer timeout for enhanced loading
+      });
+      
+      console.log(`[${new Date().toISOString()}] 📥 ENHANCED LOADING: Loading repository content via priority-based GitHub API`);
+      const documents = await cloudLoader.load();
+      
+      if (documents && documents.length > 0) {
+        console.log(`[${new Date().toISOString()}] ✅ PRIMARY SUCCESS: Retrieved ${documents.length} prioritized files via enhanced cloud-native loader`);
+        
+        // Create a virtual "temp directory" reference for compatibility
+        // This allows existing code to work without actual file system operations
+        const virtualTempDir = {
+          type: 'enhanced-cloud-native',
+          owner: owner,
+          repo: repoName,
+          branch: branch,
+          documents: documents,
+          path: `cloud-priority://${owner}/${repoName}/${branch}`,
+          isVirtual: true,
+          loadingMethod: 'priority-based-github-api',
+          fileCount: documents.length,
+          maxFilesConfigured: cloudLoader.maxFiles,
+          focusPath: cloudLoader.focusPath
+        };
+        
+        console.log(`[${new Date().toISOString()}] 📂 ENHANCED WORKSPACE: Created priority-based cloud-native document collection`);
+        console.log(`[${new Date().toISOString()}] 🎯 File distribution: ${documents.length} files loaded with intelligent priority ranking`);
+        return virtualTempDir;
+        
+      } else {
+        throw new Error('No documents retrieved from repository using enhanced loader');
+      }
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ ENHANCED CLOUD-NATIVE ERROR: Failed to load repository via priority-based API:`, error.message);
+      
+      // Since this is now the primary method, we should fail rather than fallback
+      // This ensures we identify and fix any issues with the cloud-native approach
+      throw new Error(`Failed to load repository via enhanced cloud-native API: ${error.message}`);
+    }
+  }
+
+  /**
+   * Clean up temporary directory (cloud-native compatible)
+   */
+  async cleanupTempDir(tempDir) {
+    // Handle cloud-native virtual directories
+    if (tempDir && typeof tempDir === 'object' && tempDir.isVirtual) {
+      console.log(`[${new Date().toISOString()}] 🌐 CLOUD CLEANUP: Releasing cloud-native document collection`);
+      console.log(`[${new Date().toISOString()}] 💾 Memory optimization - cloud-native approach requires no disk cleanup`);
+      
+      // Clear references to allow garbage collection
+      if (tempDir.documents) {
+        tempDir.documents = null;
+      }
+      
+      console.log(`[${new Date().toISOString()}] ✅ CLEANUP SUCCESS: Cloud-native resources released`);
+      return;
+    }
+    
+    // Handle traditional file system directories (fallback)
+    if (typeof tempDir === 'string') {
+      console.log(`[${new Date().toISOString()}] 🧹 CLEANUP EXPLANATION: Removing temporary repository clone to free disk space`);
+      console.log(`[${new Date().toISOString()}] 🎯 Since all source files have been processed and stored as vector embeddings in Pinecone, the local copy is no longer needed. This prevents disk space accumulation from multiple repository processings`);
+      
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        console.log(`[${new Date().toISOString()}] ✅ CLEANUP SUCCESS: Removed temporary directory: ${tempDir}`);
+        console.log(`[${new Date().toISOString()}] 💾 Disk space preserved - only vector embeddings retained for fast retrieval`);
+      } catch (error) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP WARNING: Could not remove temp directory ${tempDir}:`, error.message);
+        console.log(`[${new Date().toISOString()}] 🎯 This may require manual cleanup, but doesn't affect the processing success`);
+      }
+    } else {
+      console.log(`[${new Date().toISOString()}] ℹ️ CLEANUP: No cleanup needed for this resource type`);
+    }
+  }
+
+  /**
+   * Check if repository already exists and compare commit hashes
+   * @param {string} userId - User ID
+   * @param {string} repoId - Repository ID 
+   * @param {string} githubOwner - GitHub owner
+   * @param {string} repoName - Repository name
+   * @param {string} currentCommitHash - Current commit hash
+   * @param {Object} pineconeOrService - Pinecone client or service
+   * @param {Object} embeddings - Embeddings instance to generate query vector
+   */
+  async findExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash = null, pineconeOrService = null, embeddings = null) {
+    console.log(`[${new Date().toISOString()}] 🔍 ENHANCED DUPLICATE CHECK: Querying for existing repository data with commit hash comparison`);
+    console.log(`[${new Date().toISOString()}] 🎯 This optimization now checks both repository identity AND commit hashes to detect actual changes`);
+    
+    console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Checking for existing repo: ${githubOwner}/${repoName} with commit: ${currentCommitHash?.substring(0, 8) || 'unknown'}`);
+    
+    if (!pineconeOrService || !currentCommitHash || !embeddings) {
+      console.log(`[${new Date().toISOString()}] ⚠️ FALLBACK: Missing pinecone client, commit hash, or embeddings - defaulting to safe mode (always process)`);
+      return false;
+    }
+
+    try {
+      const namespace = this.sanitizeId(`${githubOwner}_${repoName}_main`);
+      
+      // Handle both PineconeService and raw Pinecone client
+      let index;
+      if (pineconeOrService.client && typeof pineconeOrService.connect === 'function') {
+        // This is a PineconeService wrapper - ensure it's connected and use its client
+        await pineconeOrService.connect();
+        index = pineconeOrService.client.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      } else if (typeof pineconeOrService.index === 'function') {
+        // This is a raw Pinecone client
+        index = pineconeOrService.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      } else {
+        throw new Error('Invalid pinecone client or service provided');
+      }
+      
+      // Create a proper query vector using the same embeddings used for tracking
+      // This ensures dimension compatibility with the index
+      const trackingText = `Repository tracking query for ${githubOwner}/${repoName}`;
+      const queryVector = await embeddings.embedQuery(trackingText);
+      
+      // Query for repository metadata with this specific repo
+      const queryResponse = await index.namespace(namespace).query({
+        vector: queryVector, // Use proper embedding vector instead of hardcoded zero vector
+        topK: 1,
+        includeMetadata: true,
+        filter: {
+          userId: userId,
+          githubOwner: githubOwner,
+          repoName: repoName,
+          source: 'repository_tracking' // Special marker for tracking metadata
+        }
+      });
+
+      if (queryResponse.matches && queryResponse.matches.length > 0) {
+        const existingRepo = queryResponse.matches[0];
+        const existingCommitHash = existingRepo.metadata?.commitHash;
+        const lastProcessed = existingRepo.metadata?.lastProcessed;
+
+        console.log(`[${new Date().toISOString()}] 📊 EXISTING REPO FOUND:`);
+        console.log(`[${new Date().toISOString()}] 🔄 Previous commit: ${existingCommitHash?.substring(0, 8) || 'unknown'}`);
+        console.log(`[${new Date().toISOString()}] 🔄 Current commit:  ${currentCommitHash.substring(0, 8)}`);
+        console.log(`[${new Date().toISOString()}] 📅 Last processed: ${lastProcessed || 'unknown'}`);
+
+        if (existingCommitHash === currentCommitHash) {
+          console.log(`[${new Date().toISOString()}] ✅ COMMITS MATCH: Repository at same commit, skipping processing`);
+          return {
+            exists: true,
+            reason: 'same_commit',
+            existingCommitHash,
+            currentCommitHash,
+            lastProcessed
+          };
+        } else {
+          console.log(`[${new Date().toISOString()}] 🔄 COMMITS DIFFER: Repository has changes, will process incrementally`);
+          return {
+            exists: true,
+            reason: 'commit_changed',
+            existingCommitHash,
+            currentCommitHash,
+            lastProcessed,
+            requiresIncremental: true
+          };
+        }
+      }
+
+      console.log(`[${new Date().toISOString()}] 🆕 NEW REPOSITORY: No previous processing found, will process fully`);
+      return false;
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error checking existing repo:`, error.message);
+      console.log(`[${new Date().toISOString()}] 🛡️ SAFE FALLBACK: Error in duplicate check, defaulting to process (safe mode)`);
+      return false;
+    }
+  }
+
+  /**
+   * Store repository tracking metadata in Pinecone
+   */
+  async storeRepositoryTrackingInfo(userId, repoId, githubOwner, repoName, commitInfo, namespace, pineconeOrService, embeddings) {
+    if (!pineconeOrService || !embeddings) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Cannot store repository tracking: missing pinecone or embeddings`);
+      return;
+    }
+
+    try {
+      // Handle both PineconeService and raw Pinecone client
+      let index;
+      if (pineconeOrService.client && typeof pineconeOrService.connect === 'function') {
+        // This is a PineconeService wrapper - ensure it's connected and use its client
+        await pineconeOrService.connect();
+        index = pineconeOrService.client.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      } else if (typeof pineconeOrService.index === 'function') {
+        // This is a raw Pinecone client
+        index = pineconeOrService.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+      } else {
+        throw new Error('Invalid pinecone client or service provided');
+      }
+      
+      // Create a dummy embedding for the tracking record
+      const trackingText = `Repository tracking for ${githubOwner}/${repoName} at commit ${commitInfo?.hash || 'local'}`;
+      const embedding = await embeddings.embedQuery(trackingText);
+
+      const trackingRecord = {
+        id: `${namespace}_tracking_${Date.now()}`,
+        values: embedding,
+        metadata: {
+          userId: userId,
+          repoId: repoId,
+          githubOwner: githubOwner,
+          repoName: repoName,
+          ...(commitInfo && {
+            commitHash: commitInfo?.hash ?? null,
+            commitTimestamp: commitInfo?.timestamp ?? null,
+            commitAuthor: commitInfo?.author ?? null,
+            commitSubject: commitInfo?.subject ?? null,
+          }),
+          lastProcessed: new Date().toISOString(),
+          source: 'repository_tracking',
+          namespace: namespace
+        }
+      };
+
+      await index.namespace(namespace).upsert([trackingRecord]);
+      console.log(`[${new Date().toISOString()}] 📝 TRACKING STORED: Repository metadata saved to Pinecone for future duplicate detection`);
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error storing repository tracking:`, error.message);
+    }
+  }
+
+  /**
+   * Helper method to determine file type from file path
+   */
+  getFileType(filePath) {
+    const src = filePath || '';
+    const extension = src.includes('.') ? src.split('.').pop().toLowerCase() : '';
+    
+    const typeMap = {
+      'js': 'javascript',
+      'ts': 'typescript',
+      'jsx': 'react',
+      'tsx': 'react-typescript',
+      'py': 'python',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c',
+      'cs': 'csharp',
+      'php': 'php',
+      'rb': 'ruby',
+      'go': 'go',
+      'rs': 'rust',
+      'md': 'markdown',
+      'txt': 'text',
+      'json': 'json',
+      'yaml': 'yaml',
+      'yml': 'yaml',
+      'xml': 'xml',
+      'html': 'html',
+      'css': 'css',
+      'scss': 'scss',
+      'sass': 'sass',
+      'sql': 'sql',
+      'sh': 'shell',
+      'bash': 'shell',
+      'dockerfile': 'docker',
+      'gitignore': 'gitignore',
+      'env': 'environment'
+    };
+    
+    return typeMap[extension] || 'unknown';
+  }
+
+  /**
+   * Sanitize string for use as identifiers
+   */
+  sanitizeId(input) {
+    if (!input || typeof input !== 'string') {
+      return 'unknown';
+    }
+    return input.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+  }
+
+  /**
+   * Get commit information from GitHub API
    */
   async getCommitInfoFromGitHubAPI(owner, repo, branch) {
-    return await this.repoLoader.getCommitInfoFromGitHubAPI(owner, repo, branch);
+    try {
+      console.log(`[${new Date().toISOString()}] 🔍 GITHUB API: Fetching commit info from GitHub API for ${owner}/${repo}@${branch} [v3-enhanced]`);
+      
+      const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+      if (!githubToken) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ No GitHub token available, attempting public API access`);
+        // Try public API access for public repositories
+        return await this.tryPublicGitHubAPI(owner, repo, branch);
+      }
+
+      // Validate token format
+      if (!githubToken.startsWith('ghp_') && !githubToken.startsWith('github_pat_')) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ GitHub token format may be invalid (expected ghp_ or github_pat_ prefix)`);
+      }
+
+      try {
+        // Use Octokit REST API client (more reliable than fetch)
+        const { Octokit } = require('@octokit/rest');
+        const octokit = new Octokit({
+          auth: githubToken,
+        });
+
+        // Get branch information which includes latest commit
+        const { data: branchData } = await octokit.rest.repos.getBranch({
+          owner,
+          repo,
+          branch
+        });
+
+        const commit = branchData.commit;
+
+        if (!commit) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in GitHub API response`);
+          return null;
+        }
+
+        const commitInfo = {
+          hash: commit.sha,
+          subject: commit.commit.message.split('\n')[0], // First line as subject
+          message: commit.commit.message,
+          author: commit.commit.author.name,
+          email: commit.commit.author.email,
+          date: commit.commit.author.date,
+          url: commit.html_url
+        };
+
+        console.log(`[${new Date().toISOString()}] ✅ GITHUB API SUCCESS: Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
+        return commitInfo;
+
+      } catch (authError) {
+        if (authError.status === 401) {
+          console.warn(`[${new Date().toISOString()}] 🔑 GitHub API authentication failed - trying public API fallback`);
+          return await this.tryPublicGitHubAPI(owner, repo, branch);
+        }
+        throw authError;
+      }
+
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Error fetching commit info from GitHub API:`, error.message);
+      if (error.status === 403) {
+        console.error(`[${new Date().toISOString()}] ⚠️ GitHub API rate limit exceeded or insufficient permissions`);
+      } else if (error.status === 404) {
+        console.error(`[${new Date().toISOString()}] ⚠️ Repository not found - check owner/repo/branch names`);
+      }
+      return null; // Fallback to synthetic commit
+    }
   }
 
   /**
-   * DELEGATION: Try to access GitHub API without authentication - delegates to repoLoader
+   * Try to access GitHub API without authentication (for public repos)
    */
   async tryPublicGitHubAPI(owner, repo, branch) {
-    return await this.repoLoader.tryPublicGitHubAPI(owner, repo, branch);
+    try {
+      console.log(`[${new Date().toISOString()}] 🌐 PUBLIC API: Attempting public GitHub API access`);
+      
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branch}`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'eventstorm-rag-processor'
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ Public GitHub API request failed: ${response.status} ${response.statusText}`);
+        return null;
+      }
+
+      const branchData = await response.json();
+      const commit = branchData.commit;
+
+      if (!commit) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in public API response`);
+        return null;
+      }
+
+      const commitInfo = {
+        hash: commit.sha,
+        subject: commit.commit.message.split('\n')[0],
+        message: commit.commit.message,
+        author: commit.commit.author.name,
+        email: commit.commit.author.email,
+        date: commit.commit.author.date,
+        url: commit.html_url
+      };
+
+      console.log(`[${new Date().toISOString()}] ✅ PUBLIC API SUCCESS: Got commit info: ${commitInfo.hash.substring(0, 8)} by ${commitInfo.author}`);
+      return commitInfo;
+
+    } catch (publicError) {
+      console.error(`[${new Date().toISOString()}] ❌ Public GitHub API failed:`, publicError.message);
+      return null;
+    }
   }
 
   /**
-   * DELEGATION: Get changed files from GitHub API - delegates to repoLoader
+   * Get changed files between commits using GitHub Compare API
    */
   async getChangedFilesFromGitHubAPI(owner, repo, fromCommit, toCommit) {
-    return await this.repoLoader.getChangedFilesFromGitHubAPI(owner, repo, fromCommit, toCommit);
+    try {
+      console.log(`[${new Date().toISOString()}] 🌐 GITHUB API: Getting changed files for ${owner}/${repo} ${fromCommit.substring(0, 8)}...${toCommit.substring(0, 8)}`);
+      
+      // Use GitHub compare API to get changed files
+      const url = `https://api.github.com/repos/${owner}/${repo}/compare/${fromCommit}...${toCommit}`;
+      
+      const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'eventstorm-commit-compare'
+      };
+      
+      if (githubToken) {
+        headers['Authorization'] = `token ${githubToken}`;
+        console.log(`[${new Date().toISOString()}] 🔑 Using authenticated GitHub API for changed files`);
+      } else {
+        console.log(`[${new Date().toISOString()}] 🌐 PUBLIC API: Using public GitHub API for changed files`);
+      }
+      
+      const response = await fetch(url, { headers, timeout: 15000 });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ Compare not found (commits may be identical or not exist)`);
+          return []; // No changes found
+        }
+        throw new Error(`GitHub compare API failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const compareData = await response.json();
+      
+      if (compareData.files && Array.isArray(compareData.files)) {
+        const changedFiles = compareData.files.map(file => ({
+          filename: file.filename,
+          status: file.status, // 'added', 'modified', 'removed', etc.
+          changes: file.changes,
+          additions: file.additions,
+          deletions: file.deletions
+        }));
+        
+        console.log(`[${new Date().toISOString()}] ✅ GITHUB COMPARE API: Found ${changedFiles.length} changed files`);
+        console.log(`[${new Date().toISOString()}] 📊 Files: ${changedFiles.length} total, ${compareData.ahead_by || 0} commits ahead, ${compareData.behind_by || 0} behind`);
+        
+        return changedFiles;
+      } else {
+        console.log(`[${new Date().toISOString()}] 📭 No changed files found in comparison`);
+        return [];
+      }
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ GitHub API changed files failed:`, error.message);
+      return null; // Fallback to local git (will be skipped if git not available)
+    }
   }
+
+
 
   /**
    * Get commit hash from cloud-native virtual directory
@@ -639,9 +1105,9 @@ class RepoSelector {
     if (repoPath && typeof repoPath === 'object' && repoPath.isVirtual) {
       console.log(`[${new Date().toISOString()}] 📂 VIRTUAL DIR: Using GitHub API to get commit hash for ${repoPath.owner}/${repoPath.repo}`);
       
-      // Use GitHub API to get the commit hash (delegate to repoLoader)
+      // Use GitHub API to get the commit hash
       try {
-        const commitInfo = await this.repoLoader.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
+        const commitInfo = await this.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
         if (commitInfo && commitInfo.hash) {
           console.log(`[${new Date().toISOString()}] ✅ CLOUD COMMIT HASH: Retrieved ${commitInfo.hash.substring(0, 8)} via GitHub API`);
           return commitInfo.hash;
@@ -663,11 +1129,11 @@ class RepoSelector {
     
     // Handle virtual cloud-native directories
     if (repoPath && typeof repoPath === 'object' && repoPath.isVirtual) {
-      console.log(`[${new Date().toISOString()}] � VIRTUAL DIR: Using GitHub API to get commit info for ${repoPath.owner}/${repoPath.repo}`);
+      console.log(`[${new Date().toISOString()}] 📂 VIRTUAL DIR: Using GitHub API to get commit info for ${repoPath.owner}/${repoPath.repo}`);
       
-      // Use GitHub API to get the commit info (delegate to repoLoader)
+      // Use GitHub API to get the commit info
       try {
-        const commitInfo = await this.repoLoader.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
+        const commitInfo = await this.getCommitInfoFromGitHubAPI(repoPath.owner, repoPath.repo, repoPath.branch);
         if (commitInfo) {
           console.log(`[${new Date().toISOString()}] ✅ CLOUD COMMIT INFO: Retrieved commit ${commitInfo.hash?.substring(0, 8) || 'unknown'} via GitHub API`);
           return commitInfo;
@@ -719,20 +1185,18 @@ class RepoSelector {
   async processRepositoryViaDirectAPIFallback(params) {
     const {
       userId,
-      repoId, 
+      repoId,
       repoUrl,
       branch,
       githubOwner,
       repoName,
       repoProcessor,
-      repoLoader,
+      repoPreparation,
       pineconeClient,
       embeddings,
       routeDocumentsToProcessors,
       eventManager
-    } = params;
-
-    console.log(`[${new Date().toISOString()}] 🆘 DIRECT GITHUB API FALLBACK: Processing repository without commit tracking or git operations`);
+    } = params;    console.log(`[${new Date().toISOString()}] 🆘 DIRECT GITHUB API FALLBACK: Processing repository without commit tracking or git operations`);
     
     try {
       // Create synthetic commit info for fallback processing
@@ -758,15 +1222,15 @@ class RepoSelector {
       console.log(`[${new Date().toISOString()}] ✅ DIRECT API: Loaded ${documents.length} documents`);
 
       // Process documents directly (delegated to repoProcessor)
-      const namespace = repoLoader.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const namespace = repoPreparation.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
       const result = await repoProcessor.processFilteredDocuments(
         documents, namespace, fallbackCommitInfo, false, routeDocumentsToProcessors
       );
 
       console.log(`[${new Date().toISOString()}] ✅ DIRECT FALLBACK SUCCESS: Processed ${result.documentsProcessed || 0} documents`);
 
-      // Store basic tracking info (delegated to repoLoader)
-      await repoLoader.storeRepositoryTrackingInfo(
+      // Store basic tracking info (delegated to repoPreparation)
+      await repoPreparation.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, fallbackCommitInfo, 
         namespace, pineconeClient, embeddings
       );
@@ -810,6 +1274,82 @@ class RepoSelector {
       error.message && error.message.includes(pattern)
     );
   }
+
+  /**
+   * Get repository characteristics for change analysis context
+   * Centralized GitHub API repository metadata gathering
+   */
+  async getRepositoryCharacteristics(githubOwner, repoName, branch = 'main') {
+    try {
+      const characteristics = {
+        estimatedSize: 'unknown',
+        primaryLanguage: 'unknown',
+        fileCount: 0,
+        type: 'general',
+        starCount: 0,
+        forkCount: 0,
+        isPrivate: false
+      };
+
+      // Use existing GitHub API headers setup pattern from other methods
+      const headers = {};
+      if (process.env.GITHUB_TOKEN) {
+        headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+        headers['User-Agent'] = 'eventstorm-context-pipeline';
+      }
+
+      console.log(`[${new Date().toISOString()}] 📊 REPO CHARACTERISTICS: Gathering metadata for ${githubOwner}/${repoName}`);
+
+      const repoResponse = await fetch(`https://api.github.com/repos/${githubOwner}/${repoName}`, {
+        headers
+      });
+
+      if (repoResponse.ok) {
+        const repoData = await repoResponse.json();
+        
+        // Extract comprehensive repository characteristics
+        characteristics.estimatedSize = repoData.size || 0; // Size in KB
+        characteristics.primaryLanguage = repoData.language || 'unknown';
+        characteristics.starCount = repoData.stargazers_count || 0;
+        characteristics.forkCount = repoData.forks_count || 0;
+        characteristics.isPrivate = repoData.private || false;
+        
+        // Determine repository type based on name and description
+        const name = (repoData.name || '').toLowerCase();
+        const description = (repoData.description || '').toLowerCase();
+        
+        if (name.includes('backend') || description.includes('backend') || description.includes('api') || description.includes('server')) {
+          characteristics.type = 'backend';
+        } else if (name.includes('frontend') || name.includes('client') || description.includes('frontend') || description.includes('ui') || description.includes('react') || description.includes('vue')) {
+          characteristics.type = 'frontend';
+        } else if (name.includes('fullstack') || description.includes('fullstack') || description.includes('full-stack')) {
+          characteristics.type = 'fullstack';
+        } else if (description.includes('library') || description.includes('framework') || description.includes('sdk')) {
+          characteristics.type = 'library';
+        } else if (description.includes('config') || description.includes('infrastructure') || description.includes('deploy')) {
+          characteristics.type = 'infrastructure';
+        }
+
+        console.log(`[${new Date().toISOString()}] 📊 REPO METADATA: ${characteristics.type} repository, ${characteristics.estimatedSize}KB, ${characteristics.primaryLanguage}`);
+      } else {
+        console.warn(`[${new Date().toISOString()}] ⚠️ Failed to get repository characteristics: ${repoResponse.status}`);
+      }
+
+      return characteristics;
+      
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Could not get repository characteristics:`, error.message);
+      return { 
+        estimatedSize: 'unknown', 
+        primaryLanguage: 'unknown', 
+        fileCount: 0, 
+        type: 'general',
+        starCount: 0,
+        forkCount: 0,
+        isPrivate: false
+      };
+    }
+  }
 }
 
-module.exports = RepoSelector;
+module.exports = RepoPreparation;

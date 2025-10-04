@@ -10,7 +10,6 @@ class EmbeddingManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
-    this.repositoryManager = options.repositoryManager;
     this.pineconeManager = options.pineconeManager;
     
     // Store promise; don't treat pending Promise as client
@@ -75,8 +74,8 @@ class EmbeddingManager {
 
       // Generate unique document IDs
       const documentIds = documents.map((doc, index) => {
-        const source = this.repositoryManager.sanitizeId(doc.metadata.source || 'unknown');
-        const repoId = this.repositoryManager.sanitizeId(doc.metadata.repoId || 'unknown');
+        const source = this.sanitizeId(doc.metadata.source || 'unknown');
+        const repoId = this.sanitizeId(doc.metadata.repoId || 'unknown');
         return `${githubOwner}_${repoId}_${source}_chunk_${index}`;
       });
 
@@ -130,7 +129,7 @@ class EmbeddingManager {
     // Generate unique IDs for each chunk
     const documentIds = splitDocs.map((doc, index) => {
       const sourceFile = doc.metadata.source || 'unknown';
-      const sanitizedSource = this.repositoryManager.sanitizeId(sourceFile.replace(/\//g, '_'));
+      const sanitizedSource = this.sanitizeId(sourceFile.replace(/\//g, '_'));
       return `${userId}_${repoId}_${sanitizedSource}_chunk_${index}`;
     });
 
@@ -179,6 +178,13 @@ class EmbeddingManager {
     } else {
       throw new Error('Pinecone client not available');
     }
+  }
+
+  /**
+   * Sanitize identifier for use as Pinecone namespace
+   */
+  sanitizeId(id) {
+    return id.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
   }
 }
 

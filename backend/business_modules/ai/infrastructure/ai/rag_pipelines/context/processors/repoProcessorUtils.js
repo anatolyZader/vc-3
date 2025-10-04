@@ -20,7 +20,6 @@ class RepoProcessorUtils {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
-    this.repoManager = options.repositoryManager;
     this.repoCommitManager = options.commitManager;
     this.ubiquitousLanguageProcessor = options.ubiquitousLanguageProcessor;
     this.astBasedSplitter = options.astBasedSplitter;
@@ -64,7 +63,7 @@ class RepoProcessorUtils {
     
     const { githubOwner, repoName } = this.parseRepoUrl(repoUrl);
     if (!namespace) {
-      namespace = this.repoManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      namespace = this.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
     }
 
     // Use GitHub API directly - no local git cloning required
@@ -281,7 +280,7 @@ class RepoProcessorUtils {
           commitSubject: commitInfo?.subject ?? null,
           commitDate: commitInfo?.date ?? null,
         }),
-        file_type: this.repoManager.getFileType(doc.metadata.source || ''),
+        file_type: this.getFileType(doc.metadata.source || ''),
         repository_url: repoUrl,
         loaded_at: new Date().toISOString(),
         loading_method: 'batched_github_loader'
@@ -636,9 +635,9 @@ class RepoProcessorUtils {
    * Check existing repository processing (same as before)
    */
   async checkExistingRepo(githubOwner, repoName, currentCommitHash) {
-    // Ensure pinecone service is resolved before passing to repoManager
+    // Ensure pinecone service is resolved before checking existing repo
     const pineconeService = await this._getPineconeService();
-    return await this.repoManager.findExistingRepo(
+    return await this.findExistingRepo(
       null, null, githubOwner, repoName, currentCommitHash, pineconeService, this.embeddings
     );
   }
@@ -814,6 +813,68 @@ class RepoProcessorUtils {
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ REPOSITORY STORAGE: Error storing in Pinecone:`, error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Sanitize identifier for use as Pinecone namespace
+   */
+  sanitizeId(id) {
+    return id.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+  }
+
+  /**
+   * Get file type based on extension
+   */
+  getFileType(filePath) {
+    const ext = filePath.split('.').pop().toLowerCase();
+    const typeMap = {
+      'js': 'javascript',
+      'ts': 'typescript', 
+      'jsx': 'react',
+      'tsx': 'react',
+      'py': 'python',
+      'md': 'markdown',
+      'json': 'json',
+      'yaml': 'yaml',
+      'yml': 'yaml',
+      'html': 'html',
+      'css': 'css',
+      'scss': 'scss',
+      'sass': 'sass'
+    };
+    return typeMap[ext] || 'text';
+  }
+
+  /**
+   * Find existing repository in Pinecone
+   */
+  async findExistingRepo(localPath, remotePath, githubOwner, repoName, currentCommitHash, pineconeService, embeddings) {
+    try {
+      const namespace = this.sanitizeId(`${githubOwner}_${repoName}_main`);
+      const index = await pineconeService.getIndex();
+      
+      // Query for any existing documents in this namespace
+      const queryResponse = await index.namespace(namespace).query({
+        vector: new Array(1536).fill(0), // Dummy vector for existence check
+        topK: 1,
+        includeMetadata: true
+      });
+
+      if (queryResponse.matches && queryResponse.matches.length > 0) {
+        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
+        return {
+          exists: true,
+          commitHash: existingCommit,
+          needsUpdate: existingCommit !== currentCommitHash,
+          namespace
+        };
+      }
+
+      return { exists: false, namespace };
+    } catch (error) {
+      console.log(`[${new Date().toISOString()}] ℹ️ Repository check: ${error.message}`);
+      return { exists: false, namespace: this.sanitizeId(`${githubOwner}_${repoName}_main`) };
     }
   }
 }

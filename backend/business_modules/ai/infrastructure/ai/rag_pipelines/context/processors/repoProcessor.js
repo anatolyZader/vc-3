@@ -17,7 +17,6 @@ class RepoProcessor {
     this.apiSpecProcessor = options.apiSpecProcessor;
     this.docsProcessor = options.markdownDocumentationProcessor;
     this.repositoryProcessor = options.repositoryProcessor;
-    this.repositoryManager = options.repositoryManager;
   }
 
   /**
@@ -158,7 +157,7 @@ class RepoProcessor {
     console.log(`[${new Date().toISOString()}] 🔵 STAGE 2: ORCHESTRATING SPECIALIZED PROCESSORS FOR FULL PROCESSING`);
     
     // Create namespace for this repository
-    const namespace = this.repositoryManager.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+    const namespace = this.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
     
     // Results collector
     const processingResults = {
@@ -232,6 +231,16 @@ class RepoProcessor {
       namespace,
       processedAt: new Date().toISOString()
     };
+  }
+
+  /**
+   * Sanitize string for use as identifiers
+   */
+  sanitizeId(input) {
+    if (!input || typeof input !== 'string') {
+      return 'unknown';
+    }
+    return input.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
   }
 }
 
