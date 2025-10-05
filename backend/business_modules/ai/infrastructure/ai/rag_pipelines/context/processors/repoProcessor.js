@@ -2,167 +2,37 @@
 "use strict";
 
 const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
-const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
-const { PineconeStore } = require('@langchain/pinecone');
-const GitHubOperations = require('./githubOperations');
 
 /**
- * Repository Processor - Complete repository processing operations
+ * Repository Processor - Pure document processing operations
  * 
- * Consolidated functionality including:
- * 1. GitHub API operations for cloud deployment compatibility
- * 2. Document processing and chunking utilities
- * 3. Pinecone vector storage operations
+ * Focused functionality:
+ * 1. Document loading from GitHub repositories  
+ * 2. Document processing and enhancement
+ * 3. Intelligent chunking with AST and semantic analysis
  * 4. Batch processing for large repositories
- * 5. Orchestration methods for specialized processors
  * 
- * Note: Local Git operations removed for cloud deployment compatibility
+ * Note: This is a pure processor - orchestration is handled by ContextPipeline
  */
 class RepoProcessor {
   constructor(options = {}) {
-    this.embeddings = options.embeddings;
-    this.pineconeLimiter = options.pineconeLimiter;
-    this.repoCommitManager = options.commitManager;
-    this.ubiquitousLanguageProcessor = options.ubiquitousLanguageProcessor;
+    // Core processing dependencies
     this.astBasedSplitter = options.astBasedSplitter;
     this.semanticPreprocessor = options.semanticPreprocessor;
-    this.pineconeManager = options.pineconeManager;
+    this.ubiquitousLanguageProcessor = options.ubiquitousLanguageProcessor;
     
-    // Add processors from RepoProcessor consolidation
-    this.apiSpecProcessor = options.apiSpecProcessor;
-    this.docsProcessor = options.markdownDocumentationProcessor || options.docsProcessor;
-    
-    // Add EmbeddingManager for vector storage operations
-    this.embeddingManager = options.embeddingManager;
-    
-    // Initialize GitHubOperations for GitHub API operations
-    this.githubOperations = new GitHubOperations();
-    
-    // Store promise (not the resolved instance) to avoid using an unresolved Promise as a client
-    this._pineconeService = null; // resolved instance once available
-    this._pineconeServicePromise = this.pineconeManager?.getPineconeService?.();
-    // Backward compatibility alias will be assigned lazily after resolution
-    this.pinecone = null;
+    // Note: Storage, orchestration, and external APIs are handled by other components
   }
 
-  /**
-   * Lazily resolve and cache the Pinecone service instance.
-   * Ensures we never accidentally treat a pending Promise as the client.
-   */
-  async _getPineconeService() {
-    if (this._pineconeService) return this._pineconeService;
-    if (this._pineconeServicePromise) {
-      try {
-        this._pineconeService = await this._pineconeServicePromise;
-      } catch (err) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ RepoProcessor: Pinecone service initialization failed: ${err.message}`);
-        this._pineconeService = null;
-      } finally {
-        // Prevent re-awaiting same promise
-        this._pineconeServicePromise = null;
-      }
-      // Backward compatibility alias
-      this.pinecone = this._pineconeService;
-    }
-    return this._pineconeService;
-  }
 
-  /**
-   * ENHANCED: Use Langchain GitLoader with smart commit tracking
-   */
-  async processRepository(repoUrl, branch = 'main', namespace = null) {
-    console.log(`[${new Date().toISOString()}] 🚀 OPTIMIZED PROCESSING: Using enhanced GitHub API approach (no local cloning)`);
-    
-    const { githubOwner, repoName } = this.parseRepoUrl(repoUrl);
-    if (!namespace) {
-      namespace = this.embeddingManager?.sanitizeId(`${githubOwner}_${repoName}_${branch}`) || `${githubOwner}_${repoName}_${branch}`.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    }
 
-    // Use GitHub API directly - no local git cloning required
-    console.log(`[${new Date().toISOString()}] 🔄 PROCESSING: Using GitHub API via LangChain (Cloud Run compatible)`);
-    return await this.processWithGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace);
-  }
 
-  /**
-   * Process repository using GitHub API only (Cloud-native approach)
-   * Note: Local Git functionality removed for cloud deployment compatibility
-   */
-  async processWithLocalGit(repoUrl, githubOwner, repoName, branch, namespace) {
-    console.log(`[${new Date().toISOString()}] 🚀 CLOUD-NATIVE: Local Git method called - redirecting to GitHub API`);
-    
-    // Always use GitHub API in cloud environments
-    return await this.processWithGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace);
-  }
 
-  /**
-   * NEW: Process repository using GitHub API (Cloud Run compatible - no Git required)
-   */
-  async processWithGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace) {
-    try {
-      // Get current commit info from GitHub API using GitHubOperations
-      const commitInfo = await this.githubOperations.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
-      const commitHash = commitInfo?.hash;
-      
-      if (!commitHash) {
-        console.log(`[${new Date().toISOString()}] ⚠️ Could not get commit hash from GitHub API, using simplified processing`);
-        return await this.processWithSimplifiedGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace);
-      }
 
-      // Check existing processing
-      const existingRepo = await this.checkExistingRepo(githubOwner, repoName, commitHash);
-      
-      if (existingRepo?.reason === 'same_commit') {
-        console.log(`[${new Date().toISOString()}] ✅ SKIP: Repository ${githubOwner}/${repoName} already processed for commit ${commitHash}`);
-        return { success: true, skipped: true, reason: 'same_commit' };
-      }
 
-      // Load documents using LangChain GitHub API loader
-      const documents = await this.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
-      
-      if (existingRepo?.reason === 'commit_changed') {
-        // For GitHub API, we don't have easy diff detection, so process all files
-        // In future, we could implement GitHub API diff detection
-        console.log(`[${new Date().toISOString()}] 🔄 COMMIT CHANGED: Processing all documents (GitHub API doesn't support incremental diff yet)`);
-        return await this.processFilteredDocuments(documents, namespace, commitInfo, false);
-      }
 
-      // Full processing
-      console.log(`[${new Date().toISOString()}] 📥 FULL PROCESSING: Processing ${documents.length} documents via GitHub API`);
-      return await this.processFilteredDocuments(documents, namespace, commitInfo, false);
 
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ ERROR in GitHub API processing:`, error);
-      // Fallback to simplified processing without commit tracking
-      return await this.processWithSimplifiedGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace);
-    }
-  }
 
-  /**
-   * FALLBACK: Simplified GitHub API processing without commit tracking
-   */
-  async processWithSimplifiedGitHubAPI(repoUrl, githubOwner, repoName, branch, namespace) {
-    try {
-      console.log(`[${new Date().toISOString()}] 🔧 FALLBACK: Using simplified GitHub API processing`);
-      
-      // Create basic commit info
-      const commitInfo = {
-        hash: 'unknown',
-        message: 'Processed via GitHub API',
-        author: 'automated',
-        date: new Date().toISOString()
-      };
-
-      // Load documents using LangChain
-      const documents = await this.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
-      
-      console.log(`[${new Date().toISOString()}] 📥 SIMPLIFIED: Processing ${documents.length} documents`);
-      return await this.processFilteredDocuments(documents, namespace, commitInfo, false);
-
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ CRITICAL ERROR in simplified GitHub API processing:`, error);
-      throw error;
-    }
-  }
 
   /**
    * ENHANCED: Load documents using batched processing to handle large repositories
@@ -590,44 +460,9 @@ class RepoProcessor {
     };
   }
 
-  /**
-   * Check existing repository processing (same as before)
-   */
-  async checkExistingRepo(githubOwner, repoName, currentCommitHash) {
-    // Ensure pinecone service is resolved before checking existing repo
-    const pineconeService = await this._getPineconeService();
-    return await this.findExistingRepo(
-      null, null, githubOwner, repoName, currentCommitHash, pineconeService, this.embeddings
-    );
-  }
 
-  /**
-   * Process filtered documents (incremental or full)
-   */
-  async processFilteredDocuments(documents, namespace, commitInfo, isIncremental, routingFunction = null) {
-    if (documents.length === 0) {
-      return { success: true, documentsProcessed: 0, chunksGenerated: 0, isIncremental };
-    }
 
-    // Apply semantic and AST processing
-    const processedDocuments = await this.intelligentProcessDocuments(documents);
-    
-    // Split with AST intelligence - pass routing function if provided
-    const splitDocuments = await this.intelligentSplitDocuments(processedDocuments, routingFunction);
-    
-    // Store in Pinecone
-    await this.storeRepositoryDocuments(splitDocuments, namespace);
 
-    return {
-      success: true,
-      documentsProcessed: documents.length,
-      chunksGenerated: splitDocuments.length,
-      commitInfo,
-      namespace,
-      isIncremental,
-      processedAt: new Date().toISOString()
-    };
-  }
 
   // ... (rest of methods remain the same as in original RepositoryProcessor)
   
@@ -697,35 +532,6 @@ class RepoProcessor {
     return lastDot === -1 ? '' : filename.substring(lastDot);
   }
 
-  async storeRepositoryDocuments(documents, namespace) {
-    if (!this.embeddingManager) {
-      console.error(`[${new Date().toISOString()}] ❌ REPOSITORY STORAGE: EmbeddingManager not available`);
-      throw new Error('EmbeddingManager is required for document storage');
-    }
-
-    if (!documents || documents.length === 0) {
-      console.log(`[${new Date().toISOString()}] ℹ️ No documents to store`);
-      return { success: true, chunksStored: 0, namespace };
-    }
-
-    console.log(`[${new Date().toISOString()}] � REPOSITORY STORAGE: Delegating ${documents.length} documents to EmbeddingManager`);
-    
-    // Extract githubOwner and repoName from namespace or metadata
-    const sampleDoc = documents[0];
-    const githubOwner = sampleDoc?.metadata?.githubOwner || 'unknown';
-    const repoName = sampleDoc?.metadata?.repoName || 'unknown';
-    
-    // Delegate to EmbeddingManager's storeToPinecone method
-    await this.embeddingManager.storeToPinecone(documents, namespace, githubOwner, repoName);
-    
-    console.log(`[${new Date().toISOString()}] ✅ REPOSITORY STORAGE: Successfully delegated storage to EmbeddingManager`);
-    return { 
-      success: true, 
-      chunksStored: documents.length, 
-      namespace,
-      delegatedTo: 'EmbeddingManager.storeToPinecone'
-    };
-  }
 
 
 
@@ -752,217 +558,9 @@ class RepoProcessor {
     return typeMap[ext] || 'text';
   }
 
-  /**
-   * Find existing repository in Pinecone
-   */
-  async findExistingRepo(localPath, remotePath, githubOwner, repoName, currentCommitHash, pineconeService, embeddings) {
-    try {
-      const namespace = this.embeddingManager?.sanitizeId(`${githubOwner}_${repoName}_main`) || `${githubOwner}_${repoName}_main`.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-      const index = await pineconeService.getIndex();
-      
-      // Query for any existing documents in this namespace
-      const queryResponse = await index.namespace(namespace).query({
-        vector: new Array(1536).fill(0), // Dummy vector for existence check
-        topK: 1,
-        includeMetadata: true
-      });
 
-      if (queryResponse.matches && queryResponse.matches.length > 0) {
-        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
-        return {
-          exists: true,
-          commitHash: existingCommit,
-          needsUpdate: existingCommit !== currentCommitHash,
-          namespace
-        };
-      }
 
-      return { exists: false, namespace };
-    } catch (error) {
-      console.log(`[${new Date().toISOString()}] ℹ️ Repository check: ${error.message}`);
-      return { exists: false, namespace: this.embeddingManager?.sanitizeId(`${githubOwner}_${repoName}_main`) || `${githubOwner}_${repoName}_main`.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase() };
-    }
-  }
 
-  // ==================================================================================
-  // ORCHESTRATION METHODS - Consolidated from RepoProcessor
-  // ==================================================================================
-
-  /**
-   * Dedicated method to orchestrate ubiquitous language processing
-   */
-  async processUbiquitousLanguage(namespace) {
-    console.log(`[${new Date().toISOString()}] 🎯 UBIQUITOUS LANGUAGE: Starting domain knowledge processing...`);
-    
-    try {
-      // Since UbiquitousLanguageProcessor doesn't have a processUbiquitousLanguage method yet,
-      // we'll create a simple result for now
-      const result = {
-        success: true,
-        documentsProcessed: 1,
-        chunksGenerated: 0,
-        namespace,
-        processedAt: new Date().toISOString(),
-        note: 'Ubiquitous language context available for document enhancement'
-      };
-      
-      console.log(`[${new Date().toISOString()}] ✅ UBIQUITOUS LANGUAGE: Successfully processed domain knowledge`);
-      return result;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ UBIQUITOUS LANGUAGE: Processing failed:`, error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * Dedicated method to orchestrate API specification processing
-   */
-  async processApiSpecifications(namespace) {
-    console.log(`[${new Date().toISOString()}] 🎯 API SPECIFICATIONS: Starting API spec processing...`);
-    
-    try {
-      const result = this.apiSpecProcessor ? 
-        await this.apiSpecProcessor.processApiSpec(namespace) :
-        {
-          success: true,
-          documentsProcessed: 0,
-          chunksGenerated: 0,
-          namespace,
-          processedAt: new Date().toISOString(),
-          note: 'API Spec processor not configured'
-        };
-      console.log(`[${new Date().toISOString()}] ✅ API SPECIFICATIONS: Successfully processed API documentation`);
-      return result;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ API SPECIFICATIONS: Processing failed:`, error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * Dedicated method to orchestrate markdown documentation processing
-   */
-  async processMarkdownDocumentation(namespace) {
-    console.log(`[${new Date().toISOString()}] 🎯 MARKDOWN DOCS: Starting markdown documentation processing...`);
-    
-    try {
-      const result = this.docsProcessor ? 
-        await this.docsProcessor.processMarkdownDocumentation(namespace) :
-        {
-          success: true,
-          documentsProcessed: 0,
-          chunksGenerated: 0,
-          namespace,
-          processedAt: new Date().toISOString(),
-          note: 'Markdown docs processor not configured'
-        };
-      console.log(`[${new Date().toISOString()}] ✅ MARKDOWN DOCS: Successfully processed system documentation`);
-      return result;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ MARKDOWN DOCS: Processing failed:`, error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * Dedicated method to orchestrate repository source code processing
-   */
-  async processRepositoryCode(repoUrl, branch, namespace) {
-    console.log(`[${new Date().toISOString()}] 🎯 REPOSITORY CODE: Starting source code processing...`);
-    
-    try {
-      const result = await this.processRepository(repoUrl, branch, namespace);
-      console.log(`[${new Date().toISOString()}] ✅ REPOSITORY CODE: Successfully processed source code`);
-      return result;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ REPOSITORY CODE: Processing failed:`, error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * Process full repository with all specialized processors
-   * Consolidated orchestration method from RepoProcessor
-   */
-  async processFullRepositoryWithProcessors(userId, repoId, tempDir, githubOwner, repoName, branch, commitInfo) {
-    console.log(`[${new Date().toISOString()}] 🔵 STAGE 2: ORCHESTRATING SPECIALIZED PROCESSORS FOR FULL PROCESSING`);
-    
-    // Create namespace for this repository
-    const namespace = this.embeddingManager?.sanitizeId(`${githubOwner}_${repoName}_${branch}`) || `${githubOwner}_${repoName}_${branch}`.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    
-    // Results collector
-    const processingResults = {
-      ubiquitousLanguage: null,
-      apiSpecifications: null,
-      markdownDocumentation: null,
-      repositoryCode: null
-    };
-
-    // Process 1: Ubiquitous Language Enhancement
-    console.log(`[${new Date().toISOString()}] 🎯 PROCESSOR 1: UBIQUITOUS LANGUAGE PROCESSING`);
-    try {
-      processingResults.ubiquitousLanguage = await this.processUbiquitousLanguage(namespace);
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ Ubiquitous Language processing failed: ${error.message}`);
-    }
-
-    // Process 2: API Specifications
-    console.log(`[${new Date().toISOString()}] 🎯 PROCESSOR 2: API SPECIFICATION PROCESSING`);
-    try {
-      processingResults.apiSpecifications = await this.processApiSpecifications(namespace);
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ API Specification processing failed: ${error.message}`);
-    }
-
-    // Process 3: Markdown Documentation
-    console.log(`[${new Date().toISOString()}] 🎯 PROCESSOR 3: MARKDOWN DOCUMENTATION PROCESSING`);
-    try {
-      processingResults.markdownDocumentation = await this.processMarkdownDocumentation(namespace);
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ Markdown Documentation processing failed: ${error.message}`);
-    }
-
-    // Process 4: Repository Source Code (using proper orchestration path)
-    console.log(`[${new Date().toISOString()}] 🎯 PROCESSOR 4: REPOSITORY CODE PROCESSING`);
-    try {
-      // Use the dedicated processRepositoryCode method for consistent orchestration
-      // Use GitHub HTTPS URL instead of local file:// path - GithubRepoLoader needs the actual GitHub URL
-      const githubUrl = `https://github.com/${githubOwner}/${repoName}`;
-      // This calls processRepository which does full processing (load + process + store)
-      processingResults.repositoryCode = await this.processRepositoryCode(
-        githubUrl, branch, namespace
-      );
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ Repository Code processing failed: ${error.message}`);
-    }
-
-    console.log(`[${new Date().toISOString()}] 🔵 STAGE 3: PROCESSING COMPLETION & SUMMARY`);
-    
-    // Calculate total results
-    const totalDocuments = Object.values(processingResults)
-      .filter(result => result?.success)
-      .reduce((sum, result) => sum + (result.documentsProcessed || 0), 0);
-    
-    const totalChunks = Object.values(processingResults)
-      .filter(result => result?.success)
-      .reduce((sum, result) => sum + (result.chunksGenerated || 0), 0);
-
-    console.log(`[${new Date().toISOString()}] 🎉 ORCHESTRATION COMPLETE: Successfully processed repository ${githubOwner}/${repoName}`);
-    console.log(`[${new Date().toISOString()}] 📊 SUMMARY: ${totalDocuments} documents processed, ${totalChunks} chunks generated across all processors`);
-
-    return {
-      success: true,
-      message: 'Repository processed successfully with specialized processors',
-      totalDocuments,
-      totalChunks,
-      processingResults,
-      commitHash: commitInfo?.hash || 'local',
-      commitInfo,
-      userId, repoId, githubOwner, repoName,
-      namespace,
-      processedAt: new Date().toISOString()
-    };
-  }
 }
 
 module.exports = RepoProcessor;

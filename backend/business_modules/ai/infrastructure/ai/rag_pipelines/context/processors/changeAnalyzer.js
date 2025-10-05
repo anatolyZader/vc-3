@@ -612,15 +612,34 @@ class ChangeAnalyzer {
         });
       }
 
-      // Step 4: Process changed documents
-      const namespace = contextPipeline.repoPreparation.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
-      const result = await contextPipeline.repoProcessor.processFilteredDocuments(
-        changedDocuments, namespace, newCommitInfo, true, contextPipeline.routeDocumentsToProcessors.bind(contextPipeline)
+      // Step 4: Process changed documents (using pure processing methods)
+      const namespace = contextPipeline.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      
+      // Process documents
+      const processedDocuments = await contextPipeline.repoProcessor.intelligentProcessDocuments(changedDocuments);
+      
+      // Split documents  
+      const splitDocuments = await contextPipeline.repoProcessor.intelligentSplitDocuments(
+        processedDocuments, 
+        contextPipeline.routeDocumentsToProcessors?.bind(contextPipeline)
       );
+
+      // Store documents using EmbeddingManager
+      await contextPipeline.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
+      
+      const result = {
+        success: true,
+        documentsProcessed: changedDocuments.length,
+        chunksGenerated: splitDocuments.length,
+        commitInfo: newCommitInfo,
+        namespace,
+        isIncremental: true,
+        processedAt: new Date().toISOString()
+      };
       
       // Step 5: Update repository tracking
       const pineconeClient = await contextPipeline.getPineconeClient();
-      await contextPipeline.repoPreparation.storeRepositoryTrackingInfo(
+      await contextPipeline.githubOperations.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, newCommitInfo, 
         namespace, pineconeClient, contextPipeline.embeddings
       );

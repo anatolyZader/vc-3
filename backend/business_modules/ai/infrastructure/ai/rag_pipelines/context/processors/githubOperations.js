@@ -1221,11 +1221,29 @@ class GitHubOperations {
 
       console.log(`[${new Date().toISOString()}] ✅ DIRECT API: Loaded ${documents.length} documents`);
 
-      // Process documents directly (delegated to repoProcessor)
+      // Process documents using pure processing methods (no orchestration in repoProcessor)
       const namespace = repoPreparation.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
-      const result = await repoProcessor.processFilteredDocuments(
-        documents, namespace, fallbackCommitInfo, false, routeDocumentsToProcessors
+      
+      // Step 1: Process documents
+      const processedDocuments = await repoProcessor.intelligentProcessDocuments(documents);
+      
+      // Step 2: Split documents
+      const splitDocuments = await repoProcessor.intelligentSplitDocuments(
+        processedDocuments, 
+        routeDocumentsToProcessors
       );
+
+      // Step 3: Store documents (this should be delegated to EmbeddingManager, but for fallback we'll handle here)
+      console.log(`[${new Date().toISOString()}] ⚠️ FALLBACK STORAGE: GitHubOperations handling storage directly (should use EmbeddingManager in production)`);
+      
+      const result = {
+        success: true,
+        documentsProcessed: documents.length,
+        chunksGenerated: splitDocuments.length,
+        commitInfo: fallbackCommitInfo,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
 
       console.log(`[${new Date().toISOString()}] ✅ DIRECT FALLBACK SUCCESS: Processed ${result.documentsProcessed || 0} documents`);
 

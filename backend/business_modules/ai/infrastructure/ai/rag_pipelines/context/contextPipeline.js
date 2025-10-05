@@ -70,17 +70,11 @@ class ContextPipeline {
       pineconeManager: this.pineconeManager
     });
     
-    // Initialize repoProcessor with all necessary processors (consolidated functionality)
+    // Initialize repoProcessor with pure processing dependencies only
     this.repoProcessor = new RepoProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      pineconeManager: this.pineconeManager,
-      embeddingManager: this.embeddingManager,  // Pass EmbeddingManager for vector storage
       astBasedSplitter: this.astCodeSplitter,
       semanticPreprocessor: this.semanticPreprocessor,
-      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer,
-      apiSpecProcessor: this.apiSpecProcessor,
-      docsProcessor: this.docsProcessor
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer
     });
     
     // Initialize EventManager
@@ -700,21 +694,59 @@ class ContextPipeline {
     console.log(`[${new Date().toISOString()}] 🔵 STANDARD PROCESSING: Using Langchain-first approach for repository`);
     
     try {
-      // Step 1: Load ALL documents using Langchain (no manual filesystem operations)
-      const documents = await this.repoProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
+      // Step 1: Get commit info and check for existing processing
+      const actualCommitInfo = commitInfo || await this.githubOperations.getCommitInfoFromGitHubAPI(githubOwner, repoName, branch);
+      const commitHash = actualCommitInfo?.hash;
       
-      // Step 2: Process all documents
+      if (commitHash) {
+        // Check if already processed
+        const existingRepo = await this._checkExistingRepo(githubOwner, repoName, commitHash);
+        if (existingRepo?.reason === 'same_commit') {
+          console.log(`[${new Date().toISOString()}] ✅ SKIP: Repository ${githubOwner}/${repoName} already processed for commit ${commitHash}`);
+          return { success: true, skipped: true, reason: 'same_commit' };
+        }
+      }
+
+      // Step 2: Load documents using RepoProcessor (pure processing)
+      const documents = await this.repoProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, actualCommitInfo);
+      
+      if (documents.length === 0) {
+        console.log(`[${new Date().toISOString()}] ⚠️ No documents loaded from repository`);
+        return { success: true, documentsProcessed: 0, chunksGenerated: 0 };
+      }
+
+      // Step 3: Process documents with RepoProcessor (pure processing)
+      console.log(`[${new Date().toISOString()}] 🔄 Processing ${documents.length} documents`);
+      const processedDocuments = await this.repoProcessor.intelligentProcessDocuments(documents);
+      
+      // Step 4: Split documents with intelligent routing
+      const splitDocuments = await this.repoProcessor.intelligentSplitDocuments(
+        processedDocuments, 
+        this.routeDocumentsToProcessors?.bind(this)
+      );
+
+      // Step 5: Store processed documents using EmbeddingManager
       const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
-      const result = await this.repoProcessor.processFilteredDocuments(
-        documents, namespace, commitInfo, false, this.routeDocumentsToProcessors.bind(this)
-      );
+      await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
       
-      // Step 3: Store repository tracking info for future duplicate detection
-      const pineconeClient2 = await this.getPineconeClient();
-      await this.githubOperations.storeRepositoryTrackingInfo(
-        userId, repoId, githubOwner, repoName, commitInfo, 
-        namespace, pineconeClient2, this.embeddings
-      );
+      // Step 6: Store repository tracking info for future duplicate detection  
+      if (commitHash) {
+        const pineconeClient2 = await this.getPineconeClient();
+        await this.githubOperations.storeRepositoryTrackingInfo(
+          userId, repoId, githubOwner, repoName, actualCommitInfo, 
+          namespace, pineconeClient2, this.embeddings
+        );
+      }
+
+      // Prepare result
+      const result = {
+        success: true,
+        documentsProcessed: documents.length,
+        chunksGenerated: splitDocuments.length,
+        commitInfo: actualCommitInfo,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
 
       return ContextPipelineUtils.createStandardResult({
         success: true,
@@ -745,6 +777,40 @@ class ContextPipeline {
 
   emitRagStatus(status, details = {}) {
     return this.eventManager.emitRagStatus(status, details);
+  }
+
+  /**
+   * Check if repository already exists and processed for given commit
+   * Moved from RepoProcessor as part of orchestration responsibility
+   */
+  async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
+    try {
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`);
+      const pineconeClient = await this.getPineconeClient();
+      
+      // Query for any existing documents in this namespace
+      const queryResponse = await pineconeClient.namespace(namespace).query({
+        vector: new Array(1536).fill(0), // Dummy vector for existence check
+        topK: 1,
+        includeMetadata: true
+      });
+
+      if (queryResponse.matches && queryResponse.matches.length > 0) {
+        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
+        return {
+          exists: true,
+          commitHash: existingCommit,
+          needsUpdate: existingCommit !== currentCommitHash,
+          namespace,
+          reason: existingCommit === currentCommitHash ? 'same_commit' : 'commit_changed'
+        };
+      }
+
+      return { exists: false, namespace };
+    } catch (error) {
+      console.log(`[${new Date().toISOString()}] ℹ️ Repository check: ${error.message}`);
+      return { exists: false, namespace: this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`) };
+    }
   }
 }
 
