@@ -387,6 +387,52 @@ class RepoWorkerManager {
   }
 
   /**
+   * Handle progress update from worker
+   */
+  handleProgressUpdate(workerId, message) {
+    const { jobId, workUnitId, progress } = message;
+    
+    console.log(`[${new Date().toISOString()}] 📊 WORKER ${workerId}: Progress update for ${workUnitId}: ${progress?.percentage || 'unknown'}%`);
+    
+    // Update job progress tracking if needed
+    const job = this.activeJobs.get(jobId);
+    if (job && progress) {
+      // Store progress information for monitoring
+      job.progressUpdates = job.progressUpdates || {};
+      job.progressUpdates[workUnitId] = {
+        ...progress,
+        timestamp: Date.now(),
+        workerId
+      };
+    }
+  }
+
+  /**
+   * Handle rate limit hit from worker
+   */
+  handleRateLimitHit(workerId, message) {
+    const { retryAfter, endpoint } = message;
+    
+    console.warn(`[${new Date().toISOString()}] ⚠️ WORKER ${workerId}: Rate limit hit on ${endpoint}, retry after ${retryAfter}s`);
+    
+    // Implement rate limit backoff strategy
+    const worker = this.workers.get(workerId);
+    if (worker) {
+      // Temporarily disable worker
+      worker.status = 'rate_limited';
+      worker.rateLimitRetryAfter = Date.now() + (retryAfter * 1000);
+      
+      // Re-enable worker after rate limit period
+      setTimeout(() => {
+        if (worker.status === 'rate_limited') {
+          worker.status = 'idle';
+          console.log(`[${new Date().toISOString()}] ✅ WORKER ${workerId}: Rate limit expired, worker available`);
+        }
+      }, retryAfter * 1000);
+    }
+  }
+
+  /**
    * Process queued work units
    */
   processWorkQueue() {

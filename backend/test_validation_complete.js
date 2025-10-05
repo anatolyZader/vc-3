@@ -8,7 +8,7 @@ async function validateCloudNativeFixes() {
   const results = {
     githubApiAccess: false,
     langchainLoader: false,
-    repoProcessorUtils: false,
+    repoProcessor: false,
     contextPipeline: false,
     batchProcessing: false,
     errorHandling: false
@@ -50,9 +50,9 @@ async function validateCloudNativeFixes() {
     console.log(`   ✅ LangChain loader working - loaded ${docs.length} documents`);
     results.langchainLoader = true;
     
-    console.log('\n✅ TEST 3: RepoProcessorUtils Cloud-Native Processing');
-    const RepoProcessorUtils = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessorUtils');
-    const processor = new RepoProcessorUtils({
+    console.log('\n✅ TEST 3: RepoProcessor Cloud-Native Processing');
+    const RepoProcessor = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessor');
+    const processor = new RepoProcessor({
       repositoryManager: {
         sanitizeId: (id) => id.replace(/[^a-zA-Z0-9_-]/g, '_'),
         getFileType: (filename) => filename?.split('.').pop() || 'unknown'
@@ -75,13 +75,13 @@ async function validateCloudNativeFixes() {
         'https://github.com/anatolyZader/vc-3', githubOwner, repoName, 'main', 'test-namespace'
       );
       console.log('   ✅ processWithLocalGit redirects to GitHub API (no git commands used)');
-      results.repoProcessorUtils = true;
+      results.repoProcessor = true;
     } catch (error) {
       if (error.message.includes('git') || error.message.includes('clone')) {
         throw new Error('processWithLocalGit is still trying to use git commands!');
       }
       console.log(`   ✅ processWithLocalGit redirects correctly (expected error: ${error.message})`);
-      results.repoProcessorUtils = true;
+      results.repoProcessor = true;
     }
     
     console.log('\n✅ TEST 4: Context Pipeline Error Handling');
@@ -131,7 +131,7 @@ async function printSummary(results) {
   const tests = [
     { name: 'GitHub API Access', key: 'githubApiAccess', description: 'Direct GitHub API authentication and access' },
     { name: 'LangChain Integration', key: 'langchainLoader', description: 'LangChain GitHub loader functionality' },
-    { name: 'RepoProcessorUtils', key: 'repoProcessorUtils', description: 'Cloud-native repository processing' },
+    { name: 'RepoProcessor', key: 'repoProcessor', description: 'Cloud-native repository processing' },
     { name: 'Context Pipeline', key: 'contextPipeline', description: 'Context pipeline loads without errors' },
     { name: 'Batch Processing', key: 'batchProcessing', description: 'Batched document loading' },
     { name: 'Error Handling', key: 'errorHandling', description: 'Graceful error handling and fallbacks' }

@@ -1,12 +1,12 @@
 // test_repo_characteristics.js - Test the enhanced getRepositoryCharacteristics method
 "use strict";
 
-const RepoPreparation = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoPreparation');
+const GitHubOperations = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/githubOperations');
 
 async function testRepositoryCharacteristics() {
   console.log(`[${new Date().toISOString()}] 🧪 TESTING: Enhanced Repository Characteristics Gathering\n`);
   
-  const repoPreparation = new RepoPreparation();
+  const githubOperations = new GitHubOperations();
   
   // Test with a real repository
   const testRepos = [
@@ -24,7 +24,7 @@ async function testRepositoryCharacteristics() {
     console.log(`${'='.repeat(60)}`);
     
     try {
-      const characteristics = await repoPreparation.getRepositoryCharacteristics(
+      const characteristics = await githubOperations.getRepositoryCharacteristics(
         testRepo.owner, 
         testRepo.repo
       );

@@ -1,4 +1,4 @@
-// repoPreparation.js - Unified Repository Management & GitHub API Operations
+// githubOperations.js - Unified Repository Management & GitHub API Operations
 "use strict";
 
 const fs = require('fs').promises;
@@ -451,7 +451,7 @@ const { promisify } = require('util');
  * 
  * ==================================================================================
  */
-class RepoPreparation {
+class GitHubOperations {
   constructor(options = {}) {
     this.execAsync = promisify(exec);
     this.processingStrategy = {
@@ -1352,4 +1352,4 @@ class RepoPreparation {
   }
 }
 
-module.exports = RepoPreparation;
+module.exports = GitHubOperations;

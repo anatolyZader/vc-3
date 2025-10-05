@@ -25,8 +25,8 @@ async function testRepositoryProcessing() {
   }
 
   try {
-    console.log('📦 Loading RepoProcessorUtils...');
-    const RepoProcessorUtils = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessorUtils');
+    console.log('📦 Loading RepoProcessor...');
+    const RepoProcessor = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessor');
     
     // Create mock options for the processor
     const mockOptions = {
@@ -42,8 +42,8 @@ async function testRepositoryProcessing() {
       }
     };
     
-    console.log('🔧 Initializing RepoProcessorUtils...');
-    const processor = new RepoProcessorUtils(mockOptions);
+    console.log('🔧 Initializing RepoProcessor...');
+    const processor = new RepoProcessor(mockOptions);
     
     // Test repository details
     const repoUrl = 'https://github.com/anatolyZader/vc-3';

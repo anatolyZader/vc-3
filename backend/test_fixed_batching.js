@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Test the FIXED repository processing to see if we get more documents
-const RepoProcessorUtils = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessorUtils');
+const RepoProcessor = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessor');
 
 async function testFixedBatching() {
   console.log('🔧 TESTING FIXED BATCH CONFIGURATION');
@@ -18,7 +18,7 @@ async function testFixedBatching() {
 
   try {
     // Create processor with basic config
-    const processor = new RepoProcessorUtils({
+    const processor = new RepoProcessor({
       repositoryManager: {
         sanitizeId: (id) => id.replace(/[^a-zA-Z0-9_-]/g, '_'),
         getFileType: (filename) => {

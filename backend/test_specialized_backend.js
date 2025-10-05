@@ -3,7 +3,7 @@
 // Test the specialized backend loader
 require('dotenv').config();
 
-const RepoProcessorUtils = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessorUtils');
+const RepoProcessor = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessor');
 
 async function testSpecializedBackendLoader() {
   console.log('🏗️ TESTING: Specialized Backend Loader');
@@ -15,7 +15,7 @@ async function testSpecializedBackendLoader() {
     return;
   }
 
-  const repoProcessor = new RepoProcessorUtils();
+  const repoProcessor = new RepoProcessor();
   
   try {
     const repoUrl = 'https://github.com/anatolyZader/vc-3';

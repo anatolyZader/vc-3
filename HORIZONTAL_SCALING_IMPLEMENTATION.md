@@ -93,10 +93,10 @@ const shouldScale = await this.shouldUseHorizontalScaling(owner, repo, branch);
 
 if (shouldScale.useWorkers) {
   // Use worker-based horizontal scaling
-  return await this.processLargeRepositoryWithWorkers(params);
+  return await this.processRepoWithWorkers(params);
 } else {
   // Use standard Langchain processing
-  return await this.processStandardRepository(params);
+  return await this.processSmallRepo(params);
 }
 ```
 

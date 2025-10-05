@@ -72,11 +72,14 @@ class EmbeddingManager {
 
       console.log(`[${new Date().toISOString()}] 🔑 ID GENERATION: Creating unique identifiers to prevent collisions and enable precise retrieval`);
 
-      // Generate unique document IDs
+      // Generate unique document IDs (compatible with RepoProcessor's previous format)
       const documentIds = documents.map((doc, index) => {
-        const source = this.sanitizeId(doc.metadata.source || 'unknown');
-        const repoId = this.sanitizeId(doc.metadata.repoId || 'unknown');
-        return `${githubOwner}_${repoId}_${source}_chunk_${index}`;
+        const sourceFile = doc.metadata.source || 'unknown';
+        const sanitizedSource = sourceFile
+          .replace(/[^a-zA-Z0-9_-]/g, '_')
+          .replace(/^(?:_+)|(?:_+)$/g, '');
+        const timestamp = Date.now();
+        return `${namespace}_${sanitizedSource}_chunk_${index}_${timestamp}`;
       });
 
       console.log(`[${new Date().toISOString()}] ⚡ RATE LIMITING: Using bottleneck limiter to respect Pinecone API limits and prevent throttling`);

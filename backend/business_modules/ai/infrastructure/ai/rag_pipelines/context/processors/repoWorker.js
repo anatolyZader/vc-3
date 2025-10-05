@@ -42,7 +42,7 @@ class RepoWorker {
   async initializeModules() {
     try {
       // Import CloudNativeRepoLoader for file processing
-      const CloudNativeRepoLoader = require('../CloudNativeRepoLoader');
+      const CloudNativeRepoLoader = require('./cloudNativeRepoLoader');
       this.repoLoader = new CloudNativeRepoLoader({
         workerId: this.workerId,
         enableBatching: true,
@@ -50,8 +50,8 @@ class RepoWorker {
         delayBetweenBatches: 1000 // 1 second between batches
       });
       
-      // Import document processors
-      this.documentProcessor = require('../DocumentProcessor');
+      // Document processing will be handled by main pipeline
+      // this.documentProcessor = require('../DocumentProcessor');
       
       console.log(`[${new Date().toISOString()}] 📦 WORKER ${this.workerId}: Modules initialized`);
       
@@ -76,6 +76,15 @@ class RepoWorker {
     console.log(`[${new Date().toISOString()}] 🚀 WORKER ${this.workerId}: Processing work unit ${workUnit.id} (${workUnit.files.length} files)`);
     
     try {
+      // Configure repo loader with repository information
+      if (workUnit.repositoryJob && this.repoLoader) {
+        const { githubOwner, repoName, branch } = workUnit.repositoryJob;
+        this.repoLoader.owner = githubOwner;
+        this.repoLoader.repo = repoName;
+        this.repoLoader.branch = branch;
+        console.log(`[${new Date().toISOString()}] 🔧 WORKER ${this.workerId}: Configured for ${githubOwner}/${repoName}:${branch}`);
+      }
+      
       // Check rate limits before processing
       await this.checkRateLimits();
       
@@ -184,12 +193,9 @@ class RepoWorker {
         try {
           console.log(`[${new Date().toISOString()}] 📄 WORKER ${this.workerId}: Processing ${file.path}`);
           
-          // Load file content
-          const fileContent = await this.repoLoader.loadFileContent({
-            githubOwner,
-            repoName,
-            branch,
-            filePath: file.path
+          // Load file content using the correct method
+          const fileContent = await this.repoLoader.loadSingleFile({
+            path: file.path
           });
           
           if (fileContent && fileContent.pageContent) {
@@ -259,8 +265,13 @@ class RepoWorker {
    */
   async processDocument(document) {
     try {
-      // Use existing document processing infrastructure
-      const chunks = await this.documentProcessor.processDocument(document);
+      // Simplified processing - just return the document as a single chunk
+      // Full processing will be handled by main pipeline
+      const chunks = [{
+        pageContent: document.pageContent,
+        metadata: document.metadata,
+        chunkIndex: 0
+      }];
       
       // Store chunks in Pinecone with namespace
       const namespace = `${document.metadata.userId}_${document.metadata.repoId}`;
@@ -286,23 +297,14 @@ class RepoWorker {
   }
 
   /**
-   * Store vector in Pinecone
+   * Store vector in Pinecone - DISABLED for workers
+   * Workers only process files, main pipeline handles storage
    */
   async storePineconeVector(vector, namespace) {
-    try {
-      const { PineconeStore } = require('langchain/vectorstores/pinecone');
-      const { OpenAIEmbeddings } = require('langchain/embeddings/openai');
-      const { getPineconeClient } = require('../../../../../../RedisStore'); // Adjust path as needed
-      
-      const pinecone = await getPineconeClient();
-      const index = pinecone.Index(process.env.PINECONE_INDEX);
-      
-      await index.namespace(namespace).upsert([vector]);
-      
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ WORKER ${this.workerId}: Pinecone storage failed:`, error.message);
-      throw error;
-    }
+    // NOTE: Workers don't directly store in Pinecone
+    // They return processed data to main pipeline for storage
+    console.log(`[${new Date().toISOString()}] 📝 WORKER ${this.workerId}: Processed vector for namespace ${namespace} (will be stored by main pipeline)`);
+    return vector;
   }
 
   /**

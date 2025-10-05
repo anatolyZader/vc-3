@@ -206,11 +206,18 @@ class CloudNativeRepoLoader {
     try {
       const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${fileInfo.path}?ref=${this.branch}`;
       
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'eventstorm-cloud-loader'
+      };
+      
+      // Add GitHub token if available
+      if (process.env.GITHUB_TOKEN) {
+        headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+      }
+      
       const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'eventstorm-cloud-loader'
-        },
+        headers,
         timeout: 10000
       });
 

@@ -7,9 +7,8 @@ const SemanticPreprocessor = require('./processors/semanticPreprocessor');
 const UbiquitousLanguageEnhancer = require('./processors/ubiquitousLanguageEnhancer');
 const ApiSpecProcessor = require('./processors/apiSpecProcessor');
 const DocsProcessor = require('./processors/docsProcessor');
-const RepoPreparation = require('./processors/repoPreparation');
+const GitHubOperations = require('./processors/githubOperations');
 const ASTCodeSplitter = require('./processors/astCodeSplitter');
-const RepoProcessorUtils = require('./processors/repoProcessorUtils');
 const RepoProcessor = require('./processors/repoProcessor');
 const EmbeddingManager = require('./processors/embeddingManager');
 const RepoWorkerManager = require('./processors/RepoWorkerManager');
@@ -38,27 +37,10 @@ class ContextPipeline {
     
     // Initialize core components only
     this.pineconeManager = new PineconePlugin();
-    this.repoPreparation = new RepoPreparation();
+    this.githubOperations = new GitHubOperations();
     this.changeAnalyzer = new ChangeAnalyzer();
-    this.repoProcessorUtils = new RepoProcessorUtils();
     this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
     this.workerManager = new RepoWorkerManager();
-    
-    // Initialize processors that might be used in different methods
-    this.docsProcessor = new DocsProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repoPreparation: this.repoPreparation,
-      pineconeManager: this.pineconeManager
-    });
-    
-    // Initialize repoProcessor to ensure it's always available
-    this.repoProcessor = new RepoProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      eventBus: this.eventBus,
-      repoProcessorUtils: this.repoProcessorUtils
-    });
     
     // Initialize document processing components
     this.astCodeSplitter = new ASTCodeSplitter({
@@ -74,7 +56,32 @@ class ContextPipeline {
       pineconeLimiter: this.pineconeLimiter
     });
     
-    this.embeddingManager = new EmbeddingManager({ config: this.config });
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+    
+    // Initialize EmbeddingManager first
+    this.embeddingManager = new EmbeddingManager({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      pineconeManager: this.pineconeManager
+    });
+    
+    // Initialize repoProcessor with all necessary processors (consolidated functionality)
+    this.repoProcessor = new RepoProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      pineconeManager: this.pineconeManager,
+      embeddingManager: this.embeddingManager,  // Pass EmbeddingManager for vector storage
+      astBasedSplitter: this.astCodeSplitter,
+      semanticPreprocessor: this.semanticPreprocessor,
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer,
+      apiSpecProcessor: this.apiSpecProcessor,
+      docsProcessor: this.docsProcessor
+    });
     
     // Initialize EventManager
     this.eventManager = new EventManager({
@@ -401,8 +408,8 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 🔄 OPTIMIZED PROCESSING: Using Langchain-first approach with smart commit detection`);
       console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Processing ${githubOwner}/${repoName} with optimized strategy`);
 
-      // Step 1: Try to get commit info efficiently using RepoPreparation
-      const commitInfo = await this.repoPreparation.getPushedCommitInfo(url, branch, githubOwner, repoName);
+      // Step 1: Try to get commit info efficiently using GitHubOperations
+      const commitInfo = await this.githubOperations.getPushedCommitInfo(url, branch, githubOwner, repoName);
 
       if (!commitInfo) {
         throw new Error('Failed to retrieve commit information');
@@ -412,7 +419,7 @@ class ContextPipeline {
 
       // Step 2: Enhanced duplicate check with commit hash comparison
       const pineconeClient = await this.getPineconeClient();
-      const existingRepo = await this.repoPreparation.findExistingRepo(
+      const existingRepo = await this.githubOperations.findExistingRepo(
         userId, repoId, githubOwner, repoName, commitInfo?.hash ?? null, pineconeClient, this.embeddings
       );
       
@@ -459,7 +466,7 @@ class ContextPipeline {
       console.error(`[${new Date().toISOString()}] ❌ Error in orchestration for repository ${repoId}:`, error.message);
       
       // IMMEDIATE GITHUB API FALLBACK: Detect Git-related errors and skip to API approach
-      const isGitError = this.repoPreparation?.constructor.isGitError?.(error) || 
+      const isGitError = this.githubOperations?.constructor.isGitError?.(error) || 
                         error.message.includes('git: not found') || 
                         error.message.includes('Command failed: git') || 
                         error.message.includes('Failed to clone repository');
@@ -472,11 +479,11 @@ class ContextPipeline {
       // CRITICAL FALLBACK: Try direct GitHub API document loading when orchestration fails
       console.log(`[${new Date().toISOString()}] 🆘 FALLBACK: Attempting direct GitHub API document loading`);
       try {
-        // Delegate to repoPreparation for GitHub API fallback processing
-        const result = await this.repoPreparation.processRepositoryViaDirectAPIFallback({
+        // Delegate to githubOperations for GitHub API fallback processing
+        const result = await this.githubOperations.processRepositoryViaDirectAPIFallback({
           userId, repoId, repoUrl: url, branch, githubOwner, repoName,
           repoProcessor: this.repoProcessor,
-          repoPreparation: this.repoPreparation,
+          repoPreparation: this.githubOperations,
           pineconeClient: await this.getPineconeClient(),
           embeddings: this.embeddings,
           routeDocumentsToProcessors: this.routeDocumentsToProcessors.bind(this),
@@ -504,83 +511,6 @@ class ContextPipeline {
   }
 
   /**
-   * Index core documentation - directly coordinates specialized processors
-   */
-  async indexCoreDocsToPinecone(namespace = 'core-docs', clearFirst = false) {
-    console.log(`[${new Date().toISOString()}] 🎯 CORE DOCS: Starting comprehensive core documentation processing`);
-    console.log(`[${new Date().toISOString()}] 🎯 Using specialized processors: API specs + markdown documentation`);
-    
-    // EmbeddingManager already initialized in constructor
-    
-    try {
-      // Clear namespace if requested
-      if (clearFirst && this.embeddingManager.pinecone) {
-        console.log(`[${new Date().toISOString()}] 🧹 CORE DOCS: Clearing existing docs in namespace '${namespace}'`);
-        try {
-          const index = this.embeddingManager.pinecone.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
-          await index.namespace(namespace).deleteAll();
-          console.log(`[${new Date().toISOString()}] ✅ CORE DOCS: Successfully cleared namespace '${namespace}'`);
-        } catch (clearError) {
-          console.warn(`[${new Date().toISOString()}] ⚠️ CORE DOCS: Could not clear namespace:`, clearError.message);
-        }
-      }
-
-      const results = {
-        success: true,
-        apiSpecResults: null,
-        markdownResults: null,
-        totalDocuments: 0,
-        totalChunks: 0,
-        namespace,
-        processedAt: new Date().toISOString()
-      };
-
-      // Process API specifications using the unified document processing pipeline
-      try {
-        console.log(`[${new Date().toISOString()}] 🔵 CORE DOCS: Processing API specifications through document routing pipeline...`);
-        
-        // ApiSpecProcessor already initialized in constructor
-        
-        // Process core API specs using the specialized processor directly
-        // This maintains the original functionality while using consistent processing
-        results.apiSpecResults = await this.apiSpecProcessor.processApiSpec(namespace);
-        results.totalDocuments += results.apiSpecResults.documentsProcessed || 0;
-        results.totalChunks += results.apiSpecResults.chunksGenerated || 0;
-      } catch (apiError) {
-        console.error(`[${new Date().toISOString()}] ❌ CORE DOCS: API spec processing failed:`, apiError.message);
-        results.apiSpecError = apiError.message;
-      }
-
-      // Process markdown documentation using specialized processor
-      try {
-        console.log(`[${new Date().toISOString()}] 📚 CORE DOCS: Processing markdown documentation...`);
-        results.markdownResults = await this.docsProcessor.processMarkdownDocumentation(namespace);
-        results.totalDocuments += results.markdownResults.documentsProcessed || 0;
-        results.totalChunks += results.markdownResults.chunksGenerated || 0;
-      } catch (markdownError) {
-        console.error(`[${new Date().toISOString()}] ❌ CORE DOCS: Markdown processing failed:`, markdownError.message);
-        results.markdownError = markdownError.message;
-      }
-
-      console.log(`[${new Date().toISOString()}] ✅ CORE DOCS PROCESSING COMPLETE: Processed ${results.totalDocuments} documents into ${results.totalChunks} chunks`);
-      return results;
-
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ CORE DOCS: Core documentation processing failed:`, error.message);
-      return ContextPipelineUtils.createStandardResult({
-        success: false,
-        mode: 'error',
-        reason: 'core_docs_failed',
-        details: { error: error.message, namespace },
-        repoId: null,
-        userId: null
-      });
-    }
-  }
-
-
-
-  /**
    * OPTIMIZED: Full repository processing using Langchain-first approach
    * Enhanced with horizontal scaling for large repositories
    */
@@ -600,13 +530,17 @@ class ContextPipeline {
     
     try {
       // Step 1: Analyze repository size to determine processing strategy
+      console.log(`[${new Date().toISOString()}] 🔍 SCALING ANALYSIS: Calling shouldUseHorizontalScaling for ${githubOwner}/${repoName}:${branch}`);
       const shouldUseHorizontalScaling = await ContextPipelineUtils.shouldUseHorizontalScaling(githubOwner, repoName, branch);
+      
+      console.log(`[${new Date().toISOString()}] 📊 SCALING DECISION:`, JSON.stringify(shouldUseHorizontalScaling, null, 2));
       
       if (shouldUseHorizontalScaling.useWorkers) {
         console.log(`[${new Date().toISOString()}] 🏭 HORIZONTAL SCALING: Repository size (${shouldUseHorizontalScaling.estimatedFiles} files) exceeds threshold, using worker-based processing`);
+        console.log(`[${new Date().toISOString()}] 🚀 CALLING processRepoWithWorkers...`);
         
         // Use worker-based horizontal scaling for large repositories
-        return await this.processLargeRepositoryWithWorkers({
+        return await this.processRepoWithWorkers({
           userId,
           repoId,
           repoUrl,
@@ -618,9 +552,11 @@ class ContextPipeline {
         
       } else {
         console.log(`[${new Date().toISOString()}] 🔵 STANDARD PROCESSING: Repository size (${shouldUseHorizontalScaling.estimatedFiles} files) within threshold, using standard approach`);
+        console.log(`[${new Date().toISOString()}] 📝 Reason: ${shouldUseHorizontalScaling.reason}`);
+        console.log(`[${new Date().toISOString()}] 🚀 CALLING processSmallRepo...`);
         
         // Use standard Langchain-first approach for smaller repositories
-        return await this.processStandardRepository({
+        return await this.processSmallRepo({
           userId,
           repoId,
           repoUrl,
@@ -640,7 +576,7 @@ class ContextPipeline {
   /**
    * Process large repository using horizontal scaling with workers
    */
-  async processLargeRepositoryWithWorkers(params) {
+  async processRepoWithWorkers(params) {
     const {
       userId,
       repoId,
@@ -651,10 +587,12 @@ class ContextPipeline {
       commitInfo
     } = params;
 
-    console.log(`[${new Date().toISOString()}] 🏭 WORKER PROCESSING: Starting horizontal scaling for ${githubOwner}/${repoName}`);
+    console.log(`[${new Date().toISOString()}] � ENTRY POINT: processRepoWithWorkers() called for ${githubOwner}/${repoName}`);
+    console.log(`[${new Date().toISOString()}] �🏭 WORKER PROCESSING: Starting horizontal scaling for ${githubOwner}/${repoName}`);
     
     try {
       // Create repository job for worker processing
+      console.log(`[${new Date().toISOString()}] 📋 Creating repository job...`);
       const repositoryJob = {
         userId,
         repoId,
@@ -665,15 +603,26 @@ class ContextPipeline {
         commitInfo
       };
       
+      console.log(`[${new Date().toISOString()}] 🔧 Checking workerManager availability...`);
+      if (!this.workerManager) {
+        throw new Error('workerManager is not initialized');
+      }
+      
+      console.log(`[${new Date().toISOString()}] 🏃 Calling workerManager.processLargeRepository()...`);
+      
       // Process using worker manager
       const result = await this.workerManager.processLargeRepository(repositoryJob);
       
+      console.log(`[${new Date().toISOString()}] 📊 Worker manager result:`, JSON.stringify(result, null, 2));
+      
       if (result.success) {
+        console.log(`[${new Date().toISOString()}] ✅ Worker processing successful, storing tracking info...`);
+        
         // Step 2: Store repository tracking info for future duplicate detection
         const pineconeClient2 = await this.getPineconeClient();
-        const namespace = this.repoPreparation.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+        const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
         
-        await this.repoPreparation.storeRepositoryTrackingInfo(
+        await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, commitInfo, 
           namespace, pineconeClient2, this.embeddings
         );
@@ -702,22 +651,42 @@ class ContextPipeline {
           userId
         });
       } else {
-        throw new Error(`Worker processing failed: ${result.error}`);
+        console.log(`[${new Date().toISOString()}] ❌ Worker processing returned failure:`, result);
+        throw new Error(`Worker processing failed: ${result.error || 'Unknown worker error'}`);
       }
       
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Worker processing failed for ${repoId}:`, error.message);
+      console.error(`[${new Date().toISOString()}] 🔍 Error stack:`, error.stack);
+      
+      // Emit worker failure event for monitoring
+      this.eventManager.emitProcessingError(userId, repoId, error, 'horizontal_scaling_failure');
       
       // Fallback to standard processing
-      console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Attempting standard processing after worker failure`);
-      return await this.processStandardRepository(params);
+      console.log(`[${new Date().toISOString()}] 🔄 FALLBACK: Worker system failed, using standard processing as backup`);
+      console.warn(`[${new Date().toISOString()}] ⚠️ INFRASTRUCTURE ISSUE: Horizontal scaling not available - ${error.message}`);
+      
+      const fallbackResult = await this.processSmallRepo(params);
+      
+      // Add worker failure information to the result
+      if (fallbackResult.success && fallbackResult.details) {
+        fallbackResult.details.workerFailure = {
+          attempted: true,
+          error: error.message,
+          fallbackUsed: 'standard_processing'
+        };
+        fallbackResult.details.processingStrategy = 'standard_fallback';
+        fallbackResult.message = `Processing completed using standard approach (worker system failed: ${error.message.substring(0, 100)})`;
+      }
+      
+      return fallbackResult;
     }
   }
 
   /**
    * Process standard repository using existing Langchain approach
    */
-  async processStandardRepository(params) {
+  async processSmallRepo(params) {
     const {
       userId,
       repoId,
@@ -730,24 +699,19 @@ class ContextPipeline {
 
     console.log(`[${new Date().toISOString()}] 🔵 STANDARD PROCESSING: Using Langchain-first approach for repository`);
     
-    // Ensure repoProcessor has the latest pinecone client
-    if (!this.repoProcessor.pinecone) {
-      this.repoProcessor.pinecone = await this.getPineconeClient();
-    }
-    
     try {
       // Step 1: Load ALL documents using Langchain (no manual filesystem operations)
       const documents = await this.repoProcessor.loadDocumentsWithLangchain(repoUrl, branch, githubOwner, repoName, commitInfo);
       
       // Step 2: Process all documents
-      const namespace = this.repoPreparation.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
       const result = await this.repoProcessor.processFilteredDocuments(
         documents, namespace, commitInfo, false, this.routeDocumentsToProcessors.bind(this)
       );
       
       // Step 3: Store repository tracking info for future duplicate detection
       const pineconeClient2 = await this.getPineconeClient();
-      await this.repoPreparation.storeRepositoryTrackingInfo(
+      await this.githubOperations.storeRepositoryTrackingInfo(
         userId, repoId, githubOwner, repoName, commitInfo, 
         namespace, pineconeClient2, this.embeddings
       );

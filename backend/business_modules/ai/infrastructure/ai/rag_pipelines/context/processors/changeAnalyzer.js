@@ -568,7 +568,7 @@ class ChangeAnalyzer {
     
     try {
       // Step 1: Get changed files efficiently
-      const changedFiles = await contextPipeline.repoPreparation.getChangedFilesOptimized(
+      const changedFiles = await contextPipeline.githubOperations.getChangedFilesOptimized(
         repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo?.hash ?? null
       );
       

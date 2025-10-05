@@ -3,7 +3,7 @@
 // Test the backend file loading fix
 require('dotenv').config();
 
-const RepoProcessorUtils = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessorUtils');
+const RepoProcessor = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessor');
 
 async function testBackendFix() {
   console.log('🔧 TESTING: Backend files loading fix');
@@ -15,7 +15,7 @@ async function testBackendFix() {
     return;
   }
 
-  const repoProcessor = new RepoProcessorUtils();
+  const repoProcessor = new RepoProcessor();
   
   try {
     console.log('🚀 Testing processBatch method directly...');

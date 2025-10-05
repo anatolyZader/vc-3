@@ -21,7 +21,7 @@ const base = '../business_modules/ai/infrastructure/ai/rag_pipelines/context/pro
 const EmbeddingManager = safeRequire(`${base}/embeddingManager.js`);
 const DocsProcessor = safeRequire(`${base}/docsProcessor.js`);
 const ApiSpecProcessor = safeRequire(`${base}/apiSpecProcessor.js`);
-const RepoProcessorUtils = safeRequire(`${base}/repoProcessorUtils.js`);
+const RepoProcessor = safeRequire(`${base}/repoProcessor.js`);
 
 function attemptConstruct(name, Ctor, args = []) {
   try {
@@ -36,6 +36,6 @@ function attemptConstruct(name, Ctor, args = []) {
 attemptConstruct('EmbeddingManager', EmbeddingManager, [/* empty opts to rely on defaults */]);
 attemptConstruct('DocsProcessor', DocsProcessor, [{}]);
 attemptConstruct('ApiSpecProcessor', ApiSpecProcessor, [{}]);
-attemptConstruct('RepoProcessorUtils', RepoProcessorUtils, [{}]);
+attemptConstruct('RepoProcessor', RepoProcessor, [{}]);
 
 console.log('[SMOKE] Completed processor smoke test');
