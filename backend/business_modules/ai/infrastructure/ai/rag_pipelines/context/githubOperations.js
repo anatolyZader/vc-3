@@ -735,7 +735,8 @@ class GitHubOperations {
     }
 
     try {
-      const namespace = this.sanitizeId(`${githubOwner}_${repoName}_main`);
+      // Use consistent namespace pattern: userId_repoId (same as storage and retrieval)
+      const namespace = this.sanitizeId(`${userId}_${repoId}`);
       
       // Handle both PineconeService and raw Pinecone client
       let index;
@@ -1229,7 +1230,8 @@ class GitHubOperations {
       console.log(`[${new Date().toISOString()}] ✅ DIRECT API: Loaded ${documents.length} documents`);
 
       // Process documents using pure processing methods (no orchestration in repoProcessor)
-      const namespace = repoPreparation.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      // Use consistent namespace pattern: userId_repoId (same as main processing flow)
+      const namespace = repoPreparation.sanitizeId(`${userId}_${repoId}`);
       
       // Step 1: Process documents
       const processedDocuments = await repoProcessor.intelligentProcessDocuments(documents);

@@ -713,8 +713,11 @@ class ContextPipeline {
       const commitHash = actualCommitInfo?.hash;
       
       if (commitHash) {
-        // Check if already processed
-        const existingRepo = await this._checkExistingRepo(userId, repoId, githubOwner, repoName, commitHash);
+        // Check if already processed using consistent findExistingRepo method
+        const pineconeClient = await this.getPineconeClient();
+        const existingRepo = await this.githubOperations.findExistingRepo(
+          userId, repoId, githubOwner, repoName, commitHash, pineconeClient, this.embeddings
+        );
         if (existingRepo?.reason === 'same_commit') {
           console.log(`[${new Date().toISOString()}] ✅ SKIP: Repository ${githubOwner}/${repoName} already processed for commit ${commitHash}`);
           return { success: true, skipped: true, reason: 'same_commit' };
@@ -793,42 +796,7 @@ class ContextPipeline {
     return this.eventManager.emitRagStatus(status, details);
   }
 
-  /**
-   * Check if repository already exists and processed for given commit
-   * Moved from RepoProcessor as part of orchestration responsibility
-   */
-  async _checkExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash) {
-    try {
-      const namespace = this.githubOperations.sanitizeId(`${userId}_${repoId}`);
-      const pineconeService = await this.getPineconeClient();
-      
-      // Query for any existing documents in this namespace using proper PineconeService API
-      const queryResponse = await pineconeService.querySimilar(
-        new Array(3072).fill(0), // Dummy vector for existence check (3072 for text-embedding-3-large)
-        {
-          namespace,
-          topK: 1,
-          includeMetadata: true
-        }
-      );
 
-      if (queryResponse.matches && queryResponse.matches.length > 0) {
-        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
-        return {
-          exists: true,
-          commitHash: existingCommit,
-          needsUpdate: existingCommit !== currentCommitHash,
-          namespace,
-          reason: existingCommit === currentCommitHash ? 'same_commit' : 'commit_changed'
-        };
-      }
-
-      return { exists: false, namespace };
-    } catch (error) {
-      console.log(`[${new Date().toISOString()}] ℹ️ Repository check: ${error.message}`);
-      return { exists: false, namespace: this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`) };
-    }
-  }
 }
 
 module.exports = ContextPipeline;
