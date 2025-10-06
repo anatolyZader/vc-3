@@ -258,31 +258,24 @@ class RepoWorker {
 
   /**
    * Process document and generate chunks
+   * Workers only prepare data - main pipeline handles embedding generation and storage
    */
   async processDocument(document) {
     try {
-      // Simplified processing - just return the document as a single chunk
-      // Full processing will be handled by main pipeline
+      // Simplified processing - just return the document as chunks for main pipeline
+      // Main pipeline will handle: embedding generation, advanced chunking, and Pinecone storage
       const chunks = [{
         pageContent: document.pageContent,
         metadata: document.metadata,
-        chunkIndex: 0
+        chunkIndex: 0,
+        // NOTE: No embedding generation here - main pipeline handles this
+        needsEmbedding: true,
+        namespace: `${document.metadata.userId}_${document.metadata.repoId}`,
+        vectorId: `${document.metadata.repoId}_${document.metadata.filePath}_0`
       }];
       
-      // Store chunks in Pinecone with namespace
-      const namespace = `${document.metadata.userId}_${document.metadata.repoId}`;
-      
-      for (const chunk of chunks) {
-        await this.storePineconeVector({
-          id: `${document.metadata.repoId}_${document.metadata.filePath}_${chunk.chunkIndex}`,
-          values: chunk.embedding,
-          metadata: {
-            ...document.metadata,
-            ...chunk.metadata,
-            chunkContent: chunk.content
-          }
-        }, namespace);
-      }
+      // Log processing completion (no storage attempted)
+      console.log(`[${new Date().toISOString()}] ✅ WORKER ${this.workerId}: Prepared ${chunks.length} chunks for main pipeline storage`);
       
       return chunks;
       
@@ -295,11 +288,18 @@ class RepoWorker {
   /**
    * Store vector in Pinecone - DISABLED for workers
    * Workers only process files, main pipeline handles storage
+   * 
+   * @deprecated This method is intentionally disabled in workers.
+   * Workers should return processed chunks to main pipeline for:
+   * - Embedding generation (OpenAI API calls)
+   * - Advanced chunking strategies
+   * - Pinecone vector storage
+   * - Metadata enrichment
    */
   async storePineconeVector(vector, namespace) {
-    // NOTE: Workers don't directly store in Pinecone
-    // They return processed data to main pipeline for storage
-    console.log(`[${new Date().toISOString()}] 📝 WORKER ${this.workerId}: Processed vector for namespace ${namespace} (will be stored by main pipeline)`);
+    // NOTE: This method should not be called in current architecture
+    console.warn(`[${new Date().toISOString()}] ⚠️ WORKER ${this.workerId}: storePineconeVector() called but workers don't handle storage`);
+    console.log(`[${new Date().toISOString()}] 📝 WORKER ${this.workerId}: Vector preparation for namespace ${namespace} completed (main pipeline will handle storage)`);
     return vector;
   }
 
