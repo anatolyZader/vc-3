@@ -9,7 +9,7 @@ async function forceRepoReprocessing() {
   
   const baseUrl = process.env.BASE_URL || 'https://eventstorm.me';
   const userId = 'anatolyzader'; // Use consistent owner identifier  
-  const repoId = 'anatolyZader/vc-3';
+  const repoId = 'vc-3'; // Remove owner prefix to match expected pattern
   
   // Repository data to trigger reprocessing
   const repoData = {

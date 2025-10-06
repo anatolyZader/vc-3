@@ -59,30 +59,34 @@ class EmbeddingManager {
         overlapTokens: 150
       });
 
-      // Validate and re-chunk documents that exceed token limits
+      // Validate and re-chunk documents that exceed token limits - SIMPLIFIED APPROACH
       const safeDocuments = [];
       let rechunkedCount = 0;
 
-      for (const doc of documents) {
+      for (let i = 0; i < documents.length; i++) {
+        const doc = documents[i];
         const tokenCheck = tokenSplitter.exceedsTokenLimit(doc.pageContent);
         
         if (tokenCheck.exceeds) {
-          console.log(`[${new Date().toISOString()}] ⚠️ TOKEN SAFETY: Document exceeds ${tokenSplitter.maxTokens} tokens (${tokenCheck.tokenCount}), re-chunking...`);
+          console.log(`[${new Date().toISOString()}] ⚠️ TOKEN SAFETY: Document ${i + 1}/${documents.length} exceeds ${tokenSplitter.maxTokens} tokens (${tokenCheck.tokenCount}), using simple split...`);
+          console.log(`[${new Date().toISOString()}] 🔧 TOKEN SAFETY: Source: ${doc.metadata?.source || 'unknown'} (${doc.pageContent.length} chars)`);
           
-          // Re-chunk the oversized document
-          const chunks = tokenSplitter.splitText(doc.pageContent);
-          for (const chunk of chunks) {
+          // Use simple, fast character-based chunking - no complex token splitting
+          const chunks = this._simpleSplit(doc.pageContent, 4000); // ~1000 tokens per chunk
+          console.log(`[${new Date().toISOString()}] ✅ TOKEN SAFETY: Split into ${chunks.length} chunks using simple method`);
+          
+          chunks.forEach((chunkText, chunkIndex) => {
             safeDocuments.push(new Document({
-              pageContent: chunk.content,
+              pageContent: chunkText,
               metadata: {
                 ...doc.metadata,
                 rechunked: true,
                 originalTokens: tokenCheck.tokenCount,
-                chunkTokens: chunk.tokens,
-                chunkIndex: chunk.index
+                chunkTokens: Math.ceil(chunkText.length / 4), // Rough estimate
+                chunkIndex: chunkIndex
               }
             }));
-          }
+          });
           rechunkedCount++;
         } else {
           safeDocuments.push(doc);
@@ -104,7 +108,11 @@ class EmbeddingManager {
       console.log(`[${new Date().toISOString()}] 🔒 TOKEN-VALIDATED STORAGE: Processing ${safeDocuments.length} token-safe documents`);
 
       // Use enhanced upsertDocuments with verbose logging and rate limiting
-      const result = await pineconeService.upsertDocuments(safeDocuments, this.embeddings, {
+      console.log(`[${new Date().toISOString()}] ⚡ STORAGE: Starting Pinecone upsert with timeout protection...`);
+      const storageStartTime = Date.now();
+      
+      // Add timeout protection for the storage operation
+      const storagePromise = pineconeService.upsertDocuments(safeDocuments, this.embeddings, {
         namespace: namespace,
         ids: documentIds,
         githubOwner,
@@ -112,6 +120,15 @@ class EmbeddingManager {
         verbose: true,
         rateLimiter: this.pineconeLimiter
       });
+      
+      // 5 minute timeout for storage operation
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Storage operation timed out after 5 minutes')), 300000);
+      });
+      
+      const result = await Promise.race([storagePromise, timeoutPromise]);
+      const storageTime = Date.now() - storageStartTime;
+      console.log(`[${new Date().toISOString()}] ✅ STORAGE: Completed in ${storageTime}ms`);
 
       return result;
 
@@ -120,6 +137,44 @@ class EmbeddingManager {
       console.error(`[${new Date().toISOString()}] 💡 This may be due to API limits, network issues, or invalid document format`);
       throw error;
     }
+  }
+
+  /**
+   * Simple, fast character-based splitting - no complex token logic
+   */
+  _simpleSplit(text, maxChars = 4000) {
+    const chunks = [];
+    const overlap = 200; // Small overlap to preserve context
+    let position = 0;
+    
+    while (position < text.length) {
+      let chunkEnd = Math.min(position + maxChars, text.length);
+      let chunkText = text.substring(position, chunkEnd);
+      
+      // If not at end, try to break at sentence or line boundary
+      if (chunkEnd < text.length) {
+        // Look for sentence endings first
+        const sentenceEnd = chunkText.lastIndexOf('. ');
+        const lineEnd = chunkText.lastIndexOf('\n');
+        const breakPoint = Math.max(sentenceEnd, lineEnd);
+        
+        if (breakPoint > maxChars * 0.7) { // Only use if reasonable length
+          chunkText = text.substring(position, position + breakPoint + 1);
+        }
+      }
+      
+      chunks.push(chunkText.trim());
+      
+      // Move position forward, with overlap for context preservation
+      position += chunkText.length - (position === 0 ? 0 : overlap);
+      
+      // Safety break to prevent infinite loops
+      if (position <= 0 || chunks.length > 50) {
+        break;
+      }
+    }
+    
+    return chunks.filter(chunk => chunk.length > 50); // Filter out tiny chunks
   }
 
   /**

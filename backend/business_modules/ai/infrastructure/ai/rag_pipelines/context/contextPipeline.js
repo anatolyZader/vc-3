@@ -618,7 +618,7 @@ class ContextPipeline {
         console.log(`[${new Date().toISOString()}] ✅ Worker processing successful, storing embeddings and tracking info...`);
         
         // Step 1: Store processed chunks to Pinecone via EmbeddingManager
-        const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+        const namespace = this.githubOperations.sanitizeId(`${userId}_${repoId}`);
         
         if (result.processedChunks?.length > 0) {
           console.log(`[${new Date().toISOString()}] 📦 Storing ${result.processedChunks.length} chunks from workers to Pinecone...`);
@@ -714,7 +714,7 @@ class ContextPipeline {
       
       if (commitHash) {
         // Check if already processed
-        const existingRepo = await this._checkExistingRepo(githubOwner, repoName, commitHash);
+        const existingRepo = await this._checkExistingRepo(userId, repoId, githubOwner, repoName, commitHash);
         if (existingRepo?.reason === 'same_commit') {
           console.log(`[${new Date().toISOString()}] ✅ SKIP: Repository ${githubOwner}/${repoName} already processed for commit ${commitHash}`);
           return { success: true, skipped: true, reason: 'same_commit' };
@@ -740,7 +740,7 @@ class ContextPipeline {
       );
 
       // Step 5: Store processed documents using EmbeddingManager
-      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const namespace = this.githubOperations.sanitizeId(`${userId}_${repoId}`);
       await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
       
       // Step 6: Store repository tracking info for future duplicate detection  
@@ -797,17 +797,20 @@ class ContextPipeline {
    * Check if repository already exists and processed for given commit
    * Moved from RepoProcessor as part of orchestration responsibility
    */
-  async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
+  async _checkExistingRepo(userId, repoId, githubOwner, repoName, currentCommitHash) {
     try {
-      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`);
-      const pineconeClient = await this.getPineconeClient();
+      const namespace = this.githubOperations.sanitizeId(`${userId}_${repoId}`);
+      const pineconeService = await this.getPineconeClient();
       
-      // Query for any existing documents in this namespace
-      const queryResponse = await pineconeClient.namespace(namespace).query({
-        vector: new Array(1536).fill(0), // Dummy vector for existence check
-        topK: 1,
-        includeMetadata: true
-      });
+      // Query for any existing documents in this namespace using proper PineconeService API
+      const queryResponse = await pineconeService.querySimilar(
+        new Array(3072).fill(0), // Dummy vector for existence check (3072 for text-embedding-3-large)
+        {
+          namespace,
+          topK: 1,
+          includeMetadata: true
+        }
+      );
 
       if (queryResponse.matches && queryResponse.matches.length > 0) {
         const existingCommit = queryResponse.matches[0].metadata?.commitHash;

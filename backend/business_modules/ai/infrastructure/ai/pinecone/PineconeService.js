@@ -224,8 +224,10 @@ class PineconeService {
   async createVectorStore(embeddings, namespace = null) {
     const index = await this.connect();
     
+    // Use the newer LangChain API pattern for better compatibility
     const storeConfig = {
-      pineconeIndex: index
+      pineconeIndex: index,
+      embeddings: embeddings
     };
 
     if (namespace) {
@@ -233,7 +235,13 @@ class PineconeService {
       this.logger.debug(`Creating vector store with namespace: ${namespace}`);
     }
 
-    return new PineconeStore(embeddings, storeConfig);
+    // Try newer API first, fallback to legacy constructor if needed
+    try {
+      return await PineconeStore.fromExistingIndex(embeddings, storeConfig);
+    } catch (error) {
+      this.logger.debug('Using legacy PineconeStore constructor');
+      return new PineconeStore(embeddings, storeConfig);
+    }
   }
 
   /**
