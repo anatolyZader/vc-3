@@ -472,7 +472,13 @@ class VectorSearchOrchestrator {
       throw new Error('Embeddings model not provided');
     }
 
-    return await this.pineconeService.createVectorStore(this.embeddings, namespace);
+    // TEMPORARY FIX: Deployed data is stored with '_main' suffix
+    // but queries use userId without suffix. Add '_main' for compatibility.
+    const deployedNamespace = namespace ? `${namespace}_main` : namespace;
+    
+    console.log(`[${new Date().toISOString()}] 🔧 NAMESPACE FIX: Converting '${namespace}' to '${deployedNamespace}' for deployed compatibility`);
+
+    return await this.pineconeService.createVectorStore(this.embeddings, deployedNamespace);
   }
 
   /**
