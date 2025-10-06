@@ -1,4 +1,4 @@
-// RepoWorkerManager.js - Horizontal scaling manager for large repository processing
+// RepoWorkerManager.js - Horizontal scaling manager for large repositoryy processing
 'use strict';
 
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
@@ -45,9 +45,10 @@ class RepoWorkerManager {
 
   /**
    * Process large repository with horizontal scaling
+   * Returns processed chunks to main pipeline for embedding storage
    */
-  async processLargeRepository(repositoryJob) {
-    const { repoId } = repositoryJob;
+  async processLargeRepository(repositoryJob, embeddingManager = null) {
+    const { repoId, userId, githubOwner, repoName } = repositoryJob;
     const jobId = `${repoId}_${Date.now()}`;
     
     console.log(`[${new Date().toISOString()}] 🚀 WORKER MANAGER: Starting large repo processing for ${repoId}`);
@@ -72,6 +73,33 @@ class RepoWorkerManager {
       
       // Step 6: Aggregate results
       const aggregatedResult = await this.aggregateResults(jobId);
+      
+      // Step 7: NEW - Handle embedding storage if embeddingManager provided
+      if (embeddingManager && aggregatedResult.processedChunks?.length > 0) {
+        console.log(`[${new Date().toISOString()}] 🧠 WORKER MANAGER: Processing ${aggregatedResult.processedChunks.length} chunks for embedding storage`);
+        
+        try {
+          const namespace = `${userId}_${repoId}`;
+          await embeddingManager.storeToPinecone(
+            aggregatedResult.processedChunks,
+            namespace,
+            githubOwner,
+            repoName
+          );
+          
+          aggregatedResult.embeddingStorageSuccess = true;
+          console.log(`[${new Date().toISOString()}] ✅ WORKER MANAGER: Successfully stored embeddings to namespace ${namespace}`);
+          
+        } catch (embeddingError) {
+          console.error(`[${new Date().toISOString()}] ❌ WORKER MANAGER: Embedding storage failed:`, embeddingError.message);
+          aggregatedResult.embeddingStorageSuccess = false;
+          aggregatedResult.embeddingStorageError = embeddingError.message;
+        }
+      } else if (aggregatedResult.processedChunks?.length > 0) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ WORKER MANAGER: ${aggregatedResult.processedChunks.length} chunks processed but no embeddingManager provided for storage`);
+        aggregatedResult.embeddingStorageSuccess = false;
+        aggregatedResult.embeddingStorageError = 'No embedding manager provided';
+      }
       
       console.log(`[${new Date().toISOString()}] ✅ WORKER MANAGER: Completed processing for ${repoId}`);
       console.log(`[${new Date().toISOString()}] 📊 Results: ${aggregatedResult.totalDocuments} docs, ${aggregatedResult.totalChunks} chunks`);
@@ -319,6 +347,7 @@ class RepoWorkerManager {
 
   /**
    * Handle work unit completion
+   * Now properly collects processed chunks for embedding storage
    */
   handleWorkUnitCompleted(workerId, message) {
     const worker = this.workers.get(workerId);
@@ -333,11 +362,21 @@ class RepoWorkerManager {
     this.workerStats.active--;
     this.workerStats.idle++;
     
-    // Update job progress
+    // Update job progress and collect processed chunks
     const job = this.activeJobs.get(jobId);
     if (job) {
       job.completedUnits++;
-      job.results.push(result);
+      
+      // Transform worker results to include processed chunks for main pipeline
+      const enhancedResult = {
+        ...result,
+        // Extract processed chunks from file results for embedding storage
+        processedChunks: this.extractProcessedChunks(result)
+      };
+      
+      job.results.push(enhancedResult);
+      
+      console.log(`[${new Date().toISOString()}] 📊 WORKER ${workerId}: Extracted ${enhancedResult.processedChunks?.length || 0} chunks for embedding`);
     }
     
     // Resolve work unit promise
@@ -350,6 +389,39 @@ class RepoWorkerManager {
     
     // Process queued work if any
     this.processWorkQueue();
+  }
+
+  /**
+   * Extract processed chunks from worker results for main pipeline embedding
+   */
+  extractProcessedChunks(workerResult) {
+    const processedChunks = [];
+    
+    if (workerResult.filesProcessed) {
+      for (const fileResult of workerResult.filesProcessed) {
+        if (fileResult.success && fileResult.processedChunks?.length > 0) {
+          console.log(`[${new Date().toISOString()}] 📝 EXTRACTING: ${fileResult.processedChunks.length} actual chunks from ${fileResult.path}`);
+          
+          // Extract actual chunk objects returned by workers
+          for (const chunk of fileResult.processedChunks) {
+            processedChunks.push({
+              pageContent: chunk.pageContent,
+              metadata: {
+                ...chunk.metadata,
+                // Enrich with manager-level metadata
+                processedByWorker: true,
+                extractedAt: new Date().toISOString(),
+                managerJobId: workerResult.workUnitId
+              }
+            });
+          }
+        }
+      }
+    }
+    
+    console.log(`[${new Date().toISOString()}] ✅ CHUNK EXTRACTION: Total ${processedChunks.length} chunks ready for embedding`);
+    
+    return processedChunks;
   }
 
   /**
@@ -496,6 +568,7 @@ class RepoWorkerManager {
 
   /**
    * Aggregate results from all workers
+   * Now includes collecting processed chunks for main pipeline embedding storage
    */
   async aggregateResults(jobId) {
     const job = this.activeJobs.get(jobId);
@@ -508,7 +581,10 @@ class RepoWorkerManager {
       totalChunks: 0,
       successfulUnits: 0,
       failedUnits: job.failedUnits,
-      processingErrors: []
+      processingErrors: [],
+      // NEW: Collect all processed chunks for main pipeline storage
+      processedChunks: [],
+      documentsForEmbedding: []
     };
     
     for (const result of job.results) {
@@ -516,10 +592,25 @@ class RepoWorkerManager {
         aggregated.totalDocuments += result.documentsProcessed || 0;
         aggregated.totalChunks += result.chunksGenerated || 0;
         aggregated.successfulUnits++;
+        
+        // NEW: Collect chunks that need embedding generation and storage
+        if (result.allProcessedChunks?.length > 0) {
+          // Prefer batch-level aggregated chunks for better performance
+          aggregated.processedChunks.push(...result.allProcessedChunks);
+        } else if (result.filesProcessed) {
+          // Fallback to file-level chunk extraction
+          for (const fileResult of result.filesProcessed) {
+            if (fileResult.success && fileResult.processedChunks?.length > 0) {
+              aggregated.processedChunks.push(...fileResult.processedChunks);
+            }
+          }
+        }
       } else {
         aggregated.processingErrors.push(result.error);
       }
     }
+    
+    console.log(`[${new Date().toISOString()}] 📊 AGGREGATION: Collected ${aggregated.processedChunks.length} chunks for embedding storage`);
     
     // Move to completed jobs
     this.completedJobs.set(jobId, {

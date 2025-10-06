@@ -180,7 +180,9 @@ class RepoWorker {
       documentsProcessed: 0,
       chunksGenerated: 0,
       filesProcessed: [],
-      errors: []
+      errors: [],
+      // NEW: Collect all processed chunks from this batch
+      allProcessedChunks: []
     };
     
     try {
@@ -212,7 +214,7 @@ class RepoWorker {
               }
             };
             
-            // Generate chunks and store in Pinecone
+            // Generate chunks for main pipeline processing
             const chunks = await this.processDocument(document);
             
             batchResult.documentsProcessed++;
@@ -221,8 +223,13 @@ class RepoWorker {
               path: file.path,
               size: file.size,
               chunks: chunks.length,
+              // FIXED: Return actual chunk objects for main pipeline
+              processedChunks: chunks,
               success: true
             });
+            
+            // NEW: Aggregate all chunks at batch level
+            batchResult.allProcessedChunks.push(...chunks);
             
             this.processedFiles++;
             
@@ -239,6 +246,7 @@ class RepoWorker {
             path: file.path,
             size: file.size,
             chunks: 0,
+            processedChunks: [], // Empty array for failed files
             success: false,
             error: fileError.message
           });

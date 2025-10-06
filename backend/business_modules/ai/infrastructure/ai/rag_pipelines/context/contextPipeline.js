@@ -534,7 +534,7 @@ class ContextPipeline {
       // TEMPORARY FIX: Disable worker scaling due to embedding storage bug
       // Workers process files but don't store embeddings to Pinecone
       // TODO: Fix workers to actually store embeddings or modify pipeline to store worker results
-      if (false && shouldUseHorizontalScaling.useWorkers) {
+      if (true && shouldUseHorizontalScaling.useWorkers) {
         console.log(`[${new Date().toISOString()}] 🏭 HORIZONTAL SCALING: Repository size (${shouldUseHorizontalScaling.estimatedFiles} files) exceeds threshold, using worker-based processing`);
         console.log(`[${new Date().toISOString()}] 🚀 CALLING processRepoWithWorkers...`);
         
@@ -615,11 +615,20 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 📊 Worker manager result:`, JSON.stringify(result, null, 2));
       
       if (result.success) {
-        console.log(`[${new Date().toISOString()}] ✅ Worker processing successful, storing tracking info...`);
+        console.log(`[${new Date().toISOString()}] ✅ Worker processing successful, storing embeddings and tracking info...`);
+        
+        // Step 1: Store processed chunks to Pinecone via EmbeddingManager
+        const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+        
+        if (result.processedChunks?.length > 0) {
+          console.log(`[${new Date().toISOString()}] 📦 Storing ${result.processedChunks.length} chunks from workers to Pinecone...`);
+          await this.embeddingManager.storeToPinecone(result.processedChunks, namespace, githubOwner, repoName);
+        } else {
+          console.log(`[${new Date().toISOString()}] ⚠️ No processed chunks from workers to store`);
+        }
         
         // Step 2: Store repository tracking info for future duplicate detection
         const pineconeClient2 = await this.getPineconeClient();
-        const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
         
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, commitInfo, 
