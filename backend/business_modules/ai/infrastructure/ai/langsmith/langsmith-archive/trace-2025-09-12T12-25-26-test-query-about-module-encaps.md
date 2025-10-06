@@ -19,7 +19,7 @@
 ```
 LangSmith tracing enabled (adapter level)
 LangSmith env summary: project=eventstorm-trace apiKeySet=true workspaceIdSet=true organizationName=eventstorm-trace
-DataPreparationPipeline initialized with modular architecture
+ContextPipeline initialized with modular architecture
 QueryPipeline initialized for comprehensive RAG processing
 ```
 

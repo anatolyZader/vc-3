@@ -100,7 +100,7 @@ The retrieved chunks show a well-structured codebase with:
 ### Tracing Coverage:
 - ✅ **aiLangchainAdapter.js**: Full tracing with project metadata
 - ✅ **queryPipeline.js**: Vector search and response generation traced
-- ✅ **dataPreparationPipeline.js**: Repository processing traced
+- ✅ **contextPipeline.js**: Repository processing traced
 - ✅ **OpenAI Client**: Wrapped with wrapOpenAI for automatic instrumentation
 
 ### Deployment Status:

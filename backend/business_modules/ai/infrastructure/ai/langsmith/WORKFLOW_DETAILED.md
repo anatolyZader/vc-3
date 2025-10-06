@@ -48,7 +48,7 @@ try {
 **Files Involved:**
 - `aiLangchainAdapter.js` - Main AI coordination layer
 - `queryPipeline.js` - Query processing pipeline
-- `dataPreparationPipeline.js` - Repository processing pipeline
+- `contextPipeline.js` - Repository processing pipeline
 
 **What Happens:**
 1. **LangSmith Import Check**: Attempts to import LangSmith packages
@@ -64,9 +64,9 @@ try {
 this.processPushedRepo = traceable(
   this.processPushedRepo.bind(this),
   {
-    name: 'DataPreparationPipeline.processPushedRepo',
+    name: 'ContextPipeline.processPushedRepo',
     project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
-    metadata: { component: 'DataPreparationPipeline' },
+    metadata: { component: 'ContextPipeline' },
     tags: ['rag', 'data-preparation']
   }
 );
@@ -103,12 +103,12 @@ this.respondToPrompt = traceable(this.respondToPrompt.bind(this), {
 - **Metadata:** `{ userId, repoId }`
 - **Tags:** `['rag', 'data-preparation']`
 
-### **2.2 Data Preparation Pipeline Execution** (`dataPreparationPipeline.js`)
+### **2.2 Data Preparation Pipeline Execution** (`contextPipeline.js`)
 
-**LangSmith Trace Created:** `DataPreparationPipeline.processPushedRepo`
+**LangSmith Trace Created:** `ContextPipeline.processPushedRepo`
 
 **Files Involved:**
-- `dataPreparationPipeline.js` - Main orchestrator
+- `contextPipeline.js` - Main orchestrator
 - `repositoryManager.js` - Git operations and cloning
 - `repositoryProcessor.js` - Document loading and processing
 - `vectorStorageManager.js` - Pinecone storage operations
@@ -361,7 +361,7 @@ Context Building → LLM Prompt → GPT Response → Final Answer
 |------|-------|---------------|----------------|
 | `app.js` | Initialization | Diagnostic endpoint | Status reporting |
 | `aiLangchainAdapter.js` | All | Main coordinator | Top-level tracing |
-| `dataPreparationPipeline.js` | Data Prep | Repository processing | Processing traces |
+| `contextPipeline.js` | Data Prep | Repository processing | Processing traces |
 | `queryPipeline.js` | Query | RAG retrieval/generation | Query traces |
 | `export-rag-chunks-enhanced.js` | Analysis | Chunk analysis | Log analysis |
 | `langsmith-workspace-info.js` | Monitoring | Workspace diagnostics | Configuration validation |

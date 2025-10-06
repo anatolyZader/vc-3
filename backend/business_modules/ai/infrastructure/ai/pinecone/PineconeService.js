@@ -254,12 +254,26 @@ class PineconeService {
       namespace = null,
       ids = null,
       batchSize = 100,
-      onProgress = null
+      onProgress = null,
+      githubOwner = null,
+      repoName = null,
+      verbose = false,
+      logPrefix = '[PineconeService]'
     } = options;
 
     if (!documents || documents.length === 0) {
+      if (verbose) {
+        console.log(`[${new Date().toISOString()}] ⚠️ DATA-PREP: No documents to store in Pinecone`);
+        console.log(`[${new Date().toISOString()}] 🎯 This usually means no processable files were found in the repository`);
+      }
       this.logger.warn('No documents provided for upsert');
       return { success: true, processed: 0 };
+    }
+
+    if (verbose && githubOwner && repoName) {
+      console.log(`[${new Date().toISOString()}] 🗄️ PINECONE STORAGE EXPLANATION: Converting ${documents.length} document chunks into searchable vector embeddings`);
+      console.log(`[${new Date().toISOString()}] 🎯 Each document chunk will be processed by OpenAI's text-embedding-3-large model to create high-dimensional vectors that capture semantic meaning. These vectors are then stored in Pinecone with unique IDs and metadata for lightning-fast similarity search during RAG queries`);
+      console.log(`[${new Date().toISOString()}] 🎯 STORAGE STRATEGY: Using namespace '${namespace}' for data isolation and generating unique IDs for ${documents.length} chunks from ${githubOwner}/${repoName}`);
     }
 
     try {
@@ -268,8 +282,14 @@ class PineconeService {
       this.logger.info(`Upserting ${documents.length} documents`, {
         namespace,
         batchSize,
-        hasCustomIds: !!ids
+        hasCustomIds: !!ids,
+        repo: repoName ? `${githubOwner}/${repoName}` : undefined
       });
+
+      if (verbose) {
+        console.log(`[${new Date().toISOString()}] 🔑 ID GENERATION: Creating unique identifiers to prevent collisions and enable precise retrieval`);
+        console.log(`[${new Date().toISOString()}] ⚡ RATE LIMITING: Using bottleneck limiter to respect Pinecone API limits and prevent throttling`);
+      }
 
       const addOptions = {};
       if (ids) {
@@ -301,9 +321,19 @@ class PineconeService {
           });
         }
       } else {
+        if (verbose) {
+          console.log(`[${new Date().toISOString()}] 🚀 EMBEDDING & UPLOAD: Processing ${documents.length} chunks${this.rateLimiter ? ' with rate limiter' : ' directly (no rate limiter)'}`);
+        }
+        
         await this.withRateLimit(async () => {
           await vectorStore.addDocuments(documents, addOptions);
         });
+      }
+
+      if (verbose) {
+        console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully stored ${documents.length} chunks to Pinecone namespace: ${namespace}`);
+        console.log(`[${new Date().toISOString()}] 🎯 STORAGE COMPLETE: Vector embeddings are now searchable via semantic similarity queries in the RAG pipeline`);
+        console.log(`[${new Date().toISOString()}] 📊 Each chunk includes rich metadata (file types, business modules, architectural layers, AST semantic units) for precise context retrieval`);
       }
 
       this.logger.info(`Successfully upserted ${documents.length} documents`, { namespace });
@@ -311,10 +341,15 @@ class PineconeService {
       return {
         success: true,
         processed: documents.length,
-        namespace
+        namespace,
+        documentIds: ids
       };
 
     } catch (error) {
+      if (verbose) {
+        console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error storing documents to Pinecone:`, error);
+        console.error(`[${new Date().toISOString()}] 💡 This may be due to API limits, network issues, or invalid document format`);
+      }
       this.logger.error('Failed to upsert documents:', error.message);
       throw error;
     }
@@ -474,13 +509,51 @@ class PineconeService {
   }
 
   /**
+   * Sanitize identifier for use as Pinecone namespace or ID
+   */
+  static sanitizeId(id) {
+    return String(id).replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+  }
+
+  /**
    * Generate consistent document ID
    */
   static generateDocumentId(prefix, parts) {
     const sanitized = parts.map(part => 
-      String(part).replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase()
+      this.sanitizeId(part)
     );
     return `${prefix}_${sanitized.join('_')}`;
+  }
+
+  /**
+   * Generate document IDs for repository chunks (compatible with RepoProcessor format)
+   */
+  static generateRepositoryDocumentIds(documents, namespace, options = {}) {
+    const { useTimestamp = true, prefix = null } = options;
+    
+    return documents.map((doc, index) => {
+      const sourceFile = doc.metadata?.source || 'unknown';
+      const sanitizedSource = sourceFile
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .replace(/^(?:_+)|(?:_+)$/g, '');
+      
+      const parts = [namespace, sanitizedSource, 'chunk', index];
+      if (prefix) parts.unshift(prefix);
+      if (useTimestamp) parts.push(Date.now());
+      
+      return parts.join('_');
+    });
+  }
+
+  /**
+   * Generate document IDs for user repository chunks 
+   */
+  static generateUserRepositoryDocumentIds(documents, userId, repoId, options = {}) {
+    return documents.map((doc, index) => {
+      const sourceFile = doc.metadata?.source || 'unknown';
+      const sanitizedSource = this.sanitizeId(sourceFile.replace(/\//g, '_'));
+      return `${userId}_${repoId}_${sanitizedSource}_chunk_${index}`;
+    });
   }
 
   /**

@@ -5,7 +5,7 @@ describe('AstCodeSplitter import collection', () => {
   let ASTCodeSplitter;
   
   beforeAll(() => {
-    const splitterPath = path.join(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/astCodeSplitter.js');
+    const splitterPath = path.join(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors_by_doc_type/astCodeSplitter.js');
     ASTCodeSplitter = require(splitterPath);
   });
 

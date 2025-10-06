@@ -123,7 +123,7 @@ cat latest-trace-analysis.md
 ### **Core RAG Components with LangSmith Tracing**:
 - `aiLangchainAdapter.js` - Main adapter with traceable wrappers
 - `queryPipeline.js` - Vector search and response generation tracing
-- `dataPreparationPipeline.js` - Repository processing tracing
+- `contextPipeline.js` - Repository processing tracing
 
 ### **Environment Variables Required**:
 ```bash

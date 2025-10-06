@@ -9,7 +9,7 @@ const { OpenAIEmbeddings } = require('@langchain/openai');
 const RequestQueue = require('./utils/requestQueue');
 const LLMProviderManager = require('./providers/lLMProviderManager');
 
-// Import the DataPreparationPipeline for handling repository processing
+// Import the ContextPipeline for handling repository processing
 const ContextPipeline = require('./rag_pipelines/context/contextPipeline');
 const QueryPipeline = require('./rag_pipelines/query/queryPipeline');
 
@@ -111,7 +111,7 @@ class AILangchainAdapter extends IAIPort {
         maxChunkSize: 1500,  // Optimized for better semantic chunking and embedding quality
         chunkOverlap: 200    // Add overlap for better context preservation
       });
-      console.log(`[${new Date().toISOString()}] [DEBUG] DataPreparationPipeline initialized with embedded Pinecone services.`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline initialized with embedded Pinecone services.`);
 
       // Initialize QueryPipeline for basic functionality (will be enhanced when userId is set)
       this.queryPipeline = new QueryPipeline({

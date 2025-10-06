@@ -5,7 +5,7 @@ const UbiquitousLanguageProcessor = require('../../../../../business_modules/ai/
 
 /**
  * Test the ubiquitous language dictionary integration
- * in the DataPreparationPipeline
+ * in the ContextPipeline
  */
 async function testUbiquitousLanguageIntegration() {
   console.log('🧪 Testing Ubiquitous Language Dictionary Integration');

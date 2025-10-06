@@ -644,7 +644,7 @@ class ChangeAnalyzer {
         namespace, pineconeClient, contextPipeline.embeddings
       );
 
-      const ContextPipelineUtils = require('../contextPipelineUtils');
+      const ContextPipelineUtils = require('./contextPipelineUtils');
       return ContextPipelineUtils.createStandardResult({
         success: true,
         mode: 'incremental',

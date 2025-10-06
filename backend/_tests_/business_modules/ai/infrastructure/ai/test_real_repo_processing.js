@@ -3,7 +3,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const DataPreparationPipeline = require('./rag_pipelines/data_preparation/DataPreparationPipeline');
+const ContextPipeline = require('./rag_pipelines/data_preparation/ContextPipeline');
 const SemanticPreprocessor = require('./rag_pipelines/data_preparation/processors/SemanticPreprocessor');
 
 /**

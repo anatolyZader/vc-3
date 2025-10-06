@@ -3,16 +3,16 @@
 
 const EventManager = require('./eventManager');
 const PineconePlugin = require('../../pinecone/pineconePlugin');
-const SemanticPreprocessor = require('./processors/semanticPreprocessor');
-const UbiquitousLanguageEnhancer = require('./processors/ubiquitousLanguageEnhancer');
-const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const SemanticPreprocessor = require('./semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./ubiquitousLanguageEnhancer');
+const ApiSpecProcessor = require('./processors_by_doc_type/apiSpecProcessor');
 const DocsProcessor = require('./processors/docsProcessor');
-const GitHubOperations = require('./processors/githubOperations');
-const ASTCodeSplitter = require('./processors/astCodeSplitter');
-const RepoProcessor = require('./processors/repoProcessor');
-const EmbeddingManager = require('./processors/embeddingManager');
-const RepoWorkerManager = require('./processors/RepoWorkerManager');
-const ChangeAnalyzer = require('./processors/changeAnalyzer');
+const GitHubOperations = require('./githubOperations');
+const ASTCodeSplitter = require('./processors_by_doc_type/astCodeSplitter');
+const RepoProcessor = require('./repoProcessor');
+const EmbeddingManager = require('./embeddingManager');
+const RepoWorkerManager = require('./RepoWorkerManager');
+const ChangeAnalyzer = require('./changeAnalyzer');
 const ContextPipelineUtils = require('./contextPipelineUtils');
 
 let traceable;
@@ -400,7 +400,7 @@ class ContextPipeline {
 
       // OPTIMIZED: Smart commit tracking using CommitManager
       console.log(`[${new Date().toISOString()}] 🔄 OPTIMIZED PROCESSING: Using Langchain-first approach with smart commit detection`);
-      console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Processing ${githubOwner}/${repoName} with optimized strategy`);
+
 
       // Step 1: Try to get commit info efficiently using GitHubOperations
       const commitInfo = await this.githubOperations.getPushedCommitInfo(url, branch, githubOwner, repoName);

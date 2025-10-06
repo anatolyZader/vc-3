@@ -67,8 +67,8 @@ jest.mock(
   () => mockQueryPipeline
 );
 
-// Mock DataPreparationPipeline to simulate repo processing
-const mockDataPreparationPipeline = jest.fn().mockImplementation((opts) => ({
+// Mock ContextPipeline to simulate repo processing
+const mockContextPipeline = jest.fn().mockImplementation((opts) => ({
   __opts: opts,
   processPushedRepo: jest.fn(async (userId, repoId, repoData) => ({
     success: true,
@@ -81,7 +81,7 @@ const mockDataPreparationPipeline = jest.fn().mockImplementation((opts) => ({
 
 jest.mock(
   "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline",
-  () => mockDataPreparationPipeline
+  () => mockContextPipeline
 );
 
 // SUT
@@ -140,7 +140,7 @@ describe("AI business module integration: AILangchainAdapter", () => {
     expect(result).toMatchObject({ success: true, response: "ok:hello?", conversationId: "c1" });
   });
 
-  test("processPushedRepo delegates to DataPreparationPipeline and returns processing result", async () => {
+  test("processPushedRepo delegates to ContextPipeline and returns processing result", async () => {
     const adapter = new AILangchainAdapter({ aiProvider: "openai" });
     const out = await adapter.processPushedRepo("u2", "r2", { url: "https://github.com/org/repo.git", branch: "main" });
 

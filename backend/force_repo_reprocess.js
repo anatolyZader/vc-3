@@ -8,7 +8,7 @@ async function forceRepoReprocessing() {
   console.log('=' .repeat(70));
   
   const baseUrl = process.env.BASE_URL || 'https://eventstorm.me';
-  const userId = 'd41402df-182a-41ec-8f05-153118bf2718'; // Your user ID from logs
+  const userId = 'anatolyzader'; // Use consistent owner identifier
   const repoId = 'anatolyZader/vc-3';
   
   // Repository data to trigger reprocessing

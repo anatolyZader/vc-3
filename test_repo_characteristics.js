@@ -1,7 +1,7 @@
 // test_repo_characteristics.js - Test the enhanced getRepositoryCharacteristics method
 "use strict";
 
-const GitHubOperations = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/githubOperations');
+const GitHubOperations = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/githubOperations');
 
 async function testRepositoryCharacteristics() {
   console.log(`[${new Date().toISOString()}] 🧪 TESTING: Enhanced Repository Characteristics Gathering\n`);

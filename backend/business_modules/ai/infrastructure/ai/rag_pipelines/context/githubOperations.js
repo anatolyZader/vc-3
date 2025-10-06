@@ -943,6 +943,7 @@ class GitHubOperations {
         });
 
         // Get branch information which includes latest commit
+        console.log(`[${new Date().toISOString()}] 🔍 GITHUB API DEBUG: Requesting branch info for ${owner}/${repo}@${branch}`);
         const { data: branchData } = await octokit.rest.repos.getBranch({
           owner,
           repo,
@@ -950,6 +951,11 @@ class GitHubOperations {
         });
 
         const commit = branchData.commit;
+        console.log(`[${new Date().toISOString()}] 📊 GITHUB API DEBUG: Branch '${branch}' HEAD commit: ${commit?.sha?.substring(0, 8) || 'unknown'}`);
+        console.log(`[${new Date().toISOString()}] 📅 COMMIT TIMESTAMP: ${commit?.commit?.author?.date || 'unknown'}`);
+        console.log(`[${new Date().toISOString()}] 👤 COMMIT AUTHOR: ${commit?.commit?.author?.name || 'unknown'}`);
+        console.log(`[${new Date().toISOString()}] 💬 COMMIT MESSAGE: ${commit?.commit?.message?.split('\n')[0] || 'unknown'}`);
+        console.log(`[${new Date().toISOString()}] 🔗 COMMIT URL: ${commit?.html_url || 'unknown'}`);
 
         if (!commit) {
           console.warn(`[${new Date().toISOString()}] ⚠️ No commit data found in GitHub API response`);
