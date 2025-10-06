@@ -37,7 +37,9 @@ class ContextPipeline {
     
     // Initialize core components only
     this.pineconeManager = new PineconePlugin();
-    this.githubOperations = new GitHubOperations();
+    this.githubOperations = new GitHubOperations({
+      pineconeManager: this.pineconeManager
+    });
     this.changeAnalyzer = new ChangeAnalyzer();
     this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
     this.workerManager = new RepoWorkerManager();
@@ -529,7 +531,10 @@ class ContextPipeline {
       
       console.log(`[${new Date().toISOString()}] 📊 SCALING DECISION:`, JSON.stringify(shouldUseHorizontalScaling, null, 2));
       
-      if (shouldUseHorizontalScaling.useWorkers) {
+      // TEMPORARY FIX: Disable worker scaling due to embedding storage bug
+      // Workers process files but don't store embeddings to Pinecone
+      // TODO: Fix workers to actually store embeddings or modify pipeline to store worker results
+      if (false && shouldUseHorizontalScaling.useWorkers) {
         console.log(`[${new Date().toISOString()}] 🏭 HORIZONTAL SCALING: Repository size (${shouldUseHorizontalScaling.estimatedFiles} files) exceeds threshold, using worker-based processing`);
         console.log(`[${new Date().toISOString()}] 🚀 CALLING processRepoWithWorkers...`);
         

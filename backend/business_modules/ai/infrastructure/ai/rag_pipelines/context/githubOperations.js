@@ -458,6 +458,7 @@ class GitHubOperations {
       preferGitHubAPI: true,
       fallbackToLocalGit: true
     };
+    this.pineconeManager = options.pineconeManager;
   }
 
   /**
@@ -1241,6 +1242,25 @@ class GitHubOperations {
 
       // Step 3: Store documents (this should be delegated to EmbeddingManager, but for fallback we'll handle here)
       console.log(`[${new Date().toISOString()}] ⚠️ FALLBACK STORAGE: GitHubOperations handling storage directly (should use EmbeddingManager in production)`);
+      
+      // CRITICAL FIX: Actually store the embeddings to Pinecone!
+      console.log(`[${new Date().toISOString()}] 💾 FALLBACK EMBEDDING STORAGE: Storing ${splitDocuments.length} chunks to Pinecone namespace ${namespace}`);
+      
+      try {
+        // Use the EmbeddingManager approach directly
+        const EmbeddingManager = require('./embeddingManager');
+        const embeddingManager = new EmbeddingManager({
+          embeddings: embeddings,
+          pineconeManager: this.pineconeManager
+        });
+        
+        await embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
+        console.log(`[${new Date().toISOString()}] ✅ FALLBACK EMBEDDING SUCCESS: Stored embeddings to Pinecone`);
+        
+      } catch (embeddingError) {
+        console.error(`[${new Date().toISOString()}] ❌ FALLBACK EMBEDDING FAILED:`, embeddingError.message);
+        // Continue processing even if embedding storage fails
+      }
       
       const result = {
         success: true,

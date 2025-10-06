@@ -25,9 +25,7 @@ class RepoWorker {
     
     // Import required modules
     this.initializeModules();
-    
-    console.log(`[${new Date().toISOString()}] 👷 WORKER ${workerId}: Initialized and ready`);
-    
+
     // Signal ready to main thread
     this.sendMessage({
       type: 'WORKER_READY',
@@ -52,8 +50,7 @@ class RepoWorker {
       
       // Document processing will be handled by main pipeline
       // this.documentProcessor = require('../DocumentProcessor');
-      
-      console.log(`[${new Date().toISOString()}] 📦 WORKER ${this.workerId}: Modules initialized`);
+
       
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ WORKER ${this.workerId}: Failed to initialize modules:`, error);
@@ -73,7 +70,6 @@ class RepoWorker {
     this.currentWorkUnit = workUnit;
     const startTime = Date.now();
     
-    console.log(`[${new Date().toISOString()}] 🚀 WORKER ${this.workerId}: Processing work unit ${workUnit.id} (${workUnit.files.length} files)`);
     
     try {
       // Configure repo loader with repository information

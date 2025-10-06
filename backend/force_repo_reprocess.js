@@ -8,7 +8,7 @@ async function forceRepoReprocessing() {
   console.log('=' .repeat(70));
   
   const baseUrl = process.env.BASE_URL || 'https://eventstorm.me';
-  const userId = 'anatolyzader'; // Use consistent owner identifier
+  const userId = 'anatolyzader'; // Use consistent owner identifier  
   const repoId = 'anatolyZader/vc-3';
   
   // Repository data to trigger reprocessing
@@ -46,7 +46,16 @@ async function forceRepoReprocessing() {
     // Try to trigger via internal API if available
     try {
       const ContextPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline');
-      const pipeline = new ContextPipeline();
+      const { OpenAIEmbeddings } = require('@langchain/openai');
+      
+      const embeddings = new OpenAIEmbeddings({
+        model: 'text-embedding-3-large',
+        apiKey: process.env.OPENAI_API_KEY
+      });
+      
+      const pipeline = new ContextPipeline({
+        embeddings: embeddings
+      });
       
       console.log('🎯 Calling internal processPushedRepo function...');
       const result = await pipeline.processPushedRepo(userId, repoId, repoData);
