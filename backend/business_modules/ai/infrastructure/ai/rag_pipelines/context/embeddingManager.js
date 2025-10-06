@@ -1,9 +1,12 @@
 // EmbeddingManager.js
 "use strict";
 
+const { Document } = require('langchain/document');
+
 /**
  * Handles all embedding and vector storage operations with Pinecone
  * Now uses centralized PineconeService for all vector operations
+ * Added token-based safety validation to prevent embedding API failures
  */
 class EmbeddingManager {
   constructor(options = {}) {
@@ -48,17 +51,60 @@ class EmbeddingManager {
     }
 
     try {
+      // Import TokenBasedSplitter for safety validation
+      const TokenBasedSplitter = require('./processors/tokenBasedSplitter');
+      const tokenSplitter = new TokenBasedSplitter({
+        maxTokens: 1400, // Safe limit well under 8192
+        minTokens: 100,
+        overlapTokens: 150
+      });
+
+      // Validate and re-chunk documents that exceed token limits
+      const safeDocuments = [];
+      let rechunkedCount = 0;
+
+      for (const doc of documents) {
+        const tokenCheck = tokenSplitter.exceedsTokenLimit(doc.pageContent);
+        
+        if (tokenCheck.exceeds) {
+          console.log(`[${new Date().toISOString()}] ⚠️ TOKEN SAFETY: Document exceeds ${tokenSplitter.maxTokens} tokens (${tokenCheck.tokenCount}), re-chunking...`);
+          
+          // Re-chunk the oversized document
+          const chunks = tokenSplitter.splitText(doc.pageContent);
+          for (const chunk of chunks) {
+            safeDocuments.push(new Document({
+              pageContent: chunk.content,
+              metadata: {
+                ...doc.metadata,
+                rechunked: true,
+                originalTokens: tokenCheck.tokenCount,
+                chunkTokens: chunk.tokens,
+                chunkIndex: chunk.index
+              }
+            }));
+          }
+          rechunkedCount++;
+        } else {
+          safeDocuments.push(doc);
+        }
+      }
+
+      if (rechunkedCount > 0) {
+        console.log(`[${new Date().toISOString()}] 🔧 TOKEN SAFETY: Re-chunked ${rechunkedCount} oversized documents into ${safeDocuments.length - documents.length + rechunkedCount} safe chunks`);
+      }
       // Import PineconeService class for static methods
       const PineconeService = require('../../pinecone/PineconeService');
       
-      // Generate unique document IDs using centralized method
-      const documentIds = PineconeService.generateRepositoryDocumentIds(documents, namespace, {
+      // Generate unique document IDs using centralized method (use safeDocuments)
+      const documentIds = PineconeService.generateRepositoryDocumentIds(safeDocuments, namespace, {
         useTimestamp: true,
         prefix: null
       });
 
+      console.log(`[${new Date().toISOString()}] 🔒 TOKEN-VALIDATED STORAGE: Processing ${safeDocuments.length} token-safe documents`);
+
       // Use enhanced upsertDocuments with verbose logging and rate limiting
-      const result = await pineconeService.upsertDocuments(documents, this.embeddings, {
+      const result = await pineconeService.upsertDocuments(safeDocuments, this.embeddings, {
         namespace: namespace,
         ids: documentIds,
         githubOwner,
