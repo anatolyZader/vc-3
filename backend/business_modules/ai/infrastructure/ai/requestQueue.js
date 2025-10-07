@@ -1,4 +1,7 @@
-const Bottleneck = require("bottleneck");
+// requestQueue.js
+"use strict";
+
+const PineconeLimiter = require('./pineconeLimiter');
 
 /**
  * Handles rate limiting and request queuing for AI operations
@@ -13,8 +16,8 @@ class RequestQueue {
     });
 
     try {
-      this.maxRequestsPerMinute = options.maxRequestsPerMinute || 60;
-      this.retryDelay = options.retryDelay || 5000;
+      this.maxRequestsPerMinute = options.maxRequestsPerMinute || 120;  // Increased from 60 to 120 for better throughput
+      this.retryDelay = options.retryDelay || 2000;  // Reduced from 5000ms to 2000ms for faster retries
       this.maxRetries = options.maxRetries || 10;
       
       console.log(`[${timestamp}] [DEBUG] Configuration set:`, {
@@ -42,61 +45,22 @@ class RequestQueue {
         isProcessingQueue: this.isProcessingQueue
       });
       
-      // Bottleneck rate limiter for Pinecone upserts
+      // Initialize specialized Pinecone rate limiter
       try {
-        this.pineconeLimiter = new Bottleneck({
-          reservoir: 100, // 100 records per second
-          reservoirRefreshAmount: 100,
-          reservoirRefreshInterval: 1000,
-          maxConcurrent: 1
+        this.pineconeLimiter = new PineconeLimiter({
+          reservoir: options.pineconeReservoir || 100,                    // 100 operations per second
+          reservoirRefreshAmount: options.pineconeRefreshAmount || 100,   
+          reservoirRefreshInterval: options.pineconeRefreshInterval || 1000,  // 1 second
+          maxConcurrent: options.pineconeMaxConcurrent || 5               // 5 concurrent for performance
         });
         
-        console.log(`[${timestamp}] [DEBUG] Bottleneck limiter created successfully:`, {
-          reservoir: 100,
-          reservoirRefreshAmount: 100,
-          reservoirRefreshInterval: 1000,
-          maxConcurrent: 1
+        console.log(`[${timestamp}] [DEBUG] PineconeLimiter initialized successfully`);
+      } catch (pineconeLimiterError) {
+        console.error(`[${timestamp}] [ERROR] Failed to create PineconeLimiter:`, {
+          error: pineconeLimiterError.message,
+          stack: pineconeLimiterError.stack
         });
-
-        // Add event handlers for Bottleneck debugging
-        this.pineconeLimiter.on('error', (error) => {
-          console.error(`[${new Date().toISOString()}] [ERROR] Bottleneck error:`, {
-            error: error.message,
-            stack: error.stack
-          });
-        });
-
-        this.pineconeLimiter.on('failed', (error, jobInfo) => {
-          console.error(`[${new Date().toISOString()}] [ERROR] Bottleneck job failed:`, {
-            error: error.message,
-            stack: error.stack,
-            jobInfo
-          });
-        });
-
-        this.pineconeLimiter.on('retry', (error, jobInfo) => {
-          console.log(`[${new Date().toISOString()}] [WARNING] Bottleneck job retrying:`, {
-            error: error.message,
-            jobInfo,
-            retryCount: jobInfo.retryCount
-          });
-        });
-
-        this.pineconeLimiter.on('depleted', (empty) => {
-          console.log(`[${new Date().toISOString()}] [WARNING] Bottleneck reservoir depleted:`, {
-            isEmpty: empty
-          });
-        });
-
-        this.pineconeLimiter.on('message', (message) => {
-          console.log(`[${new Date().toISOString()}] [DEBUG] Bottleneck message:`, message);
-        });
-      } catch (bottleneckError) {
-        console.error(`[${timestamp}] [ERROR] Failed to create Bottleneck limiter:`, {
-          error: bottleneckError.message,
-          stack: bottleneckError.stack
-        });
-        throw bottleneckError;
+        throw pineconeLimiterError;
       }
       
       console.log(`[${timestamp}] [DEBUG] RequestQueue initialized: maxRequestsPerMinute=${this.maxRequestsPerMinute}, retryDelay=${this.retryDelay}, maxRetries=${this.maxRetries}`);
@@ -288,10 +252,10 @@ class RequestQueue {
   startQueueProcessor() {
     const timestamp = new Date().toISOString();
     
-    console.log(`[${timestamp}] [DEBUG] Starting queue processor with 5-second interval`);
+    console.log(`[${timestamp}] [DEBUG] Starting queue processor with 1-second interval for faster response times`);
     
     try {
-      // Process queue every 5 seconds
+      // Process queue every 1 second for better responsiveness
       const intervalId = setInterval(() => {
         try {
           this.processQueue();
@@ -301,10 +265,10 @@ class RequestQueue {
             stack: error.stack
           });
         }
-      }, 5000);
+      }, 1000);
       
       console.log(`[${timestamp}] [INFO] AI request queue processor started successfully:`, {
-        intervalMs: 5000,
+        intervalMs: 1000,
         intervalId: intervalId.toString()
       });
       
@@ -493,7 +457,7 @@ class RequestQueue {
   /**
    * Cleanup method to stop processors and clear queues
    */
-  cleanup() {
+  async cleanup() {
     const timestamp = new Date().toISOString();
     
     console.log(`[${timestamp}] [INFO] Starting RequestQueue cleanup:`, {
@@ -529,10 +493,10 @@ class RequestQueue {
       this.requestQueue = [];
       this.isProcessingQueue = false;
 
-      // Disconnect Bottleneck if it has a disconnect method
+      // Disconnect PineconeLimiter if available
       if (this.pineconeLimiter && typeof this.pineconeLimiter.disconnect === 'function') {
-        this.pineconeLimiter.disconnect();
-        console.log(`[${timestamp}] [DEBUG] Bottleneck disconnected`);
+        await this.pineconeLimiter.disconnect();
+        console.log(`[${timestamp}] [DEBUG] PineconeLimiter disconnected`);
       }
 
       console.log(`[${timestamp}] [INFO] RequestQueue cleanup completed successfully`);

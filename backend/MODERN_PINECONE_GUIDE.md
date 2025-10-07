@@ -159,7 +159,7 @@ const repoResults = await searchOrchestrator.searchInRepository(
    const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
    
    // NEW
-   const PineconeService = require('./pinecone/PineconeService');
+   const PineconeService = require('./pinecone/pineconeService');
    const pineconeService = new PineconeService();
    ```
 

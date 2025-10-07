@@ -7,7 +7,7 @@ describe('ConversationFormatter utility', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    ConversationFormatter = require(path.resolve(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/utils/conversationFormatter.js'));
+    ConversationFormatter = require(path.resolve(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/conversationFormatter.js'));
   });
 
   test('formats history into alternating user/assistant messages', () => {

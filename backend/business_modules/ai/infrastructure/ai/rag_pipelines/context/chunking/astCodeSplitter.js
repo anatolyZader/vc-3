@@ -5,7 +5,7 @@ const { parse } = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 const ChunkQualityAnalyzer = require('../../../langsmith/ChunkQualityAnalyzer');
 const { Document } = require('langchain/document');
-const TokenBasedSplitter = require('../processors/tokenBasedSplitter');
+const TokenBasedSplitter = require('./tokenBasedSplitter');
 
 /**
  * AST-Based Code Splitter with Chunk Quality Analysis

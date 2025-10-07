@@ -4,7 +4,7 @@ const path = require("path");
 
 // Stub orchestrators and processors used inside ContextPipeline to avoid heavy work
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/githubOperations",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/loading/githubOperations",
   () => jest.fn().mockImplementation(() => ({
     getPushedCommitInfo: jest.fn(async () => ({ hash: "h1", subject: "s" }))
   }))
@@ -29,7 +29,7 @@ jest.mock(
 */
 
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/repoProcessor",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoProcessor",
   () => jest.fn().mockImplementation(() => ({
     loadDocumentsWithLangchain: jest.fn(async () => ([{ pageContent: "test doc", metadata: { source: "test" } }])),
     processFilteredDocuments: jest.fn(async () => ({ success: true, documentsProcessed: 1, chunksGenerated: 3 })),
@@ -38,7 +38,7 @@ jest.mock(
 );
 
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/githubOperations",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/loading/githubOperations",
   () => jest.fn().mockImplementation(() => ({
     findExistingRepo: jest.fn(async () => null),
     sanitizeId: jest.fn(id => id.replace(/[^a-zA-Z0-9_-]/g, '_')),

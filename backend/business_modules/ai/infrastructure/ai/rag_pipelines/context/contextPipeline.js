@@ -2,17 +2,17 @@
 "use strict";
 
 const EventManager = require('./eventManager');
-const PineconePlugin = require('../../pinecone/pineconePlugin');
-const SemanticPreprocessor = require('./semanticPreprocessor');
-const UbiquitousLanguageEnhancer = require('./ubiquitousLanguageEnhancer');
-const ApiSpecProcessor = require('./processors_by_doc_type/apiSpecProcessor');
+const PineconePlugin = require('./embedding/pineconePlugin');
+const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
 const DocsProcessor = require('./processors/docsProcessor');
-const GitHubOperations = require('./githubOperations');
-const ASTCodeSplitter = require('./processors_by_doc_type/astCodeSplitter');
-const RepoProcessor = require('./repoProcessor');
-const EmbeddingManager = require('./embeddingManager');
-const RepoWorkerManager = require('./RepoWorkerManager');
-const ChangeAnalyzer = require('./changeAnalyzer');
+const GitHubOperations = require('./loading/githubOperations');
+const ASTCodeSplitter = require('./chunking/astCodeSplitter');
+const RepoProcessor = require('./processors/repoProcessor');
+const EmbeddingManager = require('./embedding/embeddingManager');
+const RepoWorkerManager = require('./loading/repoWorkerManager');
+const ChangeAnalyzer = require('./loading/changeAnalyzer');
 const ContextPipelineUtils = require('./contextPipelineUtils');
 
 let traceable;
@@ -36,9 +36,9 @@ class ContextPipeline {
     this.config = options.config || {};
     
     // Initialize core components only
-    this.pineconeManager = new PineconePlugin();
+    this.pineconePlugin = new PineconePlugin();
     this.githubOperations = new GitHubOperations({
-      pineconeManager: this.pineconeManager
+      pineconePlugin: this.pineconePlugin
     });
     this.changeAnalyzer = new ChangeAnalyzer();
     this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
@@ -62,14 +62,14 @@ class ContextPipeline {
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
       repoPreparation: this.githubOperations,
-      pineconeManager: this.pineconeManager
+      pineconePlugin: this.pineconePlugin
     });
     
     // Initialize EmbeddingManager first
     this.embeddingManager = new EmbeddingManager({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
-      pineconeManager: this.pineconeManager
+      pineconePlugin: this.pineconePlugin
     });
     
     // Initialize repoProcessor with pure processing dependencies only
@@ -123,7 +123,7 @@ class ContextPipeline {
     if (!this.pinecone) {
       try {
         console.log(`[${new Date().toISOString()}] ⚙️ PINECONE: Initializing client...`);
-        this.pinecone = await this.pineconeManager?.getPineconeService();
+        this.pinecone = await this.pineconePlugin?.getPineconeService();
         console.log(`[${new Date().toISOString()}] ✅ PINECONE: Client initialized`);
       } catch (error) {
         console.error(`[${new Date().toISOString()}] ❌ PINECONE: Initialization failed:`, error.message);

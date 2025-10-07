@@ -10,7 +10,7 @@ async function verifyDeployment() {
   try {
     // 1. Check RepoWorkerManager import
     console.log('📦 Checking RepoWorkerManager import...');
-    const RepoWorkerManager = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/RepoWorkerManager');
+    const RepoWorkerManager = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoWorkerManager');
     checks.push({ name: 'RepoWorkerManager Import', status: 'PASS', details: 'Module imported successfully' });
     
     // 2. Check repoWorker import

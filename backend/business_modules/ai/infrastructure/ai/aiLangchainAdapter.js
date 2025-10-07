@@ -6,7 +6,7 @@ const IAIPort = require('../../domain/ports/IAIPort');
 const { OpenAIEmbeddings } = require('@langchain/openai');
 
 // Import extracted utility functions
-const RequestQueue = require('./utils/requestQueue');
+const RequestQueue = require('./requestQueue');
 const LLMProviderManager = require('./providers/lLMProviderManager');
 
 // Import the ContextPipeline for handling repository processing
@@ -30,19 +30,16 @@ class AILangchainAdapter extends IAIPort {
 
     // Make userId null by default to avoid DI error
     this.userId = null;
-    console.log(`[${new Date().toISOString()}] [DEBUG] Constructor called with options:`, JSON.stringify(options));
 
     // Get provider from infraConfig or options
     this.aiProvider = options.aiProvider || 'openai';
     console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing with provider: ${this.aiProvider}`);
-    console.log(`[${new Date().toISOString()}] [DEBUG] aiProvider set to: ${this.aiProvider}`);
 
     // Get access to the event bus for status updates
     try {
       const { eventBus } = require('../../../../eventDispatcher');
       this.eventBus = eventBus;
       console.log(`[${new Date().toISOString()}] 📡 Successfully connected to shared event bus`);
-      console.log(`[${new Date().toISOString()}] [DEBUG] Event bus connected.`);
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] ⚠️ Could not access shared event bus: ${error.message}`);
       this.eventBus = null;
@@ -145,7 +142,7 @@ class AILangchainAdapter extends IAIPort {
     // Update vector store namespace with the user ID
     try {
       // Initialize vector store directly - adapter owns the vector store lifecycle
-      const PineconeService = require('./pinecone/PineconeService');
+      const PineconeService = require('./rag_pipelines/context/embedding/pineconeService');
       
       if (process.env.PINECONE_API_KEY) {
         const pineconeService = new PineconeService({

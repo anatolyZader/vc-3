@@ -23,7 +23,7 @@ class QueryPipeline {
       indexName: process.env.PINECONE_INDEX_NAME,
       region: process.env.PINECONE_REGION,
       defaultTopK: 10,
-      defaultThreshold: 0.4,
+      defaultThreshold: 0.3,  // Lowered from 0.4 to 0.3 for more matches
       maxResults: 50
     });
     this.responseGenerator = new ResponseGenerator(this.llm, this.requestQueue);
@@ -193,14 +193,14 @@ class QueryPipeline {
     return vectorStore && this.vectorSearchOrchestrator && this.vectorSearchOrchestrator.isConnected();
   }
 
-  async performVectorSearch(prompt, vectorStore, traceData = null) {
+  async performVectorSearch(prompt, vectorStore, traceData = null, userId = null, repoId = null) {
     if (vectorStore !== this.vectorStore) {
       // For different vector stores, we'll use advanced search with the modern orchestrator
       // but search in a specific namespace if provided
       const searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
         namespace: vectorStore?.namespace || null,
         topK: 10,
-        threshold: 0.4,
+        threshold: 0.3,  // Lowered for more matches
         includeMetadata: true
       });
       
@@ -258,16 +258,27 @@ class QueryPipeline {
     
     if (traceData) {
       traceData.vectorStore = 'primary';
-      traceData.searchStrategy = 'modern_vector_search_orchestrator';
+      traceData.searchStrategy = repoId ? 'repository_specific_search' : 'modern_vector_search_orchestrator';
     }
     
-    // Use the modern orchestrator's enhanced search capabilities
-    const searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
-      namespace: this.userId,
-      topK: 10,
-      threshold: 0.4,
-      includeMetadata: true
-    });
+    // Use repository-specific search if repoId is provided, otherwise use user-wide search
+    let searchResults;
+    if (repoId && userId) {
+      console.log(`[${new Date().toISOString()}] 🎯 Repository-specific search: ${userId}/${repoId}`);
+      searchResults = await this.vectorSearchOrchestrator.searchInRepository(prompt, userId, repoId, {
+        topK: 10,
+        threshold: 0.3  // Lower threshold for more matches
+      });
+    } else {
+      // Fallback to user-wide search (using userId as namespace)
+      console.log(`[${new Date().toISOString()}] 🌐 User-wide search: ${this.userId || userId || 'unknown'}`);
+      searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
+        namespace: this.userId || userId,
+        topK: 10,
+        threshold: 0.3,  // Lower threshold for more matches
+        includeMetadata: true
+      });
+    }
     
     // Convert to legacy format for compatibility with rest of pipeline
     const results = searchResults.matches.map(match => ({

@@ -12,11 +12,11 @@ class EmbeddingManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
-    this.pineconeManager = options.pineconeManager;
+    this.pineconePlugin = options.pineconePlugin;
     
     // Store promise; don't treat pending Promise as client
     this._pineconeService = null;
-    this._pineconeServicePromise = this.pineconeManager?.getPineconeService?.();
+    this._pineconeServicePromise = this.pineconePlugin?.getPineconeService?.();
     this.pinecone = null; // backward compatibility alias after resolution
   }
 
@@ -52,7 +52,7 @@ class EmbeddingManager {
 
     try {
       // Import TokenBasedSplitter for safety validation
-      const TokenBasedSplitter = require('./processors/tokenBasedSplitter');
+      const TokenBasedSplitter = require('../rag_pipelines/context/processors/tokenBasedSplitter');
       const tokenSplitter = new TokenBasedSplitter({
         maxTokens: 1400, // Safe limit well under 8192
         minTokens: 100,
@@ -97,7 +97,7 @@ class EmbeddingManager {
         console.log(`[${new Date().toISOString()}] 🔧 TOKEN SAFETY: Re-chunked ${rechunkedCount} oversized documents into ${safeDocuments.length - documents.length + rechunkedCount} safe chunks`);
       }
       // Import PineconeService class for static methods
-      const PineconeService = require('../../pinecone/PineconeService');
+      const PineconeService = require('./pineconeService');
       
       // Generate unique document IDs using centralized method (use safeDocuments)
       const documentIds = PineconeService.generateRepositoryDocumentIds(safeDocuments, namespace, {
@@ -211,7 +211,7 @@ class EmbeddingManager {
 
     try {
       // Import PineconeService class for static methods
-      const PineconeService = require('../../pinecone/PineconeService');
+      const PineconeService = require('./pineconeService');
       
       // Generate unique document IDs using centralized method
       const documentIds = PineconeService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);

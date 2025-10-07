@@ -25,7 +25,7 @@ jest.mock("@langchain/pinecone", () => ({
 
 // Mock PineconeService to return vector store with correct namespace
 jest.mock(
-  "../../../../business_modules/ai/infrastructure/ai/pinecone/PineconeService",
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeService",
   () => jest.fn().mockImplementation(() => ({
     validateConfig: jest.fn(),
     connect: jest.fn(async () => ({})),

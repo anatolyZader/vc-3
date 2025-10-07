@@ -23,7 +23,7 @@ async function testHorizontalScaling() {
   
   try {
     // Import RepoWorkerManager
-    const RepoWorkerManager = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/RepoWorkerManager');
+    const RepoWorkerManager = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoWorkerManager');
     
     console.log('✅ RepoWorkerManager imported successfully');
     

@@ -4,9 +4,9 @@
 const { Document } = require('langchain/document');
 const ASTCodeSplitter = require('./astCodeSplitter');
 const LangchainTextSplitter = require('./langchainTextSplitter');
-const DocsProcessor = require('./docsProcessor');
+const DocsProcessor = require('../processors/docsProcessor');
 const TokenBasedSplitter = require('./tokenBasedSplitter');
-const CodePreprocessor = require('./codePreprocessor');
+const CodePreprocessor = require('../processors/codePreprocessor');
 const TextPreprocessor = require('./textPreprocessor');
 const ChunkPostprocessor = require('./chunkPostprocessor');
 const { RecursiveCharacterTextSplitter, MarkdownTextSplitter } = require('langchain/text_splitter');

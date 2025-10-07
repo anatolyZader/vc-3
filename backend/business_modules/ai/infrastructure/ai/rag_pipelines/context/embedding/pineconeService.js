@@ -1,10 +1,4 @@
-/**
- * PineconeService - Centralized Pinecone Vector Database Service
- * 
- * This service provides a clean, modern interface for all Pinecone operations
- * throughout the EventStorm application. It handles connection management,
- * error recovery, and provides consistent patterns for vector operations.
- */
+// pineconeService.js
 
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { PineconeStore } = require('@langchain/pinecone');

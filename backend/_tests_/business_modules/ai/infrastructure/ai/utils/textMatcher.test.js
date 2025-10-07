@@ -7,7 +7,7 @@ describe('TextMatcher utility', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    TextMatcher = require(path.resolve(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/utils/textMatcher.js'));
+    TextMatcher = require(path.resolve(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/query/textMatcher.js'));
   });
 
   test('containsKeywords detects presence of any keyword', () => {

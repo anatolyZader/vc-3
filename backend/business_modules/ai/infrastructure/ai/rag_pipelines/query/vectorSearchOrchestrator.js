@@ -6,7 +6,7 @@
  * Maintains compatibility with existing QueryPipeline interface.
  */
 
-const PineconeService = require('../../pinecone/PineconeService');
+const PineconeService = require('../context/embedding/pineconeService');
 const VectorSearchStrategy = require('./vectorSearchStrategy');
 
 class VectorSearchOrchestrator {
@@ -26,7 +26,7 @@ class VectorSearchOrchestrator {
       this.pinecone = options.pinecone || null;
       this.embeddings = options.embeddings;
       this.defaultTopK = options.defaultTopK || 10;
-      this.defaultThreshold = options.defaultThreshold || 0.4;
+      this.defaultThreshold = options.defaultThreshold || 0.3;  // Lowered from 0.4 to 0.3 for more matches
       this.maxResults = options.maxResults || 50;
     }
     

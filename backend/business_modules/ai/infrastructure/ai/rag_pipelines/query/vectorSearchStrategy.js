@@ -1,4 +1,4 @@
-const { TextMatcher } = require('../../utils');
+const TextMatcher = require('./textMatcher');
 
 /**
  * Intelligent vector search strategy selector

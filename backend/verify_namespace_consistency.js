@@ -100,7 +100,7 @@ async function verifyNamespaceConsistency() {
       'force_repo_reprocess.js',
       'business_modules/ai/infrastructure/ai/rag_pipelines/context/githubOperations.js',
       'business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js',
-      'business_modules/ai/infrastructure/ai/pinecone/PineconeService.js'
+      'business_modules/ai/infrastructure/ai/pinecone/pineconeService.js'
     ];
     
     for (const file of keyFiles) {

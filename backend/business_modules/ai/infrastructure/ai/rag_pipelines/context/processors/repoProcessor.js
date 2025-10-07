@@ -185,7 +185,7 @@ class RepoProcessor {
     
     try {
       // Try cloud-native loader first (no authentication required for public repos)
-      const CloudNativeRepoLoader = require('./cloudNativeRepoLoader');
+      const CloudNativeRepoLoader = require('../loading/cloudNativeRepoLoader');
       const cloudLoader = new CloudNativeRepoLoader({
         owner: githubOwner,
         repo: repoName,

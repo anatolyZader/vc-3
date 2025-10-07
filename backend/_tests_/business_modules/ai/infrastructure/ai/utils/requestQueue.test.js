@@ -11,7 +11,7 @@ describe('RequestQueue utility', () => {
   beforeEach(() => {
     jest.resetModules();
     jest.useFakeTimers();
-    RequestQueue = require(path.resolve(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/utils/requestQueue.js'));
+    RequestQueue = require(path.resolve(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/requestQueue.js'));
   });
 
   afterEach(() => {

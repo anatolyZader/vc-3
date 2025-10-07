@@ -1,7 +1,7 @@
 // pineconePlugin.js - Singleton pattern for shared Pinecone connections
 "use strict";
 
-const PineconeService = require('./PineconeService');
+const PineconeService = require('./pineconeService');
 
 /**
  * PineconePlugin - Singleton pattern for shared Pinecone connections

@@ -24,11 +24,11 @@ class DocsProcessor {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
-    this.pineconeManager = options.pineconeManager;
+    this.pineconePlugin = options.pineconePlugin;
     
     // Defer pinecone resolution; don't assign unresolved promise
     this._pineconeService = null;
-    this._pineconeServicePromise = this.pineconeManager?.getPineconeService?.();
+    this._pineconeServicePromise = this.pineconePlugin?.getPineconeService?.();
     this.pinecone = null; // Backward compatibility alias after resolution
   }
 

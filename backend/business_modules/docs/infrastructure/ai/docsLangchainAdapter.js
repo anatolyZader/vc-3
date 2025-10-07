@@ -13,7 +13,7 @@ const { RunnableSequence } = require('@langchain/core/runnables');
 const { StringOutputParser } = require('@langchain/core/output_parsers');
 
 // Modern Pinecone service
-const PineconeService = require('../../../ai/infrastructure/ai/pinecone/PineconeService');
+const PineconeService = require('../../../ai/infrastructure/ai/pinecone/pineconeService');
 const { formatDocumentsAsString } = require('langchain/util/document');
 const Bottleneck = require("bottleneck");
 

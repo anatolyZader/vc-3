@@ -183,7 +183,7 @@ HORIZONTAL_SCALING_DEBUG=true
 ```bash
 # Check worker manager status
 node -e "
-const manager = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/RepoWorkerManager');
+const manager = require('./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/repoWorkerManager');
 console.log('Worker Manager Ready:', !!manager);
 "
 ```

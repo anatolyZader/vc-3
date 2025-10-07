@@ -29,7 +29,7 @@ jest.mock("@langchain/pinecone", () => ({
 
 const servicePath = path.resolve(
   __dirname,
-  "../../../../../../business_modules/ai/infrastructure/ai/pinecone/PineconeService.js"
+  "../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeService.js"
 );
 
 describe("PineconeService delete operations", () => {

@@ -1,4 +1,4 @@
-const { ConversationFormatter } = require('../../utils');
+const ConversationFormatter = require('./conversationFormatter');
 const PromptSelector = require('../../prompts/index').PromptSelector;
 const PromptConfig = require('../../prompts/promptConfig');
 

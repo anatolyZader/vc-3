@@ -4,7 +4,7 @@ const path = require("path");
 
 const splitterPath = path.resolve(
   __dirname,
-  "../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/tokenBasedSplitter.js"
+  "../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/chunking/tokenBasedSplitter.js"
 );
 
 describe("TokenBasedSplitter.findBestSeparatorBoundary", () => {

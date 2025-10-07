@@ -3,7 +3,7 @@ const path = require('path');
 describe('TokenBasedSplitter overlap accuracy', () => {
   let TokenBasedSplitter;
   beforeAll(() => {
-    const splitterPath = path.join(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/tokenBasedSplitter.js');
+    const splitterPath = path.join(__dirname, '../../../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/chunking/tokenBasedSplitter.js');
     TokenBasedSplitter = require(splitterPath);
   });
 
