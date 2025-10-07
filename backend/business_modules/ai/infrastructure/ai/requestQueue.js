@@ -1,7 +1,7 @@
 // requestQueue.js
 "use strict";
 
-const PineconeLimiter = require('./pineconeLimiter');
+const PineconeLimiter = require('./rag_pipelines/context/embedding/pineconeLimiter');
 
 /**
  * Handles rate limiting and request queuing for AI operations

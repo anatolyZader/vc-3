@@ -111,7 +111,7 @@ class AILangchainAdapter extends IAIPort {
       console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline initialized with embedded Pinecone services.`);
 
       // Initialize QueryPipeline for basic functionality (will be enhanced when userId is set)
-      this.queryPipeline = new QueryPipeline({
+      this.queryPipeline = new QueryPipeline({  
         embeddings: this.embeddings,
         llm: this.llm,
         eventBus: this.eventBus,
