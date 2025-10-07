@@ -3,6 +3,7 @@
 
 const EventManager = require('./eventManager');
 const PineconePlugin = require('./embedding/pineconePlugin');
+const PineconeService = require('./embedding/pineconeService');
 const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
 const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
 const ApiSpecProcessor = require('./processors/apiSpecProcessor');
@@ -37,8 +38,12 @@ class ContextPipeline {
     
     // Initialize core components only
     this.pineconePlugin = new PineconePlugin();
+    this.pineconeService = new PineconeService({
+      pineconePlugin: this.pineconePlugin,
+      rateLimiter: this.pineconeLimiter
+    });
     this.githubOperations = new GitHubOperations({
-      pineconePlugin: this.pineconePlugin
+      pineconeService: this.pineconeService
     });
     this.changeAnalyzer = new ChangeAnalyzer();
     this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
@@ -62,14 +67,14 @@ class ContextPipeline {
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
       repoPreparation: this.githubOperations,
-      pineconePlugin: this.pineconePlugin
+      pineconeService: this.pineconeService
     });
     
     // Initialize EmbeddingManager first
     this.embeddingManager = new EmbeddingManager({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
-      pineconePlugin: this.pineconePlugin
+      pineconeService: this.pineconeService
     });
     
     // Initialize repoProcessor with pure processing dependencies only
@@ -119,18 +124,14 @@ class ContextPipeline {
     }
   }
 
-  async getPineconeClient() {
-    if (!this.pinecone) {
-      try {
-        console.log(`[${new Date().toISOString()}] ⚙️ PINECONE: Initializing client...`);
-        this.pinecone = await this.pineconePlugin?.getPineconeService();
-        console.log(`[${new Date().toISOString()}] ✅ PINECONE: Client initialized`);
-      } catch (error) {
-        console.error(`[${new Date().toISOString()}] ❌ PINECONE: Initialization failed:`, error.message);
-        return null;
-      }
+  async getPineconeService() {
+    try {
+      console.log(`[${new Date().toISOString()}] ⚙️ PINECONE: Getting service...`);
+      return this.pineconeService;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ PINECONE: Service access failed:`, error.message);
+      return null;
     }
-    return this.pinecone;
   }
 
   async routeDocumentToProcessor(document) {
@@ -414,7 +415,7 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 🔑 COMMIT DETECTED: ${commitInfo?.hash?.substring(0, 8) ?? 'unknown'} - ${commitInfo?.subject ?? 'No subject'}`);
 
       // Step 2: Enhanced duplicate check with commit hash comparison
-      const pineconeClient = await this.getPineconeClient();
+      const pineconeClient = await this.pineconeService.getClient();
       const existingRepo = await this.githubOperations.findExistingRepo(
         userId, repoId, githubOwner, repoName, commitInfo?.hash ?? null, pineconeClient, this.embeddings
       );
@@ -480,7 +481,7 @@ class ContextPipeline {
           userId, repoId, repoUrl: url, branch, githubOwner, repoName,
           repoProcessor: this.repoProcessor,
           repoPreparation: this.githubOperations,
-          pineconeClient: await this.getPineconeClient(),
+          pineconeClient: await this.pineconeService.getClient(),
           embeddings: this.embeddings,
           routeDocumentsToProcessors: this.routeDocumentsToProcessors.bind(this),
           eventManager: this.eventManager
@@ -628,7 +629,7 @@ class ContextPipeline {
         }
         
         // Step 2: Store repository tracking info for future duplicate detection
-        const pineconeClient2 = await this.getPineconeClient();
+        const pineconeClient2 = await this.pineconeService.getClient();
         
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, commitInfo, 
@@ -714,7 +715,7 @@ class ContextPipeline {
       
       if (commitHash) {
         // Check if already processed using consistent findExistingRepo method
-        const pineconeClient = await this.getPineconeClient();
+        const pineconeClient = await this.pineconeService.getClient();
         const existingRepo = await this.githubOperations.findExistingRepo(
           userId, repoId, githubOwner, repoName, commitHash, pineconeClient, this.embeddings
         );
@@ -748,7 +749,7 @@ class ContextPipeline {
       
       // Step 6: Store repository tracking info for future duplicate detection  
       if (commitHash) {
-        const pineconeClient2 = await this.getPineconeClient();
+        const pineconeClient2 = await this.pineconeService.getClient();
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, actualCommitInfo, 
           namespace, pineconeClient2, this.embeddings

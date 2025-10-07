@@ -19,6 +19,7 @@ class QueryPipeline {
     this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
       embeddings: this.embeddings,
       rateLimiter: this.requestQueue?.pineconeLimiter,
+      pineconePlugin: options.pineconePlugin, // Pass through the pineconePlugin for singleton consistency
       apiKey: process.env.PINECONE_API_KEY,
       indexName: process.env.PINECONE_INDEX_NAME,
       region: process.env.PINECONE_REGION,
@@ -67,7 +68,9 @@ class QueryPipeline {
       throw new Error('Vector search orchestrator not initialized or missing userId');
     }
     
-    return await this.vectorSearchOrchestrator.createVectorStore(this.userId);
+    const vectorStore = await this.vectorSearchOrchestrator.createVectorStore(this.userId);
+    vectorStore.namespace = this.userId; // explicit namespace assignment
+    return vectorStore;
   }
 
   /**
@@ -197,8 +200,9 @@ class QueryPipeline {
     if (vectorStore !== this.vectorStore) {
       // For different vector stores, we'll use advanced search with the modern orchestrator
       // but search in a specific namespace if provided
+      const ns = vectorStore?.namespace || this.userId || userId || null;
       const searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
-        namespace: vectorStore?.namespace || null,
+        namespace: ns,
         topK: 10,
         threshold: 0.3,  // Lowered for more matches
         includeMetadata: true

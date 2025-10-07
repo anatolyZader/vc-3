@@ -2,6 +2,7 @@
 "use strict";
 
 const { Document } = require('langchain/document');
+const pineconeService = require('./pineconeService');
 
 /**
  * Handles all embedding and vector storage operations with Pinecone
@@ -12,28 +13,21 @@ class EmbeddingManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
-    this.pineconePlugin = options.pineconePlugin;
+    this.pineconeService = pineconeService;
     
-    // Store promise; don't treat pending Promise as client
-    this._pineconeService = null;
-    this._pineconeServicePromise = this.pineconePlugin?.getPineconeService?.();
-    this.pinecone = null; // backward compatibility alias after resolution
+    // Require PineconeService as a dependency - don't create it ourselves
+    if (!options.pineconeService) {
+      throw new Error('EmbeddingManager requires a pineconeService instance. Pass it via options.pineconeService');
+    }
+    
+    this.pineconeService = options.pineconeService;
+    
+    // Backward compatibility alias
+    this.pinecone = this.pineconeService;
   }
 
   async _getPineconeService() {
-    if (this._pineconeService) return this._pineconeService;
-    if (this._pineconeServicePromise) {
-      try {
-        this._pineconeService = await this._pineconeServicePromise;
-      } catch (err) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ EmbeddingManager: Pinecone initialization failed: ${err.message}`);
-        this._pineconeService = null;
-      } finally {
-        this._pineconeServicePromise = null;
-      }
-      this.pinecone = this._pineconeService;
-    }
-    return this._pineconeService;
+    return this.pineconeService;
   }
 
   /**

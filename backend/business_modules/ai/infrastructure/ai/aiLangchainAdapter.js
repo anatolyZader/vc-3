@@ -139,13 +139,16 @@ class AILangchainAdapter extends IAIPort {
     this.userId = userId;
     console.log(`[${new Date().toISOString()}] [DEBUG] userId set to: ${this.userId}`);
 
-    // Update vector store namespace with the user ID
+
     try {
       // Initialize vector store directly - adapter owns the vector store lifecycle
       const PineconeService = require('./rag_pipelines/context/embedding/pineconeService');
+      const PineconePlugin = require('./rag_pipelines/context/embedding/pineconePlugin');
       
       if (process.env.PINECONE_API_KEY) {
+        const pineconePlugin = new PineconePlugin();
         const pineconeService = new PineconeService({
+          pineconePlugin: pineconePlugin,
           rateLimiter: this.requestQueue?.pineconeLimiter
         });
         
@@ -164,6 +167,7 @@ class AILangchainAdapter extends IAIPort {
           llm: this.llm,
           eventBus: this.eventBus,
           requestQueue: this.requestQueue,
+          pineconePlugin: pineconePlugin, // Pass the shared pineconePlugin for singleton consistency
           maxRetries: this.requestQueue.maxRetries
         });
         console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline created in setUserId`);

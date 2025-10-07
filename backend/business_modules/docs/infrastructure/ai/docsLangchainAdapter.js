@@ -50,7 +50,11 @@ class DocsLangchainAdapter extends IDocsAiPort {
 
     // Initialize Pinecone service
     if (process.env.PINECONE_API_KEY) {
-      this.pineconeService = new PineconeService();
+      const PineconePlugin = require('../../ai/infrastructure/ai/rag_pipelines/context/embedding/pineconePlugin');
+      const pineconePlugin = new PineconePlugin();
+      this.pineconeService = new PineconeService({
+        pineconePlugin: pineconePlugin
+      });
       this.pineconeIndexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
       console.log(`📊 DocsLangchainAdapter: Using Pinecone index: ${this.pineconeIndexName}`);
     } else {

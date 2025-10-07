@@ -12,7 +12,7 @@ class GitHubOperations {
       preferGitHubAPI: true,
       fallbackToLocalGit: true
     };
-    this.pineconePlugin = options.pineconePlugin;
+    this.pineconeService = options.pineconeService;
   }
 
   /**
@@ -807,7 +807,7 @@ class GitHubOperations {
         const EmbeddingManager = require('../embedding/embeddingManager');
         const embeddingManager = new EmbeddingManager({
           embeddings: embeddings,
-          pineconePlugin: this.pineconePlugin
+          pineconeService: this.pineconeService
         });
         
         await embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);

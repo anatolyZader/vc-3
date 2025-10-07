@@ -1,22 +1,16 @@
 // pineconeService.js
 
-const { Pinecone } = require('@pinecone-database/pinecone');
 const { PineconeStore } = require('@langchain/pinecone');
+const PineconePlugin = require('./pineconePlugin');
 
 class PineconeService {
   constructor(options = {}) {
-    this.config = {
-      apiKey: options.apiKey || process.env.PINECONE_API_KEY,
-      indexName: options.indexName || process.env.PINECONE_INDEX_NAME || 'eventstorm-index',
-      region: options.region || process.env.PINECONE_REGION || 'us-central1',
-      maxRetries: options.maxRetries || 3,
-      retryDelay: options.retryDelay || 1000,
-    };
-
-    this.client = null;
-    this.index = null;
-    this.isConnected = false;
-    this.connectionPromise = null;
+    // Require PineconePlugin as a mandatory dependency to ensure singleton pattern
+    if (!options.pineconePlugin) {
+      throw new Error('PineconeService requires a pineconePlugin instance. Pass it via options.pineconePlugin');
+    }
+    
+    this.pineconePlugin = options.pineconePlugin;
     
     // Rate limiting for operations
     this.rateLimiter = options.rateLimiter || null;
@@ -31,192 +25,50 @@ class PineconeService {
         }
       }
     };
-
-    this.validateConfig();
   }
 
   /**
-   * Validate configuration and environment variables
+   * Get Pinecone client via plugin
    */
-  validateConfig() {
-    if (!this.config.apiKey) {
-      throw new Error('PINECONE_API_KEY is required');
-    }
-
-    if (!this.config.indexName) {
-      throw new Error('PINECONE_INDEX_NAME is required');
-    }
-
-    this.logger.debug('Configuration validated', {
-      indexName: this.config.indexName,
-      region: this.config.region,
-      hasApiKey: !!this.config.apiKey
-    });
+  async getClient() {
+    return await this.pineconePlugin.getClient();
   }
 
   /**
-   * Initialize connection to Pinecone
+   * Get Pinecone index via plugin
    */
-  async connect() {
-    if (this.isConnected) {
-      return this.index;
-    }
-
-    if (this.connectionPromise) {
-      return this.connectionPromise;
-    }
-
-    this.connectionPromise = this._doConnect();
-    return this.connectionPromise;
+  async getIndex() {
+    return await this.pineconePlugin.getIndex();
   }
 
-  async _doConnect() {
-    try {
-      this.logger.info('Connecting to Pinecone...');
-      
-      // Initialize Pinecone client following official API patterns
-      this.client = new Pinecone({
-        apiKey: this.config.apiKey
-      });
+  /**
+   * Get connection status from plugin
+   */
+  isConnected() {
+    return this.pineconePlugin.isConnected();
+  }
 
-      // Check if index exists, create if it doesn't
-      try {
-        const existingIndexes = await this.client.listIndexes();
-        const indexExists = existingIndexes.indexes?.some(idx => idx.name === this.config.indexName);
-        
-        if (!indexExists) {
-          this.logger.info(`Index ${this.config.indexName} doesn't exist, creating it...`);
-          await this.createIndex();
-        }
-      } catch (listError) {
-        this.logger.warn('Could not check existing indexes, attempting to create index:', listError.message);
-        try {
-          await this.createIndex();
-        } catch (createError) {
-          // If creation also fails, it might already exist, continue
-          this.logger.debug('Index creation failed, assuming it exists:', createError.message);
-        }
-      }
-
-      // Get index reference using the official pattern
-      this.index = this.client.index(this.config.indexName);
-      
-      this.isConnected = true;
-      this.logger.info(`Successfully connected to Pinecone index: ${this.config.indexName}`);
-      
-      return this.index;
-    } catch (error) {
-      this.logger.error('Failed to connect to Pinecone:', error.message);
-      this.isConnected = false;
-      this.connectionPromise = null;
-      throw new Error(`Pinecone connection failed: ${error.message}`);
-    }
+  /**
+   * Get configuration from plugin
+   */
+  getConfig() {
+    return this.pineconePlugin.getConfig();
   }
 
   /**
    * Get index statistics
    */
   async getIndexStats() {
-    if (!this.isConnected || !this.index) {
-      await this.connect();
-    }
-    
-    try {
-      const stats = await this.index.describeIndexStats();
-      this.logger.debug('Index stats retrieved', {
-        totalVectors: stats.totalVectorCount || 0,
-        namespaces: Object.keys(stats.namespaces || {}).length
-      });
-      return stats;
-    } catch (error) {
-      this.logger.error('Failed to get index stats:', error.message);
-      throw error;
-    }
+    return await this.pineconePlugin.getIndexStats();
   }
 
-  /**
-   * Create index following official Pinecone API patterns
-   */
-  async createIndex(options = {}) {
-    const {
-      cloud = 'gcp',
-      region = this.config.region,
-      dimension = 3072, // For text-embedding-3-large
-      metric = 'cosine',
-      waitUntilReady = true
-    } = options;
 
-    try {
-      this.logger.info(`Creating Pinecone index: ${this.config.indexName}`);
-
-      // Check if index already exists
-      try {
-        const existingIndexes = await this.client.listIndexes();
-        const indexExists = existingIndexes.indexes?.some(idx => idx.name === this.config.indexName);
-        
-        if (indexExists) {
-          this.logger.info(`Index ${this.config.indexName} already exists`);
-          return { success: true, existed: true };
-        }
-      } catch (error) {
-        this.logger.debug('Could not check existing indexes:', error.message);
-      }
-
-      // Create index with serverless spec (following official docs)
-      await this.client.createIndex({
-        name: this.config.indexName,
-        dimension,
-        metric,
-        spec: {
-          serverless: {
-            cloud,
-            region
-          }
-        }
-      });
-
-      this.logger.info(`Index ${this.config.indexName} created successfully`);
-
-      if (waitUntilReady) {
-        this.logger.info('Waiting for index to be ready...');
-        // Wait for index to be ready (typically takes 30-60 seconds)
-        await this._waitForIndexReady();
-      }
-
-      return { success: true, created: true };
-
-    } catch (error) {
-      this.logger.error('Failed to create index:', error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * Wait for index to be ready
-   */
-  async _waitForIndexReady(maxWaitTime = 120000) { // 2 minutes max
-    const startTime = Date.now();
-    const checkInterval = 5000; // Check every 5 seconds
-
-    while (Date.now() - startTime < maxWaitTime) {
-      try {
-        await this.getIndexStats();
-        this.logger.info('Index is ready!');
-        return true;
-      } catch (error) {
-        this.logger.debug('Index not ready yet, waiting...');
-        await new Promise(resolve => setTimeout(resolve, checkInterval));
-      }
-    }
-
-    throw new Error(`Index ${this.config.indexName} did not become ready within ${maxWaitTime}ms`);
-  }
 
   /**
    * Create a PineconeStore for LangChain integration
    */
   async createVectorStore(embeddings, namespace = null) {
-    const index = await this.connect();
+    const index = await this.getIndex();
     
     // Use the newer LangChain API pattern for better compatibility
     const storeConfig = {
@@ -370,7 +222,7 @@ class PineconeService {
     } = options;
 
     try {
-      const index = await this.connect();
+      const index = await this.getIndex();
       
       const queryOptions = {
         vector: queryEmbedding,
@@ -408,7 +260,7 @@ class PineconeService {
    */
   async deleteVectors(ids, namespace = null) {
     try {
-      const index = await this.connect();
+      const index = await this.getIndex();
       
       const deleteOptions = namespace ? { ids, namespace } : { ids };
 
@@ -432,7 +284,7 @@ class PineconeService {
    */
   async deleteNamespace(namespace) {
     try {
-      const index = await this.connect();
+      const index = await this.getIndex();
       
       this.logger.info(`Deleting all vectors in namespace: ${namespace}`);
       // Pinecone serverless SDK: index.delete({ deleteAll: true, namespace })
@@ -493,13 +345,10 @@ class PineconeService {
   }
 
   /**
-   * Disconnect from Pinecone
+   * Disconnect from Pinecone via plugin
    */
   async disconnect() {
-    this.client = null;
-    this.index = null;
-    this.isConnected = false;
-    this.connectionPromise = null;
+    await this.pineconePlugin.disconnect();
     this.logger.info('Disconnected from Pinecone');
   }
 
@@ -507,7 +356,7 @@ class PineconeService {
    * Check if service is connected
    */
   isConnectedToIndex() {
-    return this.isConnected;
+    return this.pineconePlugin.isConnected();
   }
 
   /**
@@ -562,7 +411,12 @@ class PineconeService {
    * Create a PineconeService instance from environment
    */
   static fromEnvironment(options = {}) {
-    return new PineconeService(options);
+    const PineconePlugin = require('./pineconePlugin');
+    const pineconePlugin = new PineconePlugin(options);
+    return new PineconeService({
+      ...options,
+      pineconePlugin: pineconePlugin
+    });
   }
 }
 

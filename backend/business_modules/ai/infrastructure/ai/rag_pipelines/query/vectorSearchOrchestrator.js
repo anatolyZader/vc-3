@@ -31,14 +31,21 @@ class VectorSearchOrchestrator {
     }
     
     // Initialize PineconeService for modern functionality
-    this.pineconeService = new PineconeService({
-      rateLimiter: this.embeddings?.rateLimiter
-    });
-
-        // Initialize PineconeService for modern functionality
-    this.pineconeService = new PineconeService({
-      rateLimiter: this.embeddings?.rateLimiter
-    });
+    // Use provided pineconePlugin or create new one as fallback (for backward compatibility)
+    const pineconePlugin = options.pineconePlugin;
+    if (!pineconePlugin) {
+      const PineconePlugin = require('../context/embedding/pineconePlugin');
+      console.warn(`[${new Date().toISOString()}] [VectorSearchOrchestrator] No pineconePlugin provided, creating new instance (consider injecting for consistency)`);
+      this.pineconeService = new PineconeService({
+        pineconePlugin: new PineconePlugin(),
+        rateLimiter: this.embeddings?.rateLimiter
+      });
+    } else {
+      this.pineconeService = new PineconeService({
+        pineconePlugin: pineconePlugin,
+        rateLimiter: this.embeddings?.rateLimiter
+      });
+    }
 
     // Search configuration
     this.defaultTopK = this.defaultTopK || 10;
@@ -62,7 +69,7 @@ class VectorSearchOrchestrator {
 
   async _initializeConnection() {
     try {
-      await this.pineconeService.connect();
+      await this.pineconeService.getClient();
       this.logger.debug('VectorSearchOrchestrator connected to Pinecone');
     } catch (error) {
       this.logger.error('Failed to connect VectorSearchOrchestrator to Pinecone:', error.message);

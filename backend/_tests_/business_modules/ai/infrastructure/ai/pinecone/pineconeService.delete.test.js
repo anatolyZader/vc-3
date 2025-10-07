@@ -48,19 +48,25 @@ describe("PineconeService delete operations", () => {
   });
 
   test("deleteVectors calls index.delete with ids only when no namespace", async () => {
-    const svc = new PineconeService();
+    const mockIndex = { delete: mockIndexDelete };
+    const mockPlugin = { getIndex: jest.fn().mockResolvedValue(mockIndex) };
+    const svc = new PineconeService({ pineconePlugin: mockPlugin });
     await svc.deleteVectors(["a","b"]);
     expect(mockIndexDelete).toHaveBeenCalledWith({ ids: ["a","b"] });
   });
 
   test("deleteVectors calls index.delete with ids and namespace when provided", async () => {
-    const svc = new PineconeService();
+    const mockIndex = { delete: mockIndexDelete };
+    const mockPlugin = { getIndex: jest.fn().mockResolvedValue(mockIndex) };
+    const svc = new PineconeService({ pineconePlugin: mockPlugin });
     await svc.deleteVectors(["x"], "ns1");
     expect(mockIndexDelete).toHaveBeenCalledWith({ ids: ["x"], namespace: "ns1" });
   });
 
   test("deleteNamespace uses deleteAll true", async () => {
-    const svc = new PineconeService();
+    const mockIndex = { delete: mockIndexDelete };
+    const mockPlugin = { getIndex: jest.fn().mockResolvedValue(mockIndex) };
+    const svc = new PineconeService({ pineconePlugin: mockPlugin });
     await svc.deleteNamespace("ns2");
     expect(mockIndexDelete).toHaveBeenCalledWith({ deleteAll: true, namespace: "ns2" });
   });
