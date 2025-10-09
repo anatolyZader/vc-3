@@ -124,11 +124,7 @@ class PineconeService {
       return { success: true, processed: 0 };
     }
 
-    if (verbose && githubOwner && repoName) {
-      console.log(`[${new Date().toISOString()}] 🗄️ PINECONE STORAGE EXPLANATION: Converting ${documents.length} document chunks into searchable vector embeddings`);
-      console.log(`[${new Date().toISOString()}] 🎯 Each document chunk will be processed by OpenAI's text-embedding-3-large model to create high-dimensional vectors that capture semantic meaning. These vectors are then stored in Pinecone with unique IDs and metadata for lightning-fast similarity search during RAG queries`);
-      console.log(`[${new Date().toISOString()}] 🎯 STORAGE STRATEGY: Using namespace '${namespace}' for data isolation and generating unique IDs for ${documents.length} chunks from ${githubOwner}/${repoName}`);
-    }
+    // Verbose logging removed to reduce noise and focus on errors
 
     try {
       const vectorStore = await this.createVectorStore(embeddings, namespace);
@@ -175,10 +171,6 @@ class PineconeService {
           });
         }
       } else {
-        if (verbose) {
-          console.log(`[${new Date().toISOString()}] 🚀 EMBEDDING & UPLOAD: Processing ${documents.length} chunks${this.rateLimiter ? ' with rate limiter' : ' directly (no rate limiter)'}`);
-        }
-        
         await this.withRateLimit(async () => {
           await vectorStore.addDocuments(documents, addOptions);
         });
@@ -186,8 +178,6 @@ class PineconeService {
 
       if (verbose) {
         console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully stored ${documents.length} chunks to Pinecone namespace: ${namespace}`);
-        console.log(`[${new Date().toISOString()}] 🎯 STORAGE COMPLETE: Vector embeddings are now searchable via semantic similarity queries in the RAG pipeline`);
-        console.log(`[${new Date().toISOString()}] 📊 Each chunk includes rich metadata (file types, business modules, architectural layers, AST semantic units) for precise context retrieval`);
       }
 
       this.logger.info(`Successfully upserted ${documents.length} documents`, { namespace });

@@ -507,7 +507,6 @@ class RepoProcessor {
       }
     }
     
-    console.log(`[${new Date().toISOString()}] ✅ INTELLIGENT SPLITTING COMPLETE: ${documents.length} documents → ${allChunks.length} chunks`);
     return allChunks;
   }
 

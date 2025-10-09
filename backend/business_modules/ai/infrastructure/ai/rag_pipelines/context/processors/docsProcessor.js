@@ -51,11 +51,7 @@ class DocsProcessor {
    * Enhanced from DocumentProcessor for unified document processing
    */
   async createSmartSplitter(documents) {
-    console.log(`[${new Date().toISOString()}] 🔍 SMART SPLITTING: Creating intelligent text splitter based on document content analysis`);
-    console.log(`[${new Date().toISOString()}] 📋 PROCESS: Analyzing ${documents.length} documents to determine optimal splitting strategy`);
-    
     if (!documents || documents.length === 0) {
-      console.log(`[${new Date().toISOString()}] ⚠️ WARNING: No documents provided, using default splitter`);
       return new RecursiveCharacterTextSplitter({
         chunkSize: 1500,
         chunkOverlap: 250
@@ -80,7 +76,6 @@ class DocsProcessor {
         .filter(Boolean);
       
       const primaryLanguage = this.getMostCommonLanguage(languages);
-      console.log(`[${new Date().toISOString()}] 🔧 SMART SPLITTING: Using ${primaryLanguage}-aware separators for better code chunking`);
       
       return new RecursiveCharacterTextSplitter({
         chunkSize: 1500,
@@ -90,7 +85,6 @@ class DocsProcessor {
     }
 
     if (hasMarkdownFiles) {
-      console.log(`[${new Date().toISOString()}] 📝 SMART SPLITTING: Using markdown-aware separators for documentation`);
       return new RecursiveCharacterTextSplitter({
         chunkSize: 1500,
         chunkOverlap: 250,
@@ -98,7 +92,6 @@ class DocsProcessor {
       });
     }
 
-    console.log(`[${new Date().toISOString()}] 📝 SMART SPLITTING: Using standard text splitter for general documents`);
     return new RecursiveCharacterTextSplitter({
       chunkSize: 1500,
       chunkOverlap: 250
@@ -190,18 +183,12 @@ class DocsProcessor {
    * Process all markdown documentation files
    */
   async processMarkdownDocumentation(namespace = 'core-docs') {
-    console.log(`[${new Date().toISOString()}] 📚 MARKDOWN PROCESSOR: Starting markdown documentation processing`);
-    console.log(`[${new Date().toISOString()}] 🎯 EXPLANATION: Processing system documentation, architecture guides, and business module docs with intelligent header-based chunking`);
-
     // Load all markdown files
     const markdownDocs = await this.loadMarkdownFiles();
     
     if (!markdownDocs || markdownDocs.length === 0) {
-      console.log(`[${new Date().toISOString()}] ⚠️ MARKDOWN: No markdown documentation files found`);
       return { success: true, documentsProcessed: 0, chunksGenerated: 0 };
     }
-
-    console.log(`[${new Date().toISOString()}] 📄 MARKDOWN: Loaded ${markdownDocs.length} markdown files for processing`);
 
     // Split markdown documents using intelligent chunking
     const splitDocuments = await this.splitMarkdownDocuments(markdownDocs);
@@ -356,26 +343,19 @@ class DocsProcessor {
    * Split markdown documents using intelligent header-based chunking
    */
   async splitMarkdownDocuments(markdownDocs) {
-    console.log(`[${new Date().toISOString()}] ✂️  MARKDOWN SPLITTING: Applying header-based intelligent chunking for ${markdownDocs.length} documents`);
-    console.log(`[${new Date().toISOString()}] 🎯 STRATEGY: Using markdown headers as natural boundaries, preserving document structure and context hierarchy`);
-
     const allChunks = [];
     
     for (const doc of markdownDocs) {
       try {
         const chunks = await this.splitSingleMarkdownDocument(doc);
         allChunks.push(...chunks);
-        console.log(`[${new Date().toISOString()}] ✅ MARKDOWN: Split ${doc.metadata.source} into ${chunks.length} chunks`);
       } catch (error) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ MARKDOWN: Failed to split ${doc.metadata.source}, using fallback:`, error.message);
-        
         // Fallback to regular chunking
         const fallbackChunks = await this.fallbackSplitDocument(doc);
         allChunks.push(...fallbackChunks);
       }
     }
 
-    console.log(`[${new Date().toISOString()}] ✂️  MARKDOWN SPLITTING COMPLETE: Created ${allChunks.length} total chunks`);
     return allChunks;
   }
 

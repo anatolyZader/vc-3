@@ -24,7 +24,7 @@ class CloudNativeRepoLoader {
    * Load documents from GitHub repository using direct API calls with priority-based loading
    */
   async load() {
-    console.log(`[${new Date().toISOString()}] 🌐 PRIORITY LOADER: Loading ${this.owner}/${this.repo}/${this.focusPath || 'all'} via direct API`);
+    console.log(`Loading ${this.owner}/${this.repo}${this.focusPath ? '/' + this.focusPath : ''}`);
     
     try {
       // Get repository tree
@@ -38,31 +38,20 @@ class CloudNativeRepoLoader {
           item.type === 'blob' &&
           this.isSourceFile(item.path)
         );
-        console.log(`[${new Date().toISOString()}] 🎯 FILTERED: ${targetFiles.length} files in ${this.focusPath} from ${tree.length} total`);
       }
 
       // Prioritize files by importance
-      console.log(`[${new Date().toISOString()}] 📊 PRIORITIZING: Sorting ${targetFiles.length} files by importance`);
       targetFiles = this.prioritizeFiles(targetFiles);
       
-      // Show top priority files
-      const topFiles = targetFiles.slice(0, 10);
-      console.log(`[${new Date().toISOString()}] 🔥 TOP PRIORITY FILES:`);
-      topFiles.forEach((file, i) => {
-        const priority = this.getFilePriority(file.path);
-        console.log(`[${new Date().toISOString()}]   ${i+1}. ${file.path} (priority: ${priority})`);
-      });
-
       // Limit to prevent overload, but keep the most important files
       if (targetFiles.length > this.maxFiles) {
-        console.log(`[${new Date().toISOString()}] ⚠️ SMART LIMITING: Reducing from ${targetFiles.length} to ${this.maxFiles} most important files`);
         targetFiles = targetFiles.slice(0, this.maxFiles);
       }
 
       // Load file contents with enhanced rate limiting
       const documents = await this.loadFileContents(targetFiles);
       
-      console.log(`[${new Date().toISOString()}] ✅ FINAL RESULT: Successfully loaded ${documents.length}/${targetFiles.length} files from ${this.owner}/${this.repo}`);
+      console.log(`Loaded ${documents.length}/${targetFiles.length} files from ${this.owner}/${this.repo}`);
       return documents;
 
     } catch (error) {
@@ -90,8 +79,6 @@ class CloudNativeRepoLoader {
           headers['User-Agent'] = 'eventstorm-cloud-native-loader';
         }
         
-        console.log(`[${new Date().toISOString()}] 🌳 TREE API: Fetching repository tree (attempt ${attempt + 1}/${maxRetries + 1})`);
-        
         const response = await fetch(url, {
           headers,
           timeout: this.timeout
@@ -104,14 +91,12 @@ class CloudNativeRepoLoader {
             throw new Error('Invalid tree response from GitHub API');
           }
 
-          console.log(`[${new Date().toISOString()}] 📂 TREE: Found ${data.tree.length} items in repository`);
           return data.tree;
         }
         
         // Handle rate limiting
         if (response.status === 403 || response.status === 429) {
           if (attempt < maxRetries) {
-            console.warn(`[${new Date().toISOString()}] ⚠️ Rate limit hit on tree API, retrying in ${retryDelay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
             await new Promise(resolve => setTimeout(resolve, retryDelay));
             continue;
           }
@@ -122,12 +107,11 @@ class CloudNativeRepoLoader {
         
       } catch (error) {
         if (attempt === maxRetries) {
-          console.error(`[${new Date().toISOString()}] ❌ Failed to get repository tree after ${maxRetries + 1} attempts:`, error.message);
+          console.error(`Failed to get repository tree:`, error.message);
           throw error;
         }
         
         if (error.message.includes('rate limit') || error.message.includes('403') || error.message.includes('429')) {
-          console.warn(`[${new Date().toISOString()}] ⚠️ Rate limit error, retrying in ${retryDelay}ms`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
         }
@@ -146,8 +130,6 @@ class CloudNativeRepoLoader {
     const batchSize = 3; // Smaller batches to avoid rate limits
     const delayBetweenBatches = 1000; // Longer delay between batches
     const retryDelay = 2000; // Delay for rate limit retries
-    
-    console.log(`[${new Date().toISOString()}] 📥 ENHANCED LOADING: Processing ${files.length} files in batches of ${batchSize} with rate limiting`);
 
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);
@@ -170,12 +152,11 @@ class CloudNativeRepoLoader {
               if (error.message.includes('rate limit') || error.message.includes('429') || error.message.includes('403')) {
                 retries++;
                 if (retries <= maxRetries) {
-                  console.warn(`[${new Date().toISOString()}] ⚠️ Rate limit hit, retrying ${file.path} in ${retryDelay}ms (attempt ${retries}/${maxRetries})`);
                   await new Promise(resolve => setTimeout(resolve, retryDelay));
                   continue;
                 }
               }
-              console.warn(`[${new Date().toISOString()}] ⚠️ Failed to load ${file.path} after ${maxRetries} retries:`, error.message);
+              console.warn(`Failed to load ${file.path}:`, error.message);
               break; // Exit retry loop
             }
           }
@@ -184,15 +165,13 @@ class CloudNativeRepoLoader {
           await new Promise(resolve => setTimeout(resolve, 150));
         }
         
-        console.log(`[${new Date().toISOString()}] 📊 BATCH ${Math.floor(i/batchSize) + 1}/${Math.ceil(files.length/batchSize)}: Loaded ${documents.length} total documents`);
-        
         // Rate limiting - wait between batches
         if (i + batchSize < files.length) {
           await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
         }
         
       } catch (batchError) {
-        console.error(`[${new Date().toISOString()}] ❌ Batch ${i}-${i+batchSize} failed:`, batchError.message);
+        console.error(`Batch processing failed:`, batchError.message);
       }
     }
 
@@ -223,7 +202,6 @@ class CloudNativeRepoLoader {
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn(`[${new Date().toISOString()}] ⚠️ File not found: ${fileInfo.path}`);
           return null;
         }
         throw new Error(`GitHub contents API failed: ${response.status} ${response.statusText}`);
@@ -232,7 +210,6 @@ class CloudNativeRepoLoader {
       const data = await response.json();
       
       if (data.type !== 'file' || !data.content) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ Invalid file data for ${fileInfo.path}`);
         return null;
       }
 
@@ -257,7 +234,6 @@ class CloudNativeRepoLoader {
       return document;
 
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to load ${fileInfo.path}:`, error.message);
       return null;
     }
   }

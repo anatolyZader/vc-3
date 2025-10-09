@@ -292,12 +292,14 @@ class RequestQueue {
     
     // Early exit if already processing or queue is empty
     if (this.isProcessingQueue) {
-      console.log(`[${timestamp}] [DEBUG] processQueue skipped - already processing`);
+      // Only log processing status in development to reduce noise in production logs
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[${timestamp}] [DEBUG] processQueue skipped - already processing`);
+      }
       return;
     }
     
     if (this.requestQueue.length === 0) {
-      console.log(`[${timestamp}] [DEBUG] processQueue skipped - queue is empty`);
       return;
     }
 

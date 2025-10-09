@@ -728,7 +728,6 @@ class ContentAwareSplitterRouter {
       }
     }
     
-    console.log(`[${new Date().toISOString()}] ✅ COMPATIBILITY BATCH COMPLETE: ${documents.length} documents → ${allChunks.length} chunks`);
     return allChunks;
   }
 }

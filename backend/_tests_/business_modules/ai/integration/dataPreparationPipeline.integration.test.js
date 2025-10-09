@@ -2,6 +2,26 @@
 
 const path = require("path");
 
+// Mock PineconePlugin to avoid PINECONE_API_KEY requirement
+jest.mock(
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconePlugin",
+  () => jest.fn().mockImplementation(() => ({
+    getClient: jest.fn(async () => ({})),
+    validateConfig: jest.fn(),
+    connect: jest.fn(async () => ({}))
+  }))
+);
+
+// Mock PineconeService to avoid PINECONE_API_KEY requirement
+jest.mock(
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeService",
+  () => jest.fn().mockImplementation(() => ({
+    validateConfig: jest.fn(),
+    getClient: jest.fn(async () => ({})),
+    createVectorStore: jest.fn(async () => ({}))
+  }))
+);
+
 // Stub orchestrators and processors used inside ContextPipeline to avoid heavy work
 jest.mock(
   "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/loading/githubOperations",

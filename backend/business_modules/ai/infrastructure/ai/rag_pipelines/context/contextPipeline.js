@@ -3,7 +3,6 @@
 
 const EventManager = require('./eventManager');
 const PineconePlugin = require('./embedding/pineconePlugin');
-const PineconeService = require('./embedding/pineconeService');
 const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
 const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
 const ApiSpecProcessor = require('./processors/apiSpecProcessor');
@@ -12,6 +11,7 @@ const GitHubOperations = require('./loading/githubOperations');
 const ASTCodeSplitter = require('./chunking/astCodeSplitter');
 const RepoProcessor = require('./processors/repoProcessor');
 const EmbeddingManager = require('./embedding/embeddingManager');
+const PineconeService = require('./embedding/pineconeService');
 const RepoWorkerManager = require('./loading/repoWorkerManager');
 const ChangeAnalyzer = require('./loading/changeAnalyzer');
 const ContextPipelineUtils = require('./contextPipelineUtils');
@@ -27,8 +27,6 @@ try {
 
 class ContextPipeline {
   constructor(options = {}) {
-    console.log(`[${new Date().toISOString()}] 🎯 INITIALIZING ContextPipeline`);
-    
     // Store options for lazy initialization
     this.options = options;
     this.embeddings = options.embeddings;
@@ -37,14 +35,8 @@ class ContextPipeline {
     this.config = options.config || {};
     
     // Initialize core components only
-    this.pineconePlugin = new PineconePlugin();
-    this.pineconeService = new PineconeService({
-      pineconePlugin: this.pineconePlugin,
-      rateLimiter: this.pineconeLimiter
-    });
-    this.githubOperations = new GitHubOperations({
-      pineconeService: this.pineconeService
-    });
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
     this.changeAnalyzer = new ChangeAnalyzer();
     this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
     this.workerManager = new RepoWorkerManager();
@@ -67,14 +59,19 @@ class ContextPipeline {
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
       repoPreparation: this.githubOperations,
-      pineconeService: this.pineconeService
+      pineconeManager: this.pineconeManager
     });
     
-    // Initialize EmbeddingManager first
+    // Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+    });
+    
     this.embeddingManager = new EmbeddingManager({
       embeddings: this.embeddings,
       pineconeLimiter: this.pineconeLimiter,
-      pineconeService: this.pineconeService
+      pineconeService: pineconeService
     });
     
     // Initialize repoProcessor with pure processing dependencies only
@@ -94,8 +91,6 @@ class ContextPipeline {
     
     // Initialize tracing if enabled
     this._initializeTracing();
-    
-    console.log(`[${new Date().toISOString()}] ✅ PIPELINE READY: ContextPipeline`);
   }
 
   _initializeTracing() {
@@ -124,14 +119,16 @@ class ContextPipeline {
     }
   }
 
-  async getPineconeService() {
-    try {
-      console.log(`[${new Date().toISOString()}] ⚙️ PINECONE: Getting service...`);
-      return this.pineconeService;
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ PINECONE: Service access failed:`, error.message);
-      return null;
+  async getPineconeClient() {
+    if (!this.pinecone) {
+      try {
+        this.pinecone = await this.pineconeManager?.getPineconeService();
+      } catch (error) {
+        console.error(`Pinecone initialization failed:`, error.message);
+        return null;
+      }
     }
+    return this.pinecone;
   }
 
   async routeDocumentToProcessor(document) {
@@ -180,8 +177,6 @@ class ContextPipeline {
   //--------------------------------------------------
   
   async processCodeDocument(document) {
-    console.log(`[${new Date().toISOString()}] 💻 CODE PROCESSING: AST splitting + semantic preprocessing + ubiquitous language enhancement`);
-    
     // Step 1: Enhance document with ubiquitous language context before processing
     const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
     
@@ -199,8 +194,6 @@ class ContextPipeline {
   }
 
   async processMarkdownDocument(document) {
-    console.log(`[${new Date().toISOString()}] 📝 MARKDOWN/DOCS PROCESSING: Ubiquitous language enhancement + docs splitting + semantic preprocessing`);
-    
     // Step 1: Enhance document with ubiquitous language context before processing
     const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
     
@@ -219,8 +212,6 @@ class ContextPipeline {
   }
 
   async processOpenAPIDocument(document) {
-    console.log(`[${new Date().toISOString()}] 🔌 OPENAPI PROCESSING: Ubiquitous language enhancement + specialized API documentation processing`);
-    
     // Step 1: Enhance document with ubiquitous language context before processing
     const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
     
@@ -250,7 +241,6 @@ class ContextPipeline {
       
       // If no structured content found, fallback to semantic preprocessing
       if (allChunks.length === 0) {
-        console.log(`[${new Date().toISOString()}] 🔄 OPENAPI FALLBACK: No structured API content found, using semantic preprocessing`);
         const enhanced = await this.semanticPreprocessor.preprocessChunk(ubiquitousEnhanced);
         allChunks = [enhanced];
       }
@@ -258,8 +248,6 @@ class ContextPipeline {
       return allChunks;
       
     } catch (parseError) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ OPENAPI PARSE ERROR: ${parseError.message}, falling back to semantic preprocessing`);
-      
       // Fallback to semantic preprocessing if parsing fails
       const enhanced = await this.semanticPreprocessor.preprocessChunk(ubiquitousEnhanced);
       return [enhanced];
@@ -267,8 +255,6 @@ class ContextPipeline {
   }
 
   async processConfigDocument(document, contentType) {
-    console.log(`[${new Date().toISOString()}] ⚙️ CONFIG PROCESSING: Ubiquitous language enhancement + semantic preprocessing for ${contentType.toUpperCase()}`);
-    
     // Step 1: Enhance document with ubiquitous language context for configuration files
     const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
     
@@ -280,8 +266,6 @@ class ContextPipeline {
   }
 
   async processGenericDocument(document) {
-    console.log(`[${new Date().toISOString()}] 📄 GENERIC PROCESSING: Ubiquitous language enhancement + text splitting + semantic preprocessing`);
-    
     // Step 1: Enhance document with ubiquitous language context before processing
     const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
     
@@ -306,8 +290,6 @@ class ContextPipeline {
   }
 
   async routeDocumentsToProcessors(documents) {
-    console.log(`[${new Date().toISOString()}] 🚦 BATCH ROUTING: Processing ${documents.length} documents`);
-    
     const allChunks = [];
     const stats = {
       code: 0,
@@ -340,9 +322,6 @@ class ContextPipeline {
       }
     }
 
-    console.log(`[${new Date().toISOString()}] 📊 ROUTING STATS:`, stats);
-    console.log(`[${new Date().toISOString()}] ✅ BATCH COMPLETE: ${documents.length} documents → ${allChunks.length} chunks`);
-    
     return allChunks;
   }
 
@@ -350,13 +329,8 @@ class ContextPipeline {
   // entry point for processing a pushed repository
 
   async processPushedRepo(userId, repoId, repoData) {
-    console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Processing repo for user ${userId}: ${repoId}`);
     // Scrub sensitive data from logs
     const safeRepoData = ContextPipelineUtils.scrubSensitiveData(repoData);
-    console.log(`[${new Date().toISOString()}] 📥 DATA-PREP: Received repoData structure:`, JSON.stringify(safeRepoData, null, 2));  
-    
-    // STEP 0: Validate and extract repository data BEFORE any processing
-    console.log(`[${new Date().toISOString()}] 🔵 STAGE 0: REPOSITORY DATA VALIDATION`);
     
     // Early validation - fail fast if data is invalid
     if (!repoData?.url || !repoData?.branch) {
@@ -399,10 +373,7 @@ class ContextPipeline {
     
     try {
       console.log(`[${new Date().toISOString()}] 🔵 STAGE 1: REPOSITORY VALIDATION & SETUP`);
-      console.log(`[${new Date().toISOString()}] 🎯 EXPLANATION: Checking for duplicates and retrieving commit info`);
-
       // OPTIMIZED: Smart commit tracking using CommitManager
-      console.log(`[${new Date().toISOString()}] 🔄 OPTIMIZED PROCESSING: Using Langchain-first approach with smart commit detection`);
 
 
       // Step 1: Try to get commit info efficiently using GitHubOperations
@@ -415,7 +386,7 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 🔑 COMMIT DETECTED: ${commitInfo?.hash?.substring(0, 8) ?? 'unknown'} - ${commitInfo?.subject ?? 'No subject'}`);
 
       // Step 2: Enhanced duplicate check with commit hash comparison
-      const pineconeClient = await this.pineconeService.getClient();
+      const pineconeClient = await this.getPineconeClient();
       const existingRepo = await this.githubOperations.findExistingRepo(
         userId, repoId, githubOwner, repoName, commitInfo?.hash ?? null, pineconeClient, this.embeddings
       );
@@ -481,7 +452,7 @@ class ContextPipeline {
           userId, repoId, repoUrl: url, branch, githubOwner, repoName,
           repoProcessor: this.repoProcessor,
           repoPreparation: this.githubOperations,
-          pineconeClient: await this.pineconeService.getClient(),
+          pineconeClient: await this.getPineconeClient(),
           embeddings: this.embeddings,
           routeDocumentsToProcessors: this.routeDocumentsToProcessors.bind(this),
           eventManager: this.eventManager
@@ -532,10 +503,7 @@ class ContextPipeline {
       
       console.log(`[${new Date().toISOString()}] 📊 SCALING DECISION:`, JSON.stringify(shouldUseHorizontalScaling, null, 2));
       
-      // TEMPORARY FIX: Disable worker scaling due to embedding storage bug
-      // Workers process files but don't store embeddings to Pinecone
-      // TODO: Fix workers to actually store embeddings or modify pipeline to store worker results
-      if (true && shouldUseHorizontalScaling.useWorkers) {
+      if (shouldUseHorizontalScaling.useWorkers) {
         console.log(`[${new Date().toISOString()}] 🏭 HORIZONTAL SCALING: Repository size (${shouldUseHorizontalScaling.estimatedFiles} files) exceeds threshold, using worker-based processing`);
         console.log(`[${new Date().toISOString()}] 🚀 CALLING processRepoWithWorkers...`);
         
@@ -616,20 +584,11 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 📊 Worker manager result:`, JSON.stringify(result, null, 2));
       
       if (result.success) {
-        console.log(`[${new Date().toISOString()}] ✅ Worker processing successful, storing embeddings and tracking info...`);
-        
-        // Step 1: Store processed chunks to Pinecone via EmbeddingManager
-        const namespace = this.githubOperations.sanitizeId(`${userId}_${repoId}`);
-        
-        if (result.processedChunks?.length > 0) {
-          console.log(`[${new Date().toISOString()}] 📦 Storing ${result.processedChunks.length} chunks from workers to Pinecone...`);
-          await this.embeddingManager.storeToPinecone(result.processedChunks, namespace, githubOwner, repoName);
-        } else {
-          console.log(`[${new Date().toISOString()}] ⚠️ No processed chunks from workers to store`);
-        }
+        console.log(`[${new Date().toISOString()}] ✅ Worker processing successful, storing tracking info...`);
         
         // Step 2: Store repository tracking info for future duplicate detection
-        const pineconeClient2 = await this.pineconeService.getClient();
+        const pineconeClient2 = await this.getPineconeClient();
+        const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
         
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, commitInfo, 
@@ -714,11 +673,8 @@ class ContextPipeline {
       const commitHash = actualCommitInfo?.hash;
       
       if (commitHash) {
-        // Check if already processed using consistent findExistingRepo method
-        const pineconeClient = await this.pineconeService.getClient();
-        const existingRepo = await this.githubOperations.findExistingRepo(
-          userId, repoId, githubOwner, repoName, commitHash, pineconeClient, this.embeddings
-        );
+        // Check if already processed
+        const existingRepo = await this._checkExistingRepo(githubOwner, repoName, commitHash);
         if (existingRepo?.reason === 'same_commit') {
           console.log(`[${new Date().toISOString()}] ✅ SKIP: Repository ${githubOwner}/${repoName} already processed for commit ${commitHash}`);
           return { success: true, skipped: true, reason: 'same_commit' };
@@ -744,12 +700,12 @@ class ContextPipeline {
       );
 
       // Step 5: Store processed documents using EmbeddingManager
-      const namespace = this.githubOperations.sanitizeId(`${userId}_${repoId}`);
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
       await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
       
       // Step 6: Store repository tracking info for future duplicate detection  
       if (commitHash) {
-        const pineconeClient2 = await this.pineconeService.getClient();
+        const pineconeClient2 = await this.getPineconeClient();
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, actualCommitInfo, 
           namespace, pineconeClient2, this.embeddings
@@ -797,7 +753,39 @@ class ContextPipeline {
     return this.eventManager.emitRagStatus(status, details);
   }
 
+  /**
+   * Check if repository already exists and processed for given commit
+   * Moved from RepoProcessor as part of orchestration responsibility
+   */
+  async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
+    try {
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`);
+      const pineconeClient = await this.getPineconeClient();
+      
+      // Query for any existing documents in this namespace
+      const queryResponse = await pineconeClient.namespace(namespace).query({
+        vector: new Array(1536).fill(0), // Dummy vector for existence check
+        topK: 1,
+        includeMetadata: true
+      });
 
+      if (queryResponse.matches && queryResponse.matches.length > 0) {
+        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
+        return {
+          exists: true,
+          commitHash: existingCommit,
+          needsUpdate: existingCommit !== currentCommitHash,
+          namespace,
+          reason: existingCommit === currentCommitHash ? 'same_commit' : 'commit_changed'
+        };
+      }
+
+      return { exists: false, namespace };
+    } catch (error) {
+      console.log(`[${new Date().toISOString()}] ℹ️ Repository check: ${error.message}`);
+      return { exists: false, namespace: this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`) };
+    }
+  }
 }
 
 module.exports = ContextPipeline;
