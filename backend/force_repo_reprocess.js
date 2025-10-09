@@ -60,8 +60,12 @@ async function forceRepoReprocessing() {
       console.log('🎯 Calling internal processPushedRepo function...');
       const result = await pipeline.processPushedRepo(userId, repoId, repoData);
       
-      console.log('\n✅ REPROCESSING RESULT:');
-      console.log(JSON.stringify(result, null, 2));
+      console.log(`\n✅ REPROCESSING RESULT: ${result.success ? 'SUCCESS' : 'FAILED'}`);
+      if (result.success) {
+        console.log(`📊 Processed: ${result.documentsProcessed || 0} docs, ${result.chunksGenerated || 0} chunks`);
+      } else {
+        console.log(`❌ Error: ${result.error || 'Unknown error'}`);
+      }
       
       if (result.success) {
         console.log('\n🎉 SUCCESS! Repository has been reprocessed with cloud-native loader');

@@ -2,6 +2,7 @@
 "use strict";
 
 const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
+const FileFilteringUtils = require('../embedding/FileFilteringUtils');
 
 /**
  * Repository Processor - Pure document processing operations
@@ -279,10 +280,10 @@ class RepoProcessor {
         return []; // Return empty rather than attempting more fallbacks
       }
       
-      // Filter to only backend files
+      // Filter to only backend files using comprehensive filtering
       const backendFiles = allDocs.filter(doc => {
         const source = doc.metadata.source || '';
-        return source.startsWith('backend/') && !source.includes('/test') && !source.includes('_tests_');
+        return source.startsWith('backend/') && FileFilteringUtils.shouldIndexFile(source);
       });
       
       if (backendFiles.length > 0) {

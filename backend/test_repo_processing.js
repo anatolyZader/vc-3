@@ -131,7 +131,7 @@ if (require.main === module) {
     .then(result => {
       if (result.success) {
         console.log('\n✅ All tests passed successfully');
-        console.log('📊 Results:', JSON.stringify(result.results, null, 2));
+        console.log(`📊 Summary: ${result.results?.length || 0} test results completed`);
         process.exit(0);
       } else {
         console.log('\n❌ Test failed');

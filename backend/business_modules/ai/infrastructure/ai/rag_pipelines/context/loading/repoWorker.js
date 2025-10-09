@@ -359,7 +359,7 @@ class RepoWorker {
     if (filePath.includes('index.js')) return 80;
     if (filePath.includes('Router.js')) return 75;
     if (filePath.includes('Adapter.js')) return 70;
-    if (filePath.includes('.test.js')) return 20;
+    // Test files are now filtered out by FileFilteringUtils
     return 50;
   }
   

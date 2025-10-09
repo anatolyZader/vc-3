@@ -4,6 +4,7 @@
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const path = require('path');
 const os = require('os');
+const FileFilteringUtils = require('../embedding/FileFilteringUtils');
 
 /**
  * Repository Worker Manager - Coordinates multiple workers for large repository processing
@@ -658,23 +659,8 @@ class RepoWorkerManager {
   }
   
   isProcessableFile(path) {
-    const excludePatterns = [
-      /node_modules\//,
-      /\.git\//,
-      /dist\//,
-      /build\//,
-      /coverage\//,
-      /\.log$/,
-      /\.(png|jpg|jpeg|gif|ico|svg)$/i,
-      /\.DS_Store$/
-    ];
-    
-    for (const pattern of excludePatterns) {
-      if (pattern.test(path)) return false;
-    }
-    
-    const sourceExtensions = /\.(js|ts|jsx|tsx|json|md|sql|yaml|yml|txt|env)$/i;
-    return sourceExtensions.test(path);
+    // Use centralized filtering logic that includes test exclusions
+    return FileFilteringUtils.shouldIndexFile(path);
   }
   
   getFilePriority(filePath) {
@@ -684,7 +670,7 @@ class RepoWorkerManager {
     if (filePath.includes('index.js')) return 80;
     if (filePath.includes('Router.js')) return 75;
     if (filePath.includes('Adapter.js')) return 70;
-    if (filePath.includes('.test.js')) return 20;
+    // Test files are now filtered out by FileFilteringUtils
     return 50;
   }
   

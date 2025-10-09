@@ -84,6 +84,17 @@ class FileFilteringUtils {
       'coverage',
       '.nyc_output',
       
+      // Test directories and files
+      'test',
+      'tests', 
+      '_tests_',
+      '__tests__',
+      'spec',
+      'specs',
+      '__pycache__',
+      'pytest_cache',
+      'jest_cache',
+      
       // Specific problematic files
       'cloud-sql-proxy',
       'package-lock.json',
@@ -123,7 +134,19 @@ class FileFilteringUtils {
       '.temp',
       '.pid',
       '.swp',
-      '.swo'
+      '.swo',
+      
+      // Test file patterns
+      '.test.js',
+      '.spec.js', 
+      '.test.ts',
+      '.spec.ts',
+      '.test.jsx',
+      '.spec.jsx',
+      '.test.tsx',
+      '.spec.tsx',
+      '.test.py',
+      '.spec.py'
     ];
   }
 
@@ -134,6 +157,27 @@ class FileFilteringUtils {
     const fileName = path.basename(filePath);
     const extension = path.extname(filePath).slice(1).toLowerCase();
     const filePathLower = filePath.toLowerCase();
+    
+    // TEST FILE EXCLUSION - Check for test files and directories first
+    const testPatterns = [
+      '/test/', '/_tests_/', '/__tests__/', '/tests/', '/spec/', '/specs/',
+      'test/', '_tests_/', '__tests__/', 'tests/', 'spec/', 'specs/',
+      '.test.', '.spec.', '_test.', '_spec.'
+    ];
+    
+    for (const testPattern of testPatterns) {
+      if (filePathLower.includes(testPattern)) {
+        console.log(`[FILTER] ❌ TEST EXCLUSION: Excluded test file/directory: ${filePath}`);
+        return false;
+      }
+    }
+    
+    // Also check if filename starts with 'test' or 'spec'
+    const fileNameLower = fileName.toLowerCase();
+    if (fileNameLower.startsWith('test') || fileNameLower.startsWith('spec')) {
+      console.log(`[FILTER] ❌ TEST EXCLUSION: Excluded test file (name starts with test/spec): ${filePath}`);
+      return false;
+    }
     
     // CLIENT CODE EXCLUSION - Check for client directories first
     const clientDirectories = ['client/', 'frontend/', 'web/', 'www/', 'static/', 'public/', 'assets/'];

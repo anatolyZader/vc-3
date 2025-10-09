@@ -611,7 +611,7 @@ class ContextPipeline {
           userId
         });
       } else {
-        console.log(`[${new Date().toISOString()}] ❌ Worker processing returned failure:`, result);
+        console.error(`[${new Date().toISOString()}] ❌ Worker processing returned failure: ${result.error || 'Unknown worker error'}`);
         throw new Error(`Worker processing failed: ${result.error || 'Unknown worker error'}`);
       }
       

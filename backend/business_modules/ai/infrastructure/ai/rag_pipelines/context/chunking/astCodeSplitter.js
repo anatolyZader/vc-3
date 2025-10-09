@@ -64,7 +64,6 @@ class ASTCodeSplitter {
       return finalChunks;
 
     } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ ENHANCED SPLITTING: Fallback for ${metadata?.source}:`, error.message);
       return this.fallbackSplit({ pageContent, metadata });
     }
   }

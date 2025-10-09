@@ -1,6 +1,8 @@
 // CloudNativeRepoLoader.js - Direct GitHub API document loader for cloud environments
 "use strict";
 
+const FileFilteringUtils = require('../embedding/FileFilteringUtils');
+
 /**
  * CloudNativeRepoLoader - Loads repository documents directly via GitHub API
  * 
@@ -240,32 +242,11 @@ class CloudNativeRepoLoader {
 
     /**
    * Check if file is a source file we want to index with priority scoring
+   * Now uses centralized FileFilteringUtils for consistent exclusion logic
    */
   isSourceFile(path) {
-    // Skip non-source files
-    const excludePatterns = [
-      /node_modules\//,
-      /\.git\//,
-      /dist\//,
-      /build\//,
-      /coverage\//,
-      /\.nyc_output\//,
-      /logs?\//,
-      /\.log$/,
-      /\.(png|jpg|jpeg|gif|ico|svg)$/i,
-      /\.DS_Store$/,
-      /thumbs\.db$/i,
-    ];
-
-    for (const pattern of excludePatterns) {
-      if (pattern.test(path)) {
-        return false;
-      }
-    }
-
-    // Focus on specific file extensions
-    const sourceExtensions = /\.(js|ts|jsx|tsx|json|md|sql|yaml|yml|txt|env)$/i;
-    return sourceExtensions.test(path);
+    // Use centralized filtering logic that includes test exclusions
+    return FileFilteringUtils.shouldIndexFile(path);
   }
 
   /**
@@ -287,8 +268,7 @@ class CloudNativeRepoLoader {
     if (/\/infrastructure\//.test(path)) return 55;
     if (/\/application\//.test(path)) return 50;
     
-    // Lower priority (tests, configs, docs)
-    if (/\.test\.(js|ts)$/.test(path)) return 30;
+    // Lower priority (configs, docs - tests are now filtered out)
     if (/\.config\.(js|ts|json)$/.test(path)) return 25;
     if (/\.md$/.test(path)) return 20;
     
