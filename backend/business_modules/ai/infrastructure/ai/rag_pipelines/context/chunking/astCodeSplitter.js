@@ -48,8 +48,6 @@ class ASTCodeSplitter {
     const pageContent = document.pageContent ?? document.content ?? "";
     const metadata = document.metadata || {};
     
-    console.log(`[${new Date().toISOString()}] 📄 ENHANCED SPLITTING: Processing ${metadata?.source}`);
-
     try {
       // Create normalized document object for internal processing
       const normalizedDocument = { pageContent, metadata };
@@ -333,7 +331,6 @@ class ASTCodeSplitter {
       merged.push(currentMerged);
     }
 
-    console.log(`[${new Date().toISOString()}] 🔧 TOKEN-BASED MERGE: ${chunks.length} → ${merged.length} chunks`);
     return merged;
   }
 
@@ -716,7 +713,6 @@ class ASTCodeSplitter {
   }
 
   fallbackSplit(document) {
-    console.log(`[${new Date().toISOString()}] 📄 FALLBACK: Using standard splitting`);
     // Ensure consistent pageContent format
     const pageContent = document.pageContent ?? document.content ?? "";
     return [{
@@ -739,14 +735,12 @@ class ASTCodeSplitter {
       // First attempt: Re-parse and split by semantic units
       const semanticSplits = await this.splitBySemanticUnits(content, chunk.metadata);
       if (semanticSplits && semanticSplits.length > 1) {
-        console.log(`[${new Date().toISOString()}] ✅ SEMANTIC SPLIT: Successfully split into ${semanticSplits.length} semantic units`);
         return semanticSplits;
       }
 
       // Second attempt: Split by AST-aware boundaries (functions, classes, blocks)
       const astAwareSplits = await this.splitByASTBoundaries(content, chunk.metadata);
       if (astAwareSplits && astAwareSplits.length > 1) {
-        console.log(`[${new Date().toISOString()}] ✅ AST BOUNDARY SPLIT: Successfully split into ${astAwareSplits.length} AST-aware chunks`);
         return astAwareSplits;
       }
 

@@ -1,6 +1,7 @@
 // contextPipeline.js
 "use strict";
 
+const logConfig = require('./logConfig');
 const EventManager = require('./eventManager');
 const PineconePlugin = require('./embedding/pineconePlugin');
 const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
@@ -496,10 +497,7 @@ class ContextPipeline {
     
     try {
       // Step 1: Analyze repository size to determine processing strategy
-      console.log(`[${new Date().toISOString()}] 🔍 SCALING ANALYSIS: Calling shouldUseHorizontalScaling for ${githubOwner}/${repoName}:${branch}`);
       const shouldUseHorizontalScaling = await ContextPipelineUtils.shouldUseHorizontalScaling(githubOwner, repoName, branch);
-      
-      console.log(`[${new Date().toISOString()}] 📊 SCALING DECISION:`, JSON.stringify(shouldUseHorizontalScaling, null, 2));
       
       if (shouldUseHorizontalScaling.useWorkers) {
         console.log(`[${new Date().toISOString()}] 🏭 HORIZONTAL SCALING: Repository size (${shouldUseHorizontalScaling.estimatedFiles} files) exceeds threshold, using worker-based processing`);
@@ -574,15 +572,11 @@ class ContextPipeline {
         throw new Error('workerManager is not initialized');
       }
       
-      console.log(`[${new Date().toISOString()}] 🏃 Calling workerManager.processLargeRepository()...`);
-      
       // Process using worker manager
       const result = await this.workerManager.processLargeRepository(repositoryJob);
       
-      console.log(`[${new Date().toISOString()}] 📊 Worker manager result:`, JSON.stringify(result, null, 2));
-      
       if (result.success) {
-        console.log(`[${new Date().toISOString()}] ✅ Worker processing successful, storing tracking info...`);
+        logConfig.logProcessing(`[${new Date().toISOString()}] ✅ Worker processing successful, storing tracking info...`);
         
         // Step 2: Store repository tracking info for future duplicate detection
         const pineconeClient2 = await this.getPineconeClient();

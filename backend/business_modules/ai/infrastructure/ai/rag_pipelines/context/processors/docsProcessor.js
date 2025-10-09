@@ -67,8 +67,6 @@ class DocsProcessor {
       doc.metadata?.source?.match(/\.md$/i)
     );
 
-    console.log(`[${new Date().toISOString()}] 📊 ANALYSIS: Code files: ${hasCodeFiles ? 'Yes' : 'No'}, Markdown files: ${hasMarkdownFiles ? 'Yes' : 'No'}`);
-
     if (hasCodeFiles) {
       // Detect primary language
       const languages = documents
@@ -103,8 +101,6 @@ class DocsProcessor {
    * Enhanced from DocumentProcessor for unified document processing
    */
   getCodeAwareSeparators(language) {
-    console.log(`[${new Date().toISOString()}] 🔍 SEPARATORS: Getting language-specific separators for ${language}`);
-    
     const separatorMap = {
       'javascript': [
         '\n\nclass ', '\nclass ',
@@ -156,7 +152,6 @@ class DocsProcessor {
     };
 
     const separators = separatorMap[language?.toLowerCase()] || separatorMap['default'];
-    console.log(`[${new Date().toISOString()}] 🔧 SEPARATORS: Using ${separators.length} separators for ${language}: [${separators.slice(0, 3).join(', ')}...]`);
     
     return separators;
   }
@@ -175,7 +170,6 @@ class DocsProcessor {
       languageCount[a] > languageCount[b] ? a : b
     ) || 'javascript';
     
-    console.log(`[${new Date().toISOString()}] 📊 LANGUAGE ANALYSIS: Most common language: ${mostCommon} (${languageCount[mostCommon]} files)`);
     return mostCommon;
   }
 
