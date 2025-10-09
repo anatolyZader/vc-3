@@ -63,7 +63,6 @@ class ASTCodeSplitter {
       // Third pass: Final validation and metadata enrichment
       const finalChunks = await this.enrichChunksWithMetadata(optimizedChunks, normalizedDocument);
 
-      console.log(`[${new Date().toISOString()}] ✅ ENHANCED SPLITTING: ${metadata?.source} → ${finalChunks.length} optimized chunks`);
       return finalChunks;
 
     } catch (error) {
@@ -97,8 +96,6 @@ class ASTCodeSplitter {
     const semanticUnits = [];
     const imports = this.collectImports(ast, lines);
     
-    console.log(`[${new Date().toISOString()}] 🔍 AST ANALYSIS: Found ${imports.length} import statements`);
-
     traverse(ast, {
       // Enhanced class handling
       ClassDeclaration: (path) => {
@@ -155,7 +152,6 @@ class ASTCodeSplitter {
     // Sort by line number for logical order
     semanticUnits.sort((a, b) => a.startLine - b.startLine);
     
-    console.log(`[${new Date().toISOString()}] 🔍 AST ANALYSIS: Extracted ${semanticUnits.length} semantic units`);
     return semanticUnits;
   }
 
@@ -251,8 +247,6 @@ class ASTCodeSplitter {
    * Optimize chunks based on quality analysis
    */
   async optimizeChunks(chunks, originalDocument) {
-    console.log(`[${new Date().toISOString()}] 🔧 CHUNK OPTIMIZATION: Analyzing ${chunks.length} chunks`);
-
     // Analyze current quality
     const analysis = this.qualityAnalyzer.analyzeTraceChunks(chunks);
     
@@ -277,7 +271,6 @@ class ASTCodeSplitter {
     // Add missing context
     optimizedChunks = this.addMissingContext(optimizedChunks, originalDocument);
 
-    console.log(`[${new Date().toISOString()}] ✅ OPTIMIZATION COMPLETE: ${chunks.length} → ${optimizedChunks.length} chunks`);
     return optimizedChunks;
   }
 
@@ -760,7 +753,6 @@ class ASTCodeSplitter {
       // Third attempt: Smart line-based splitting (avoid breaking code blocks)
       const smartLineSplits = await this.splitBySmartLineBoundaries(content, chunk.metadata);
       if (smartLineSplits && smartLineSplits.length > 1) {
-        console.log(`[${new Date().toISOString()}] ✅ SMART LINE SPLIT: Successfully split into ${smartLineSplits.length} logical chunks`);
         return smartLineSplits;
       }
 

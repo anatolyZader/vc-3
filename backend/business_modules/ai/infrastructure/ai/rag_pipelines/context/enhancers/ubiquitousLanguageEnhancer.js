@@ -77,13 +77,10 @@ class UbiquitousLanguageEnhancer {
    * Detect EventStorm business module from file content and path
    */
   detectBusinessModule(content, source) {
-    console.log(`[${new Date().toISOString()}] 🔍 Detecting business module for: ${source}`);
-    
     // Check file path for module indicators
     const pathModules = ['auth', 'chat', 'docs', 'api', 'reqs', 'git', 'wiki'];
     for (const module of pathModules) {
       if (source.includes(`/${module}/`) || source.includes(`\\${module}\\`)) {
-        console.log(`[${new Date().toISOString()}] 📂 Detected module from path: ${module}`);
         return module;
       }
     }
@@ -120,13 +117,11 @@ class UbiquitousLanguageEnhancer {
     for (const [module, keywords] of Object.entries(keywordModules)) {
       for (const keyword of keywords) {
         if (content.includes(keyword)) {
-          console.log(`[${new Date().toISOString()}] 🔤 Detected module from keyword '${keyword}': ${module}`);
           return module;
         }
       }
     }
     
-    console.log(`[${new Date().toISOString()}] ❓ No specific module detected, defaulting to 'unknown'`);
     return 'unknown';
   }
 

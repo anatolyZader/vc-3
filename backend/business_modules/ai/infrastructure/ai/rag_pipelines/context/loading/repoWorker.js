@@ -131,9 +131,6 @@ class RepoWorker {
       result.endTime = Date.now();
       result.processingTime = result.endTime - result.startTime;
       
-      console.log(`[${new Date().toISOString()}] ✅ WORKER ${this.workerId}: Completed work unit ${workUnit.id}`);
-      console.log(`[${new Date().toISOString()}] 📊 WORKER ${this.workerId}: ${result.documentsProcessed} docs, ${result.chunksGenerated} chunks`);
-      
       this.sendMessage({
         type: 'WORK_UNIT_COMPLETED',
         jobId,
@@ -189,8 +186,6 @@ class RepoWorker {
       // Process each file in the batch
       for (const file of fileBatch) {
         try {
-          console.log(`[${new Date().toISOString()}] 📄 WORKER ${this.workerId}: Processing ${file.path}`);
-          
           // Load file content using the correct method
           const fileContent = await this.repoLoader.loadSingleFile({
             path: file.path
@@ -281,9 +276,6 @@ class RepoWorker {
         namespace: `${document.metadata.userId}_${document.metadata.repoId}`,
         vectorId: `${document.metadata.repoId}_${document.metadata.filePath}_0`
       }];
-      
-      // Log processing completion (no storage attempted)
-      console.log(`[${new Date().toISOString()}] ✅ WORKER ${this.workerId}: Prepared ${chunks.length} chunks for main pipeline storage`);
       
       return chunks;
       

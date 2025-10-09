@@ -136,8 +136,6 @@ class ContextPipeline {
     // document.metadata is a property of LangChain Document objects. In your RAG pipeline, documents are created by LangChain's document loaders when they process files from repositories. CloudNativeRepoLoader creates LangChain-compatible documents with metadata fields including source file path, etc.
     const source = document.metadata?.source || 'unknown';
     
-    console.log(`[${new Date().toISOString()}] 🎯 ROUTING: ${source} → ${contentType}`);
-
     try {
       switch (contentType) {
         case 'code':

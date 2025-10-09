@@ -295,8 +295,6 @@ class RepoWorkerManager {
       this.workerStats.active++;
       this.workerStats.idle--;
       
-      console.log(`[${new Date().toISOString()}] 📤 WORKER ${workerId}: Assigned work unit ${workUnit.id}`);
-      
       // Send work to worker
       worker.worker.postMessage({
         type: 'PROCESS_WORK_UNIT',
@@ -353,8 +351,6 @@ class RepoWorkerManager {
     const worker = this.workers.get(workerId);
     const { jobId, workUnitId, result } = message;
     
-    console.log(`[${new Date().toISOString()}] ✅ WORKER ${workerId}: Completed work unit ${workUnitId}`);
-    
     // Update worker status
     worker.status = 'idle';
     worker.currentJob = null;
@@ -375,8 +371,6 @@ class RepoWorkerManager {
       };
       
       job.results.push(enhancedResult);
-      
-      console.log(`[${new Date().toISOString()}] 📊 WORKER ${workerId}: Extracted ${enhancedResult.processedChunks?.length || 0} chunks for embedding`);
     }
     
     // Resolve work unit promise
@@ -400,8 +394,6 @@ class RepoWorkerManager {
     if (workerResult.filesProcessed) {
       for (const fileResult of workerResult.filesProcessed) {
         if (fileResult.success && fileResult.processedChunks?.length > 0) {
-          console.log(`[${new Date().toISOString()}] 📝 EXTRACTING: ${fileResult.processedChunks.length} actual chunks from ${fileResult.path}`);
-          
           // Extract actual chunk objects returned by workers
           for (const chunk of fileResult.processedChunks) {
             processedChunks.push({
@@ -418,8 +410,6 @@ class RepoWorkerManager {
         }
       }
     }
-    
-    console.log(`[${new Date().toISOString()}] ✅ CHUNK EXTRACTION: Total ${processedChunks.length} chunks ready for embedding`);
     
     return processedChunks;
   }
@@ -463,8 +453,6 @@ class RepoWorkerManager {
    */
   handleProgressUpdate(workerId, message) {
     const { jobId, workUnitId, progress } = message;
-    
-    console.log(`[${new Date().toISOString()}] 📊 WORKER ${workerId}: Progress update for ${workUnitId}: ${progress?.percentage || 'unknown'}%`);
     
     // Update job progress tracking if needed
     const job = this.activeJobs.get(jobId);

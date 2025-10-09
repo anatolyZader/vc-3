@@ -17,8 +17,6 @@ class ChunkQualityAnalyzer {
    * Analyze trace data to identify chunking issues
    */
   analyzeTraceChunks(traceData) {
-    console.log(`[${new Date().toISOString()}] 🔍 CHUNK ANALYZER: Analyzing trace chunks for quality issues`);
-    
     const chunks = this.extractChunksFromTrace(traceData);
     const analysis = {
       totalChunks: chunks.length,
@@ -38,7 +36,6 @@ class ChunkQualityAnalyzer {
     // Generate improvement recommendations
     analysis.recommendations = this.generateRecommendations(analysis);
 
-    console.log(`[${new Date().toISOString()}] 📊 ANALYSIS COMPLETE: Quality score ${analysis.qualityScore}/100`);
     return analysis;
   }
 
