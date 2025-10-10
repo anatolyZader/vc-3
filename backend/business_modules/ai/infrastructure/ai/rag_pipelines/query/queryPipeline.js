@@ -274,10 +274,12 @@ class QueryPipeline {
         threshold: 0.3  // Lower threshold for more matches
       });
     } else {
-      // Fallback to user-wide search (using userId as namespace)
-      console.log(`[${new Date().toISOString()}] 🌐 User-wide search: ${this.userId || userId || 'unknown'}`);
+      // Fallback to user-wide search but include repository context
+      const baseUserId = this.userId || userId;
+      const repositoryNamespace = `${baseUserId}_anatolyzader_vc-3`; // Use the actual namespace where docs are stored
+      console.log(`[${new Date().toISOString()}] 🌐 User-wide search (with repo context): ${repositoryNamespace}`);
       searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
-        namespace: this.userId || userId,
+        namespace: repositoryNamespace,
         topK: 10,
         threshold: 0.3,  // Lower threshold for more matches
         includeMetadata: true

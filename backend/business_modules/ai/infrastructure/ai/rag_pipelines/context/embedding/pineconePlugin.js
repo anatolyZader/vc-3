@@ -19,7 +19,7 @@ class PineconePlugin {
 
     this.client = null;
     this.index = null;
-    this.isConnected = false;
+    this._connected = false;
     this.connectionPromise = null;
     
     this.logger = {
@@ -61,7 +61,7 @@ class PineconePlugin {
    * Get the Pinecone client (creates connection if needed)
    */
   async getClient() {
-    if (this.isConnected && this.client) {
+    if (this._connected && this.client) {
       return this.client;
     }
 
@@ -78,7 +78,7 @@ class PineconePlugin {
    * Get the Pinecone index (creates connection if needed)
    */
   async getIndex() {
-    if (this.isConnected && this.index) {
+    if (this._connected && this.index) {
       return this.index;
     }
 
@@ -104,13 +104,13 @@ class PineconePlugin {
       // Get index reference
       this.index = this.client.index(this.config.indexName);
       
-      this.isConnected = true;
+      this._connected = true;
       this.logger.info(`Successfully connected to Pinecone index: ${this.config.indexName}`);
       
       return this.client;
     } catch (error) {
       this.logger.error('Failed to connect to Pinecone:', error.message);
-      this.isConnected = false;
+      this._connected = false;
       this.connectionPromise = null;
       throw new Error(`Pinecone connection failed: ${error.message}`);
     }
@@ -200,7 +200,7 @@ class PineconePlugin {
    * Get connection status
    */
   isConnected() {
-    return this.isConnected && this.client !== null && this.index !== null;
+    return this._connected && this.client !== null && this.index !== null;
   }
 
   /**
@@ -216,7 +216,7 @@ class PineconePlugin {
   async disconnect() {
     this.client = null;
     this.index = null;
-    this.isConnected = false;
+    this._connected = false;
     this.connectionPromise = null;
     this.logger.info('Disconnected from Pinecone');
   }

@@ -55,8 +55,8 @@ class ContextBuilder {
     
     const sectionHeader = this.getSectionHeader(type, doc, source);
     
-    // Limit content length but provide more for documentation files
-    const maxLength = type.includes('documentation') ? 1000 : 500;
+    // Increase limits for better code access - documentation gets 1500, code gets 1200 characters
+    const maxLength = type.includes('documentation') ? 1500 : 1200;
     const content = doc.pageContent.length > maxLength 
       ? doc.pageContent.substring(0, maxLength) + '...' 
       : doc.pageContent;
@@ -72,7 +72,7 @@ class ContextBuilder {
     } else if (type === 'module_documentation') {
       return `=== ${doc.metadata.module?.toUpperCase() || 'MODULE'} DOCUMENTATION ===\n`;
     } else if (doc.metadata.repoId) {
-      return `=== CODE REPOSITORY (${source}) ===\n`;
+      return `=== ACTUAL SOURCE CODE FROM REPOSITORY (${source}) ===\nNote: This contains the actual source code from the file.\n`;
     }
     return '';
   }

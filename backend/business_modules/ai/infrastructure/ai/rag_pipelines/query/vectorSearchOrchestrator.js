@@ -425,11 +425,16 @@ class VectorSearchOrchestrator {
 
     this.logger.info(`🏠 Searching within repository: ${repoId} for user: ${userId}`);
 
+    // Create repository-specific namespace that matches how documents were stored
+    // The storage process creates namespaces like: userId_repositoryOwner_repositoryName
+    const repositoryNamespace = `${userId}_${repoId}`;
+    this.logger.debug(`Using repository namespace: ${repositoryNamespace}`);
+
     // Create repository-specific filters
     const filters = this.createRepositoryFilters(repoId, fileTypes, semanticRoles);
 
     return await this.searchSimilar(query, {
-      namespace: userId,
+      namespace: repositoryNamespace,
       topK,
       threshold,
       filter: filters,

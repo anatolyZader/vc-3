@@ -7,71 +7,125 @@ const { DirectoryLoader } = require('langchain/document_loaders/fs/directory');
 const { TextLoader } = require('langchain/document_loaders/fs/text');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 const { OpenAIEmbeddings } = require('@langchain/openai');
-const { PineconeStore } = require('@langchain/pinecone');
 const { PromptTemplate } = require('@langchain/core/prompts');
 const { RunnableSequence } = require('@langchain/core/runnables');
 const { StringOutputParser } = require('@langchain/core/output_parsers');
 
-// Modern Pinecone service
+// Import extracted utility functions (matching AI module)
+const RequestQueue = require('../../../ai/infrastructure/ai/requestQueue');
+const LLMProviderManager = require('../../../ai/infrastructure/ai/providers/lLMProviderManager');
+
+// Modern Pinecone service (matching AI module)
 const PineconeService = require('../../../ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeService');
+const PineconePlugin = require('../../../ai/infrastructure/ai/rag_pipelines/context/embedding/pineconePlugin');
 const { formatDocumentsAsString } = require('langchain/util/document');
-const Bottleneck = require("bottleneck");
 
 class DocsLangchainAdapter extends IDocsAiPort {
   constructor({ aiProvider = 'openai' }) {
     super();
-    this.aiProvider = aiProvider;
 
-    // Event Dispatcher
+    // Make userId null by default to avoid DI error (matching AI module)
+    this.userId = null;
+
+    // Get provider from options
+    this.aiProvider = aiProvider;
+    console.log(`[${new Date().toISOString()}] DocsLangchainAdapter initializing with provider: ${this.aiProvider}`);
+
+    // Get access to the event bus for status updates (matching AI module)
     try {
       const { eventBus } = require('../../../../eventDispatcher');
       this.eventBus = eventBus;
-      console.log('📡 DocsLangchainAdapter: Successfully connected to shared event bus');
+      console.log(`[${new Date().toISOString()}] 📡 Successfully connected to shared event bus`);
     } catch (error) {
-      console.warn(`⚠️ DocsLangchainAdapter: Could not access shared event bus: ${error.message}`);
+      console.warn(`[${new Date().toISOString()}] ⚠️ Could not access shared event bus: ${error.message}`);
       this.eventBus = null;
+      console.log(`[${new Date().toISOString()}] [DEBUG] Event bus unavailable.`);
     }
 
-    // Rate limiting and queueing
-    this.requestsInLastMinute = 0;
-    this.lastRequestTime = Date.now();
-    this.maxRequestsPerMinute = 60;
-    this.retryDelay = 5000;
-    this.maxRetries = 5;
-    this.requestQueue = [];
-    this.isProcessingQueue = false;
-    this.startQueueProcessor();
-
-    // Initialize embeddings model
-    this.embeddings = new OpenAIEmbeddings({
-      model: 'text-embedding-3-large',
-      apiKey: process.env.OPENAI_API_KEY
+    // Initialize request queue for rate limiting and queuing (matching AI module)
+    this.requestQueue = new RequestQueue({
+      maxRequestsPerMinute: 20,  // Conservative rate to avoid API limits
+      retryDelay: 5000,          // 5 seconds between retries
+      maxRetries: 3              // Reasonable retry count (15s max retry time)
     });
 
-    // Initialize Pinecone service
-    if (process.env.PINECONE_API_KEY) {
-      const PineconePlugin = require('../../ai/infrastructure/ai/rag_pipelines/context/embedding/pineconePlugin');
-      const pineconePlugin = new PineconePlugin();
-      this.pineconeService = new PineconeService({
-        pineconePlugin: pineconePlugin
+    // Keep direct access to pineconeLimiter for backward compatibility (matching AI module)
+    this.pineconeLimiter = this.requestQueue.pineconeLimiter;
+
+    try {
+      // Initialize embeddings model: converts text to vectors (matching AI module)
+      this.embeddings = new OpenAIEmbeddings({
+        model: 'text-embedding-3-large',
+        apiKey: process.env.OPENAI_API_KEY
       });
-      this.pineconeIndexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
-      console.log(`📊 DocsLangchainAdapter: Using Pinecone index: ${this.pineconeIndexName}`);
-    } else {
-      console.warn('No Pinecone API key found, vector search will be unavailable');
-      this.pineconeService = null;
+      console.log(`[${new Date().toISOString()}] [DEBUG] Embeddings model initialized.`);
+
+      // Initialize chat model based on provider (matching AI module)
+      this.llmProviderManager = new LLMProviderManager(this.aiProvider, {
+        maxRetries: this.requestQueue.maxRetries
+      });
+      this.llm = this.llmProviderManager.getLLM();
+      console.log(`[${new Date().toISOString()}] [DEBUG] LLM initialized.`);
+
+      // Don't initialize vectorStore until we have a userId (matching AI module)
+      this.vectorStore = null;
+      console.log(`[${new Date().toISOString()}] [DEBUG] Vector store set to null (will be initialized after userId).`);
+
+      // Initialize Pinecone service (matching AI module)
+      if (process.env.PINECONE_API_KEY) {
+        this.pineconePlugin = new PineconePlugin();
+        this.pineconeService = new PineconeService({
+          pineconePlugin: this.pineconePlugin,
+          rateLimiter: this.pineconeLimiter
+        });
+        
+        // Use wiki-specific index if available, fallback to main index
+        this.pineconeIndexName = process.env.PINECONE_WIKI_INDEX_NAME || process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+        console.log(`[${new Date().toISOString()}] 📊 DocsLangchainAdapter: Using Pinecone index: ${this.pineconeIndexName}`);
+      } else {
+        console.warn(`[${new Date().toISOString()}] No Pinecone API key found, vector search will be unavailable`);
+        this.pineconeService = null;
+        this.pineconePlugin = null;
+      }
+
+      console.log(`[${new Date().toISOString()}] DocsLangchainAdapter initialized successfully`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error initializing DocsLangchainAdapter:`, error.message);
+      console.log(`[${new Date().toISOString()}] [DEBUG] Initialization error stack:`, error.stack);
+      // We'll continue with degraded functionality and try to recover later
+    }
+  }
+
+  // Add method to set userId after construction - this is crucial! (matching AI module)
+  async setUserId(userId) {
+    if (!userId) {
+      console.warn(`[${new Date().toISOString()}] Attempted to set null/undefined userId in DocsLangchainAdapter`);
+      return this;
+    }
+    console.log(`[${new Date().toISOString()}] [DEBUG] setUserId called with: ${userId}`);
+
+    this.userId = userId;
+    console.log(`[${new Date().toISOString()}] [DEBUG] userId set to: ${this.userId}`);
+
+    try {
+      // Initialize vector store directly - adapter owns the vector store lifecycle (matching AI module)
+      if (process.env.PINECONE_API_KEY && this.pineconeService) {
+        // Adapter owns and manages the vector store
+        this.vectorStore = await this.pineconeService.createVectorStore(this.embeddings, this.userId);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId}`);
+      } else {
+        console.warn(`[${new Date().toISOString()}] Missing Pinecone API key or service - vector store not initialized`);
+        this.vectorStore = null;
+      }
+      
+      console.log(`[${new Date().toISOString()}] DocsLangchainAdapter userId updated to: ${this.userId}`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error creating vector store for user ${this.userId}:`, error.message);
+      console.log(`[${new Date().toISOString()}] [DEBUG] Vector store creation error stack:`, error.stack);
+      // Still set the userId even if vectorStore creation fails
     }
 
-    // Initialize chat model
-    this.initializeLLM();
-
-    // Bottleneck rate limiter for Pinecone upserts
-    this.pineconeLimiter = new Bottleneck({
-      reservoir: 100,
-      reservoirRefreshAmount: 100,
-      reservoirRefreshInterval: 1000,
-      maxConcurrent: 5,
-    });
+    return this;
   }
 
   initializeLLM() {
@@ -105,12 +159,25 @@ class DocsLangchainAdapter extends IDocsAiPort {
   }
 
   async updateDocsFiles(userId) {
-    return this.queueRequest(() => this.executeFileUpdate(userId));
+    // Set userId first (matching AI module pattern)
+    await this.setUserId(userId);
+    
+    // Use the modern request queue for rate limiting (matching AI module)
+    return this.requestQueue.queueRequest(() => this.executeFileUpdate(userId));
   }
 
   async executeFileUpdate(userId) {
-    console.log('[docsLangchainAdapter] _executeFileUpdate started.');
+    console.log(`[${new Date().toISOString()}] DocsLangchainAdapter: executeFileUpdate started for user ${userId}`);
     this.emitRagStatus('start', { message: 'Starting docs file update process.', userId });
+    
+    // Validate Pinecone availability (matching AI module error handling)
+    if (!this.pineconeService) {
+      const errorMsg = 'Pinecone service not available - missing API key or initialization failed';
+      console.error(`[${new Date().toISOString()}] ${errorMsg}`);
+      this.emitRagStatus('error', { message: errorMsg, userId });
+      return { success: false, message: errorMsg };
+    }
+    
     try {
       const businessModulesPath = path.resolve(__dirname, '../../../../business_modules');
       console.log(`[docsLangchainAdapter] Loading files from: ${businessModulesPath}`);
@@ -134,32 +201,19 @@ class DocsLangchainAdapter extends IDocsAiPort {
       console.log(`[docsLangchainAdapter] Created ${splits.length} document splits.`);
       this.emitRagStatus('split', { message: `Created ${splits.length} document splits.`, count: splits.length, userId });
 
-      // Use the modern PineconeService to get connected client
-      await this.pineconeService.connect();
-      const pinecone = this.pineconeService.client;
-      const indexName = this.pineconeIndexName;
-      
-      try {
-        await pinecone.describeIndex(indexName);
-        console.log(`[docsLangchainAdapter] Pinecone index '${indexName}' already exists.`);
-      } catch (error) {
-        // Use the modern service to create index if it doesn't exist
-        if (error.name === 'PineconeNotFoundError') {
-          console.log(`[docsLangchainAdapter] Pinecone index '${indexName}' not found. Creating it...`);
-          await this.pineconeService.createIndex({
-            cloud: 'gcp',
-            region: 'us-central1',
-            dimension: 3072,
-            metric: 'cosine',
-            waitUntilReady: true
-          });
-        } else {
-          throw error; // Re-throw other errors
-        }
+      // Use the modern PineconeService pattern (matching AI module)
+      if (!this.vectorStore) {
+        console.warn(`[${new Date().toISOString()}] Vector store not initialized, attempting to create with userId: ${userId}`);
+        await this.setUserId(userId);
       }
 
+      if (!this.vectorStore) {
+        throw new Error('Failed to initialize vector store - Pinecone service unavailable');
+      }
+
+      // Use the userId-based vector store for consistent namespacing (matching AI module)
       await this.pineconeService.upsertDocuments(splits, this.embeddings, {
-        namespace: null, // Use default namespace for documentation
+        namespace: userId, // Use userId-based namespace for proper isolation
         batchSize: 100,
         onProgress: (processed, total) => {
           console.log(`[docsLangchainAdapter] Progress: ${processed}/${total} documents processed`);
@@ -222,9 +276,10 @@ class DocsLangchainAdapter extends IDocsAiPort {
         } catch (error) {
           console.log(`[docsLangchainAdapter] Could not load ARCHITECTURE.md: ${error.message}`);
         }
-        console.log(`[docsLangchainAdapter] Creating vector store for module: ${moduleName}`);
-        const vectorStore = await this.pineconeService.createVectorStore(this.embeddings);
-        console.log(`[docsLangchainAdapter] Vector store created for module: ${moduleName}`);
+        console.log(`[docsLangchainAdapter] Using vector store for module: ${moduleName}`);
+        // Use the existing userId-based vector store (matching AI module)
+        const vectorStore = this.vectorStore || await this.pineconeService.createVectorStore(this.embeddings, this.userId);
+        console.log(`[docsLangchainAdapter] Vector store ready for module: ${moduleName}`);
 
         // Monitor memory before similarity search
         const memBeforeSearch = process.memoryUsage();
@@ -366,8 +421,8 @@ class DocsLangchainAdapter extends IDocsAiPort {
       const backendRootPath = path.resolve(__dirname, '../../../../');
       console.log(`[docsLangchainAdapter] Backend root path: ${backendRootPath}`);
 
-      // Initialize Pinecone components
-      const vectorStore = await this.pineconeService.createVectorStore(this.embeddings);
+      // Use the existing userId-based vector store (matching AI module)
+      const vectorStore = this.vectorStore || await this.pineconeService.createVectorStore(this.embeddings, this.userId);
 
       // Define root files to document
       const rootFiles = [
@@ -842,63 +897,41 @@ Focus on both the technical implementation and the business value delivered by e
     return new RecursiveCharacterTextSplitter({ chunkSize, chunkOverlap });
   }
 
+  /**
+   * Emit RAG status events for monitoring (matching AI module)
+   */
   emitRagStatus(status, details = {}) {
-    const logDetails = { component: 'DocsLangchainAdapter', status, ...details };
-    console.log(`🔍 RAG STATUS: {status}`, logDetails);
-    if (this.eventBus) {
-      this.eventBus.emit('ragStatusUpdate', { timestamp: new Date().toISOString(), ...logDetails });
-    }
-  }
-
-  // Rate limiting and queueing
-  async checkRateLimit() {
-    const now = Date.now();
-    if (now - this.lastRequestTime > 60000) {
-      this.requestsInLastMinute = 0;
-      this.lastRequestTime = now;
-    }
-    if (this.requestsInLastMinute < this.maxRequestsPerMinute) {
-      this.requestsInLastMinute++;
-      return true;
-    }
-    return false;
-  }
-
-  startQueueProcessor() {
-    setInterval(() => this.processQueue(), 1000);
-  }
-
-  async processQueue() {
-    if (this.isProcessingQueue || this.requestQueue.length === 0) return;
-    this.isProcessingQueue = true;
-    const request = this.requestQueue.shift();
-    if (await this.checkRateLimit()) {
-      try {
-        await request.execute();
-      } catch (error) {
-        console.error('Error processing request:', error);
-        if (request.retryCount < this.maxRetries) {
-          request.retryCount++;
-          this.requestQueue.unshift(request); // Add back to the front for retry
-        }
-      } finally {
-        this.isProcessingQueue = false;
-        // Defer the next call to avoid stack overflow
-        setImmediate(() => this.processQueue());
+    // Always log the status update
+    console.log(`[${new Date().toISOString()}] 🔍 RAG STATUS: ${status}`, 
+      Object.keys(details).length > 0 ? JSON.stringify(details, null, 2) : '');
+    
+    // Try to emit to the event bus if available
+    try {
+      // First try the instance event bus
+      if (this.eventBus) {
+        this.eventBus.emit('ragStatusUpdate', {
+          component: 'docsLangchainAdapter',
+          timestamp: new Date().toISOString(),
+          status,
+          ...details
+        });
+        return;
       }
-    } else {
-      this.requestQueue.unshift(request); // Return to the queue
-      this.isProcessingQueue = false;
-    }
-  }
-
-  queueRequest(execute) {
-    return new Promise((resolve, reject) => {
-      this.requestQueue.push({ execute, resolve, reject, retryCount: 0 });
-      if (!this.isProcessingQueue) {
-        this.processQueue();
+      
+      // Fallback to imported event bus if instance one isn't available
+      const eventDispatcherPath = '../../../../eventDispatcher';
+      const { eventBus } = require(eventDispatcherPath);
+      if (eventBus) {
+        eventBus.emit('ragStatusUpdate', {
+          component: 'docsLangchainAdapter',
+          timestamp: new Date().toISOString(),
+          status,
+          ...details
+        });
       }
-    });
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
+    }
   }
 }
 

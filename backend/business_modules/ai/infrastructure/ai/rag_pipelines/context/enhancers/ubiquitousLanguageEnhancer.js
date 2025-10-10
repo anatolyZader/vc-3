@@ -78,7 +78,7 @@ class UbiquitousLanguageEnhancer {
    */
   detectBusinessModule(content, source) {
     // Check file path for module indicators
-    const pathModules = ['auth', 'chat', 'docs', 'api', 'reqs', 'git', 'wiki'];
+    const pathModules = ['auth', 'chat', 'docs', 'api', 'reqs', 'git', 'docs'];
     for (const module of pathModules) {
       if (source.includes(`/${module}/`) || source.includes(`\\${module}\\`)) {
         return module;

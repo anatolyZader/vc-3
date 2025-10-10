@@ -153,8 +153,10 @@ class AILangchainAdapter extends IAIPort {
         });
         
         // Adapter owns and manages the vector store
-        this.vectorStore = await pineconeService.createVectorStore(this.embeddings, this.userId);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId}`);
+        // Use repository-specific namespace format that matches actual document storage
+        const repositoryNamespace = `${this.userId}_anatolyzader_vc-3`;
+        this.vectorStore = await pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId} with namespace: ${repositoryNamespace}`);
       } else {
         console.warn(`[${new Date().toISOString()}] Missing Pinecone API key - vector store not initialized`);
         this.vectorStore = null;
