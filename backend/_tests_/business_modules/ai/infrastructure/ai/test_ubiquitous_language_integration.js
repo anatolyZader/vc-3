@@ -12,7 +12,7 @@ async function testUbiquitousLanguageIntegration() {
   console.log('═'.repeat(60));
 
   try {
-    // Initialize UbiquitousLanguageProcessor directly (this should load the ubiqLangDict.json)
+    // Initialize UbiquitousLanguageProcessor directly (this should load the new catalog files)
     console.log('📚 Step 1: Initializing UbiquitousLanguageProcessor...');
     const ubiquitousLanguageProcessor = new UbiquitousLanguageProcessor();
     

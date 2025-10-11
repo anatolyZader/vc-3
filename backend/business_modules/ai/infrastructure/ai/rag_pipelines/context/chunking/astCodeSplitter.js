@@ -6,6 +6,7 @@ const traverse = require('@babel/traverse').default;
 const ChunkQualityAnalyzer = require('../../../langsmith/ChunkQualityAnalyzer');
 const { Document } = require('langchain/document');
 const TokenBasedSplitter = require('./tokenBasedSplitter');
+const crypto = require('crypto');
 
 /**
  * AST-Based Code Splitter with Chunk Quality Analysis
@@ -13,11 +14,11 @@ const TokenBasedSplitter = require('./tokenBasedSplitter');
  */
 class ASTCodeSplitter {
   constructor(options = {}) {
-    // Initialize token splitter first for accurate measurements
+    // Enhanced token limits for better semantic coherence
     this.tokenSplitter = options.tokenSplitter || new TokenBasedSplitter({
-      maxTokens: options.maxTokens || 1200,        // Optimal for code embeddings
-      minTokens: options.minTokens || 150,         // Minimum meaningful code size
-      overlapTokens: options.overlapTokens || 200  // More overlap for code context
+      maxTokens: options.maxTokens || 500,         // Increased for semantic coherence (was 1200)
+      minTokens: options.minTokens || 30,          // Reduced for fine-grained splitting (was 150)
+      overlapTokens: options.overlapTokens || 50   // Reduced overlap for cleaner boundaries (was 200)
     });
     
     // Legacy character-based options (converted to tokens when needed)
@@ -28,7 +29,15 @@ class ASTCodeSplitter {
     this.includeImportsInContext = options.includeImportsInContext !== false;
     this.mergeSmallChunks = options.mergeSmallChunks !== false;
     this.semanticCoherence = options.semanticCoherence !== false;
-    this.supportedExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs'];
+    this.supportedExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
+    
+    // Enhanced configuration for fine-grained semantic splitting
+    this.fastifyRules = options.fastifyRules || {
+      keepCompleteRegistrations: true,    // Don't split fastify.register() calls
+      keepCompleteRoutes: true,          // Don't split route definitions
+      splitMethods: true,                // Split individual methods
+      recognizePatterns: true            // Recognize Fastify-specific patterns
+    };
     
     this.qualityAnalyzer = new ChunkQualityAnalyzer({
       minChunkSize: this.minChunkSize,
@@ -54,12 +63,40 @@ class ASTCodeSplitter {
       
       // First pass: Create initial chunks
       const initialChunks = await this.createInitialChunks(normalizedDocument);
+      console.log(`[${new Date().toISOString()}] 📦 Initial chunks: ${initialChunks.length}`);
       
-      // Second pass: Quality analysis and optimization
+      // Enhanced: Skip optimization for Fastify patterns to preserve semantic coherence
+      if (this.fastifyRules.recognizePatterns && initialChunks.length > 1) {
+        console.log(`[${new Date().toISOString()}] 🚀 FASTIFY ENHANCED MODE: Skipping optimization to preserve semantic boundaries`);
+        
+        // Ensure token counting for bypassed chunks
+        const enhancedChunks = initialChunks.map(chunk => {
+          const content = chunk.pageContent || chunk.content || '';
+          const tokenAnalysis = this.tokenSplitter.analyzeChunk(content);
+          
+          return {
+            ...chunk,
+            tokenCount: tokenAnalysis.tokenCount,
+            tokens: tokenAnalysis.tokenCount, // For backward compatibility
+            metadata: {
+              ...chunk.metadata,
+              enhanced: true,
+              preservedSemanticBoundaries: true,
+              tokenCount: tokenAnalysis.tokenCount
+            }
+          };
+        });
+        
+        return enhancedChunks;
+      }
+      
+      // Second pass: Quality analysis and optimization (for non-Fastify patterns)
       const optimizedChunks = await this.optimizeChunks(initialChunks, normalizedDocument);
+      console.log(`[${new Date().toISOString()}] 🔧 Optimized chunks: ${optimizedChunks.length}`);
       
       // Third pass: Final validation and metadata enrichment
       const finalChunks = await this.enrichChunksWithMetadata(optimizedChunks, normalizedDocument);
+      console.log(`[${new Date().toISOString()}] ✅ Final chunks: ${finalChunks.length}`);
 
       return finalChunks;
 
@@ -129,6 +166,25 @@ class ASTCodeSplitter {
               if (functionUnit) semanticUnits.push(functionUnit);
             }
           }
+        }
+      },
+
+      // Enhanced CallExpression handling for Fastify patterns
+      CallExpression: (path) => {
+        const isFastifyCall = this.isFastifyCall(path.node);
+        
+        // Enhanced: Accept all Fastify calls for semantic splitting
+        if (isFastifyCall) {
+          const callUnit = this.createFastifyCallUnit(path.node, lines, originalCode, imports);
+          if (callUnit) semanticUnits.push(callUnit);
+        }
+      },
+
+      // Class methods (for fine-grained method extraction)
+      ClassMethod: (path) => {
+        if (this.fastifyRules.splitMethods) {
+          const methodUnit = this.createClassMethodUnit(path.node, lines, originalCode, imports);
+          if (methodUnit) semanticUnits.push(methodUnit);
         }
       },
 
@@ -211,13 +267,69 @@ class ASTCodeSplitter {
   }
 
   /**
-   * Create chunks from semantic units with quality optimization
+   * Create enhanced Fastify call unit with special handling
+   */
+  createFastifyCallUnit(node, lines, originalCode, imports) {
+    const unit = this.createSemanticUnit(node, lines, 'call_expression', originalCode);
+    if (!unit) return null;
+
+    const tokenAnalysis = this.tokenSplitter.analyzeChunk(unit.content);
+    const callType = this.getFastifyCallType(node);
+
+    return {
+      ...unit,
+      tokenCount: tokenAnalysis.tokenCount,
+      tokenAnalysis: tokenAnalysis,
+      contextualImports: this.getRelevantImports(imports, unit.content),
+      callType: callType,
+      semanticType: callType === 'plugin_registration' ? 'registration' : 
+                   callType === 'route_definition' ? 'route' : 'call',
+      shouldKeepTogether: this.shouldKeepTogether({ callType }),
+      isFastify: true
+    };
+  }
+
+  /**
+   * Create enhanced class method unit for fine-grained method extraction
+   */
+  createClassMethodUnit(node, lines, originalCode, imports) {
+    const unit = this.createSemanticUnit(node, lines, 'class_method', originalCode);
+    if (!unit) return null;
+
+    const tokenAnalysis = this.tokenSplitter.analyzeChunk(unit.content);
+
+    return {
+      ...unit,
+      tokenCount: tokenAnalysis.tokenCount,
+      tokenAnalysis: tokenAnalysis,
+      contextualImports: this.getRelevantImports(imports, unit.content),
+      methodName: node.key?.name || 'anonymous',
+      methodKind: node.kind || 'method',
+      isStatic: node.static || false,
+      isAsync: node.async || false,
+      semanticType: 'method'
+    };
+  }
+
+  /**
+   * Create chunks from semantic units with enhanced quality optimization
    */
   createChunksFromSemanticUnits(semanticUnits, originalCode, metadata) {
     const chunks = [];
     let currentChunk = null;
     
     for (const unit of semanticUnits) {
+      // Special handling for Fastify units that should be kept together
+      if (unit.shouldKeepTogether) {
+        // Force this unit to be its own chunk to preserve semantic coherence
+        if (currentChunk) {
+          chunks.push(this.createChunkFromUnit(currentChunk, metadata));
+          currentChunk = null;
+        }
+        chunks.push(this.createChunkFromUnit(unit, metadata));
+        continue;
+      }
+
       // Check if unit should be merged with current chunk
       if (this.shouldMergeWithCurrent(currentChunk, unit)) {
         currentChunk = this.mergeUnits(currentChunk, unit);
@@ -382,6 +494,8 @@ class ASTCodeSplitter {
    * Add missing import context to chunks
    */
   addMissingContext(chunks, originalDocument) {
+    if (!this.includeImportsInContext) return chunks;
+    
     const imports = this.extractAllImports(originalDocument.pageContent);
     
     return chunks.map(chunk => {
@@ -416,8 +530,13 @@ class ASTCodeSplitter {
     return chunks.map((chunk, index) => {
       const content = chunk.pageContent || chunk.content || '';
       
+      // Ensure token counting for all chunks
+      const tokenAnalysis = this.tokenSplitter.analyzeChunk(content);
+      
       return {
         ...chunk,
+        tokenCount: tokenAnalysis.tokenCount,
+        tokens: tokenAnalysis.tokenCount, // For backward compatibility
         metadata: {
           ...chunk.metadata,
           ...originalDocument.metadata,
@@ -425,7 +544,8 @@ class ASTCodeSplitter {
           chunk_index: index,
           total_chunks: chunks.length,
           chunk_size: content.length,
-          semantic_type: this.detectSemanticType(content),
+          tokenCount: tokenAnalysis.tokenCount,
+          semantic_type: this.detectSemanticType(content, chunk.metadata?.node_type),
           function_names: this.extractFunctionNames(content),
           class_names: this.extractClassNames(content),
           has_imports: this.hasImportContext(content),
@@ -480,7 +600,27 @@ class ASTCodeSplitter {
     };
   }
 
-  detectSemanticType(content) {
+  detectSemanticType(content, nodeType = null) {
+    // Prefer AST node type when available
+    if (nodeType) {
+      switch (nodeType) {
+        case 'ClassDeclaration': return 'class';
+        case 'FunctionDeclaration': return 'function';
+        case 'MethodDefinition': 
+        case 'ClassPrivateMethod': return 'method';
+        case 'ImportDeclaration': return 'imports';
+        case 'ExportNamedDeclaration':
+        case 'ExportDefaultDeclaration': return 'exports';
+        case 'VariableDeclaration': 
+          // Check if it's a function variable
+          if (/=.*=>|=.*function/.test(content)) return 'function';
+          return 'variable';
+        default:
+          // Fall through to regex detection
+      }
+    }
+    
+    // Fallback to regex detection when no AST node type available
     if (/class\s+\w+/.test(content)) return 'class';
     if (/function\s+\w+|const\s+\w+\s*=.*=>/.test(content)) return 'function';
     if (/import\s+|require\s*\(/.test(content)) return 'imports';
@@ -525,17 +665,18 @@ class ASTCodeSplitter {
   }
 
   calculateComplexity(content) {
-    let score = 0;
+    // Strip simple strings to avoid counting control flow inside strings
+    const code = content.replace(/(['"`]).*?\1/g, '');
+    const sum = (re) => (code.match(re) || []).length;
     
-    // Count various complexity indicators
-    score += (content.match(/if\s*\(/g) || []).length;
-    score += (content.match(/for\s*\(/g) || []).length;
-    score += (content.match(/while\s*\(/g) || []).length;
-    score += (content.match(/switch\s*\(/g) || []).length;
-    score += (content.match(/catch\s*\(/g) || []).length;
-    score += (content.match(/=>/g) || []).length;
+    const score =
+      2 * sum(/\bif\s*\(/g) +           // Weighted branches
+      3 * sum(/\bswitch\s*\(/g) +      // Switch statements are more complex
+      2 * sum(/\bfor(each)?\s*\(/g) +  // Loops
+      2 * sum(/\bwhile\s*\(/g) +       // While loops
+      1 * sum(/\bcatch\s*\(/g);        // Exception handling
     
-    return Math.min(10, score); // Cap at 10
+    return Math.min(20, score); // Cap at 20
   }
 
   hasExports(content) {
@@ -543,14 +684,7 @@ class ASTCodeSplitter {
   }
 
   hashContent(content) {
-    // Simple hash for duplicate detection
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.toString();
+    return crypto.createHash('sha1').update(content).digest('hex');
   }
 
   needsImportContext(content) {
@@ -575,10 +709,11 @@ class ASTCodeSplitter {
     
     // Handle different import patterns
     const patterns = [
-      /import\s+(\w+)/g,
-      /import\s*{\s*([^}]+)\s*}/g,
-      /const\s+(\w+)\s*=\s*require/g,
-      /const\s*{\s*([^}]+)\s*}\s*=\s*require/g
+      /import\s+(\w+)/g,                          // import React
+      /import\s*{\s*([^}]+)\s*}/g,               // import { useState, useEffect }
+      /import\s+\*\s+as\s+(\w+)/g,               // import * as fs from 'fs'
+      /const\s+(\w+)\s*=\s*require/g,            // const fs = require('fs')
+      /const\s*{\s*([^}]+)\s*}\s*=\s*require/g   // const { readFile } = require('fs')
     ];
     
     patterns.forEach(pattern => {
@@ -599,7 +734,7 @@ class ASTCodeSplitter {
 
   // Include other necessary methods from the original ASTCodeSplitter
   parseCode(code, extension) {
-    const plugins = ['jsx', 'typescript', 'decorators-legacy', 'classProperties'];
+    const plugins = ['jsx', 'typescript', 'decorators-legacy', 'classProperties', 'importAssertions'];
     if (extension === '.tsx') plugins.push('tsx');
     
     return parse(code, {
@@ -611,7 +746,39 @@ class ASTCodeSplitter {
   }
 
   isTopLevel(path) {
-    return path.parent && path.parent.type === 'Program';
+    if (!path.parent) return false;
+    
+    // Traditional top-level (global scope)
+    if (['Program', 'ExportNamedDeclaration', 'ExportDefaultDeclaration'].includes(path.parent.type)) {
+      return true;
+    }
+    
+    // For semantic splitting, consider statements inside module.exports function as "top-level"
+    // This is a more pragmatic approach for code splitting
+    let current = path;
+    while (current.parent) {
+      current = current.parent;
+      
+      // If we find a function that's assigned to module.exports, consider its contents as top-level
+      if (current.type === 'FunctionExpression' || current.type === 'ArrowFunctionExpression') {
+        const assignment = current.parent;
+        if (assignment && assignment.type === 'AssignmentExpression') {
+          const left = assignment.left;
+          if (left && left.type === 'MemberExpression' &&
+              left.object && left.object.name === 'module' &&
+              left.property && left.property.name === 'exports') {
+            return true;
+          }
+        }
+      }
+      
+      // If we reach program level, it's definitely top-level
+      if (current.type === 'Program') {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   isFunctionDeclarator(declarator) {
@@ -620,9 +787,71 @@ class ASTCodeSplitter {
             declarator.init.type === 'FunctionExpression');
   }
 
+  /**
+   * Enhanced Fastify pattern recognition
+   */
+  isFastifyCall(node) {
+    if (!node.callee || !this.fastifyRules.recognizePatterns) return false;
+    
+    // Check for fastify method calls
+    if (node.callee.type === 'MemberExpression') {
+      const objectName = node.callee.object?.name;
+      const propertyName = node.callee.property?.name;
+      
+      // Fastify registrations and routes
+      if (objectName === 'fastify' && 
+          ['register', 'get', 'post', 'put', 'delete', 'patch', 'route', 'addHook'].includes(propertyName)) {
+        return true;
+      }
+      
+      // Await expressions with fastify
+      if (node.callee.object?.type === 'MemberExpression' &&
+          node.callee.object.object?.name === 'fastify') {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get the type of Fastify call for semantic classification
+   */
+  getFastifyCallType(node) {
+    if (node.callee?.type === 'MemberExpression') {
+      const propertyName = node.callee.property?.name;
+      
+      if (['get', 'post', 'put', 'delete', 'patch'].includes(propertyName)) {
+        return 'route_definition';
+      }
+      if (propertyName === 'register') {
+        return 'plugin_registration';
+      }
+      if (propertyName === 'addHook') {
+        return 'hook_registration';
+      }
+    }
+    return 'function_call';
+  }
+
+  /**
+   * Check if a semantic unit should be kept together (no splitting)
+   */
+  shouldKeepTogether(unit) {
+    if (!this.fastifyRules.keepCompleteRegistrations && !this.fastifyRules.keepCompleteRoutes) {
+      return false;
+    }
+
+    const isFastifyRegistration = unit.callType === 'plugin_registration' && this.fastifyRules.keepCompleteRegistrations;
+    const isFastifyRoute = unit.callType === 'route_definition' && this.fastifyRules.keepCompleteRoutes;
+    
+    return isFastifyRegistration || isFastifyRoute;
+  }
+
   getFileExtension(filename) {
     if (!filename) return '';
-    return filename.substring(filename.lastIndexOf('.'));
+    const idx = filename.lastIndexOf('.');
+    return idx === -1 ? '' : filename.slice(idx);
   }
 
   collectImports(ast, lines) {
@@ -1057,7 +1286,7 @@ class ASTCodeSplitter {
     const methods = [];
     if (node.body && node.body.body) {
       node.body.body.forEach(member => {
-        if (member.type === 'MethodDefinition' && member.key?.name) {
+        if ((member.type === 'MethodDefinition' || member.type === 'ClassPrivateMethod') && member.key?.name) {
           methods.push(member.key.name);
         }
       });
@@ -1075,7 +1304,12 @@ class ASTCodeSplitter {
   }
 
   getParameterNames(node) {
-    return node.params?.map(param => param.name || 'unknown') || [];
+    const parseParam = (p) =>
+      p.type === 'Identifier' ? p.name :
+      p.type === 'AssignmentPattern' ? (p.left.name || 'param') :
+      p.type === 'RestElement' ? ('...' + (p.argument.name || 'rest')) :
+      p.type.includes('ObjectPattern') || p.type.includes('ArrayPattern') ? '<destructured>' : 'param';
+    return (node.params || []).map(parseParam);
   }
 
   createVariableFunctionUnit(declarator, parent, lines, originalCode, imports) {
@@ -1091,7 +1325,7 @@ class ASTCodeSplitter {
     
     if (node.body && node.body.body) {
       node.body.body.forEach(member => {
-        if (member.type === 'MethodDefinition') {
+        if (member.type === 'MethodDefinition' || member.type === 'ClassPrivateMethod') {
           const methodUnit = this.createSemanticUnit(member, lines, 'method', originalCode);
           if (methodUnit) {
             methodUnit.parentClass = className;

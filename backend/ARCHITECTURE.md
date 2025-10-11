@@ -129,7 +129,11 @@ Value objects
 
 Domain events
 
-ubiqLangDict.json file includes the app's ddd ubiquitous language dictionary / glossary
+The DDD ubiquitous language dictionary has been split into focused catalogs:
+- `ubiq-language.json` - Pure business terminology and domain concepts
+- `arch-catalog.json` - Architectural patterns, layers, and design principles  
+- `infra-catalog.json` - Infrastructure configuration and technical dependencies
+- `workflows.json` - High-level business processes and integration patterns
 
 5. Infrastructure
 

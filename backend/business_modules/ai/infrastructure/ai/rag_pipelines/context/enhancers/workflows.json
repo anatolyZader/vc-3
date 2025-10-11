@@ -1,0 +1,433 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Eventstorm.me Workflows Catalog", 
+  "description": "High-level business processes and workflows for the EventStorm.me platform",
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-11",
+  "workflows": {
+    "user_onboarding": {
+      "name": "User Onboarding Workflow",
+      "description": "Complete user registration and initial setup process",
+      "trigger": "New user registration",
+      "steps": [
+        {
+          "step": 1,
+          "action": "User provides OAuth credentials",
+          "actor": "User",
+          "system": "auth"
+        },
+        {
+          "step": 2,
+          "action": "Validate OAuth token and create account",
+          "actor": "System",
+          "system": "auth",
+          "events": ["UserRegisteredEvent"]
+        },
+        {
+          "step": 3,
+          "action": "Initialize user session",
+          "actor": "System", 
+          "system": "auth",
+          "events": ["SessionCreatedEvent"]
+        },
+        {
+          "step": 4,
+          "action": "Display welcome and tutorial",
+          "actor": "System",
+          "system": "chat"
+        }
+      ],
+      "success_criteria": ["Valid user account", "Active session", "Access to platform features"],
+      "error_scenarios": ["Invalid OAuth token", "Account already exists", "Session creation failure"]
+    },
+    "chat_interaction": {
+      "name": "Chat Interaction Workflow",
+      "description": "Complete chat conversation between user and AI system",
+      "trigger": "User sends question",
+      "steps": [
+        {
+          "step": 1,
+          "action": "User sends question",
+          "actor": "User",
+          "system": "chat"
+        },
+        {
+          "step": 2,
+          "action": "Validate and store question",
+          "actor": "System",
+          "system": "chat",
+          "events": ["QuestionAddedEvent"]
+        },
+        {
+          "step": 3,
+          "action": "Process question event",
+          "actor": "System",
+          "system": "ai",
+          "details": "RAG pipeline activation"
+        },
+        {
+          "step": 4,
+          "action": "Perform semantic search in vector store",
+          "actor": "System",
+          "system": "ai",
+          "dependencies": ["Pinecone", "Embeddings"]
+        },
+        {
+          "step": 5,
+          "action": "Generate contextualized response",
+          "actor": "System", 
+          "system": "ai",
+          "dependencies": ["LangChain", "OpenAI"]
+        },
+        {
+          "step": 6,
+          "action": "Publish answer event",
+          "actor": "System",
+          "system": "ai",
+          "events": ["AiResponseGeneratedEvent"]
+        },
+        {
+          "step": 7,
+          "action": "Deliver response to user",
+          "actor": "System",
+          "system": "chat"
+        }
+      ],
+      "success_criteria": ["Question processed", "Relevant context retrieved", "Answer generated", "User receives response"],
+      "error_scenarios": ["Vector store unavailable", "AI service timeout", "Context retrieval failure"]
+    },
+    "repository_analysis": {
+      "name": "Repository Analysis Workflow", 
+      "description": "Complete repository ingestion and knowledge embedding process",
+      "trigger": "User connects repository",
+      "steps": [
+        {
+          "step": 1,
+          "action": "User provides repository URL/credentials",
+          "actor": "User",
+          "system": "git"
+        },
+        {
+          "step": 2,
+          "action": "Validate repository access",
+          "actor": "System",
+          "system": "git",
+          "dependencies": ["GitHub API"]
+        },
+        {
+          "step": 3,
+          "action": "Fetch repository metadata and structure",
+          "actor": "System",
+          "system": "git",
+          "events": ["RepoFetchedEvent"]
+        },
+        {
+          "step": 4,
+          "action": "Extract and analyze code files", 
+          "actor": "System",
+          "system": "ai",
+          "details": "Semantic preprocessing and role detection"
+        },
+        {
+          "step": 5,
+          "action": "Generate document embeddings",
+          "actor": "System",
+          "system": "ai", 
+          "dependencies": ["OpenAI Embeddings"]
+        },
+        {
+          "step": 6,
+          "action": "Store embeddings in vector database",
+          "actor": "System",
+          "system": "ai",
+          "dependencies": ["Pinecone"]
+        },
+        {
+          "step": 7,
+          "action": "Update project knowledge index",
+          "actor": "System",
+          "system": "ai",
+          "events": ["RepoPushedEvent"]
+        },
+        {
+          "step": 8,
+          "action": "Notify user of completion",
+          "actor": "System",
+          "system": "chat"
+        }
+      ],
+      "success_criteria": ["Repository fetched", "Code analyzed", "Embeddings created", "Knowledge available for queries"],
+      "error_scenarios": ["Repository access denied", "Large repository timeout", "Embedding generation failure", "Vector store unavailable"]
+    },
+    "api_specification_processing": {
+      "name": "API Specification Processing Workflow",
+      "description": "Extract and process OpenAPI/Swagger specifications from repositories", 
+      "trigger": "API specification detected in repository",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Detect API specification files",
+          "actor": "System",
+          "system": "api",
+          "patterns": ["openapi.yaml", "swagger.json", "api-spec.*"]
+        },
+        {
+          "step": 2,
+          "action": "Parse and validate specification",
+          "actor": "System",
+          "system": "api"
+        },
+        {
+          "step": 3,
+          "action": "Extract endpoint information",
+          "actor": "System",
+          "system": "api",
+          "details": "Routes, methods, parameters, responses"
+        },
+        {
+          "step": 4,
+          "action": "Store API specification",
+          "actor": "System",
+          "system": "api",
+          "events": ["HttpApiSavedEvent"]
+        },
+        {
+          "step": 5,
+          "action": "Generate API documentation",
+          "actor": "System",
+          "system": "docs"
+        },
+        {
+          "step": 6,
+          "action": "Make API knowledge available to AI",
+          "actor": "System",
+          "system": "ai"
+        }
+      ],
+      "success_criteria": ["Specification parsed", "Endpoints extracted", "Documentation generated", "API knowledge accessible"],
+      "error_scenarios": ["Invalid specification format", "Parsing errors", "Storage failure"]
+    },
+    "documentation_generation": {
+      "name": "Documentation Generation Workflow",
+      "description": "Automated generation of project documentation from code and specifications",
+      "trigger": "Documentation request or repository update",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Analyze project structure",
+          "actor": "System",
+          "system": "docs",
+          "inputs": ["Code files", "README", "API specs", "Comments"]
+        },
+        {
+          "step": 2,
+          "action": "Extract architectural information",
+          "actor": "System",
+          "system": "docs",
+          "details": "Modules, dependencies, patterns"
+        },
+        {
+          "step": 3,
+          "action": "Generate documentation content",
+          "actor": "System",
+          "system": "docs",
+          "dependencies": ["AI generation"]
+        },
+        {
+          "step": 4,
+          "action": "Create documentation pages",
+          "actor": "System",
+          "system": "docs",
+          "events": ["DocsCreatedEvent", "DocsPageUpdatedEvent"]
+        },
+        {
+          "step": 5,
+          "action": "Embed documentation in knowledge base",
+          "actor": "System",
+          "system": "ai"
+        }
+      ],
+      "success_criteria": ["Documentation generated", "Content structured", "Knowledge embedded"],
+      "error_scenarios": ["Insufficient project information", "Generation failure", "Embedding failure"]
+    },
+    "project_management_sync": {
+      "name": "Project Management Synchronization Workflow",
+      "description": "Bidirectional sync between code repositories and project management tools",
+      "trigger": "PM integration request or repository changes",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Connect to project management tool",
+          "actor": "User/System",
+          "system": "pm",
+          "dependencies": ["Jira API", "GitHub API"]
+        },
+        {
+          "step": 2,
+          "action": "Fetch project issues and requirements",
+          "actor": "System",
+          "system": "pm"
+        },
+        {
+          "step": 3,
+          "action": "Analyze code changes against requirements",
+          "actor": "System",
+          "system": "ai",
+          "details": "Requirement traceability"
+        },
+        {
+          "step": 4,
+          "action": "Update issue status based on code changes",
+          "actor": "System",
+          "system": "pm"
+        },
+        {
+          "step": 5,
+          "action": "Generate progress reports",
+          "actor": "System",
+          "system": "pm"
+        }
+      ],
+      "success_criteria": ["PM tool connected", "Issues synchronized", "Progress tracked"],
+      "error_scenarios": ["API authentication failure", "Sync conflicts", "Data inconsistency"]
+    }
+  },
+  "cross_cutting_workflows": {
+    "error_handling": {
+      "name": "Error Handling Workflow",
+      "description": "System-wide error processing and recovery",
+      "trigger": "Any system error or exception",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Capture error context",
+          "actor": "System",
+          "system": "aop",
+          "details": "Request ID, user context, stack trace"
+        },
+        {
+          "step": 2,
+          "action": "Log structured error",
+          "actor": "System",
+          "system": "aop",
+          "dependencies": ["Cloud Logging"]
+        },
+        {
+          "step": 3,
+          "action": "Determine error severity",
+          "actor": "System",
+          "system": "aop"
+        },
+        {
+          "step": 4,
+          "action": "Execute recovery strategy",
+          "actor": "System",
+          "system": "aop",
+          "options": ["Retry", "Fallback", "Circuit breaker", "User notification"]
+        },
+        {
+          "step": 5,
+          "action": "Update monitoring metrics",
+          "actor": "System",
+          "system": "monitoring"
+        }
+      ]
+    },
+    "authentication": {
+      "name": "Authentication Workflow",
+      "description": "Cross-cutting user authentication and authorization",
+      "trigger": "Any protected resource access",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Extract authentication token",
+          "actor": "System",
+          "system": "aop"
+        },
+        {
+          "step": 2,
+          "action": "Validate token signature and expiration",
+          "actor": "System", 
+          "system": "auth"
+        },
+        {
+          "step": 3,
+          "action": "Load user context and permissions",
+          "actor": "System",
+          "system": "auth"
+        },
+        {
+          "step": 4,
+          "action": "Authorize resource access",
+          "actor": "System",
+          "system": "auth"
+        },
+        {
+          "step": 5,
+          "action": "Continue or reject request",
+          "actor": "System",
+          "system": "aop"
+        }
+      ]
+    },
+    "rate_limiting": {
+      "name": "Rate Limiting Workflow",
+      "description": "API usage control and throttling",
+      "trigger": "Any API request",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Identify request source",
+          "actor": "System",
+          "system": "aop",
+          "details": "User ID, IP address, API key"
+        },
+        {
+          "step": 2,
+          "action": "Check current usage against limits",
+          "actor": "System",
+          "system": "aop",
+          "dependencies": ["Redis cache"]
+        },
+        {
+          "step": 3,
+          "action": "Update usage counters",
+          "actor": "System",
+          "system": "aop"
+        },
+        {
+          "step": 4,
+          "action": "Allow or throttle request",
+          "actor": "System",
+          "system": "aop"
+        }
+      ]
+    }
+  },
+  "integration_patterns": {
+    "event_driven_integration": {
+      "name": "Event-Driven Module Integration",
+      "description": "Asynchronous inter-module communication pattern",
+      "components": ["Event Publishers", "Event Bus", "Event Subscribers"],
+      "benefits": ["Loose coupling", "Scalability", "Resilience"],
+      "example_flow": [
+        "Module A publishes domain event",
+        "Event bus receives and routes event", 
+        "Module B subscribes and processes event",
+        "Module B may publish follow-up events"
+      ]
+    },
+    "request_response_integration": {
+      "name": "Synchronous Request-Response Integration", 
+      "description": "Direct API calls between modules",
+      "use_cases": ["Real-time queries", "Validation", "Immediate responses"],
+      "considerations": ["Coupling", "Latency", "Error handling"]
+    },
+    "batch_processing": {
+      "name": "Batch Processing Integration",
+      "description": "Bulk data processing workflows",
+      "use_cases": ["Repository ingestion", "Bulk embeddings", "Report generation"],
+      "patterns": ["ETL pipelines", "Queue-based processing", "Checkpoint recovery"]
+    }
+  }
+}

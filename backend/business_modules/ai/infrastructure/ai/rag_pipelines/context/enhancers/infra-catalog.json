@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Eventstorm.me Infrastructure Catalog",
+  "description": "Infrastructure components, cloud services, databases, and technical dependencies",
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-11",
+  "infrastructure": {
+    "cloud": {
+      "provider": "Google Cloud Platform",
+      "services": [
+        {
+          "name": "Cloud Run",
+          "usage": "Containerized backend deployment",
+          "purpose": "Serverless container hosting",
+          "configuration": ["Auto-scaling", "HTTPS termination", "Container registry integration"]
+        },
+        {
+          "name": "Cloud SQL",
+          "usage": "PostgreSQL database hosting",
+          "purpose": "Managed relational database",
+          "features": ["Automatic backups", "High availability", "Read replicas"]
+        },
+        {
+          "name": "Cloud Pub/Sub",
+          "usage": "Asynchronous messaging",
+          "purpose": "Event-driven communication",
+          "features": ["At-least-once delivery", "Message ordering", "Dead letter queues"]
+        },
+        {
+          "name": "Cloud Storage",
+          "usage": "Static asset and file storage",
+          "purpose": "Object storage",
+          "features": ["Versioning", "Lifecycle management", "CDN integration"]
+        },
+        {
+          "name": "Memorystore",
+          "usage": "Redis caching layer",
+          "purpose": "In-memory caching",
+          "features": ["High availability", "Automatic failover", "VPC peering"]
+        },
+        {
+          "name": "Cloud Build",
+          "usage": "CI/CD pipeline",
+          "purpose": "Build and deployment automation",
+          "features": ["Docker builds", "GitHub integration", "Artifact registry"]
+        },
+        {
+          "name": "Cloud Logging",
+          "usage": "Centralized logging",
+          "purpose": "Log aggregation and analysis",
+          "features": ["Structured logging", "Log-based metrics", "Alerting"]
+        },
+        {
+          "name": "Cloud Monitoring",
+          "usage": "Application and infrastructure monitoring",
+          "purpose": "Performance and health monitoring",
+          "features": ["Custom metrics", "Alerting policies", "Dashboards"]
+        }
+      ]
+    },
+    "databases": {
+      "primary": {
+        "type": "PostgreSQL",
+        "usage": "Transactional data, user accounts, conversations",
+        "service": "Cloud SQL",
+        "features": ["ACID compliance", "JSON support", "Full-text search"],
+        "schemas": ["Users", "Conversations", "Projects", "Repositories"]
+      },
+      "cache": {
+        "type": "Redis", 
+        "usage": "Session storage, temporary data, caching",
+        "service": "Memorystore",
+        "features": ["Key-value store", "TTL support", "Pub/Sub", "Data structures"],
+        "use_cases": ["Session management", "Rate limiting", "Cache warming"]
+      },
+      "vector": {
+        "type": "Pinecone",
+        "usage": "Document embeddings, similarity search",
+        "service": "External SaaS",
+        "features": ["Vector similarity", "Metadata filtering", "Real-time updates"],
+        "use_cases": ["RAG retrieval", "Semantic search", "Document clustering"]
+      }
+    },
+    "messaging": {
+      "pubsub": {
+        "name": "Google Cloud Pub/Sub",
+        "purpose": "Asynchronous inter-module communication",
+        "topics": ["conversation-events", "repo-events", "api-events", "user-events"],
+        "patterns": ["Event sourcing", "Saga pattern", "Event notification"]
+      },
+      "websockets": {
+        "name": "WebSocket Connections",
+        "purpose": "Real-time client communication",
+        "use_cases": ["Live chat", "Progress updates", "Notifications"]
+      }
+    }
+  },
+  "technicalDependencies": {
+    "ai_ml": {
+      "rag": {
+        "name": "RAG (Retrieval-Augmented Generation)",
+        "description": "AI technique combining information retrieval with text generation",
+        "components": ["Vector Store", "Embeddings", "Similarity Search", "Language Model"],
+        "purpose": "Provide contextual, accurate responses using external knowledge",
+        "implementation": "LangChain + Pinecone + OpenAI"
+      },
+      "langchain": {
+        "name": "LangChain",
+        "description": "Framework for developing applications powered by language models",
+        "usage": "Orchestrating AI workflows, managing prompts, chaining operations",
+        "components": ["Chains", "Agents", "Memory", "Tools", "Callbacks"]
+      },
+      "pinecone": {
+        "name": "Pinecone",
+        "description": "Vector database for similarity search and retrieval",
+        "usage": "Storing and retrieving document embeddings for RAG system",
+        "features": ["Approximate nearest neighbor", "Metadata filtering", "Real-time updates"]
+      },
+      "embeddings": {
+        "name": "Embeddings",
+        "description": "Vector representations of text for semantic similarity",
+        "usage": "Converting documents to vectors for similarity search",
+        "models": ["OpenAI text-embedding-ada-002", "Sentence transformers"]
+      }
+    },
+    "backend": {
+      "fastify": {
+        "name": "Fastify",
+        "description": "Fast and low overhead web framework for Node.js",
+        "usage": "Backend API server and plugin architecture",
+        "plugins": ["CORS", "Swagger", "Authentication", "Logging", "Rate limiting"]
+      },
+      "nodejs": {
+        "name": "Node.js",
+        "description": "JavaScript runtime for server-side applications",
+        "version": "18+",
+        "features": ["Event loop", "NPM ecosystem", "ES modules"]
+      }
+    },
+    "external_apis": {
+      "github": {
+        "name": "GitHub API",
+        "description": "Repository data and metadata access",
+        "usage": "Repository fetching, file content, commit history",
+        "authentication": "OAuth2 + Personal Access Tokens"
+      },
+      "openai": {
+        "name": "OpenAI API",
+        "description": "Large language model access",
+        "usage": "Text generation, embeddings, chat completions",
+        "models": ["GPT-4", "GPT-3.5-turbo", "text-embedding-ada-002"]
+      },
+      "jira": {
+        "name": "Jira API",
+        "description": "Project management and issue tracking",
+        "usage": "Issue creation, status updates, project metadata",
+        "authentication": "OAuth2 + API tokens"
+      }
+    }
+  },
+  "deployment": {
+    "containerization": {
+      "docker": {
+        "name": "Docker",
+        "usage": "Application containerization",
+        "features": ["Multi-stage builds", "Layer caching", "Security scanning"]
+      },
+      "registry": {
+        "name": "Google Container Registry",
+        "usage": "Container image storage",
+        "features": ["Vulnerability scanning", "Image signing", "Access control"]
+      }
+    },
+    "orchestration": {
+      "cloud_run": {
+        "name": "Google Cloud Run",
+        "features": ["Automatic scaling", "Traffic splitting", "Blue/green deployments"],
+        "configuration": ["CPU/Memory limits", "Concurrency", "Timeout settings"]
+      }
+    },
+    "networking": {
+      "load_balancer": {
+        "name": "Cloud Load Balancer",
+        "purpose": "Traffic distribution and SSL termination",
+        "features": ["Global load balancing", "SSL certificates", "Health checks"]
+      },
+      "vpc": {
+        "name": "Virtual Private Cloud",
+        "purpose": "Network isolation and security",
+        "features": ["Private IP ranges", "Firewall rules", "VPC peering"]
+      }
+    }
+  },
+  "security": {
+    "authentication": {
+      "oauth2": {
+        "name": "OAuth 2.0",
+        "providers": ["Google", "GitHub"],
+        "flows": ["Authorization code", "Client credentials"]
+      },
+      "jwt": {
+        "name": "JSON Web Tokens",
+        "usage": "Stateless authentication",
+        "features": ["Signed tokens", "Expiration", "Claims-based authorization"]
+      }
+    },
+    "secrets": {
+      "secret_manager": {
+        "name": "Google Secret Manager",
+        "usage": "API keys, database credentials, certificates",
+        "features": ["Automatic rotation", "Versioning", "Access logging"]
+      }
+    },
+    "network": {
+      "tls": {
+        "name": "Transport Layer Security",
+        "usage": "Encrypted communication",
+        "certificates": "Google-managed SSL certificates"
+      },
+      "firewall": {
+        "name": "VPC Firewall",
+        "usage": "Network access control",
+        "rules": ["Ingress/egress filtering", "Source/target tags", "Port restrictions"]
+      }
+    }
+  },
+  "monitoring": {
+    "observability": {
+      "logging": {
+        "name": "Structured Logging",
+        "format": "JSON with correlation IDs",
+        "levels": ["ERROR", "WARN", "INFO", "DEBUG"]
+      },
+      "metrics": {
+        "name": "Application Metrics",
+        "types": ["Request latency", "Error rates", "Throughput", "Resource usage"],
+        "collection": "Prometheus format"
+      },
+      "tracing": {
+        "name": "Distributed Tracing",
+        "purpose": "Request flow visibility",
+        "implementation": "OpenTelemetry"
+      }
+    },
+    "alerting": {
+      "policies": {
+        "name": "Alert Policies",
+        "triggers": ["Error rate thresholds", "Latency SLAs", "Resource exhaustion"],
+        "channels": ["Email", "Slack", "PagerDuty"]
+      }
+    }
+  }
+}

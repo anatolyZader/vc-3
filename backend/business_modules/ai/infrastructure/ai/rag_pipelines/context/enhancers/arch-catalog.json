@@ -1,0 +1,230 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Eventstorm.me Architecture Catalog",
+  "description": "Architectural patterns, layers, and design principles for the EventStorm.me platform",
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-11",
+  "architecture": {
+    "patterns": [
+      {
+        "name": "Hexagonal Architecture",
+        "description": "Ports and Adapters pattern for isolating business logic",
+        "aliases": ["Ports and Adapters"],
+        "benefits": ["Business logic isolation", "Testability", "Technology independence"],
+        "components": ["Domain Core", "Inbound Ports", "Outbound Ports", "Adapters"]
+      },
+      {
+        "name": "Domain-Driven Design",
+        "description": "Business-centric modeling and clear bounded contexts",
+        "aliases": ["DDD"],
+        "benefits": ["Business alignment", "Clear boundaries", "Shared language"],
+        "components": ["Bounded Contexts", "Aggregates", "Entities", "Value Objects", "Domain Events"]
+      },
+      {
+        "name": "Modular Monolith",
+        "description": "Monolithic deployment with modular internal architecture",
+        "aliases": ["Modular Architecture"],
+        "benefits": ["Clear boundaries", "Simplified deployment", "Internal modularity"],
+        "characteristics": ["Module independence", "Defined interfaces", "Single deployment unit"]
+      },
+      {
+        "name": "Event-Driven Architecture",
+        "description": "Asynchronous communication via domain events and Pub/Sub",
+        "aliases": ["EDA", "Event Sourcing"],
+        "benefits": ["Loose coupling", "Scalability", "Audit trail"],
+        "components": ["Event Publishers", "Event Subscribers", "Event Store", "Message Bus"]
+      }
+    ],
+    "layers": [
+      {
+        "name": "domain",
+        "description": "Core business logic, entities, value objects, domain services",
+        "responsibilities": ["Business rules", "Domain entities", "Value objects", "Domain events"],
+        "dependencies": [],
+        "rules": ["No dependencies on outer layers", "Pure business logic", "Framework independent"]
+      },
+      {
+        "name": "application",
+        "description": "Use cases, application services, orchestration layer",
+        "responsibilities": ["Use case coordination", "Transaction management", "Application services"],
+        "dependencies": ["domain"],
+        "rules": ["Orchestrates domain objects", "Manages transactions", "Handles cross-cutting concerns"]
+      },
+      {
+        "name": "infrastructure", 
+        "description": "Technical adapters, databases, external services",
+        "responsibilities": ["Database adapters", "External APIs", "Messaging", "File system"],
+        "dependencies": ["domain", "application"],
+        "rules": ["Implements ports", "Framework specific", "Technology adapters"]
+      },
+      {
+        "name": "input",
+        "description": "Entry points, HTTP routes, schemas, controllers",
+        "responsibilities": ["HTTP endpoints", "Request validation", "Input schemas"],
+        "dependencies": ["application"],
+        "rules": ["Protocol specific", "Input validation", "Request routing"]
+      },
+      {
+        "name": "aop",
+        "description": "Aspect-oriented programming, cross-cutting concerns",
+        "responsibilities": ["Authentication", "Logging", "Error handling", "Authorization"],
+        "dependencies": ["all layers"],
+        "rules": ["Cross-cutting concerns", "Non-functional requirements", "Transparent to business logic"]
+      }
+    ]
+  },
+  "ports": {
+    "inbound": [
+      {
+        "name": "HTTP Routes",
+        "description": "REST API endpoints for client communication",
+        "examples": ["/chat", "/ai/prompt", "/git/repo", "/api/spec"],
+        "pattern": "Primary Adapter",
+        "purpose": "External client interaction"
+      },
+      {
+        "name": "Pub/Sub Subscribers",
+        "description": "Event listeners for inter-module communication", 
+        "examples": ["questionAdded", "repoFetched", "apiSaved"],
+        "pattern": "Primary Adapter",
+        "purpose": "Asynchronous event processing"
+      },
+      {
+        "name": "WebSocket Connections",
+        "description": "Real-time bidirectional communication",
+        "usage": "Live chat responses, real-time updates",
+        "pattern": "Primary Adapter",
+        "purpose": "Real-time interaction"
+      }
+    ],
+    "outbound": [
+      {
+        "name": "Database Adapters",
+        "description": "Persistence layer interfaces",
+        "examples": ["IChatPersistPort", "IApiPersistPort", "IAuthPersistPort"],
+        "pattern": "Secondary Adapter",
+        "purpose": "Data persistence"
+      },
+      {
+        "name": "External API Adapters",
+        "description": "Third-party service integrations",
+        "examples": ["GitHub API", "OpenAI API", "Jira API"],
+        "pattern": "Secondary Adapter", 
+        "purpose": "External service integration"
+      },
+      {
+        "name": "Messaging Adapters", 
+        "description": "Event publishing interfaces",
+        "examples": ["EventDispatcher", "PubSub Publishers"],
+        "pattern": "Secondary Adapter",
+        "purpose": "Event distribution"
+      },
+      {
+        "name": "AI Service Adapters",
+        "description": "AI and ML service interfaces",
+        "examples": ["LangChain Adapter", "Vector Store Adapter"],
+        "pattern": "Secondary Adapter",
+        "purpose": "AI/ML service integration"
+      }
+    ]
+  },
+  "designPatterns": {
+    "aggregate": {
+      "name": "Aggregate Pattern",
+      "description": "DDD pattern for maintaining consistency boundaries",
+      "examples": ["Conversation", "GitProject", "Account"],
+      "rules": ["Single entry point", "Consistency boundary", "Transaction boundary"]
+    },
+    "repository": {
+      "name": "Repository Pattern", 
+      "description": "Abstraction for data access logic",
+      "examples": ["ChatPersistAdapter", "GitPersistAdapter"],
+      "benefits": ["Data access abstraction", "Testability", "Technology independence"]
+    },
+    "adapter": {
+      "name": "Adapter Pattern",
+      "description": "Interface between application and external systems",
+      "examples": ["GitHub Adapter", "OpenAI Adapter", "Database Adapters"],
+      "purpose": "External system integration"
+    },
+    "event_sourcing": {
+      "name": "Event Sourcing",
+      "description": "Storing state changes as sequence of events",
+      "usage": "Domain events for audit trail and system state",
+      "benefits": ["Complete audit trail", "Temporal queries", "Event replay"]
+    },
+    "cqrs": {
+      "name": "Command Query Responsibility Segregation",
+      "description": "Separate read and write operations",
+      "benefits": ["Optimized queries", "Scalable reads", "Clear separation"],
+      "usage": "Complex read/write scenarios"
+    }
+  },
+  "principles": {
+    "solid": {
+      "name": "SOLID Principles",
+      "principles": [
+        {
+          "name": "Single Responsibility Principle",
+          "description": "A class should have one reason to change"
+        },
+        {
+          "name": "Open/Closed Principle", 
+          "description": "Open for extension, closed for modification"
+        },
+        {
+          "name": "Liskov Substitution Principle",
+          "description": "Objects should be replaceable with instances of their subtypes"
+        },
+        {
+          "name": "Interface Segregation Principle",
+          "description": "Many client-specific interfaces are better than one general-purpose interface"
+        },
+        {
+          "name": "Dependency Inversion Principle",
+          "description": "Depend on abstractions, not concretions"
+        }
+      ]
+    },
+    "ddd": {
+      "name": "Domain-Driven Design Principles",
+      "principles": [
+        {
+          "name": "Ubiquitous Language",
+          "description": "Shared vocabulary between domain experts and developers"
+        },
+        {
+          "name": "Bounded Context",
+          "description": "Explicit boundaries where a model is applicable"
+        },
+        {
+          "name": "Context Mapping",
+          "description": "Relationships between bounded contexts"
+        },
+        {
+          "name": "Strategic Design",
+          "description": "High-level modeling and context relationships"
+        }
+      ]
+    }
+  },
+  "modularity": {
+    "cohesion": {
+      "name": "Module Cohesion",
+      "description": "Degree to which elements within a module belong together",
+      "types": ["Functional", "Sequential", "Communicational", "Procedural", "Temporal", "Logical", "Coincidental"],
+      "goal": "High cohesion within modules"
+    },
+    "coupling": {
+      "name": "Module Coupling",
+      "description": "Degree of interdependence between modules",
+      "types": ["Content", "Common", "External", "Control", "Stamp", "Data"],
+      "goal": "Low coupling between modules"
+    },
+    "boundaries": {
+      "name": "Module Boundaries",
+      "description": "Clear interfaces and contracts between modules",
+      "enforcement": ["Interface contracts", "Dependency injection", "Event-based communication"]
+    }
+  }
+}
