@@ -3,7 +3,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const SemanticPreprocessor = require('./rag_pipelines/data_preparation/processors/SemanticPreprocessor');
+const SemanticPreprocessor = require('/home/myzader/eventstorm/backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/semanticPreprocessor');
 
 /**
  * Test semantic preprocessing on actual files found in the repository

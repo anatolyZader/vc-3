@@ -207,6 +207,7 @@ class SemanticPreprocessor {
 
   /**
    * Enhance chunks with semantic context before embedding
+   * ✅ PURE EMBEDDINGS: All annotations stored in metadata only
    */
   async preprocessChunk(chunk) {
     const { pageContent, metadata } = chunk;
@@ -218,8 +219,8 @@ class SemanticPreprocessor {
     const eventstormModule = this.detectEventstormModule(pageContent, metadata);
     const complexity = this.assessComplexity(pageContent, metadata);
     
-    // Create enhanced content with semantic annotations
-    let enhancedContent = this.addSemanticAnnotations(pageContent, {
+    // Generate semantic annotations for metadata (NOT pageContent)
+    const semanticAnnotation = this.generateSemanticAnnotation({
       semanticRole,
       architecturalLayer,
       isEntrypoint,
@@ -228,11 +229,11 @@ class SemanticPreprocessor {
       source: metadata.source
     });
 
-    // Add contextual information
-    enhancedContent = await this.addContextualInfo(enhancedContent, metadata);
+    // Extract contextual info for metadata (NOT pageContent)
+    const contextualInfo = await this.extractContextualInfoForMetadata(pageContent, metadata);
 
     return {
-      pageContent: enhancedContent,
+      pageContent: pageContent, // ✅ KEEP ORIGINAL CONTENT PURE
       metadata: {
         ...metadata,
         semantic_role: semanticRole,
@@ -240,6 +241,9 @@ class SemanticPreprocessor {
         is_entrypoint: isEntrypoint,
         eventstorm_module: eventstormModule,
         complexity: complexity,
+        semantic_annotation: semanticAnnotation, // ✅ ANNOTATION IN METADATA
+        related_tests: contextualInfo.relatedTests,
+        extracted_comments: contextualInfo.extractedComments,
         enhanced: true,
         enhancement_timestamp: new Date().toISOString()
       }
@@ -361,92 +365,104 @@ class SemanticPreprocessor {
   }
 
   /**
-   * Add semantic annotations to content
+   * Generate semantic annotation for metadata (NOT pageContent)
+   * ✅ PURE EMBEDDINGS: Keeps semantic context in metadata only
    */
-  addSemanticAnnotations(content, context) {
-    let annotated = `// SEMANTIC CONTEXT: ${context.semanticRole.toUpperCase()}`;
-    annotated += ` | LAYER: ${context.architecturalLayer.toUpperCase()}`;
-    annotated += ` | MODULE: ${context.eventstormModule.toUpperCase()}`;
-    annotated += ` | COMPLEXITY: ${context.complexity.toUpperCase()}`;
+  generateSemanticAnnotation(context) {
+    let annotation = `SEMANTIC CONTEXT: ${context.semanticRole.toUpperCase()}`;
+    annotation += ` | LAYER: ${context.architecturalLayer.toUpperCase()}`;
+    annotation += ` | MODULE: ${context.eventstormModule.toUpperCase()}`;
+    annotation += ` | COMPLEXITY: ${context.complexity.toUpperCase()}`;
     
     if (context.isEntrypoint) {
-      annotated += ` | ENTRYPOINT`;
+      annotation += ` | ENTRYPOINT`;
     }
     
-    annotated += `\n// FILE: ${context.source}\n`;
+    annotation += ` | FILE: ${context.source}`;
     
-    // Add role-specific prefixes
+    // Add role-specific context
+    let roleDescription = '';
     switch (context.semanticRole) {
       case 'controller':
-        annotated += `// HTTP ROUTE HANDLER:\n`;
+        roleDescription = 'HTTP ROUTE HANDLER';
         break;
       case 'entity':
-        annotated += `// DDD DOMAIN ENTITY:\n`;
+        roleDescription = 'DDD DOMAIN ENTITY';
         break;
       case 'useCase':
-        annotated += `// APPLICATION SERVICE/USE CASE:\n`;
+        roleDescription = 'APPLICATION SERVICE/USE CASE';
         break;
       case 'repository':
-        annotated += `// DATA ACCESS ADAPTER:\n`;
+        roleDescription = 'DATA ACCESS ADAPTER';
         break;
       case 'event':
-        annotated += `// DOMAIN/APPLICATION EVENT:\n`;
+        roleDescription = 'DOMAIN/APPLICATION EVENT';
         break;
       case 'plugin':
-        annotated += `// FASTIFY PLUGIN:\n`;
+        roleDescription = 'FASTIFY PLUGIN';
         break;
       case 'middleware':
-        annotated += `// MIDDLEWARE/INTERCEPTOR:\n`;
+        roleDescription = 'MIDDLEWARE/INTERCEPTOR';
         break;
       case 'config':
-        annotated += `// CONFIGURATION:\n`;
+        roleDescription = 'CONFIGURATION';
         break;
       case 'test':
-        annotated += `// TEST SPECIFICATION:\n`;
+        roleDescription = 'TEST SPECIFICATION';
         break;
       default:
-        annotated += `// CODE COMPONENT:\n`;
+        roleDescription = 'CODE COMPONENT';
     }
-
-    // Add module-specific context
+    
+    // Add module-specific functionality
+    let moduleDescription = '';
     switch (context.eventstormModule) {
       case 'chatModule':
-        annotated += `// CHAT/CONVERSATION FUNCTIONALITY\n`;
+        moduleDescription = 'CHAT/CONVERSATION FUNCTIONALITY';
         break;
       case 'gitModule':
-        annotated += `// GIT/GITHUB INTEGRATION\n`;
+        moduleDescription = 'GIT/GITHUB INTEGRATION';
         break;
       case 'aiModule':
-        annotated += `// AI/RAG/LANGCHAIN FUNCTIONALITY\n`;
+        moduleDescription = 'AI/RAG/LANGCHAIN FUNCTIONALITY';
         break;
       case 'docsModule':
-        annotated += `// DOCS/DOCUMENTATION FUNCTIONALITY\n`;
+        moduleDescription = 'DOCS/DOCUMENTATION FUNCTIONALITY';
         break;
     }
 
-    annotated += `\n`;
-    return annotated + content;
+    return {
+      summary: annotation,
+      role_description: roleDescription,
+      module_description: moduleDescription
+    };
   }
 
   /**
-   * Add contextual information from related files
+   * Extract contextual information for metadata (NOT pageContent)
+   * ✅ PURE EMBEDDINGS: Contextual info stored in metadata only
    */
-  async addContextualInfo(content, metadata) {
-    // Add related test information if available
+  async extractContextualInfoForMetadata(content, metadata) {
+    const contextualInfo = {
+      relatedTests: [],
+      extractedComments: []
+    };
+
+    // Find related test information if available
     if (metadata.semantic_role !== 'test') {
       const relatedTests = await this.findRelatedTests(metadata.source);
       if (relatedTests.length > 0) {
-        content += `\n\n// RELATED TESTS:\n${relatedTests.join('\n')}`;
+        contextualInfo.relatedTests = relatedTests;
       }
     }
 
-    // Add JSDoc/comment extraction for better context
+    // Extract JSDoc/comment information for metadata
     const extractedComments = this.extractComments(content);
     if (extractedComments.length > 0) {
-      content += `\n\n// EXTRACTED DOCUMENTATION:\n${extractedComments.join('\n')}`;
+      contextualInfo.extractedComments = extractedComments;
     }
 
-    return content;
+    return contextualInfo;
   }
 
   /**
