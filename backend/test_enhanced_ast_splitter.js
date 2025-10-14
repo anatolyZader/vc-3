@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const ASTCodeSplitter = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/chunking/astCodeSplitter');
+const ASTCodeSplitter = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/chunking/astCodeSplitterBackup');
 
 async function testEnhancedASTSplitter() {
   console.log('========================================');

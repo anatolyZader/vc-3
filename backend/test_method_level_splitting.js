@@ -12,7 +12,7 @@ const fs = require('fs');
 // Import pipeline components
 const CodePreprocessor = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/processors/codePreprocessor');
 const UbiquitousLanguageEnhancer = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/ubiquitousLanguageEnhancer');
-const ASTCodeSplitter = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/chunking/astCodeSplitter');
+const ASTCodeSplitter = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/chunking/astCodeSplitterBackup');
 const TokenBasedSplitter = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/chunking/tokenBasedSplitter');
 const { Document } = require('langchain/document');
 
