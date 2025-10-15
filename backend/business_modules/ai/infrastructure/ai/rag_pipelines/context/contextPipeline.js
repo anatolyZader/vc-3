@@ -134,7 +134,7 @@ class ContextPipeline {
   async getPineconeClient() {
     if (!this.pinecone) {
       try {
-        this.pinecone = await this.pineconeManager?.getPineconeService();
+        this.pinecone = await this.pineconeManager?.getClient();
       } catch (error) {
         console.error(`Pinecone initialization failed:`, error.message);
         return null;
@@ -592,7 +592,10 @@ class ContextPipeline {
       commitInfo
     } = params;
 
-    console.log(`[${new Date().toISOString()}] � ENTRY POINT: processRepoWithWorkers() called for ${githubOwner}/${repoName}`);
+    // Initialize analysis recommendation variable
+    const analysisRecommendation = null;
+
+    console.log(`[${new Date().toISOString()}] 🚀 ENTRY POINT: processRepoWithWorkers() called for ${githubOwner}/${repoName}`);
     console.log(`[${new Date().toISOString()}] �🏭 WORKER PROCESSING: Starting horizontal scaling for ${githubOwner}/${repoName}`);
     
     try {

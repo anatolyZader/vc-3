@@ -1,6 +1,6 @@
 # AST Splitter Self-Analysis
 
-**Generated:** 2025-10-15T17:32:10.969Z  
+**Generated:** 2025-10-15T18:07:02.917Z  
 **Source File:** `./backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/chunking/astCodeSplitter.js`  
 **Original Size:** 17393 characters (4349 estimated tokens)  
 **Total Chunks:** 14  
