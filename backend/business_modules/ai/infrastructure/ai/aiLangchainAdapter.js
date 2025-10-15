@@ -269,7 +269,8 @@ class AILangchainAdapter extends IAIPort {
             conversationId,
             prompt,
             conversationHistory,
-            this.vectorStore
+            this.vectorStore,
+            null // TODO: Pass proper repository descriptor when available
           );
           return result;
         } catch (error) {

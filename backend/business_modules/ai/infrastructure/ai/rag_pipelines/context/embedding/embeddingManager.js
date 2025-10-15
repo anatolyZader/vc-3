@@ -2,7 +2,6 @@
 "use strict";
 
 const { Document } = require('langchain/document');
-const pineconeService = require('./pineconeService');
 
 /**
  * Handles all embedding and vector storage operations with Pinecone
@@ -13,7 +12,6 @@ class EmbeddingManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
-    this.pineconeService = pineconeService;
     
     // Require PineconeService as a dependency - don't create it ourselves
     if (!options.pineconeService) {
@@ -45,13 +43,31 @@ class EmbeddingManager {
     }
 
     try {
-      // Import TokenBasedSplitter for safety validation
-      const TokenBasedSplitter = require('../rag_pipelines/context/processors/tokenBasedSplitter');
-      const tokenSplitter = new TokenBasedSplitter({
-        maxTokens: 1400, // Safe limit well under 8192
-        minTokens: 100,
-        overlapTokens: 150
-      });
+      // Import TokenBasedSplitter for safety validation with fallback
+      let TokenBasedSplitter;
+      let tokenSplitter;
+      
+      try {
+        TokenBasedSplitter = require('../chunking/tokenBasedSplitter');
+        tokenSplitter = new TokenBasedSplitter({
+          maxTokens: 1400, // Safe limit well under 8192
+          minTokens: 100,
+          overlapTokens: 150
+        });
+      } catch (importError) {
+        console.warn(`[${new Date().toISOString()}] ⚠️ TOKEN SAFETY: TokenBasedSplitter not available (${importError.message}), using simple fallback validation`);
+        // Create a simple fallback validator
+        tokenSplitter = {
+          exceedsTokenLimit: (text) => {
+            const estimatedTokens = Math.ceil(text.length / 4); // Rough estimate: 4 chars per token
+            return {
+              exceeds: estimatedTokens > 1400,
+              tokenCount: estimatedTokens
+            };
+          },
+          maxTokens: 1400
+        };
+      }
 
       // Validate and re-chunk documents that exceed token limits - SIMPLIFIED APPROACH
       const safeDocuments = [];

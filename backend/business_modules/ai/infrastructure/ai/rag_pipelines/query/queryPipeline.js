@@ -2,6 +2,7 @@
 const VectorSearchOrchestrator = require('./vectorSearchOrchestrator');
 const ContextBuilder = require('./contextBuilder');
 const ResponseGenerator = require('./responseGenerator');
+const PineconeService = require('../context/embedding/pineconeService');
 
 let traceable;
 
@@ -76,7 +77,7 @@ class QueryPipeline {
   /**
    * Main method that handles the complete RAG pipeline for responding to prompts
    */
-  async respondToPrompt(userId, conversationId, prompt, conversationHistory = [], vectorStore = null) {
+  async respondToPrompt(userId, conversationId, prompt, conversationHistory = [], vectorStore = null, repoDescriptor = null) {
     const traceData = {
       startTime: new Date().toISOString(),
       userId,
@@ -100,7 +101,7 @@ class QueryPipeline {
       }
       traceData.steps.push({ step: 'vector_store_check', timestamp: new Date().toISOString(), status: 'success' });
 
-      const searchResults = await this.performVectorSearch(prompt, activeVectorStore, traceData);
+      const searchResults = await this.performVectorSearch(prompt, activeVectorStore, traceData, userId, null, repoDescriptor);
       
       if (searchResults.length === 0) {
         traceData.steps.push({ step: 'vector_search', timestamp: new Date().toISOString(), status: 'no_results' });
@@ -196,7 +197,47 @@ class QueryPipeline {
     return vectorStore && this.vectorSearchOrchestrator && this.vectorSearchOrchestrator.isConnected();
   }
 
-  async performVectorSearch(prompt, vectorStore, traceData = null, userId = null, repoId = null) {
+  /**
+   * Create repository descriptor from repository URL or parts
+   * @param {string|object} repoData - Either a GitHub URL or object with owner/name/branch
+   * @returns {object|null} Repository descriptor with owner, name, branch
+   */
+  static createRepoDescriptor(repoData) {
+    if (!repoData) return null;
+    
+    if (typeof repoData === 'string') {
+      // Parse GitHub URL
+      const match = repoData.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+      if (match) {
+        return {
+          owner: match[1],
+          name: match[2].replace(/\.git$/, ''),
+          branch: 'main' // Default branch
+        };
+      }
+    } else if (typeof repoData === 'object') {
+      // Use provided object
+      return {
+        owner: repoData.owner || repoData.githubOwner,
+        name: repoData.name || repoData.repoName,
+        branch: repoData.branch || 'main'
+      };
+    }
+    
+    return null;
+  }
+
+  /**
+   * Perform vector search with repository-specific namespace
+   * @param {string} prompt - The search prompt
+   * @param {object} vectorStore - Vector store instance
+   * @param {object} traceData - Tracing data object
+   * @param {string} userId - User identifier
+   * @param {string} repoId - Repository identifier
+   * @param {object} repoDescriptor - Repository descriptor {owner, name, branch}
+   * @returns {Array} Search results
+   */
+  async performVectorSearch(prompt, vectorStore, traceData = null, userId = null, repoId = null, repoDescriptor = null) {
     if (vectorStore !== this.vectorStore) {
       // For different vector stores, we'll use advanced search with the modern orchestrator
       // but search in a specific namespace if provided
@@ -276,7 +317,17 @@ class QueryPipeline {
     } else {
       // Fallback to user-wide search but include repository context
       const baseUserId = this.userId || userId;
-      const repositoryNamespace = `${baseUserId}_anatolyzader_vc-3`; // Use the actual namespace where docs are stored
+      
+      // Generate repository namespace using consistent sanitizeId helper
+      let repositoryNamespace;
+      if (repoDescriptor && repoDescriptor.owner && repoDescriptor.name) {
+        const { owner, name, branch = 'main' } = repoDescriptor;
+        repositoryNamespace = PineconeService.sanitizeId(`${owner}_${name}_${branch}`);
+      } else {
+        // Fallback: try to derive from existing context or use default
+        repositoryNamespace = baseUserId ? PineconeService.sanitizeId(`${baseUserId}_default_main`) : 'default';
+      }
+      
       console.log(`[${new Date().toISOString()}] 🌐 User-wide search (with repo context): ${repositoryNamespace}`);
       searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
         namespace: repositoryNamespace,

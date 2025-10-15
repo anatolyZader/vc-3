@@ -52,9 +52,12 @@ class ContextPipeline {
     });
     
     this.astCodeSplitter = new ASTCodeSplitter({
-      maxChunkSize: this.options.maxChunkSize || 2000,
-      includeComments: false,
-      includeImports: false
+      maxTokens: this.options.maxTokens || 500,        // Token-based chunking
+      minTokens: this.options.minTokens || 30,         // Minimum meaningful tokens  
+      overlapTokens: this.options.overlapTokens || 50, // Token overlap
+      enableLineFallback: true,                        // Enable fallback for large files
+      maxUnitsPerChunk: 1,                            // One semantic unit per chunk for granularity
+      charsPerToken: 4                                // Characters per token estimate
     });
     
     this.semanticPreprocessor = new SemanticPreprocessor();
@@ -203,7 +206,20 @@ class ContextPipeline {
     
     // Step 3: Apply AST-based code splitting 
     console.log(`[${new Date().toISOString()}] ✂️ Step 3: AST-based code splitting`);
-    const chunks = await this.astCodeSplitter.splitDocument(ubiquitousEnhanced);
+    const rawChunks = this.astCodeSplitter.split(ubiquitousEnhanced.pageContent || ubiquitousEnhanced.content || '', ubiquitousEnhanced.metadata || {});
+    
+    // Convert to document format expected by the pipeline
+    const chunks = rawChunks.map(chunk => ({
+      pageContent: chunk.pageContent,
+      metadata: {
+        ...ubiquitousEnhanced.metadata,
+        ...chunk.metadata
+      }
+    }));
+    
+    console.log(`[${new Date().toISOString()}] 📦 Initial chunks: ${rawChunks.length}`);
+    console.log(`[${new Date().toISOString()}] 🔧 Optimized chunks: ${chunks.length}`);
+    console.log(`[${new Date().toISOString()}] ✅ Final chunks: ${chunks.length}`);
     
     // Step 4: Apply semantic preprocessing to each chunk
     console.log(`[${new Date().toISOString()}] 🧠 Step 4: Semantic preprocessing (${chunks.length} chunks)`);
