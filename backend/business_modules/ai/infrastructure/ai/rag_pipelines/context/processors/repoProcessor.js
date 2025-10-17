@@ -51,7 +51,9 @@ class RepoProcessor {
         ignorePaths: [
           'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 
           'temp/**', '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
-          'backend/**', 'client/**', '.github/**', '.vscode/**' // Exclude directories we'll process separately
+          'backend/**', 'client/**', '.github/**', '.vscode/**', // Exclude directories we'll process separately
+          // Allow root-level markdown documentation files
+          '!*.md', '!ROOT_DOCUMENTATION.md', '!ARCHITECTURE.md'
         ]
       },
       {
@@ -204,9 +206,11 @@ class RepoProcessor {
       ignorePaths: [
         // Exclude ALL non-backend directories completely
         'client/**', '.github/**', '.vscode/**',
-        // Exclude ALL root files
-        'package.json', 'README.md', 'bfg.jar', '*.txt', '*.log', '*.js',
+        // Exclude root files EXCEPT markdown documentation
+        'package.json', 'bfg.jar', '*.txt', '*.log', '*.js',
         '.gitignore', 'package-lock.json', '*.jar',
+        // Allow root-level markdown documentation files
+        '!*.md', '!ROOT_DOCUMENTATION.md', '!ARCHITECTURE.md', '!README.md',
         // Standard excludes
         'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**',
         'temp/**', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
