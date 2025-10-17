@@ -52,7 +52,7 @@ class RepoProcessor {
           'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 
           'temp/**', '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
           'backend/**', 'client/**', '.github/**', '.vscode/**', // Exclude directories we'll process separately
-          // Exclude debug and chunking report directories
+          // Excludee debug and chunking report directories
           'chunking_reports/**', '**/chunking_reports/**',
           // Exclude debug files
           'debug_*.js', '**/debug_*.js', 'test_*.js', '**/test_*.js',
