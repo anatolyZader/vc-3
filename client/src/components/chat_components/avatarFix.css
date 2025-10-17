@@ -1,0 +1,75 @@
+/* avatarFix.css - Fix avatar positioning during message animation */
+
+/* CRITICAL: Force avatar to stay anchored to top-left of message bubble */
+.cs-message--incoming .cs-avatar,
+.cs-message--incoming .cs-message__avatar,
+.cs-message-group .cs-message--incoming .cs-avatar {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  align-self: flex-start !important;
+  vertical-align: top !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  /* Prevent avatar from moving with text flow */
+  float: none !important;
+  transform: none !important;
+  /* Lock avatar to prevent any repositioning during animation */
+  z-index: 10 !important;
+}
+
+/* Ensure message container has proper positioning context */
+.cs-message--incoming,
+.cs-message-group .cs-message--incoming {
+  position: relative !important;
+  display: flex !important;
+  align-items: flex-start !important;
+}
+
+/* Add left padding to message content to make room for fixed avatar */
+.cs-message--incoming .cs-message__content,
+.cs-message-group .cs-message--incoming .cs-message__content {
+  margin-left: 50px !important; /* Adjust based on avatar size */
+  padding-left: 8px !important;
+  flex: 1 !important;
+}
+
+/* Specific fix for animated content wrapper */
+.cs-message--incoming .animated-content-wrapper,
+.cs-message--incoming .message-content,
+.cs-message--incoming .unified-content-container,
+.cs-message--incoming .typewriter-text,
+.cs-message--incoming .post-animation-content {
+  margin-left: 0 !important; /* Reset any conflicting margins */
+  width: 100% !important;
+  box-sizing: border-box !important;
+  /* Prevent content from affecting avatar position */
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Alternative approach: Use flexbox with proper alignment */
+.cs-message--incoming .cs-message__content-wrapper {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+}
+
+.cs-message--incoming .cs-message__content-wrapper .cs-avatar {
+  flex-shrink: 0 !important;
+  align-self: flex-start !important;
+  margin-top: 0 !important;
+  position: sticky !important;
+  top: 0 !important;
+}
+
+/* CRITICAL: Prevent avatar from moving during typewriter animation */
+.cs-message--incoming .cs-avatar {
+  /* Lock position regardless of content height changes */
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  /* Prevent any layout reflow from moving the avatar */
+  will-change: auto !important;
+  transform: translate3d(0, 0, 0) !important;
+}

@@ -11,6 +11,7 @@ import { onTypewriterScroll } from './scrollUtils';
 import './messageRenderer.css';
 import './TypewriterText.css';
 import './forceCompactStyles.css';
+import './avatarFix.css';
 
 // Convert short single-line fenced code blocks into inline code for better text flow
 function inlineShortFenced(md) {
@@ -41,7 +42,10 @@ const AnimatedMessageRenderer = ({
   enableAnimation = true,
   animationSpeed = 80 
 }) => {
+  // All hooks must be called at the top level
   const processedContent = useMemo(() => inlineShortFenced(content), [content]);
+  const [done, setDone] = useState(false);
+  const typewriterRef = useRef(null);
 
   // For user messages or when animation is disabled, always render normally
   if (isUserMessage || !enableAnimation) {
@@ -277,23 +281,11 @@ const AnimatedMessageRenderer = ({
   // All content now goes through the animated path
 
   // For simple content, use typewriter effect with seamless transition
-  const [done, setDone] = useState(false);
-  const [containerDimensions, setContainerDimensions] = useState(null);
-  const typewriterRef = useRef(null);
-  
   // Debug logging
   console.log('AnimatedMessageRenderer - Animation path, done:', done, 'content preview:', content.substring(0, 100));
   
-  // Capture container dimensions when typewriter completes
+  // Handle typewriter completion
   const handleTypewriterComplete = () => {
-    if (typewriterRef.current) {
-      const rect = typewriterRef.current.getBoundingClientRect();
-      setContainerDimensions({
-        width: rect.width,
-        height: rect.height
-      });
-      console.log('Captured typewriter dimensions:', rect.width, 'x', rect.height);
-    }
     setDone(true);
   };
   
@@ -324,16 +316,15 @@ const AnimatedMessageRenderer = ({
               }}
               dangerouslySetInnerHTML={{
                 __html: content
-                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 600; color: #374151;">$1</strong>')
                   .replace(/\*(.*?)\*/g, '<em>$1</em>')
                   .replace(/`(.*?)`/g, '<code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px;">$1</code>')
-                  .replace(/^\d+\.\s/gm, '<span style="font-weight: bold; margin-right: 0.5em;">$&</span>')
+                  .replace(/^\d+\.\s/gm, '<span style="font-weight: 600; color: #374151; margin-right: 0.5em;">$&</span>')
                   .replace(/^[\-\*]\s/gm, '<span style="margin-right: 0.5em;">•</span>')
               }}
             />
           )}
         </div>
-        )}
       </div>
     </div>
   );
