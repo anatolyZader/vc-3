@@ -52,6 +52,10 @@ class RepoProcessor {
           'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 
           'temp/**', '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
           'backend/**', 'client/**', '.github/**', '.vscode/**', // Exclude directories we'll process separately
+          // Exclude debug and chunking report directories
+          'chunking_reports/**', '**/chunking_reports/**',
+          // Exclude debug files
+          'debug_*.js', '**/debug_*.js', 'test_*.js', '**/test_*.js',
           // Allow root-level markdown documentation files
           '!*.md', '!ROOT_DOCUMENTATION.md', '!ARCHITECTURE.md'
         ]
@@ -206,6 +210,10 @@ class RepoProcessor {
       ignorePaths: [
         // Exclude ALL non-backend directories completely
         'client/**', '.github/**', '.vscode/**',
+        // Exclude debug and chunking report directories
+        'chunking_reports/**', '**/chunking_reports/**',
+        // Exclude debug files
+        'debug_*.js', '**/debug_*.js', 'test_*.js', '**/test_*.js',
         // Exclude root files EXCEPT markdown documentation
         'package.json', 'bfg.jar', '*.txt', '*.log', '*.js',
         '.gitignore', 'package-lock.json', '*.jar',
@@ -220,7 +228,9 @@ class RepoProcessor {
         'backend/**/*.test.js', 'backend/**/*.spec.js', 
         'backend/package-lock.json', 'backend/*.log', 'backend/server.log',
         'backend/jest.*.config.js', 'backend/bfg.jar', 'backend/cookie*.txt',
-        'backend/cloud-sql-proxy', 'backend/*-credentials.json'
+        'backend/cloud-sql-proxy', 'backend/*-credentials.json',
+        // Exclude debug files from backend
+        'backend/debug_*.js', 'backend/**/debug_*.js'
       ]
     };
 
