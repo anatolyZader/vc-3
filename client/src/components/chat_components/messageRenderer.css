@@ -250,7 +250,7 @@
   border-bottom-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Paragraph styling */
+/* Paragraph styling - default for non-animated content */
 .markdown-paragraph {
   margin: 8px 0;
   line-height: 1.6;
@@ -264,11 +264,212 @@
   margin-bottom: 0;
 }
 
-/* Simple typewriter styling */
-.typewriter-simple {
+/* Override default paragraph spacing for ALL animated content */
+.animated-content-wrapper p {
+  margin: 0.2em 0 !important;
+}
+
+.animated-content-wrapper p:first-child {
+  margin-top: 0 !important;
+}
+
+.animated-content-wrapper p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Animated content wrapper for seamless transitions */
+.animated-content-wrapper {
+  line-height: 1.6;
+  /* CRITICAL: Prevent container expansion/stretching */
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Lock the container dimensions to prevent bubble resizing */
+  max-width: 100%;
+  min-height: fit-content;
+}
+
+/* Typewriter styling that matches final markdown */
+.typewriter-animated {
   line-height: 1.6;
   white-space: pre-wrap;
   display: block;
+}
+
+/* Markdown transition container */
+.markdown-transition {
+  line-height: 1.6;
+}
+
+/* Custom paragraph styling to match typewriter spacing */
+.markdown-paragraph-seamless {
+  margin: 0.2em 0; /* Much smaller margin to match natural text flow */
+  line-height: 1.6;
+}
+
+.markdown-paragraph-seamless:first-child {
+  margin-top: 0;
+}
+
+.markdown-paragraph-seamless:last-child {
+  margin-bottom: 0;
+}
+
+/* Override default paragraph margins for seamless content */
+.animated-content-wrapper .markdown-transition p {
+  margin: 0.2em 0 !important; /* Compact paragraph spacing */
+}
+
+.animated-content-wrapper .markdown-transition p:first-child {
+  margin-top: 0 !important;
+}
+
+.animated-content-wrapper .markdown-transition p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Also reduce spacing for other markdown elements in animated content */
+.animated-content-wrapper .markdown-transition ul,
+.animated-content-wrapper .markdown-transition ol {
+  margin: 0.2em 0 !important;
+  padding-left: 1.2em !important;
+}
+
+.animated-content-wrapper .markdown-transition li {
+  margin: 0.1em 0 !important; /* Compact list item spacing */
+}
+
+.animated-content-wrapper .markdown-transition h1,
+.animated-content-wrapper .markdown-transition h2,
+.animated-content-wrapper .markdown-transition h3 {
+  margin: 0.3em 0 0.1em 0 !important; /* Compact header spacing */
+}
+
+/* Additional stronger overrides for all list elements in animated content */
+.animated-content-wrapper ul,
+.animated-content-wrapper ol {
+  margin: 0.2em 0 !important;
+  padding-left: 1.2em !important;
+}
+
+.animated-content-wrapper li {
+  margin: 0.05em 0 !important; /* Even more compact list item spacing */
+  line-height: 1.4 !important;
+}
+
+.animated-content-wrapper ul li,
+.animated-content-wrapper ol li {
+  margin: 0.05em 0 !important; /* Force compact spacing for all list items */
+}
+
+/* Override any default markdown list styling */
+.ai-message .animated-content-wrapper ul,
+.ai-message .animated-content-wrapper ol {
+  margin: 0.2em 0 !important;
+}
+
+.ai-message .animated-content-wrapper li {
+  margin: 0.05em 0 !important;
+}
+
+/* ULTRA-SPECIFIC overrides to beat @chatscope default styles */
+.cs-message--incoming .cs-message__content .message-content.ai-message ul,
+.cs-message--incoming .cs-message__content .message-content.ai-message ol {
+  margin: 0.2em 0 !important;
+  padding-left: 1.2em !important;
+}
+
+.cs-message--incoming .cs-message__content .message-content.ai-message li {
+  margin: 0.05em 0 !important;
+  line-height: 1.4 !important;
+  padding: 0 !important;
+}
+
+.cs-message--incoming .cs-message__content .message-content.ai-message p {
+  margin: 0.2em 0 !important;
+  padding: 0 !important;
+}
+
+.cs-message--incoming .cs-message__content .message-content.ai-message p:first-child {
+  margin-top: 0 !important;
+}
+
+.cs-message--incoming .cs-message__content .message-content.ai-message p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Even more specific - target the exact ReactMarkdown output */
+.cs-message--incoming .cs-message__content .animated-content-wrapper .markdown-transition ul,
+.cs-message--incoming .cs-message__content .animated-content-wrapper .markdown-transition ol {
+  margin: 0.2em 0 !important;
+  padding-left: 1.2em !important;
+}
+
+.cs-message--incoming .cs-message__content .animated-content-wrapper .markdown-transition li {
+  margin: 0.05em 0 !important;
+  line-height: 1.4 !important;
+  padding: 0 !important;
+}
+
+.cs-message--incoming .cs-message__content .animated-content-wrapper .markdown-transition p {
+  margin: 0.2em 0 !important;
+  padding: 0 !important;
+}
+
+/* Nuclear option - target any element that might be adding spacing */
+.cs-message--incoming .cs-message__content * {
+  margin-top: 0.2em !important;
+  margin-bottom: 0.2em !important;
+}
+
+.cs-message--incoming .cs-message__content *:first-child {
+  margin-top: 0 !important;
+}
+
+.cs-message--incoming .cs-message__content *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Compact spacing override class - highest priority */
+.compact-spacing-override ul,
+.compact-spacing-override ol {
+  margin: 0.2em 0 !important;
+  padding-left: 1.2em !important;
+}
+
+.compact-spacing-override li {
+  margin: 0.05em 0 !important;
+  line-height: 1.4 !important;
+  padding: 0 !important;
+}
+
+.compact-spacing-override p {
+  margin: 0.2em 0 !important;
+  padding: 0 !important;
+}
+
+.compact-spacing-override p:first-child {
+  margin-top: 0 !important;
+}
+
+.compact-spacing-override p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Final content phase - prevent any expansion */
+.compact-final-content * {
+  margin-top: 0.2em !important;
+  margin-bottom: 0.2em !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.compact-final-content *:first-child {
+  margin-top: 0 !important;
+}
+
+.compact-final-content *:last-child {
+  margin-bottom: 0 !important;
 }
 
 /* Responsive design */

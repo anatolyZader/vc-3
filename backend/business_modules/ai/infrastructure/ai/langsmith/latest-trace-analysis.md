@@ -1,12 +1,12 @@
-# LangSmith RAG Trace Analysis - 10/10/2025, 1:02:50 PM
+# LangSmith RAG Trace Analysis - 10/17/2025, 1:12:01 PM
 
 ## 🔍 Query Details
-- **Query**: "cite 10 irst lines of app.js file from the root of the app"
+- **Query**: "list the possible weaknesses of architecture"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
-- **Conversation ID**: 736f34f4-acc0-4692-8455-85967d3179bb
-- **Started**: 2025-10-10T13:02:50.170Z
-- **Completed**: 2025-10-10T13:02:53.793Z
-- **Total Duration**: 3623ms
+- **Conversation ID**: b61a6510-b79f-4307-aa9d-1dba1a9d653f
+- **Started**: 2025-10-17T13:12:01.976Z
+- **Completed**: 2025-10-17T13:12:07.333Z
+- **Total Duration**: 5357ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,11 +16,11 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-10-10T13:02:50.170Z) - success
-2. **vector_store_check** (2025-10-10T13:02:50.170Z) - success
-3. **vector_search** (2025-10-10T13:02:51.523Z) - success - Found 10 documents
-4. **context_building** (2025-10-10T13:02:51.523Z) - success - Context: 4176 chars
-5. **response_generation** (2025-10-10T13:02:53.793Z) - success - Response: 753 chars
+1. **initialization** (2025-10-17T13:12:01.976Z) - success
+2. **vector_store_check** (2025-10-17T13:12:01.976Z) - success
+3. **vector_search** (2025-10-17T13:12:02.978Z) - success - Found 10 documents
+4. **context_building** (2025-10-17T13:12:02.978Z) - success - Context: 13498 chars
+5. **response_generation** (2025-10-17T13:12:07.333Z) - success - Response: 2622 chars
 
 ## 📊 Vector Search Analysis
 
@@ -28,7 +28,7 @@
 - **Vector Store**: temporary
 - **Search Strategy**: modern_orchestrator_temp
 - **Documents Retrieved**: 10
-- **Total Context**: 14,002 characters
+- **Total Context**: 37,532 characters
 
 ### Source Type Distribution:
 - **GitHub Repository Code**: 10 chunks (100%)
@@ -41,180 +41,238 @@
 
 
 ### Chunk 1/10
-- **Source**: backend/ROOT_DOCUMENTATION.md
+- **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 1503 characters
-- **Score**: 0.551887512
+- **Size**: 2813 characters
+- **Score**: 0.347398758
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: N/A
+- **Processed At**: 2025-10-07T08:54:25.778Z
 
 **Full Content**:
 ```
-// SEMANTIC CONTEXT: PUBSUB | LAYER: UNKNOWN | MODULE: CHATMODULE | COMPLEXITY: LOW | ENTRYPOINT
-// FILE: backend/ROOT_DOCUMENTATION.md
-// CODE COMPONENT:
-// CHAT/CONVERSATION FUNCTIONALITY
+cumentation's mention of "Domain-Driven Design (DDD), where the "domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers."
 
-## Core Application Files
+4. **Layered Architecture**: The application follows a layered architecture, with a clear separation of concerns between the domain, application, and infrastructure layers. This is evident from the architecture documentation, which states that the application has "a clear separation of concerns between the domain, application, and infrastructure layers."
 
-### app.js
-**Description**: Main application entry point
+In summary, the eventstorm.me application appears to be using the Hexagonal Architecture (Ports and Adapters), Modular Structure, Domain Model, and Layered Architecture patterns, which are common DDD tactical patterns.
+```
 
-**Purpose and Role**:
-The `app.js` file is the main entry point of the backend application. It is responsible for:
-- Importing and registering various plugins and dependencies
-- Configuring the Fastify server with essential settings and middleware
-- Handling the application's lifecycle events, such as route registration
+### Response Quality Assessment:
+- **Relevance to Query**: LOW - Limited relevance to query terms
+- **Use of Context**: MEDIUM - Implicit context usage
+- **Response Completeness**: EXCELLENT - Well-structured and comprehensive
 
-**Key Configurations**:
-- Registering plugins like `loggingPlugin`, `schemaLoaderPlugin`, `envPlugin`, `diPlugin`, `websocketPlugin`, `fastifySensible`, `eventDispatcher`, `pubsubPlugin`, and more
-- Configuring the `@fastify/helmet` plugin to set security-related HTTP headers
-- Registering the `@fastify/cors` plugin to handle cross-origin resource sharing
-- Configuring the `@fastify/swagger` plugin to generate OpenAPI documentation
+### Key Response Elements:
+- **Structured Lists**: 4 numbered points
 
-**Application Initialization**:
-The `app.js` file exports an asynchronous function that takes the Fastify instance and options as arguments. This function is responsible for initializing the application by registering the necessary plugins and configuring the server.
+---
 
-// EXTRACTED DOCUMENTATION:
-// SEMANTIC CONTEXT: PUBSUB | LAYER: UNKNOWN | MODULE: CHATMODULE | COMPLEXITY: LOW | ENTRYPOINT
-// FILE: backend/ROOT_DOCUMENTATION.md
-// CHAT/CONVERSATION FUNCTIONALITY
+
+## 📈 Performance Metrics
+
+### Search Efficiency:
+- **Query Processing Time**: 4636ms
+- **Documents Retrieved**: 12
+- **Unique Sources**: 6
+- **Average Chunk Size**: 956 characters
+
+### Context Quality:
+- **Relevance Score**: HIGH (12 relevant chunks found)
+- **Diversity Score**: EXCELLENT (6 unique sources)
+- **Completeness Score**: HIGH (11,475 total characters)
+
+### LangSmith Integration:
+- **Tracing Status**: ✅ Active
+- **Project Configuration**: ❌ Missing
+- **API Key Status**: ✅ Present
+
+## 🔍 Source Analysis
+
+### Most Frequent Sources:
+- **backend/cloud-sql-proxy**: 4 chunks
+- **httpApiSpec.json**: 3 chunks
+- **backend/business_modules/api/infrastructure/api/httpApiSpec.json**: 2 chunks
+- **client/index.html**: 1 chunks
+- **client/src/custom-overrides.css.map**: 1 chunks
+
+### Repository Coverage:
+- https://github.com/anatolyZader/vc-3
+
+## 🎯 Query Classification & Analysis
+
+- **Query Type**: Informational/Explanatory
+- **Domain Focus**: Business Logic
+- **Technical Complexity**: High
+- **Expected Response Type**: Informational
+
+## 🚀 Recommendations
+
+- **Excellent Performance**: RAG pipeline is performing optimally
+- **Continue Monitoring**: Maintain current configuration and observe trends
+
+## ✨ Conclusion
+
+This comprehensive LangSmith trace demonstrates excellent RAG performance with:
+- **Retrieval Quality**: Excellent
+- **Context Diversity**: High
+- **Content Richness**: Very High
+- **Response Quality**: Comprehensive
+
+The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
+
+---
+**Generated**: 2025-09-12T12:59:41.317Z  
+**LangSmith Project**: eventstorm-trace  
+**Trace Type**: Comprehensive RAG Analysis
+**Auto-Generated**: true
 ```
 
 **Metadata**:
 ```json
 {
-  "batch_name": "Backend Directory (Specialized)",
-  "batch_priority": 2,
-  "batch_processed_at": "2025-10-06T15:04:30.213Z",
   "branch": "main",
-  "chunk_index": 1,
-  "chunk_type": "markdown",
-  "commitAuthor": "automated-fallback-processor",
-  "commitDate": "2025-10-06T15:02:38.085Z",
-  "commitHash": "fallback-1759762958085",
-  "commitSubject": "Direct API processing - no commit tracking",
-  "complexity": "low",
-  "enhanced": true,
-  "enhancement_timestamp": "2025-10-06T15:04:30.388Z",
-  "eventstorm_module": "chatModule",
-  "file_type": "markdown",
-  "githubOwner": "anatolyZader",
-  "is_entrypoint": true,
-  "layer": "unknown",
-  "loaded_at": "2025-10-06T15:04:30.214Z",
-  "loading_method": "batched_github_loader",
-  "loc.lines.from": 9,
-  "loc.lines.to": 27,
-  "repoName": "vc-3",
+  "chunkIndex": 6,
+  "chunkTokens": 704,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-12T13-02-25-i-an-the-domain-driven-design.md",
+  "fileSize": 29123,
+  "loaded_at": "2025-10-07T08:54:25.778Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 9950,
+  "priority": 50,
+  "processedAt": "2025-10-07T08:54:25.778Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "repository_url": "https://github.com/anatolyZader/vc-3",
-  "semantic_role": "pubsub",
-  "sha": "90e10752f2381bb7549e1e96004434f40fe2735e",
-  "size": 8826,
-  "source": "backend/ROOT_DOCUMENTATION.md",
-  "splitting_method": "markdown_aware",
-  "text": "// SEMANTIC CONTEXT: PUBSUB | LAYER: UNKNOWN | MODULE: CHATMODULE | COMPLEXITY: LOW | ENTRYPOINT\n// FILE: backend/ROOT_DOCUMENTATION.md\n// CODE COMPONENT:\n// CHAT/CONVERSATION FUNCTIONALITY\n\n## Core Application Files\n\n### app.js\n**Description**: Main application entry point\n\n**Purpose and Role**:\nThe `app.js` file is the main entry point of the backend application. It is responsible for:\n- Importing and registering various plugins and dependencies\n- Configuring the Fastify server with essential settings and middleware\n- Handling the application's lifecycle events, such as route registration\n\n**Key Configurations**:\n- Registering plugins like `loggingPlugin`, `schemaLoaderPlugin`, `envPlugin`, `diPlugin`, `websocketPlugin`, `fastifySensible`, `eventDispatcher`, `pubsubPlugin`, and more\n- Configuring the `@fastify/helmet` plugin to set security-related HTTP headers\n- Registering the `@fastify/cors` plugin to handle cross-origin resource sharing\n- Configuring the `@fastify/swagger` plugin to generate OpenAPI documentation\n\n**Application Initialization**:\nThe `app.js` file exports an asynchronous function that takes the Fastify instance and options as arguments. This function is responsible for initializing the application by registering the necessary plugins and configuring the server.\n\n// EXTRACTED DOCUMENTATION:\n// SEMANTIC CONTEXT: PUBSUB | LAYER: UNKNOWN | MODULE: CHATMODULE | COMPLEXITY: LOW | ENTRYPOINT\n// FILE: backend/ROOT_DOCUMENTATION.md\n// CHAT/CONVERSATION FUNCTIONALITY",
-  "total_chunks": 10,
+  "sha": "35bdde6e0c243bbb0c9814964e2015914870553f",
+  "size": 29123,
+  "source": "anatolyZader/vc-3",
+  "text": "cumentation's mention of \"Domain-Driven Design (DDD), where the \"domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers.\"\n\n4. **Layered Architecture**: The application follows a layered architecture, with a clear separation of concerns between the domain, application, and infrastructure layers. This is evident from the architecture documentation, which states that the application has \"a clear separation of concerns between the domain, application, and infrastructure layers.\"\n\nIn summary, the eventstorm.me application appears to be using the Hexagonal Architecture (Ports and Adapters), Modular Structure, Domain Model, and Layered Architecture patterns, which are common DDD tactical patterns.\n```\n\n### Response Quality Assessment:\n- **Relevance to Query**: LOW - Limited relevance to query terms\n- **Use of Context**: MEDIUM - Implicit context usage\n- **Response Completeness**: EXCELLENT - Well-structured and comprehensive\n\n### Key Response Elements:\n- **Structured Lists**: 4 numbered points\n\n---\n\n\n## 📈 Performance Metrics\n\n### Search Efficiency:\n- **Query Processing Time**: 4636ms\n- **Documents Retrieved**: 12\n- **Unique Sources**: 6\n- **Average Chunk Size**: 956 characters\n\n### Context Quality:\n- **Relevance Score**: HIGH (12 relevant chunks found)\n- **Diversity Score**: EXCELLENT (6 unique sources)\n- **Completeness Score**: HIGH (11,475 total characters)\n\n### LangSmith Integration:\n- **Tracing Status**: ✅ Active\n- **Project Configuration**: ❌ Missing\n- **API Key Status**: ✅ Present\n\n## 🔍 Source Analysis\n\n### Most Frequent Sources:\n- **backend/cloud-sql-proxy**: 4 chunks\n- **httpApiSpec.json**: 3 chunks\n- **backend/business_modules/api/infrastructure/api/httpApiSpec.json**: 2 chunks\n- **client/index.html**: 1 chunks\n- **client/src/custom-overrides.css.map**: 1 chunks\n\n### Repository Coverage:\n- https://github.com/anatolyZader/vc-3\n\n## 🎯 Query Classification & Analysis\n\n- **Query Type**: Informational/Explanatory\n- **Domain Focus**: Business Logic\n- **Technical Complexity**: High\n- **Expected Response Type**: Informational\n\n## 🚀 Recommendations\n\n- **Excellent Performance**: RAG pipeline is performing optimally\n- **Continue Monitoring**: Maintain current configuration and observe trends\n\n## ✨ Conclusion\n\nThis comprehensive LangSmith trace demonstrates excellent RAG performance with:\n- **Retrieval Quality**: Excellent\n- **Context Diversity**: High\n- **Content Richness**: Very High\n- **Response Quality**: Comprehensive\n\nThe query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.\n\n---\n**Generated**: 2025-09-12T12:59:41.317Z  \n**LangSmith Project**: eventstorm-trace  \n**Trace Type**: Comprehensive RAG Analysis\n**Auto-Generated**: true",
   "type": "github-file",
-  "ubiq_bounded_context": "Unknown Context",
-  "ubiq_business_module": "chat",
-  "ubiq_enhanced": true,
-  "ubiq_enhancement_timestamp": "2025-10-06T15:04:30.388Z",
-  "score": 0.551887512,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_backend_ROOT_DOCUMENTATION_md_chunk_95_1759763072885"
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 1,
+  "score": 0.347398758,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2567_1759827380162"
 }
 ```
 
 ---
 
 ### Chunk 2/10
-- **Source**: backend/ROOT_DOCUMENTATION.md
+- **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 1503 characters
-- **Score**: 0.551866531
+- **Size**: 2813 characters
+- **Score**: 0.347385406
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: N/A
+- **Processed At**: 2025-10-06T14:55:57.072Z
 
 **Full Content**:
 ```
-// SEMANTIC CONTEXT: PUBSUB | LAYER: UNKNOWN | MODULE: CHATMODULE | COMPLEXITY: LOW | ENTRYPOINT
-// FILE: backend/ROOT_DOCUMENTATION.md
-// CODE COMPONENT:
-// CHAT/CONVERSATION FUNCTIONALITY
+cumentation's mention of "Domain-Driven Design (DDD), where the "domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers."
 
-## Core Application Files
+4. **Layered Architecture**: The application follows a layered architecture, with a clear separation of concerns between the domain, application, and infrastructure layers. This is evident from the architecture documentation, which states that the application has "a clear separation of concerns between the domain, application, and infrastructure layers."
 
-### app.js
-**Description**: Main application entry point
+In summary, the eventstorm.me application appears to be using the Hexagonal Architecture (Ports and Adapters), Modular Structure, Domain Model, and Layered Architecture patterns, which are common DDD tactical patterns.
+```
 
-**Purpose and Role**:
-The `app.js` file is the main entry point of the backend application. It is responsible for:
-- Importing and registering various plugins and dependencies
-- Configuring the Fastify server with essential settings and middleware
-- Handling the application's lifecycle events, such as route registration
+### Response Quality Assessment:
+- **Relevance to Query**: LOW - Limited relevance to query terms
+- **Use of Context**: MEDIUM - Implicit context usage
+- **Response Completeness**: EXCELLENT - Well-structured and comprehensive
 
-**Key Configurations**:
-- Registering plugins like `loggingPlugin`, `schemaLoaderPlugin`, `envPlugin`, `diPlugin`, `websocketPlugin`, `fastifySensible`, `eventDispatcher`, `pubsubPlugin`, and more
-- Configuring the `@fastify/helmet` plugin to set security-related HTTP headers
-- Registering the `@fastify/cors` plugin to handle cross-origin resource sharing
-- Configuring the `@fastify/swagger` plugin to generate OpenAPI documentation
+### Key Response Elements:
+- **Structured Lists**: 4 numbered points
 
-**Application Initialization**:
-The `app.js` file exports an asynchronous function that takes the Fastify instance and options as arguments. This function is responsible for initializing the application by registering the necessary plugins and configuring the server.
+---
 
-// EXTRACTED DOCUMENTATION:
-// SEMANTIC CONTEXT: PUBSUB | LAYER: UNKNOWN | MODULE: CHATMODULE | COMPLEXITY: LOW | ENTRYPOINT
-// FILE: backend/ROOT_DOCUMENTATION.md
-// CHAT/CONVERSATION FUNCTIONALITY
+
+## 📈 Performance Metrics
+
+### Search Efficiency:
+- **Query Processing Time**: 4636ms
+- **Documents Retrieved**: 12
+- **Unique Sources**: 6
+- **Average Chunk Size**: 956 characters
+
+### Context Quality:
+- **Relevance Score**: HIGH (12 relevant chunks found)
+- **Diversity Score**: EXCELLENT (6 unique sources)
+- **Completeness Score**: HIGH (11,475 total characters)
+
+### LangSmith Integration:
+- **Tracing Status**: ✅ Active
+- **Project Configuration**: ❌ Missing
+- **API Key Status**: ✅ Present
+
+## 🔍 Source Analysis
+
+### Most Frequent Sources:
+- **backend/cloud-sql-proxy**: 4 chunks
+- **httpApiSpec.json**: 3 chunks
+- **backend/business_modules/api/infrastructure/api/httpApiSpec.json**: 2 chunks
+- **client/index.html**: 1 chunks
+- **client/src/custom-overrides.css.map**: 1 chunks
+
+### Repository Coverage:
+- https://github.com/anatolyZader/vc-3
+
+## 🎯 Query Classification & Analysis
+
+- **Query Type**: Informational/Explanatory
+- **Domain Focus**: Business Logic
+- **Technical Complexity**: High
+- **Expected Response Type**: Informational
+
+## 🚀 Recommendations
+
+- **Excellent Performance**: RAG pipeline is performing optimally
+- **Continue Monitoring**: Maintain current configuration and observe trends
+
+## ✨ Conclusion
+
+This comprehensive LangSmith trace demonstrates excellent RAG performance with:
+- **Retrieval Quality**: Excellent
+- **Context Diversity**: High
+- **Content Richness**: Very High
+- **Response Quality**: Comprehensive
+
+The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
+
+---
+**Generated**: 2025-09-12T12:59:41.317Z  
+**LangSmith Project**: eventstorm-trace  
+**Trace Type**: Comprehensive RAG Analysis
+**Auto-Generated**: true
 ```
 
 **Metadata**:
 ```json
 {
-  "batch_name": "Backend Directory (Specialized)",
-  "batch_priority": 2,
-  "batch_processed_at": "2025-10-06T15:02:14.744Z",
   "branch": "main",
-  "chunk_index": 1,
-  "chunk_type": "markdown",
-  "commitAuthor": "anatolyZader",
-  "commitDate": "2025-10-06T14:44:14Z",
-  "commitHash": "c3086230b7c1f2ce05fb126ed74ad72b37d824df",
-  "commitSubject": "all namespaces removed except anatolyzader_vc-3",
-  "complexity": "low",
-  "enhanced": true,
-  "enhancement_timestamp": "2025-10-06T15:02:15.162Z",
-  "eventstorm_module": "chatModule",
-  "file_type": "markdown",
-  "githubOwner": "anatolyZader",
-  "is_entrypoint": true,
-  "layer": "unknown",
-  "loaded_at": "2025-10-06T15:02:14.745Z",
-  "loading_method": "batched_github_loader",
-  "loc.lines.from": 9,
-  "loc.lines.to": 27,
-  "repoName": "vc-3",
+  "chunkIndex": 6,
+  "chunkTokens": 704,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-12T13-02-25-i-an-the-domain-driven-design.md",
+  "fileSize": 29123,
+  "loaded_at": "2025-10-06T14:55:57.072Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 9950,
+  "priority": 50,
+  "processedAt": "2025-10-06T14:55:57.072Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "repository_url": "https://github.com/anatolyZader/vc-3",
-  "semantic_role": "pubsub",
-  "sha": "90e10752f2381bb7549e1e96004434f40fe2735e",
-  "size": 8826,
-  "source": "backend/ROOT_DOCUMENTATION.md",
-  "splitting_method": "markdown_aware",
-  "text": "// SEMANTIC CONTEXT: PUBSUB | LAYER: UNKNOWN | MODULE: CHATMODULE | COMPLEXITY: LOW | ENTRYPOINT\n// FILE: backend/ROOT_DOCUMENTATION.md\n// CODE COMPONENT:\n// CHAT/CONVERSATION FUNCTIONALITY\n\n## Core Application Files\n\n### app.js\n**Description**: Main application entry point\n\n**Purpose and Role**:\nThe `app.js` file is the main entry point of the backend application. It is responsible for:\n- Importing and registering various plugins and dependencies\n- Configuring the Fastify server with essential settings and middleware\n- Handling the application's lifecycle events, such as route registration\n\n**Key Configurations**:\n- Registering plugins like `loggingPlugin`, `schemaLoaderPlugin`, `envPlugin`, `diPlugin`, `websocketPlugin`, `fastifySensible`, `eventDispatcher`, `pubsubPlugin`, and more\n- Configuring the `@fastify/helmet` plugin to set security-related HTTP headers\n- Registering the `@fastify/cors` plugin to handle cross-origin resource sharing\n- Configuring the `@fastify/swagger` plugin to generate OpenAPI documentation\n\n**Application Initialization**:\nThe `app.js` file exports an asynchronous function that takes the Fastify instance and options as arguments. This function is responsible for initializing the application by registering the necessary plugins and configuring the server.\n\n// EXTRACTED DOCUMENTATION:\n// SEMANTIC CONTEXT: PUBSUB | LAYER: UNKNOWN | MODULE: CHATMODULE | COMPLEXITY: LOW | ENTRYPOINT\n// FILE: backend/ROOT_DOCUMENTATION.md\n// CHAT/CONVERSATION FUNCTIONALITY",
-  "total_chunks": 10,
+  "sha": "35bdde6e0c243bbb0c9814964e2015914870553f",
+  "size": 29123,
+  "source": "anatolyZader/vc-3",
+  "text": "cumentation's mention of \"Domain-Driven Design (DDD), where the \"domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers.\"\n\n4. **Layered Architecture**: The application follows a layered architecture, with a clear separation of concerns between the domain, application, and infrastructure layers. This is evident from the architecture documentation, which states that the application has \"a clear separation of concerns between the domain, application, and infrastructure layers.\"\n\nIn summary, the eventstorm.me application appears to be using the Hexagonal Architecture (Ports and Adapters), Modular Structure, Domain Model, and Layered Architecture patterns, which are common DDD tactical patterns.\n```\n\n### Response Quality Assessment:\n- **Relevance to Query**: LOW - Limited relevance to query terms\n- **Use of Context**: MEDIUM - Implicit context usage\n- **Response Completeness**: EXCELLENT - Well-structured and comprehensive\n\n### Key Response Elements:\n- **Structured Lists**: 4 numbered points\n\n---\n\n\n## 📈 Performance Metrics\n\n### Search Efficiency:\n- **Query Processing Time**: 4636ms\n- **Documents Retrieved**: 12\n- **Unique Sources**: 6\n- **Average Chunk Size**: 956 characters\n\n### Context Quality:\n- **Relevance Score**: HIGH (12 relevant chunks found)\n- **Diversity Score**: EXCELLENT (6 unique sources)\n- **Completeness Score**: HIGH (11,475 total characters)\n\n### LangSmith Integration:\n- **Tracing Status**: ✅ Active\n- **Project Configuration**: ❌ Missing\n- **API Key Status**: ✅ Present\n\n## 🔍 Source Analysis\n\n### Most Frequent Sources:\n- **backend/cloud-sql-proxy**: 4 chunks\n- **httpApiSpec.json**: 3 chunks\n- **backend/business_modules/api/infrastructure/api/httpApiSpec.json**: 2 chunks\n- **client/index.html**: 1 chunks\n- **client/src/custom-overrides.css.map**: 1 chunks\n\n### Repository Coverage:\n- https://github.com/anatolyZader/vc-3\n\n## 🎯 Query Classification & Analysis\n\n- **Query Type**: Informational/Explanatory\n- **Domain Focus**: Business Logic\n- **Technical Complexity**: High\n- **Expected Response Type**: Informational\n\n## 🚀 Recommendations\n\n- **Excellent Performance**: RAG pipeline is performing optimally\n- **Continue Monitoring**: Maintain current configuration and observe trends\n\n## ✨ Conclusion\n\nThis comprehensive LangSmith trace demonstrates excellent RAG performance with:\n- **Retrieval Quality**: Excellent\n- **Context Diversity**: High\n- **Content Richness**: Very High\n- **Response Quality**: Comprehensive\n\nThe query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.\n\n---\n**Generated**: 2025-09-12T12:59:41.317Z  \n**LangSmith Project**: eventstorm-trace  \n**Trace Type**: Comprehensive RAG Analysis\n**Auto-Generated**: true",
   "type": "github-file",
-  "ubiq_bounded_context": "Unknown Context",
-  "ubiq_business_module": "chat",
-  "ubiq_enhanced": true,
-  "ubiq_enhancement_timestamp": "2025-10-06T15:02:15.161Z",
-  "score": 0.551866531,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_backend_ROOT_DOCUMENTATION_md_chunk_95_1759762937775"
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 2,
+  "score": 0.347385406,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2569_1759762671381"
 }
 ```
 
@@ -223,138 +281,140 @@ The `app.js` file exports an asynchronous function that takes the Fastify instan
 ### Chunk 3/10
 - **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 3972 characters
-- **Score**: 0.530191422
+- **Size**: 3981 characters
+- **Score**: 0.344717026
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-06T14:55:30.569Z
+- **Processed At**: 2025-10-07T08:54:25.778Z
 
 **Full Content**:
 ```
-// app.js
-'use strict';
-/* eslint-disable no-unused-vars */
+pings":"AAGA;EACE;ECaA;EACA;EDZA;EACA;EACA,QE+WsB;EF9WtB;EACA,OEiCW;EFhCX,kBEwCY;EFvCZ,WE2XyB;;AFzXzB;EACE;EACA;EACA,YEyX0C;EFxX1C,YEsW0C;EFrW1C,cEsW4C;EFrW5C,eEsW6C;EFrW7C,aEsW2C;EFrW3C;AACA;EACA;;AAGF;EACE;EACA;EACA,WEgXoC;EF/WpC;EACA,cEyV4C;AFvV5C;EACA;;AAGF;EACE;EACA,WEuWqC;EFtWrC,WEuWqC;EFrWrC,YEkVsC;EFjVtC,cEkVwC;EFjVxC,eEkVyC;EFjVzC,aEkVuC;;AF9UzC;EACE;;AAGF;EACE;EACA;EACA;EACA;EACA,cEiUyC;;
+```
 
-const BUILDING_API_SPEC = process.env.GENERATING_HTTP_API_SPEC === '1';
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 32374,
+  "chunkSize": 1500,
+  "fileType": "Unknown",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 1,
+  "loc.lines.to": 1,
+  "processedAt": "2025-07-14T15:43:05.314Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "client/src/custom-overrides.css.map",
+  "totalChunks": 32395,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
 
-const path              = require('node:path');
-const AutoLoad          = require('@fastify/autoload');
-const fastifySensible   = require('@fastify/sensible');
-const fastifyCookie     = require('@fastify/cookie');
-const fastifySession    = require('@fastify/session');
-const RedisStore        = require('./redisStore');
-const redisPlugin       = require('./redisPlugin');
-const websocketPlugin   = require('./websocketPlugin');
-const loggingPlugin     = require('./logPlugin');
-const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
-const envPlugin         = require('./envPlugin');
-const diPlugin          = require('./diPlugin');
-const corsPlugin        = require('./corsPlugin');
-const helmet            = require('@fastify/helmet');
-const pubsubPlugin      = require('./pubsubPlugin');
-const eventDispatcher   = require('./eventDispatcher');
+---
 
-require('dotenv').config();
+### Chunk 8/12
+- **Source**: backend/cloud-sql-proxy
+- **Type**: Unknown
+- **Size**: 1465 characters
+- **Score**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: Unknown
+- **Processed At**: 2025-07-14T15:43:05.276Z
 
-module.exports = async function (fastify, opts) {
+**Full Content**:
+```
+�]D1ȉ�1���������Ed1�1�]@؉��   A�D��A�ǅ
+�'D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�AǋE|����������
+�]H1ȉ�1���������Eh1�1�]D؉��   A�D��A��8!.D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�AƋ��   ����������
+�]L1ȉ�1���������El1�1�]H؉��   A�D��A���m,MD����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�Aŋ��   ����������
+�]P1ȉ�1���������Ep1�1�]L؉��   A�D��A��8SD����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�Aċ��   ����������
+�]T1ȉ�1���������Et1�1�]P؉��   A�D��A��Ts
+eD����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�AË��   ����������
+�]X1ȉ�1���������Ex1�1�]T؉��   A�D��A�»
+jvD����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�A��   ����������
+�]\1ȉ�1���������E|1�1�]X؉��   A�D��A��.�D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�A����   ����������
+�]`1ȉ�1�����������   1�1�]\؉��   A�D��A���,r�D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�A����   ����������
+�]d1ȉ�1�����������   1�1�]`؉��   A�D��A�ǡ迢D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�Aǋ��   ����������
+```
 
-  fastify.addHook('onRoute', (routeOptions) => {
-    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');
-  });
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 10350,
+  "chunkSize": 1465,
+  "fileType": "Unknown",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 14903,
+  "loc.lines.to": 14914,
+  "processedAt": "2025-07-14T15:43:05.276Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/cloud-sql-proxy",
+  "totalChunks": 32395,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
 
-  await fastify.register(loggingPlugin);
-  await fastify.register(schemaLoaderPlugin);
-  await fastify.register(envPlugin);
-  await fastify.register(diPlugin);
-  await fastify.register(websocketPlugin);
-  await fastify.register(fastifySensible);
+---
 
-  await fastify.register(require('@fastify/multipart'), {
-    // Allow files up to 10MB (for voice recordings)
-    limits: {
-      fileSize: 10 * 1024 * 1024 // 10MB
-    }
-  });
-  
-  await fastify.register(eventDispatcher);
-  
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(pubsubPlugin);
-  }
-  
-  // Sets security-related HTTP headers automatically
-  await fastify.register(helmet, {
-    global: true,
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'], // Allows resources by default from the same origin ('self') and Google Identity Services.
-        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'], // Allows scripts to load only from your own site and from Google's GSI client.
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'], // Allows styles from your own site, inline styles ('unsafe-inline'), and Google's GSI style endpoint.
-        frameSrc: ["'self'", 'https://accounts.google.com/gsi/'], // Allows iframes only from your own site and Google Identity Services.
-        connectSrc: [  
-          "'self'", 
-          'https://accounts.google.com/gsi/',
-          // Add http for local development
-          ...(process.env.NODE_ENV !== 'staging' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
-        ], // Allows network connections to your own site, Google Identity Services, and (for non-staging environments) local development servers on ports 3000 and 5173.
-      },
-    },
-  });
+### Chunk 9/12
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 1026 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
 
-  await fastify.register(corsPlugin);
-  await fastify.register(require('./swaggerPlugin'));
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
 
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(redisPlugin);
-    fastify.redis.on('error', (err) => {
-      fastify.log.error({ err }, 'Redis client error');
-    });
-    fastify.log.info('⏳ Testing Redis connection with PING…');
-    try {
-      const pong = await fastify.redis.ping();
-      fastify.log.info(`✅ Redis PING response: ${pong}`);
-    } catch (err) {
-      fastify.log.error({ err }, '❌ Redis PING failed');
-    }
-  }
+---
 
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(
-      fastifyCookie,
-      {
-        secret: fastify.secrets.COOKIE_SECRET,
-        parseOptions: { 
-          secure: true, // Only send cookies over HTTPS.
-          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.
+## Architecture Patterns
+
+The `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:
+
+1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2.
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "chunkIndex": 0,
-  "chunkTokens": 993,
-  "filePath": "backend/app.js",
-  "fileSize": 11294,
-  "loaded_at": "2025-10-06T14:55:30.569Z",
+  "chunkIndex": 4,
+  "chunkTokens": 996,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-12T13-02-25-i-an-the-domain-driven-design.md",
+  "fileSize": 29123,
+  "loaded_at": "2025-10-07T08:54:25.778Z",
   "loading_method": "cloud_native_api",
-  "originalTokens": 2526,
+  "originalTokens": 9950,
   "priority": 50,
-  "processedAt": "2025-10-06T14:55:30.569Z",
+  "processedAt": "2025-10-07T08:54:25.778Z",
   "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "f7c539a092ef75ea456b3d1046579304d0a5df1c",
-  "size": 11294,
+  "sha": "35bdde6e0c243bbb0c9814964e2015914870553f",
+  "size": 29123,
   "source": "anatolyZader/vc-3",
-  "text": "// app.js\n'use strict';\n/* eslint-disable no-unused-vars */\n\nconst BUILDING_API_SPEC = process.env.GENERATING_HTTP_API_SPEC === '1';\n\nconst path              = require('node:path');\nconst AutoLoad          = require('@fastify/autoload');\nconst fastifySensible   = require('@fastify/sensible');\nconst fastifyCookie     = require('@fastify/cookie');\nconst fastifySession    = require('@fastify/session');\nconst RedisStore        = require('./redisStore');\nconst redisPlugin       = require('./redisPlugin');\nconst websocketPlugin   = require('./websocketPlugin');\nconst loggingPlugin     = require('./logPlugin');\nconst schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');\nconst envPlugin         = require('./envPlugin');\nconst diPlugin          = require('./diPlugin');\nconst corsPlugin        = require('./corsPlugin');\nconst helmet            = require('@fastify/helmet');\nconst pubsubPlugin      = require('./pubsubPlugin');\nconst eventDispatcher   = require('./eventDispatcher');\n\nrequire('dotenv').config();\n\nmodule.exports = async function (fastify, opts) {\n\n  fastify.addHook('onRoute', (routeOptions) => {\n    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');\n  });\n\n  await fastify.register(loggingPlugin);\n  await fastify.register(schemaLoaderPlugin);\n  await fastify.register(envPlugin);\n  await fastify.register(diPlugin);\n  await fastify.register(websocketPlugin);\n  await fastify.register(fastifySensible);\n\n  await fastify.register(require('@fastify/multipart'), {\n    // Allow files up to 10MB (for voice recordings)\n    limits: {\n      fileSize: 10 * 1024 * 1024 // 10MB\n    }\n  });\n  \n  await fastify.register(eventDispatcher);\n  \n  if (!BUILDING_API_SPEC) {\n    await fastify.register(pubsubPlugin);\n  }\n  \n  // Sets security-related HTTP headers automatically\n  await fastify.register(helmet, {\n    global: true,\n    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },\n    contentSecurityPolicy: {\n      directives: {\n        defaultSrc: [\"'self'\", 'https://accounts.google.com/gsi/'], // Allows resources by default from the same origin ('self') and Google Identity Services.\n        scriptSrc: [\"'self'\", 'https://accounts.google.com/gsi/client'], // Allows scripts to load only from your own site and from Google's GSI client.\n        styleSrc: [\"'self'\", \"'unsafe-inline'\", 'https://accounts.google.com/gsi/style'], // Allows styles from your own site, inline styles ('unsafe-inline'), and Google's GSI style endpoint.\n        frameSrc: [\"'self'\", 'https://accounts.google.com/gsi/'], // Allows iframes only from your own site and Google Identity Services.\n        connectSrc: [  \n          \"'self'\", \n          'https://accounts.google.com/gsi/',\n          // Add http for local development\n          ...(process.env.NODE_ENV !== 'staging' ? ['http://localhost:3000', 'http://localhost:5173'] : [])\n        ], // Allows network connections to your own site, Google Identity Services, and (for non-staging environments) local development servers on ports 3000 and 5173.\n      },\n    },\n  });\n\n  await fastify.register(corsPlugin);\n  await fastify.register(require('./swaggerPlugin'));\n\n  if (!BUILDING_API_SPEC) {\n    await fastify.register(redisPlugin);\n    fastify.redis.on('error', (err) => {\n      fastify.log.error({ err }, 'Redis client error');\n    });\n    fastify.log.info('⏳ Testing Redis connection with PING…');\n    try {\n      const pong = await fastify.redis.ping();\n      fastify.log.info(`✅ Redis PING response: ${pong}`);\n    } catch (err) {\n      fastify.log.error({ err }, '❌ Redis PING failed');\n    }\n  }\n\n  if (!BUILDING_API_SPEC) {\n    await fastify.register(\n      fastifyCookie,\n      {\n        secret: fastify.secrets.COOKIE_SECRET,\n        parseOptions: { \n          secure: true, // Only send cookies over HTTPS.\n          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.",
+  "text": "pings\":\"AAGA;EACE;ECaA;EACA;EDZA;EACA;EACA,QE+WsB;EF9WtB;EACA,OEiCW;EFhCX,kBEwCY;EFvCZ,WE2XyB;;AFzXzB;EACE;EACA;EACA,YEyX0C;EFxX1C,YEsW0C;EFrW1C,cEsW4C;EFrW5C,eEsW6C;EFrW7C,aEsW2C;EFrW3C;AACA;EACA;;AAGF;EACE;EACA;EACA,WEgXoC;EF/WpC;EACA,cEyV4C;AFvV5C;EACA;;AAGF;EACE;EACA,WEuWqC;EFtWrC,WEuWqC;EFrWrC,YEkVsC;EFjVtC,cEkVwC;EFjVxC,eEkVyC;EFjVzC,aEkVuC;;AF9UzC;EACE;;AAGF;EACE;EACA;EACA;EACA;EACA,cEiUyC;;\n```\n\n**Metadata**:\n```json\n{\n  \"branch\": \"amber\",\n  \"chunkIndex\": 32374,\n  \"chunkSize\": 1500,\n  \"fileType\": \"Unknown\",\n  \"githubOwner\": \"anatolyZader\",\n  \"loc.lines.from\": 1,\n  \"loc.lines.to\": 1,\n  \"processedAt\": \"2025-07-14T15:43:05.314Z\",\n  \"processedBy\": \"AI-Service\",\n  \"repoId\": \"anatolyZader/vc-3\",\n  \"repoUrl\": \"https://github.com/anatolyZader/vc-3\",\n  \"repository\": \"https://github.com/anatolyZader/vc-3\",\n  \"source\": \"client/src/custom-overrides.css.map\",\n  \"totalChunks\": 32395,\n  \"userId\": \"d41402df-182a-41ec-8f05-153118bf2718\"\n}\n```\n\n---\n\n### Chunk 8/12\n- **Source**: backend/cloud-sql-proxy\n- **Type**: Unknown\n- **Size**: 1465 characters\n- **Score**: N/A\n- **Repository**: https://github.com/anatolyZader/vc-3\n- **Branch**: amber\n- **File Type**: Unknown\n- **Processed At**: 2025-07-14T15:43:05.276Z\n\n**Full Content**:\n```\n�]D1ȉ�1���\u0007����\u0003��\u0012\u0003Ed1�1�\u0003]@\u0001؉��\u0000\u0000\u0000A\u0001�D��A�ǅ\n�'D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001ǋE|����\u0011����\u0013��\n�]H1ȉ�1���\u0007����\u0003��\u0012\u0003Eh1�1�\u0003]D\u0001؉��\u0000\u0000\u0000A\u0001�D��A��8!\u001b.D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001Ƌ��\u0000\u0000\u0000����\u0011����\u0013��\n�]L1ȉ�1���\u0007����\u0003��\u0012\u0003El1�1�\u0003]H\u0001؉��\u0000\u0000\u0000A\u0001�D��A���m,MD����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001ŋ��\u0000\u0000\u0000����\u0011����\u0013��\n�]P1ȉ�1���\u0007����\u0003��\u0012\u0003Ep1�1�\u0003]L\u0001؉��\u0000\u0000\u0000A\u0001�D��A��\u0013\r8SD����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001ċ��\u0000\u0000\u0000����\u0011����\u0013��\n�]T1ȉ�1���\u0007����\u0003��\u0012\u0003Et1�1�\u0003]P\u0001؉��\u0000\u0000\u0000A\u0001�D��A��Ts\neD����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001Ë��\u0000\u0000\u0000����\u0011����\u0013��\n�]X1ȉ�1���\u0007����\u0003��\u0012\u0003Ex1�1�\u0003]T\u0001؉��\u0000\u0000\u0000A\u0001�D��A�»\njvD����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001��\u0000\u0000\u0000����\u0011����\u0013��\n�]\\1ȉ�1���\u0007����\u0003��\u0012\u0003E|1�1�\u0003]X\u0001؉��\u0000\u0000\u0000A\u0001�D��A��.�D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001����\u0000\u0000\u0000����\u0011����\u0013��\n�]`1ȉ�1���\u0007����\u0003��\u0012\u0003��\u0000\u0000\u00001�1�\u0003]\\\u0001؉��\u0000\u0000\u0000A\u0001�D��A���,r�D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001����\u0000\u0000\u0000����\u0011����\u0013��\n�]d1ȉ�1���\u0007����\u0003��\u0012\u0003��\u0000\u0000\u00001�1�\u0003]`\u0001؉��\u0000\u0000\u0000A\u0001�D��A�ǡ迢D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001ǋ��\u0000\u0000\u0000����\u0011����\u0013��\n```\n\n**Metadata**:\n```json\n{\n  \"branch\": \"amber\",\n  \"chunkIndex\": 10350,\n  \"chunkSize\": 1465,\n  \"fileType\": \"Unknown\",\n  \"githubOwner\": \"anatolyZader\",\n  \"loc.lines.from\": 14903,\n  \"loc.lines.to\": 14914,\n  \"processedAt\": \"2025-07-14T15:43:05.276Z\",\n  \"processedBy\": \"AI-Service\",\n  \"repoId\": \"anatolyZader/vc-3\",\n  \"repoUrl\": \"https://github.com/anatolyZader/vc-3\",\n  \"repository\": \"https://github.com/anatolyZader/vc-3\",\n  \"source\": \"backend/cloud-sql-proxy\",\n  \"totalChunks\": 32395,\n  \"userId\": \"d41402df-182a-41ec-8f05-153118bf2718\"\n}\n```\n\n---\n\n### Chunk 9/12\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 1026 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Architecture Patterns\n\nThe `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:\n\n1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.\n\n2.",
   "type": "github-file",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 0,
-  "score": 0.530191422,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_319_1759762671378"
+  "workerId": 1,
+  "score": 0.344717026,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2565_1759827380162"
 }
 ```
 
@@ -363,138 +423,140 @@ module.exports = async function (fastify, opts) {
 ### Chunk 4/10
 - **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 3972 characters
-- **Score**: 0.529777527
+- **Size**: 3981 characters
+- **Score**: 0.343954116
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-07T08:54:00.054Z
+- **Processed At**: 2025-10-06T14:55:57.072Z
 
 **Full Content**:
 ```
-// app.js
-'use strict';
-/* eslint-disable no-unused-vars */
+pings":"AAGA;EACE;ECaA;EACA;EDZA;EACA;EACA,QE+WsB;EF9WtB;EACA,OEiCW;EFhCX,kBEwCY;EFvCZ,WE2XyB;;AFzXzB;EACE;EACA;EACA,YEyX0C;EFxX1C,YEsW0C;EFrW1C,cEsW4C;EFrW5C,eEsW6C;EFrW7C,aEsW2C;EFrW3C;AACA;EACA;;AAGF;EACE;EACA;EACA,WEgXoC;EF/WpC;EACA,cEyV4C;AFvV5C;EACA;;AAGF;EACE;EACA,WEuWqC;EFtWrC,WEuWqC;EFrWrC,YEkVsC;EFjVtC,cEkVwC;EFjVxC,eEkVyC;EFjVzC,aEkVuC;;AF9UzC;EACE;;AAGF;EACE;EACA;EACA;EACA;EACA,cEiUyC;;
+```
 
-const BUILDING_API_SPEC = process.env.GENERATING_HTTP_API_SPEC === '1';
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 32374,
+  "chunkSize": 1500,
+  "fileType": "Unknown",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 1,
+  "loc.lines.to": 1,
+  "processedAt": "2025-07-14T15:43:05.314Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "client/src/custom-overrides.css.map",
+  "totalChunks": 32395,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
 
-const path              = require('node:path');
-const AutoLoad          = require('@fastify/autoload');
-const fastifySensible   = require('@fastify/sensible');
-const fastifyCookie     = require('@fastify/cookie');
-const fastifySession    = require('@fastify/session');
-const RedisStore        = require('./redisStore');
-const redisPlugin       = require('./redisPlugin');
-const websocketPlugin   = require('./websocketPlugin');
-const loggingPlugin     = require('./logPlugin');
-const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
-const envPlugin         = require('./envPlugin');
-const diPlugin          = require('./diPlugin');
-const corsPlugin        = require('./corsPlugin');
-const helmet            = require('@fastify/helmet');
-const pubsubPlugin      = require('./pubsubPlugin');
-const eventDispatcher   = require('./eventDispatcher');
+---
 
-require('dotenv').config();
+### Chunk 8/12
+- **Source**: backend/cloud-sql-proxy
+- **Type**: Unknown
+- **Size**: 1465 characters
+- **Score**: N/A
+- **Repository**: https://github.com/anatolyZader/vc-3
+- **Branch**: amber
+- **File Type**: Unknown
+- **Processed At**: 2025-07-14T15:43:05.276Z
 
-module.exports = async function (fastify, opts) {
+**Full Content**:
+```
+�]D1ȉ�1���������Ed1�1�]@؉��   A�D��A�ǅ
+�'D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�AǋE|����������
+�]H1ȉ�1���������Eh1�1�]D؉��   A�D��A��8!.D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�AƋ��   ����������
+�]L1ȉ�1���������El1�1�]H؉��   A�D��A���m,MD����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�Aŋ��   ����������
+�]P1ȉ�1���������Ep1�1�]L؉��   A�D��A��8SD����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�Aċ��   ����������
+�]T1ȉ�1���������Et1�1�]P؉��   A�D��A��Ts
+eD����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�AË��   ����������
+�]X1ȉ�1���������Ex1�1�]T؉��   A�D��A�»
+jvD����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�A��   ����������
+�]\1ȉ�1���������E|1�1�]X؉��   A�D��A��.�D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�A����   ����������
+�]`1ȉ�1�����������   1�1�]\؉��   A�D��A���,r�D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�A����   ����������
+�]d1ȉ�1�����������   1�1�]`؉��   A�D��A�ǡ迢D����D����1�D����D!�1�D����A�D!�1�D�D��D����D��D!���D��D!�1�1�D��D����D!�1�1��A��A�Aǋ��   ����������
+```
 
-  fastify.addHook('onRoute', (routeOptions) => {
-    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');
-  });
+**Metadata**:
+```json
+{
+  "branch": "amber",
+  "chunkIndex": 10350,
+  "chunkSize": 1465,
+  "fileType": "Unknown",
+  "githubOwner": "anatolyZader",
+  "loc.lines.from": 14903,
+  "loc.lines.to": 14914,
+  "processedAt": "2025-07-14T15:43:05.276Z",
+  "processedBy": "AI-Service",
+  "repoId": "anatolyZader/vc-3",
+  "repoUrl": "https://github.com/anatolyZader/vc-3",
+  "repository": "https://github.com/anatolyZader/vc-3",
+  "source": "backend/cloud-sql-proxy",
+  "totalChunks": 32395,
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718"
+}
+```
 
-  await fastify.register(loggingPlugin);
-  await fastify.register(schemaLoaderPlugin);
-  await fastify.register(envPlugin);
-  await fastify.register(diPlugin);
-  await fastify.register(websocketPlugin);
-  await fastify.register(fastifySensible);
+---
 
-  await fastify.register(require('@fastify/multipart'), {
-    // Allow files up to 10MB (for voice recordings)
-    limits: {
-      fileSize: 10 * 1024 * 1024 // 10MB
-    }
-  });
-  
-  await fastify.register(eventDispatcher);
-  
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(pubsubPlugin);
-  }
-  
-  // Sets security-related HTTP headers automatically
-  await fastify.register(helmet, {
-    global: true,
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'], // Allows resources by default from the same origin ('self') and Google Identity Services.
-        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'], // Allows scripts to load only from your own site and from Google's GSI client.
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'], // Allows styles from your own site, inline styles ('unsafe-inline'), and Google's GSI style endpoint.
-        frameSrc: ["'self'", 'https://accounts.google.com/gsi/'], // Allows iframes only from your own site and Google Identity Services.
-        connectSrc: [  
-          "'self'", 
-          'https://accounts.google.com/gsi/',
-          // Add http for local development
-          ...(process.env.NODE_ENV !== 'staging' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
-        ], // Allows network connections to your own site, Google Identity Services, and (for non-staging environments) local development servers on ports 3000 and 5173.
-      },
-    },
-  });
+### Chunk 9/12
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 1026 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
 
-  await fastify.register(corsPlugin);
-  await fastify.register(require('./swaggerPlugin'));
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
 
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(redisPlugin);
-    fastify.redis.on('error', (err) => {
-      fastify.log.error({ err }, 'Redis client error');
-    });
-    fastify.log.info('⏳ Testing Redis connection with PING…');
-    try {
-      const pong = await fastify.redis.ping();
-      fastify.log.info(`✅ Redis PING response: ${pong}`);
-    } catch (err) {
-      fastify.log.error({ err }, '❌ Redis PING failed');
-    }
-  }
+---
 
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(
-      fastifyCookie,
-      {
-        secret: fastify.secrets.COOKIE_SECRET,
-        parseOptions: { 
-          secure: true, // Only send cookies over HTTPS.
-          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.
+## Architecture Patterns
+
+The `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:
+
+1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2.
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "chunkIndex": 0,
-  "chunkTokens": 993,
-  "filePath": "backend/app.js",
-  "fileSize": 11294,
-  "loaded_at": "2025-10-07T08:54:00.054Z",
+  "chunkIndex": 4,
+  "chunkTokens": 996,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-12T13-02-25-i-an-the-domain-driven-design.md",
+  "fileSize": 29123,
+  "loaded_at": "2025-10-06T14:55:57.072Z",
   "loading_method": "cloud_native_api",
-  "originalTokens": 2526,
+  "originalTokens": 9950,
   "priority": 50,
-  "processedAt": "2025-10-07T08:54:00.054Z",
+  "processedAt": "2025-10-06T14:55:57.072Z",
   "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "f7c539a092ef75ea456b3d1046579304d0a5df1c",
-  "size": 11294,
+  "sha": "35bdde6e0c243bbb0c9814964e2015914870553f",
+  "size": 29123,
   "source": "anatolyZader/vc-3",
-  "text": "// app.js\n'use strict';\n/* eslint-disable no-unused-vars */\n\nconst BUILDING_API_SPEC = process.env.GENERATING_HTTP_API_SPEC === '1';\n\nconst path              = require('node:path');\nconst AutoLoad          = require('@fastify/autoload');\nconst fastifySensible   = require('@fastify/sensible');\nconst fastifyCookie     = require('@fastify/cookie');\nconst fastifySession    = require('@fastify/session');\nconst RedisStore        = require('./redisStore');\nconst redisPlugin       = require('./redisPlugin');\nconst websocketPlugin   = require('./websocketPlugin');\nconst loggingPlugin     = require('./logPlugin');\nconst schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');\nconst envPlugin         = require('./envPlugin');\nconst diPlugin          = require('./diPlugin');\nconst corsPlugin        = require('./corsPlugin');\nconst helmet            = require('@fastify/helmet');\nconst pubsubPlugin      = require('./pubsubPlugin');\nconst eventDispatcher   = require('./eventDispatcher');\n\nrequire('dotenv').config();\n\nmodule.exports = async function (fastify, opts) {\n\n  fastify.addHook('onRoute', (routeOptions) => {\n    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');\n  });\n\n  await fastify.register(loggingPlugin);\n  await fastify.register(schemaLoaderPlugin);\n  await fastify.register(envPlugin);\n  await fastify.register(diPlugin);\n  await fastify.register(websocketPlugin);\n  await fastify.register(fastifySensible);\n\n  await fastify.register(require('@fastify/multipart'), {\n    // Allow files up to 10MB (for voice recordings)\n    limits: {\n      fileSize: 10 * 1024 * 1024 // 10MB\n    }\n  });\n  \n  await fastify.register(eventDispatcher);\n  \n  if (!BUILDING_API_SPEC) {\n    await fastify.register(pubsubPlugin);\n  }\n  \n  // Sets security-related HTTP headers automatically\n  await fastify.register(helmet, {\n    global: true,\n    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },\n    contentSecurityPolicy: {\n      directives: {\n        defaultSrc: [\"'self'\", 'https://accounts.google.com/gsi/'], // Allows resources by default from the same origin ('self') and Google Identity Services.\n        scriptSrc: [\"'self'\", 'https://accounts.google.com/gsi/client'], // Allows scripts to load only from your own site and from Google's GSI client.\n        styleSrc: [\"'self'\", \"'unsafe-inline'\", 'https://accounts.google.com/gsi/style'], // Allows styles from your own site, inline styles ('unsafe-inline'), and Google's GSI style endpoint.\n        frameSrc: [\"'self'\", 'https://accounts.google.com/gsi/'], // Allows iframes only from your own site and Google Identity Services.\n        connectSrc: [  \n          \"'self'\", \n          'https://accounts.google.com/gsi/',\n          // Add http for local development\n          ...(process.env.NODE_ENV !== 'staging' ? ['http://localhost:3000', 'http://localhost:5173'] : [])\n        ], // Allows network connections to your own site, Google Identity Services, and (for non-staging environments) local development servers on ports 3000 and 5173.\n      },\n    },\n  });\n\n  await fastify.register(corsPlugin);\n  await fastify.register(require('./swaggerPlugin'));\n\n  if (!BUILDING_API_SPEC) {\n    await fastify.register(redisPlugin);\n    fastify.redis.on('error', (err) => {\n      fastify.log.error({ err }, 'Redis client error');\n    });\n    fastify.log.info('⏳ Testing Redis connection with PING…');\n    try {\n      const pong = await fastify.redis.ping();\n      fastify.log.info(`✅ Redis PING response: ${pong}`);\n    } catch (err) {\n      fastify.log.error({ err }, '❌ Redis PING failed');\n    }\n  }\n\n  if (!BUILDING_API_SPEC) {\n    await fastify.register(\n      fastifyCookie,\n      {\n        secret: fastify.secrets.COOKIE_SECRET,\n        parseOptions: { \n          secure: true, // Only send cookies over HTTPS.\n          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.",
+  "text": "pings\":\"AAGA;EACE;ECaA;EACA;EDZA;EACA;EACA,QE+WsB;EF9WtB;EACA,OEiCW;EFhCX,kBEwCY;EFvCZ,WE2XyB;;AFzXzB;EACE;EACA;EACA,YEyX0C;EFxX1C,YEsW0C;EFrW1C,cEsW4C;EFrW5C,eEsW6C;EFrW7C,aEsW2C;EFrW3C;AACA;EACA;;AAGF;EACE;EACA;EACA,WEgXoC;EF/WpC;EACA,cEyV4C;AFvV5C;EACA;;AAGF;EACE;EACA,WEuWqC;EFtWrC,WEuWqC;EFrWrC,YEkVsC;EFjVtC,cEkVwC;EFjVxC,eEkVyC;EFjVzC,aEkVuC;;AF9UzC;EACE;;AAGF;EACE;EACA;EACA;EACA;EACA,cEiUyC;;\n```\n\n**Metadata**:\n```json\n{\n  \"branch\": \"amber\",\n  \"chunkIndex\": 32374,\n  \"chunkSize\": 1500,\n  \"fileType\": \"Unknown\",\n  \"githubOwner\": \"anatolyZader\",\n  \"loc.lines.from\": 1,\n  \"loc.lines.to\": 1,\n  \"processedAt\": \"2025-07-14T15:43:05.314Z\",\n  \"processedBy\": \"AI-Service\",\n  \"repoId\": \"anatolyZader/vc-3\",\n  \"repoUrl\": \"https://github.com/anatolyZader/vc-3\",\n  \"repository\": \"https://github.com/anatolyZader/vc-3\",\n  \"source\": \"client/src/custom-overrides.css.map\",\n  \"totalChunks\": 32395,\n  \"userId\": \"d41402df-182a-41ec-8f05-153118bf2718\"\n}\n```\n\n---\n\n### Chunk 8/12\n- **Source**: backend/cloud-sql-proxy\n- **Type**: Unknown\n- **Size**: 1465 characters\n- **Score**: N/A\n- **Repository**: https://github.com/anatolyZader/vc-3\n- **Branch**: amber\n- **File Type**: Unknown\n- **Processed At**: 2025-07-14T15:43:05.276Z\n\n**Full Content**:\n```\n�]D1ȉ�1���\u0007����\u0003��\u0012\u0003Ed1�1�\u0003]@\u0001؉��\u0000\u0000\u0000A\u0001�D��A�ǅ\n�'D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001ǋE|����\u0011����\u0013��\n�]H1ȉ�1���\u0007����\u0003��\u0012\u0003Eh1�1�\u0003]D\u0001؉��\u0000\u0000\u0000A\u0001�D��A��8!\u001b.D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001Ƌ��\u0000\u0000\u0000����\u0011����\u0013��\n�]L1ȉ�1���\u0007����\u0003��\u0012\u0003El1�1�\u0003]H\u0001؉��\u0000\u0000\u0000A\u0001�D��A���m,MD����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001ŋ��\u0000\u0000\u0000����\u0011����\u0013��\n�]P1ȉ�1���\u0007����\u0003��\u0012\u0003Ep1�1�\u0003]L\u0001؉��\u0000\u0000\u0000A\u0001�D��A��\u0013\r8SD����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001ċ��\u0000\u0000\u0000����\u0011����\u0013��\n�]T1ȉ�1���\u0007����\u0003��\u0012\u0003Et1�1�\u0003]P\u0001؉��\u0000\u0000\u0000A\u0001�D��A��Ts\neD����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001Ë��\u0000\u0000\u0000����\u0011����\u0013��\n�]X1ȉ�1���\u0007����\u0003��\u0012\u0003Ex1�1�\u0003]T\u0001؉��\u0000\u0000\u0000A\u0001�D��A�»\njvD����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001��\u0000\u0000\u0000����\u0011����\u0013��\n�]\\1ȉ�1���\u0007����\u0003��\u0012\u0003E|1�1�\u0003]X\u0001؉��\u0000\u0000\u0000A\u0001�D��A��.�D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001����\u0000\u0000\u0000����\u0011����\u0013��\n�]`1ȉ�1���\u0007����\u0003��\u0012\u0003��\u0000\u0000\u00001�1�\u0003]\\\u0001؉��\u0000\u0000\u0000A\u0001�D��A���,r�D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001����\u0000\u0000\u0000����\u0011����\u0013��\n�]d1ȉ�1���\u0007����\u0003��\u0012\u0003��\u0000\u0000\u00001�1�\u0003]`\u0001؉��\u0000\u0000\u0000A\u0001�D��A�ǡ迢D����\u0006D����\u000b1�D����\u0019D!�1�D����A\u0001�D!�1�D\u0001�D��D����\u0002D��D!���\rD��D!�1�1�D��D����\u0016D!�1�1�\u0001�A��A\u0001�A\u0001ǋ��\u0000\u0000\u0000����\u0011����\u0013��\n```\n\n**Metadata**:\n```json\n{\n  \"branch\": \"amber\",\n  \"chunkIndex\": 10350,\n  \"chunkSize\": 1465,\n  \"fileType\": \"Unknown\",\n  \"githubOwner\": \"anatolyZader\",\n  \"loc.lines.from\": 14903,\n  \"loc.lines.to\": 14914,\n  \"processedAt\": \"2025-07-14T15:43:05.276Z\",\n  \"processedBy\": \"AI-Service\",\n  \"repoId\": \"anatolyZader/vc-3\",\n  \"repoUrl\": \"https://github.com/anatolyZader/vc-3\",\n  \"repository\": \"https://github.com/anatolyZader/vc-3\",\n  \"source\": \"backend/cloud-sql-proxy\",\n  \"totalChunks\": 32395,\n  \"userId\": \"d41402df-182a-41ec-8f05-153118bf2718\"\n}\n```\n\n---\n\n### Chunk 9/12\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 1026 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Architecture Patterns\n\nThe `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:\n\n1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.\n\n2.",
   "type": "github-file",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 0,
-  "score": 0.529777527,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1715_1759827380162"
+  "workerId": 2,
+  "score": 0.343954116,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2567_1759762671381"
 }
 ```
 
@@ -503,46 +565,178 @@ module.exports = async function (fastify, opts) {
 ### Chunk 5/10
 - **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 95 characters
-- **Score**: 0.503562868
+- **Size**: 3998 characters
+- **Score**: 0.342664719
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-06T14:57:22.230Z
+- **Processed At**: 2025-10-06T14:56:05.832Z
 
 **Full Content**:
 ```
-// server.js
+iki generation, and AI integration. Each business module follows the Hexagonal Architecture pattern, with a clear separation of concerns between the domain, application, and infrastructure layers.
 
-'use strict';
-const appModule = require('./app'); 
+2. **AOP (Aspect-Oriented Programming) Modules**: These modules handle cross-cutting concerns, such as authentication and authorization, which are applied across multiple business modules. The AOP modules follow the Ports and Adapters pattern, allowing for the easy integration of different authentication and authorization mechanisms.
 
-module.exports = appModule;
+3. **Domain Layer**: This layer contains the core domain entities and the business logic that drives the application. It is independent of any technical implementation details and focuses on the problem domain.
+```
 
+**Metadata**:
+```json
+{
+  "chunkIndex": 17,
+  "chunkLength": 1018,
+  "contentHash": "f11b87b6",
+  "docType": "markdown",
+  "estimatedTokens": 255,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 25,
+  "loc.lines.to": 33,
+  "originalChunkLength": 990,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "test"
+  ],
+  "tokenCount": 255,
+  "type": "architecture_documentation"
+}
+```
 
+---
+
+### Chunk 18/21
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 1026 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Architecture Patterns
+
+The `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:
+
+1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
+
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 16,
+  "chunkLength": 1026,
+  "contentHash": "4f253799",
+  "docType": "markdown",
+  "estimatedTokens": 257,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 15,
+  "loc.lines.to": 23,
+  "originalChunkLength": 998,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "schema",
+    "test"
+  ],
+  "tokenCount": 257,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 19/21
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 143 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Integration Points
+
+The `eventstorm.me` application integrates with the following external services and systems:
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 26,
+  "chunkLength": 143,
+  "contentHash": "44ee4515",
+  "docType": "markdown",
+  "estimatedTokens": 36,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 91,
+  "loc.lines.to": 93,
+  "originalChunkLength": 115,
+  "priority": "high",
+  "retrievalPriority": 1,
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "filePath": "backend/server.js",
-  "fileSize": 95,
-  "loaded_at": "2025-10-06T14:57:22.230Z",
+  "chunkIndex": 11,
+  "chunkTokens": 1000,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-13T14-55-18-explain-how-chat-module-works.md",
+  "fileSize": 51542,
+  "loaded_at": "2025-10-06T14:56:05.832Z",
   "loading_method": "cloud_native_api",
+  "originalTokens": 13443,
   "priority": 50,
-  "processedAt": "2025-10-06T14:57:22.230Z",
+  "processedAt": "2025-10-06T14:56:05.832Z",
+  "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "1649e21853c59b485068fc4cb075b91efc52fb88",
-  "size": 95,
+  "sha": "189b72dc84fb7f601871620930bd1645fa0c33ab",
+  "size": 51542,
   "source": "anatolyZader/vc-3",
-  "text": "// server.js\n\n'use strict';\nconst appModule = require('./app'); \n\nmodule.exports = appModule;\n\n",
+  "text": "iki generation, and AI integration. Each business module follows the Hexagonal Architecture pattern, with a clear separation of concerns between the domain, application, and infrastructure layers.\n\n2. **AOP (Aspect-Oriented Programming) Modules**: These modules handle cross-cutting concerns, such as authentication and authorization, which are applied across multiple business modules. The AOP modules follow the Ports and Adapters pattern, allowing for the easy integration of different authentication and authorization mechanisms.\n\n3. **Domain Layer**: This layer contains the core domain entities and the business logic that drives the application. It is independent of any technical implementation details and focuses on the problem domain.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 17,\n  \"chunkLength\": 1018,\n  \"contentHash\": \"f11b87b6\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 255,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 25,\n  \"loc.lines.to\": 33,\n  \"originalChunkLength\": 990,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"test\"\n  ],\n  \"tokenCount\": 255,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 18/21\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 1026 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Architecture Patterns\n\nThe `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:\n\n1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.\n\n2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.\n\n3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 16,\n  \"chunkLength\": 1026,\n  \"contentHash\": \"4f253799\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 257,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 15,\n  \"loc.lines.to\": 23,\n  \"originalChunkLength\": 998,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"function\",\n    \"schema\",\n    \"test\"\n  ],\n  \"tokenCount\": 257,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 19/21\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 143 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Integration Points\n\nThe `eventstorm.me` application integrates with the following external services and systems:\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 26,\n  \"chunkLength\": 143,\n  \"contentHash\": \"44ee4515\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 36,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 91,\n  \"loc.lines.to\": 93,\n  \"originalChunkLength\": 115,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,",
   "type": "github-file",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 3,
-  "score": 0.503562868,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1956_1759762671380"
+  "workerId": 2,
+  "score": 0.342664719,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2881_1759762671381"
 }
 ```
 
@@ -551,316 +745,313 @@ module.exports = appModule;
 ### Chunk 6/10
 - **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 95 characters
-- **Score**: 0.501520157
+- **Size**: 3998 characters
+- **Score**: 0.341392517
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-07T08:55:48.696Z
+- **Processed At**: 2025-10-07T08:54:34.219Z
 
 **Full Content**:
 ```
-// server.js
+iki generation, and AI integration. Each business module follows the Hexagonal Architecture pattern, with a clear separation of concerns between the domain, application, and infrastructure layers.
 
-'use strict';
-const appModule = require('./app'); 
+2. **AOP (Aspect-Oriented Programming) Modules**: These modules handle cross-cutting concerns, such as authentication and authorization, which are applied across multiple business modules. The AOP modules follow the Ports and Adapters pattern, allowing for the easy integration of different authentication and authorization mechanisms.
 
-module.exports = appModule;
+3. **Domain Layer**: This layer contains the core domain entities and the business logic that drives the application. It is independent of any technical implementation details and focuses on the problem domain.
+```
 
+**Metadata**:
+```json
+{
+  "chunkIndex": 17,
+  "chunkLength": 1018,
+  "contentHash": "f11b87b6",
+  "docType": "markdown",
+  "estimatedTokens": 255,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 25,
+  "loc.lines.to": 33,
+  "originalChunkLength": 990,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "test"
+  ],
+  "tokenCount": 255,
+  "type": "architecture_documentation"
+}
+```
 
+---
+
+### Chunk 18/21
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 1026 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Architecture Patterns
+
+The `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:
+
+1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
+
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 16,
+  "chunkLength": 1026,
+  "contentHash": "4f253799",
+  "docType": "markdown",
+  "estimatedTokens": 257,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 15,
+  "loc.lines.to": 23,
+  "originalChunkLength": 998,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "schema",
+    "test"
+  ],
+  "tokenCount": 257,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 19/21
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 143 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Integration Points
+
+The `eventstorm.me` application integrates with the following external services and systems:
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 26,
+  "chunkLength": 143,
+  "contentHash": "44ee4515",
+  "docType": "markdown",
+  "estimatedTokens": 36,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 91,
+  "loc.lines.to": 93,
+  "originalChunkLength": 115,
+  "priority": "high",
+  "retrievalPriority": 1,
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "filePath": "backend/server.js",
-  "fileSize": 95,
-  "loaded_at": "2025-10-07T08:55:48.696Z",
+  "chunkIndex": 11,
+  "chunkTokens": 1000,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-13T14-55-18-explain-how-chat-module-works.md",
+  "fileSize": 51542,
+  "loaded_at": "2025-10-07T08:54:34.219Z",
   "loading_method": "cloud_native_api",
+  "originalTokens": 13443,
   "priority": 50,
-  "processedAt": "2025-10-07T08:55:48.696Z",
+  "processedAt": "2025-10-07T08:54:34.219Z",
+  "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "1649e21853c59b485068fc4cb075b91efc52fb88",
-  "size": 95,
+  "sha": "189b72dc84fb7f601871620930bd1645fa0c33ab",
+  "size": 51542,
   "source": "anatolyZader/vc-3",
-  "text": "// server.js\n\n'use strict';\nconst appModule = require('./app'); \n\nmodule.exports = appModule;\n\n",
+  "text": "iki generation, and AI integration. Each business module follows the Hexagonal Architecture pattern, with a clear separation of concerns between the domain, application, and infrastructure layers.\n\n2. **AOP (Aspect-Oriented Programming) Modules**: These modules handle cross-cutting concerns, such as authentication and authorization, which are applied across multiple business modules. The AOP modules follow the Ports and Adapters pattern, allowing for the easy integration of different authentication and authorization mechanisms.\n\n3. **Domain Layer**: This layer contains the core domain entities and the business logic that drives the application. It is independent of any technical implementation details and focuses on the problem domain.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 17,\n  \"chunkLength\": 1018,\n  \"contentHash\": \"f11b87b6\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 255,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 25,\n  \"loc.lines.to\": 33,\n  \"originalChunkLength\": 990,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"test\"\n  ],\n  \"tokenCount\": 255,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 18/21\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 1026 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Architecture Patterns\n\nThe `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:\n\n1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.\n\n2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.\n\n3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 16,\n  \"chunkLength\": 1026,\n  \"contentHash\": \"4f253799\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 257,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 15,\n  \"loc.lines.to\": 23,\n  \"originalChunkLength\": 998,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"function\",\n    \"schema\",\n    \"test\"\n  ],\n  \"tokenCount\": 257,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 19/21\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 143 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Integration Points\n\nThe `eventstorm.me` application integrates with the following external services and systems:\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 26,\n  \"chunkLength\": 143,\n  \"contentHash\": \"44ee4515\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 36,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 91,\n  \"loc.lines.to\": 93,\n  \"originalChunkLength\": 115,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,",
   "type": "github-file",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.501520157,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_703_1759827380161"
+  "workerId": 1,
+  "score": 0.341392517,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2879_1759827380163"
 }
 ```
 
 ---
 
 ### Chunk 7/10
-- **Source**: backend/ROOT_DOCUMENTATION.md
+- **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 1232 characters
-- **Score**: 0.460989
+- **Size**: 3979 characters
+- **Score**: 0.331827193
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-07T08:54:25.778Z
+
+**Full Content**:
+```
+o known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
+
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 16,
+  "chunkLength": 1026,
+  "contentHash": "4f253799",
+  "docType": "markdown",
+  "estimatedTokens": 257,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 15,
+  "loc.lines.to": 23,
+  "originalChunkLength": 998,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "schema",
+    "test"
+  ],
+  "tokenCount": 257,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 10/12
+- **Source**: httpApiSpec.json
+- **Type**: apiSpecInfo
+- **Size**: 91 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
 - **File Type**: N/A
 - **Processed At**: N/A
 
 **Full Content**:
 ```
-// SEMANTIC CONTEXT: MIDDLEWARE | LAYER: UNKNOWN | MODULE: AIMODULE | COMPLEXITY: LOW | ENTRYPOINT
-// FILE: backend/ROOT_DOCUMENTATION.md
-// MIDDLEWARE/INTERCEPTOR:
-// AI/RAG/LANGCHAIN FUNCTIONALITY
-
-// UBIQUITOUS LANGUAGE CONTEXT: Unknown module
-# Backend Application - Root Files & Plugins Documentation
-
-## Overview
-The backend application for EventStorm.me is built using the Fastify web framework. The application's core entry point is the `app.js` file, which initializes the Fastify server and registers various plugins that provide essential functionality. The `server.js` file is responsible for bootstrapping the application, while the `fastify.config.js` file contains the server configuration.
-
-The application also utilizes a plugin-based architecture, where different functionalities are encapsulated in separate plugin files. These plugins are registered and integrated into the main application, allowing for a modular and extensible design.
-
-// EXTRACTED DOCUMENTATION:
-// SEMANTIC CONTEXT: MIDDLEWARE | LAYER: UNKNOWN | MODULE: AIMODULE | COMPLEXITY: LOW | ENTRYPOINT
-// FILE: backend/ROOT_DOCUMENTATION.md
-// MIDDLEWARE/INTERCEPTOR:
-// AI/RAG/LANGCHAIN FUNCTIONALITY
-// UBIQUITOUS LANGUAGE CONTEXT: Unknown module
+API Info:
+Title: EventStorm.me API
+Description: EventStorm API Documentation
+Version: 1.0.0
 ```
 
 **Metadata**:
 ```json
 {
-  "batch_name": "Backend Directory (Specialized)",
-  "batch_priority": 2,
-  "batch_processed_at": "2025-10-06T15:02:14.744Z",
-  "branch": "main",
-  "chunk_index": 0,
-  "chunk_type": "markdown",
-  "commitAuthor": "anatolyZader",
-  "commitDate": "2025-10-06T14:44:14Z",
-  "commitHash": "c3086230b7c1f2ce05fb126ed74ad72b37d824df",
-  "commitSubject": "all namespaces removed except anatolyzader_vc-3",
-  "complexity": "low",
-  "enhanced": true,
-  "enhancement_timestamp": "2025-10-06T15:02:15.162Z",
-  "eventstorm_module": "aiModule",
-  "file_type": "markdown",
-  "githubOwner": "anatolyZader",
-  "is_entrypoint": true,
-  "layer": "unknown",
-  "loaded_at": "2025-10-06T15:02:14.745Z",
-  "loading_method": "batched_github_loader",
-  "loc.lines.from": 1,
-  "loc.lines.to": 7,
-  "repoName": "vc-3",
-  "repository": "anatolyZader/vc-3",
-  "repository_url": "https://github.com/anatolyZader/vc-3",
-  "semantic_role": "middleware",
-  "sha": "90e10752f2381bb7549e1e96004434f40fe2735e",
-  "size": 8826,
-  "source": "backend/ROOT_DOCUMENTATION.md",
-  "splitting_method": "markdown_aware",
-  "text": "// SEMANTIC CONTEXT: MIDDLEWARE | LAYER: UNKNOWN | MODULE: AIMODULE | COMPLEXITY: LOW | ENTRYPOINT\n// FILE: backend/ROOT_DOCUMENTATION.md\n// MIDDLEWARE/INTERCEPTOR:\n// AI/RAG/LANGCHAIN FUNCTIONALITY\n\n// UBIQUITOUS LANGUAGE CONTEXT: Unknown module\n# Backend Application - Root Files & Plugins Documentation\n\n## Overview\nThe backend application for EventStorm.me is built using the Fastify web framework. The application's core entry point is the `app.js` file, which initializes the Fastify server and registers various plugins that provide essential functionality. The `server.js` file is responsible for bootstrapping the application, while the `fastify.config.js` file contains the server configuration.\n\nThe application also utilizes a plugin-based architecture, where different functionalities are encapsulated in separate plugin files. These plugins are registered and integrated into the main application, allowing for a modular and extensible design.\n\n// EXTRACTED DOCUMENTATION:\n// SEMANTIC CONTEXT: MIDDLEWARE | LAYER: UNKNOWN | MODULE: AIMODULE | COMPLEXITY: LOW | ENTRYPOINT\n// FILE: backend/ROOT_DOCUMENTATION.md\n// MIDDLEWARE/INTERCEPTOR:\n// AI/RAG/LANGCHAIN FUNCTIONALITY\n// UBIQUITOUS LANGUAGE CONTEXT: Unknown module",
-  "total_chunks": 10,
-  "type": "github-file",
-  "ubiq_bounded_context": "Unknown Context",
-  "ubiq_business_module": "chat",
-  "ubiq_enhanced": true,
-  "ubiq_enhancement_timestamp": "2025-10-06T15:02:15.161Z",
-  "score": 0.460989,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_backend_ROOT_DOCUMENTATION_md_chunk_94_1759762937775"
+  "source": "httpApiSpec.json",
+  "type": "apiSpecInfo"
 }
 ```
 
 ---
 
-### Chunk 8/10
-- **Source**: backend/ROOT_DOCUMENTATION.md
-- **Type**: github-file
-- **Size**: 1232 characters
-- **Score**: 0.460208893
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
+### Chunk 11/12
+- **Source**: httpApiSpec.json
+- **Type**: apiSpecInfo
+- **Size**: 91 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
 - **File Type**: N/A
 - **Processed At**: N/A
 
 **Full Content**:
 ```
-// SEMANTIC CONTEXT: MIDDLEWARE | LAYER: UNKNOWN | MODULE: AIMODULE | COMPLEXITY: LOW | ENTRYPOINT
-// FILE: backend/ROOT_DOCUMENTATION.md
-// MIDDLEWARE/INTERCEPTOR:
-// AI/RAG/LANGCHAIN FUNCTIONALITY
-
-// UBIQUITOUS LANGUAGE CONTEXT: Unknown module
-# Backend Application - Root Files & Plugins Documentation
-
-## Overview
-The backend application for EventStorm.me is built using the Fastify web framework. The application's core entry point is the `app.js` file, which initializes the Fastify server and registers various plugins that provide essential functionality. The `server.js` file is responsible for bootstrapping the application, while the `fastify.config.js` file contains the server configuration.
-
-The application also utilizes a plugin-based architecture, where different functionalities are encapsulated in separate plugin files. These plugins are registered and integrated into the main application, allowing for a modular and extensible design.
-
-// EXTRACTED DOCUMENTATION:
-// SEMANTIC CONTEXT: MIDDLEWARE | LAYER: UNKNOWN | MODULE: AIMODULE | COMPLEXITY: LOW | ENTRYPOINT
-// FILE: backend/ROOT_DOCUMENTATION.md
-// MIDDLEWARE/INTERCEPTOR:
-// AI/RAG/LANGCHAIN FUNCTIONALITY
-// UBIQUITOUS LANGUAGE CONTEXT: Unknown module
+API Info:
+Title: EventStorm.me API
+Description: EventStorm API Documentation
+Version: 1.0.0
 ```
 
 **Metadata**:
 ```json
 {
-  "batch_name": "Backend Directory (Specialized)",
-  "batch_priority": 2,
-  "batch_processed_at": "2025-10-06T15:04:30.213Z",
-  "branch": "main",
-  "chunk_index": 0,
-  "chunk_type": "markdown",
-  "commitAuthor": "automated-fallback-processor",
-  "commitDate": "2025-10-06T15:02:38.085Z",
-  "commitHash": "fallback-1759762958085",
-  "commitSubject": "Direct API processing - no commit tracking",
-  "complexity": "low",
-  "enhanced": true,
-  "enhancement_timestamp": "2025-10-06T15:04:30.388Z",
-  "eventstorm_module": "aiModule",
-  "file_type": "markdown",
-  "githubOwner": "anatolyZader",
-  "is_entrypoint": true,
-  "layer": "unknown",
-  "loaded_at": "2025-10-06T15:04:30.214Z",
-  "loading_method": "batched_github_loader",
-  "loc.lines.from": 1,
-  "loc.lines.to": 7,
-  "repoName": "vc-3",
-  "repository": "anatolyZader/vc-3",
-  "repository_url": "https://github.com/anatolyZader/vc-3",
-  "semantic_role": "middleware",
-  "sha": "90e10752f2381bb7549e1e96004434f40fe2735e",
-  "size": 8826,
-  "source": "backend/ROOT_DOCUMENTATION.md",
-  "splitting_method": "markdown_aware",
-  "text": "// SEMANTIC CONTEXT: MIDDLEWARE | LAYER: UNKNOWN | MODULE: AIMODULE | COMPLEXITY: LOW | ENTRYPOINT\n// FILE: backend/ROOT_DOCUMENTATION.md\n// MIDDLEWARE/INTERCEPTOR:\n// AI/RAG/LANGCHAIN FUNCTIONALITY\n\n// UBIQUITOUS LANGUAGE CONTEXT: Unknown module\n# Backend Application - Root Files & Plugins Documentation\n\n## Overview\nThe backend application for EventStorm.me is built using the Fastify web framework. The application's core entry point is the `app.js` file, which initializes the Fastify server and registers various plugins that provide essential functionality. The `server.js` file is responsible for bootstrapping the application, while the `fastify.config.js` file contains the server configuration.\n\nThe application also utilizes a plugin-based architecture, where different functionalities are encapsulated in separate plugin files. These plugins are registered and integrated into the main application, allowing for a modular and extensible design.\n\n// EXTRACTED DOCUMENTATION:\n// SEMANTIC CONTEXT: MIDDLEWARE | LAYER: UNKNOWN | MODULE: AIMODULE | COMPLEXITY: LOW | ENTRYPOINT\n// FILE: backend/ROOT_DOCUMENTATION.md\n// MIDDLEWARE/INTERCEPTOR:\n// AI/RAG/LANGCHAIN FUNCTIONALITY\n// UBIQUITOUS LANGUAGE CONTEXT: Unknown module",
-  "total_chunks": 10,
-  "type": "github-file",
-  "ubiq_bounded_context": "Unknown Context",
-  "ubiq_business_module": "chat",
-  "ubiq_enhanced": true,
-  "ubiq_enhancement_timestamp": "2025-10-06T15:04:30.388Z",
-  "score": 0.460208893,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_backend_ROOT_DOCUMENTATION_md_chunk_94_1759763072885"
+  "source": "httpApiSpec.json",
+  "type": "apiSpecInfo"
 }
 ```
 
 ---
 
-### Chunk 9/10
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 199 characters
-- **Score**: 0.450141907
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
+### Chunk 12/12
+- **Source**: httpApiSpec.json
+- **Type**: apiSpecInfo
+- **Size**: 91 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
 - **File Type**: N/A
-- **Processed At**: 2025-10-07T08:54:49.132Z
+- **Processed At**: N/A
 
 **Full Content**:
 ```
-('Stack:', error.stack);
-  process.exit(1);
-});
-
-// Run the CLI if this file is executed directly
-if (require.main === module) {
-  const cli = new DocsCLI();
-  cli.run();
-}
-
-module.exports = DocsCLI;
+API Info:
+Title: EventStorm.me API
+Description: EventStorm API Documentation
+Version: 1.0.0
 ```
 
 **Metadata**:
 ```json
 {
-  "branch": "main",
-  "chunkIndex": 38,
-  "chunkTokens": 50,
-  "filePath": "backend/business_modules/docs/input/docsCli.js",
-  "fileSize": 9833,
-  "loaded_at": "2025-10-07T08:54:49.132Z",
-  "loading_method": "cloud_native_api",
-  "originalTokens": 2213,
-  "priority": 50,
-  "processedAt": "2025-10-07T08:54:49.132Z",
-  "rechunked": true,
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "0f7852d6fce518fe9113c1d14170ba8fdd28b134",
-  "size": 9833,
-  "source": "anatolyZader/vc-3",
-  "text": "('Stack:', error.stack);\n  process.exit(1);\n});\n\n// Run the CLI if this file is executed directly\nif (require.main === module) {\n  const cli = new DocsCLI();\n  cli.run();\n}\n\nmodule.exports = DocsCLI;",
-  "type": "github-file",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.450141907,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_396_1759827380160"
-}
-```
-
----
-
-### Chunk 10/10
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 199 characters
-- **Score**: 0.450130403
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-07T08:54:49.132Z
-
-**Full Content**:
-```
-('Stack:', error.stack);
-  process.exit(1);
-});
-
-// Run the CLI if this file is executed directly
-if (require.main === module) {
-  const cli = new DocsCLI();
-  cli.run();
-}
-
-module.exports = DocsCLI;
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "chunkIndex": 9,
-  "chunkTokens": 50,
-  "filePath": "backend/business_modules/docs/input/docsCli.js",
-  "fileSize": 9833,
-  "loaded_at": "2025-10-07T08:54:49.132Z",
-  "loading_method": "cloud_native_api",
-  "originalTokens": 2213,
-  "priority": 50,
-  "processedAt": "2025-10-07T08:54:49.132Z",
-  "rechunked": true,
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "0f7852d6fce518fe9113c1d14170ba8fdd28b134",
-  "size": 9833,
-  "source": "anatolyZader/vc-3",
-  "text": "('Stack:', error.stack);\n  process.exit(1);\n});\n\n// Run the CLI if this file is executed directly\nif (require.main === module) {\n  const cli = new DocsCLI();\n  cli.run();\n}\n\nmodule.exports = DocsCLI;",
-  "type": "github-file",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.450130403,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_367_1759827380160"
+  "source": "httpApiSpec.json",
+  "type": "apiSpecInfo"
 }
 ```
 
@@ -871,25 +1062,644 @@ module.exports = DocsCLI;
 
 ### Generated Response:
 **Status**: ✅ Generated Successfully
-**Response Length**: 753 characters
-**Generated At**: 2025-10-10T13:02:53.795Z
+**Response Length**: 1778 characters
+**Generated At**: 2025-09-12T12:59:41.317Z
 
 ### Response Content:
 ```markdown
-Unfortunately, I do not have access to the actual `app.js` file from the `anatolyZader/vc-3` code repository. The information provided in the `backend/ROOT_DOCUMENTATION.md` file gives a high-level overview of the `app.js` file, but does not include the specific code.
+Based on the provided information, the eventstorm.me application appears to be using the following Domain-Driven Design (DDD) tactical patterns:
 
-Without access to the actual source code, I cannot cite the first 10 lines of the `app.js` file. I can only provide information based on the context you have shared, which describes the purpose and role of the `app.js` file, but does not include the actual code.
+1. **Hexagonal Architecture (Ports and Adapters)**: The application is structured around the Hexagonal Architecture, which separates the core business logic from the technical implementation details. This is evident from the architecture documentation, which mentions the application follows a "modular and layered architecture, incorporating the Hexagonal Architecture (also known as the Ports and Adapters pattern)".
 
-If you are able to provide the `app.js` file or grant me access to the `anatolyZader/vc-3` repository, I would be happy to review the code and cite the first 10 lines. Please let me know if you have any other questions!
+2. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach is mentioned in the architecture documentation, which states that "The application is divided into multiple modules, each responsible for a specific set of functionalities."
+
+3. **Domain Model**: The application's domain model is the central focus, as indicated by the architecture documentation's mention of "Domain-Driven Design (DDD), where the "domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers."
+
+4.
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 5,
+  "chunkTokens": 995,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-12T13-02-25-i-an-the-domain-driven-design.md",
+  "fileSize": 29123,
+  "loaded_at": "2025-10-07T08:54:25.778Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 9950,
+  "priority": 50,
+  "processedAt": "2025-10-07T08:54:25.778Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "35bdde6e0c243bbb0c9814964e2015914870553f",
+  "size": 29123,
+  "source": "anatolyZader/vc-3",
+  "text": "o known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.\n\n2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.\n\n3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 16,\n  \"chunkLength\": 1026,\n  \"contentHash\": \"4f253799\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 257,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 15,\n  \"loc.lines.to\": 23,\n  \"originalChunkLength\": 998,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"function\",\n    \"schema\",\n    \"test\"\n  ],\n  \"tokenCount\": 257,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 10/12\n- **Source**: httpApiSpec.json\n- **Type**: apiSpecInfo\n- **Size**: 91 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nAPI Info:\nTitle: EventStorm.me API\nDescription: EventStorm API Documentation\nVersion: 1.0.0\n```\n\n**Metadata**:\n```json\n{\n  \"source\": \"httpApiSpec.json\",\n  \"type\": \"apiSpecInfo\"\n}\n```\n\n---\n\n### Chunk 11/12\n- **Source**: httpApiSpec.json\n- **Type**: apiSpecInfo\n- **Size**: 91 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nAPI Info:\nTitle: EventStorm.me API\nDescription: EventStorm API Documentation\nVersion: 1.0.0\n```\n\n**Metadata**:\n```json\n{\n  \"source\": \"httpApiSpec.json\",\n  \"type\": \"apiSpecInfo\"\n}\n```\n\n---\n\n### Chunk 12/12\n- **Source**: httpApiSpec.json\n- **Type**: apiSpecInfo\n- **Size**: 91 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nAPI Info:\nTitle: EventStorm.me API\nDescription: EventStorm API Documentation\nVersion: 1.0.0\n```\n\n**Metadata**:\n```json\n{\n  \"source\": \"httpApiSpec.json\",\n  \"type\": \"apiSpecInfo\"\n}\n```\n\n---\n\n\n## 🤖 AI Response Analysis\n\n### Generated Response:\n**Status**: ✅ Generated Successfully\n**Response Length**: 1778 characters\n**Generated At**: 2025-09-12T12:59:41.317Z\n\n### Response Content:\n```markdown\nBased on the provided information, the eventstorm.me application appears to be using the following Domain-Driven Design (DDD) tactical patterns:\n\n1. **Hexagonal Architecture (Ports and Adapters)**: The application is structured around the Hexagonal Architecture, which separates the core business logic from the technical implementation details. This is evident from the architecture documentation, which mentions the application follows a \"modular and layered architecture, incorporating the Hexagonal Architecture (also known as the Ports and Adapters pattern)\".\n\n2. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach is mentioned in the architecture documentation, which states that \"The application is divided into multiple modules, each responsible for a specific set of functionalities.\"\n\n3. **Domain Model**: The application's domain model is the central focus, as indicated by the architecture documentation's mention of \"Domain-Driven Design (DDD), where the \"domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers.\"\n\n4.",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 1,
+  "score": 0.331827193,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2566_1759827380162"
+}
+```
+
+---
+
+### Chunk 8/10
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 3979 characters
+- **Score**: 0.330703735
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-06T14:55:57.072Z
+
+**Full Content**:
+```
+o known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
+
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 16,
+  "chunkLength": 1026,
+  "contentHash": "4f253799",
+  "docType": "markdown",
+  "estimatedTokens": 257,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 15,
+  "loc.lines.to": 23,
+  "originalChunkLength": 998,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "schema",
+    "test"
+  ],
+  "tokenCount": 257,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 10/12
+- **Source**: httpApiSpec.json
+- **Type**: apiSpecInfo
+- **Size**: 91 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+API Info:
+Title: EventStorm.me API
+Description: EventStorm API Documentation
+Version: 1.0.0
+```
+
+**Metadata**:
+```json
+{
+  "source": "httpApiSpec.json",
+  "type": "apiSpecInfo"
+}
+```
+
+---
+
+### Chunk 11/12
+- **Source**: httpApiSpec.json
+- **Type**: apiSpecInfo
+- **Size**: 91 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+API Info:
+Title: EventStorm.me API
+Description: EventStorm API Documentation
+Version: 1.0.0
+```
+
+**Metadata**:
+```json
+{
+  "source": "httpApiSpec.json",
+  "type": "apiSpecInfo"
+}
+```
+
+---
+
+### Chunk 12/12
+- **Source**: httpApiSpec.json
+- **Type**: apiSpecInfo
+- **Size**: 91 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+API Info:
+Title: EventStorm.me API
+Description: EventStorm API Documentation
+Version: 1.0.0
+```
+
+**Metadata**:
+```json
+{
+  "source": "httpApiSpec.json",
+  "type": "apiSpecInfo"
+}
+```
+
+---
+
+
+## 🤖 AI Response Analysis
+
+### Generated Response:
+**Status**: ✅ Generated Successfully
+**Response Length**: 1778 characters
+**Generated At**: 2025-09-12T12:59:41.317Z
+
+### Response Content:
+```markdown
+Based on the provided information, the eventstorm.me application appears to be using the following Domain-Driven Design (DDD) tactical patterns:
+
+1. **Hexagonal Architecture (Ports and Adapters)**: The application is structured around the Hexagonal Architecture, which separates the core business logic from the technical implementation details. This is evident from the architecture documentation, which mentions the application follows a "modular and layered architecture, incorporating the Hexagonal Architecture (also known as the Ports and Adapters pattern)".
+
+2. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach is mentioned in the architecture documentation, which states that "The application is divided into multiple modules, each responsible for a specific set of functionalities."
+
+3. **Domain Model**: The application's domain model is the central focus, as indicated by the architecture documentation's mention of "Domain-Driven Design (DDD), where the "domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers."
+
+4.
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 5,
+  "chunkTokens": 995,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-12T13-02-25-i-an-the-domain-driven-design.md",
+  "fileSize": 29123,
+  "loaded_at": "2025-10-06T14:55:57.072Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 9950,
+  "priority": 50,
+  "processedAt": "2025-10-06T14:55:57.072Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "35bdde6e0c243bbb0c9814964e2015914870553f",
+  "size": 29123,
+  "source": "anatolyZader/vc-3",
+  "text": "o known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.\n\n2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.\n\n3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 16,\n  \"chunkLength\": 1026,\n  \"contentHash\": \"4f253799\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 257,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 15,\n  \"loc.lines.to\": 23,\n  \"originalChunkLength\": 998,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"function\",\n    \"schema\",\n    \"test\"\n  ],\n  \"tokenCount\": 257,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 10/12\n- **Source**: httpApiSpec.json\n- **Type**: apiSpecInfo\n- **Size**: 91 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nAPI Info:\nTitle: EventStorm.me API\nDescription: EventStorm API Documentation\nVersion: 1.0.0\n```\n\n**Metadata**:\n```json\n{\n  \"source\": \"httpApiSpec.json\",\n  \"type\": \"apiSpecInfo\"\n}\n```\n\n---\n\n### Chunk 11/12\n- **Source**: httpApiSpec.json\n- **Type**: apiSpecInfo\n- **Size**: 91 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nAPI Info:\nTitle: EventStorm.me API\nDescription: EventStorm API Documentation\nVersion: 1.0.0\n```\n\n**Metadata**:\n```json\n{\n  \"source\": \"httpApiSpec.json\",\n  \"type\": \"apiSpecInfo\"\n}\n```\n\n---\n\n### Chunk 12/12\n- **Source**: httpApiSpec.json\n- **Type**: apiSpecInfo\n- **Size**: 91 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nAPI Info:\nTitle: EventStorm.me API\nDescription: EventStorm API Documentation\nVersion: 1.0.0\n```\n\n**Metadata**:\n```json\n{\n  \"source\": \"httpApiSpec.json\",\n  \"type\": \"apiSpecInfo\"\n}\n```\n\n---\n\n\n## 🤖 AI Response Analysis\n\n### Generated Response:\n**Status**: ✅ Generated Successfully\n**Response Length**: 1778 characters\n**Generated At**: 2025-09-12T12:59:41.317Z\n\n### Response Content:\n```markdown\nBased on the provided information, the eventstorm.me application appears to be using the following Domain-Driven Design (DDD) tactical patterns:\n\n1. **Hexagonal Architecture (Ports and Adapters)**: The application is structured around the Hexagonal Architecture, which separates the core business logic from the technical implementation details. This is evident from the architecture documentation, which mentions the application follows a \"modular and layered architecture, incorporating the Hexagonal Architecture (also known as the Ports and Adapters pattern)\".\n\n2. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach is mentioned in the architecture documentation, which states that \"The application is divided into multiple modules, each responsible for a specific set of functionalities.\"\n\n3. **Domain Model**: The application's domain model is the central focus, as indicated by the architecture documentation's mention of \"Domain-Driven Design (DDD), where the \"domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers.\"\n\n4.",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 2,
+  "score": 0.330703735,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2568_1759762671381"
+}
+```
+
+---
+
+### Chunk 9/10
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 3995 characters
+- **Score**: 0.328668624
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-06T14:56:05.060Z
+
+**Full Content**:
+```
+HITECTURE.md",
+  "tags": [
+    "test"
+  ],
+  "tokenCount": 255,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 16/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 1026 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Architecture Patterns
+
+The `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:
+
+1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
+
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 16,
+  "chunkLength": 1026,
+  "contentHash": "4f253799",
+  "docType": "markdown",
+  "estimatedTokens": 257,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 15,
+  "loc.lines.to": 23,
+  "originalChunkLength": 998,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "schema",
+    "test"
+  ],
+  "tokenCount": 257,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 17/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 923 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Development Practices
+
+The `eventstorm.me` application follows these development practices:
+
+1. **Module Organization**: The application is organized into multiple modules, each responsible for a specific set of functionalities. This modular structure promotes code reuse, maintainability, and the ability to evolve the system independently.
+
+2. **Dependency Injection**: The application utilizes a dependency injection framework, such as Awilix, to manage the dependencies between the various components. This approach ensures loose coupling, testability, and the ability to easily swap out implementations.
+
+3. **Testing Approach**: The application has a comprehensive test suite, including unit tests, integration tests, and end-to-end tests. This testing strategy helps ensure the reliability and correctness of the application, as well as facilitating refactoring and future development.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 28,
+  "chunkLength": 923,
+  "contentHash": "64405c67",
+  "docType": "markdown",
+  "estimatedTokens": 231,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 101,
+  "loc.lines.to": 109,
+  "originalChunkLength": 895,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "test"
+  ],
+  "tokenCount": 231,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 18/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 10354 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+# Architecture Documentation
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 8,
+  "chunkTokens": 999,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-13T14-38-22-explain-in-details-how-eventd.md",
+  "fileSize": 55479,
+  "loaded_at": "2025-10-06T14:56:05.060Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 14302,
+  "priority": 50,
+  "processedAt": "2025-10-06T14:56:05.060Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5242a486ccae51255f8075005aff6f80e36b8d1b",
+  "size": 55479,
+  "source": "anatolyZader/vc-3",
+  "text": "HITECTURE.md\",\n  \"tags\": [\n    \"test\"\n  ],\n  \"tokenCount\": 255,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 16/22\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 1026 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Architecture Patterns\n\nThe `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:\n\n1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.\n\n2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.\n\n3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 16,\n  \"chunkLength\": 1026,\n  \"contentHash\": \"4f253799\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 257,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 15,\n  \"loc.lines.to\": 23,\n  \"originalChunkLength\": 998,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"function\",\n    \"schema\",\n    \"test\"\n  ],\n  \"tokenCount\": 257,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 17/22\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 923 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Development Practices\n\nThe `eventstorm.me` application follows these development practices:\n\n1. **Module Organization**: The application is organized into multiple modules, each responsible for a specific set of functionalities. This modular structure promotes code reuse, maintainability, and the ability to evolve the system independently.\n\n2. **Dependency Injection**: The application utilizes a dependency injection framework, such as Awilix, to manage the dependencies between the various components. This approach ensures loose coupling, testability, and the ability to easily swap out implementations.\n\n3. **Testing Approach**: The application has a comprehensive test suite, including unit tests, integration tests, and end-to-end tests. This testing strategy helps ensure the reliability and correctness of the application, as well as facilitating refactoring and future development.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 28,\n  \"chunkLength\": 923,\n  \"contentHash\": \"64405c67\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 231,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 101,\n  \"loc.lines.to\": 109,\n  \"originalChunkLength\": 895,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"function\",\n    \"test\"\n  ],\n  \"tokenCount\": 231,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 18/22\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 10354 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\n# Architecture Documentation",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 2,
+  "score": 0.328668624,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2827_1759762671381"
+}
+```
+
+---
+
+### Chunk 10/10
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 3995 characters
+- **Score**: 0.328571349
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-07T08:54:33.365Z
+
+**Full Content**:
+```
+HITECTURE.md",
+  "tags": [
+    "test"
+  ],
+  "tokenCount": 255,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 16/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 1026 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Architecture Patterns
+
+The `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:
+
+1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.
+
+2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.
+
+3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 16,
+  "chunkLength": 1026,
+  "contentHash": "4f253799",
+  "docType": "markdown",
+  "estimatedTokens": 257,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 15,
+  "loc.lines.to": 23,
+  "originalChunkLength": 998,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "schema",
+    "test"
+  ],
+  "tokenCount": 257,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 17/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 923 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+FILE: ARCHITECTURE.md
+
+---
+
+## Development Practices
+
+The `eventstorm.me` application follows these development practices:
+
+1. **Module Organization**: The application is organized into multiple modules, each responsible for a specific set of functionalities. This modular structure promotes code reuse, maintainability, and the ability to evolve the system independently.
+
+2. **Dependency Injection**: The application utilizes a dependency injection framework, such as Awilix, to manage the dependencies between the various components. This approach ensures loose coupling, testability, and the ability to easily swap out implementations.
+
+3. **Testing Approach**: The application has a comprehensive test suite, including unit tests, integration tests, and end-to-end tests. This testing strategy helps ensure the reliability and correctness of the application, as well as facilitating refactoring and future development.
+```
+
+**Metadata**:
+```json
+{
+  "chunkIndex": 28,
+  "chunkLength": 923,
+  "contentHash": "64405c67",
+  "docType": "markdown",
+  "estimatedTokens": 231,
+  "filePath": "ARCHITECTURE.md",
+  "hasSemanticAnchors": true,
+  "isApiSpec": false,
+  "isCodeChunk": false,
+  "isDocumentation": false,
+  "language": "markdown",
+  "loc.lines.from": 101,
+  "loc.lines.to": 109,
+  "originalChunkLength": 895,
+  "priority": "high",
+  "retrievalPriority": 1,
+  "source": "ARCHITECTURE.md",
+  "tags": [
+    "function",
+    "test"
+  ],
+  "tokenCount": 231,
+  "type": "architecture_documentation"
+}
+```
+
+---
+
+### Chunk 18/22
+- **Source**: ARCHITECTURE.md
+- **Type**: architecture_documentation
+- **Size**: 10354 characters
+- **Score**: N/A
+- **Repository**: N/A
+- **Branch**: N/A
+- **File Type**: N/A
+- **Processed At**: N/A
+
+**Full Content**:
+```
+# Architecture Documentation
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 8,
+  "chunkTokens": 999,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/langsmith/langsmith-archive/trace-2025-09-13T14-38-22-explain-in-details-how-eventd.md",
+  "fileSize": 55479,
+  "loaded_at": "2025-10-07T08:54:33.365Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 14302,
+  "priority": 50,
+  "processedAt": "2025-10-07T08:54:33.365Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5242a486ccae51255f8075005aff6f80e36b8d1b",
+  "size": 55479,
+  "source": "anatolyZader/vc-3",
+  "text": "HITECTURE.md\",\n  \"tags\": [\n    \"test\"\n  ],\n  \"tokenCount\": 255,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 16/22\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 1026 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Architecture Patterns\n\nThe `eventstorm.me` application follows a modular and layered architecture, incorporating the following design patterns and principles:\n\n1. **Hexagonal Architecture**: The application is structured around the Hexagonal Architecture (also known as the Ports and Adapters pattern), which separates the core business logic from the technical implementation details. This approach promotes flexibility, testability, and maintainability.\n\n2. **Domain-Driven Design (DDD)**: The application's domain model is the central focus, with a clear separation of concerns between the domain, application, and infrastructure layers. This ensures a strong alignment between the business requirements and the technical implementation.\n\n3. **Modular Structure**: The application is divided into multiple modules, each responsible for a specific set of functionalities. This modular approach allows for better scalability, maintainability, and the ability to evolve the system independently.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 16,\n  \"chunkLength\": 1026,\n  \"contentHash\": \"4f253799\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 257,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 15,\n  \"loc.lines.to\": 23,\n  \"originalChunkLength\": 998,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"function\",\n    \"schema\",\n    \"test\"\n  ],\n  \"tokenCount\": 257,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 17/22\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 923 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\nFILE: ARCHITECTURE.md\n\n---\n\n## Development Practices\n\nThe `eventstorm.me` application follows these development practices:\n\n1. **Module Organization**: The application is organized into multiple modules, each responsible for a specific set of functionalities. This modular structure promotes code reuse, maintainability, and the ability to evolve the system independently.\n\n2. **Dependency Injection**: The application utilizes a dependency injection framework, such as Awilix, to manage the dependencies between the various components. This approach ensures loose coupling, testability, and the ability to easily swap out implementations.\n\n3. **Testing Approach**: The application has a comprehensive test suite, including unit tests, integration tests, and end-to-end tests. This testing strategy helps ensure the reliability and correctness of the application, as well as facilitating refactoring and future development.\n```\n\n**Metadata**:\n```json\n{\n  \"chunkIndex\": 28,\n  \"chunkLength\": 923,\n  \"contentHash\": \"64405c67\",\n  \"docType\": \"markdown\",\n  \"estimatedTokens\": 231,\n  \"filePath\": \"ARCHITECTURE.md\",\n  \"hasSemanticAnchors\": true,\n  \"isApiSpec\": false,\n  \"isCodeChunk\": false,\n  \"isDocumentation\": false,\n  \"language\": \"markdown\",\n  \"loc.lines.from\": 101,\n  \"loc.lines.to\": 109,\n  \"originalChunkLength\": 895,\n  \"priority\": \"high\",\n  \"retrievalPriority\": 1,\n  \"source\": \"ARCHITECTURE.md\",\n  \"tags\": [\n    \"function\",\n    \"test\"\n  ],\n  \"tokenCount\": 231,\n  \"type\": \"architecture_documentation\"\n}\n```\n\n---\n\n### Chunk 18/22\n- **Source**: ARCHITECTURE.md\n- **Type**: architecture_documentation\n- **Size**: 10354 characters\n- **Score**: N/A\n- **Repository**: N/A\n- **Branch**: N/A\n- **File Type**: N/A\n- **Processed At**: N/A\n\n**Full Content**:\n```\n# Architecture Documentation",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 1,
+  "score": 0.328571349,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2825_1759827380163"
+}
+```
+
+---
+
+
+## 🤖 AI Response Analysis
+
+### Generated Response:
+**Status**: ✅ Generated Successfully
+**Response Length**: 2622 characters
+**Generated At**: 2025-10-17T13:12:07.335Z
+
+### Response Content:
+```markdown
+Based on the provided architectural information, here are some potential weaknesses or areas for improvement in the application's architecture:
+
+1. **Complexity Management**: While the modular and layered architecture provides benefits, it also introduces additional complexity that needs to be carefully managed. As the application grows, the number of modules and their interdependencies can increase, making the overall system more difficult to understand, maintain, and evolve.
+
+2. **Performance Considerations**: The clear separation of concerns and layered architecture may introduce some performance overhead, especially if there are many interactions between the different layers and modules. This could be a concern for time-sensitive or high-throughput use cases.
+
+3. **Testability Challenges**: While the Hexagonal Architecture and modular structure promote testability, the complexity of the overall system and the need to test the integration between modules can still present challenges. Ensuring comprehensive and efficient testing across the different layers and modules may require additional effort.
+
+4. **Deployment Complexity**: The modular architecture may introduce additional complexity in the deployment process, as individual modules or components may need to be deployed independently or in a specific order. This could make the overall deployment process more challenging to manage, especially in production environments.
+
+5. **Skill and Knowledge Requirements**: The architectural patterns used, such as Hexagonal Architecture and DDD, require specialized knowledge and skills from the development team. Onboarding new team members or maintaining a consistent understanding of the architecture across the team may be more challenging.
+
+6. **Tooling and Infrastructure Overhead**: The architectural patterns and principles employed may require additional tooling, infrastructure, and setup complexity, which could increase the overall cost and effort required to maintain the application.
+
+7. **Scalability Limitations**: While the modular architecture provides some scalability benefits, there may be limitations in scaling certain modules or components, especially if they have tight dependencies or resource constraints.
+
+It's important to note that these potential weaknesses are not necessarily inherent to the architectural patterns used, but rather depend on the specific implementation, the application's requirements, and the team's ability to manage the complexity effectively. Careful planning, design, and ongoing monitoring and optimization can help mitigate these potential issues.
 ```
 
 ### Response Quality Assessment:
-- **Relevance to Query**: HIGH - Directly addresses query terms
-- **Use of Context**: EXCELLENT - Explicitly references source files
+- **Relevance to Query**: MEDIUM - Partially addresses query
+- **Use of Context**: MEDIUM - Implicit context usage
 - **Response Completeness**: GOOD - Structured with adequate detail
 
 ### Key Response Elements:
-- **File References**: 6 specific files mentioned
+- **Structured Lists**: 7 numbered points
 
 ---
 
@@ -897,15 +1707,15 @@ If you are able to provide the `app.js` file or grant me access to the `anatolyZ
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 3623ms
+- **Query Processing Time**: 5357ms
 - **Documents Retrieved**: 10
-- **Unique Sources**: 2
-- **Average Chunk Size**: 1400 characters
+- **Unique Sources**: 1
+- **Average Chunk Size**: 3753 characters
 
 ### Context Quality:
 - **Relevance Score**: HIGH (10 relevant chunks found)
-- **Diversity Score**: GOOD (2 unique sources)
-- **Completeness Score**: HIGH (14,002 total characters)
+- **Diversity Score**: LOW (1 unique sources)
+- **Completeness Score**: HIGH (37,532 total characters)
 
 ### LangSmith Integration:
 - **Tracing Status**: ✅ Active
@@ -915,8 +1725,7 @@ If you are able to provide the `app.js` file or grant me access to the `anatolyZ
 ## 🔍 Source Analysis
 
 ### Most Frequent Sources:
-- **anatolyZader/vc-3**: 6 chunks
-- **backend/ROOT_DOCUMENTATION.md**: 4 chunks
+- **anatolyZader/vc-3**: 10 chunks
 
 ### Repository Coverage:
 - anatolyZader/vc-3
@@ -925,13 +1734,13 @@ If you are able to provide the `app.js` file or grant me access to the `anatolyZ
 
 - **Query Type**: General/Conversational
 - **Domain Focus**: General Application
-- **Technical Complexity**: High
+- **Technical Complexity**: Medium
 - **Expected Response Type**: General
 
 ## 🚀 Recommendations
 
-- **Excellent Performance**: RAG pipeline is performing optimally
-- **Continue Monitoring**: Maintain current configuration and observe trends
+- **Optimize Query Performance**: Query took over 5 seconds, consider caching or index optimization
+- **Increase Source Diversity**: All chunks from same source, consider broader indexing
 
 ## ✨ Conclusion
 
@@ -944,7 +1753,7 @@ This comprehensive LangSmith trace demonstrates excellent RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-10-10T13:02:53.796Z  
+**Generated**: 2025-10-17T13:12:07.336Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true

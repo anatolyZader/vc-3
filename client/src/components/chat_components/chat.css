@@ -215,6 +215,30 @@ body.resizing {
   border: 1px solid #e9ecef !important;
 }
 
+/* CRITICAL: Override default @chatscope styles for lists and paragraphs in AI messages */
+.cs-message--incoming .cs-message__content ul,
+.cs-message--incoming .cs-message__content ol {
+  margin: 0.2em 0 !important;
+  padding-left: 1.2em !important;
+}
+
+.cs-message--incoming .cs-message__content li {
+  margin: 0.05em 0 !important;
+  line-height: 1.4 !important;
+}
+
+.cs-message--incoming .cs-message__content p {
+  margin: 0.2em 0 !important;
+}
+
+.cs-message--incoming .cs-message__content p:first-child {
+  margin-top: 0 !important;
+}
+
+.cs-message--incoming .cs-message__content p:last-child {
+  margin-bottom: 0 !important;
+}
+
 .conversations-list {
   padding: 10px 0;
 }

@@ -1,0 +1,93 @@
+/* forceCompactStyles.css - Nuclear option to override all spacing */
+
+/* Target all possible @chatscope combinations with maximum specificity */
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content .compact-final-content p,
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content .markdown-transition p,
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content p,
+.cs-message--incoming .cs-message__content .compact-final-content p,
+.cs-message--incoming .cs-message__content .markdown-transition p,
+.cs-message--incoming .cs-message__content p,
+.compact-final-content p,
+.markdown-transition p,
+.ai-message p {
+  margin: 0.2em 0 !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content .compact-final-content ul,
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content .markdown-transition ul,
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content ul,
+.cs-message--incoming .cs-message__content .compact-final-content ul,
+.cs-message--incoming .cs-message__content .markdown-transition ul,
+.cs-message--incoming .cs-message__content ul,
+.compact-final-content ul,
+.markdown-transition ul,
+.ai-message ul {
+  margin: 0.2em 0 !important;
+  padding-left: 1.5em !important;
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+  display: block !important;
+}
+
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content .compact-final-content ol,
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content .markdown-transition ol,
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content ol,
+.cs-message--incoming .cs-message__content .compact-final-content ol,
+.cs-message--incoming .cs-message__content .markdown-transition ol,
+.cs-message--incoming .cs-message__content ol,
+.compact-final-content ol,
+.markdown-transition ol,
+.ai-message ol {
+  margin: 0.2em 0 !important;
+  padding-left: 1.5em !important;
+  list-style-position: outside !important;
+  display: block !important;
+}
+
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content .compact-final-content li,
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content .markdown-transition li,
+.cs-main-container .cs-chat-container .cs-conversation-container .cs-message-list .cs-message-group .cs-message--incoming .cs-message__content li,
+.cs-message--incoming .cs-message__content .compact-final-content li,
+.cs-message--incoming .cs-message__content .markdown-transition li,
+.cs-message--incoming .cs-message__content li,
+.compact-final-content li,
+.markdown-transition li,
+.ai-message li {
+  margin: 0.05em 0 !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+  display: list-item !important;
+  list-style-position: outside !important;
+  text-align: left !important;
+}
+
+/* First and last child overrides */
+.compact-final-content p:first-child,
+.markdown-transition p:first-child,
+.ai-message p:first-child {
+  margin-top: 0 !important;
+}
+
+.compact-final-content p:last-child,
+.markdown-transition p:last-child,
+.ai-message p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* CRITICAL: Prevent message bubble container from expanding/stretching */
+.cs-message--incoming .cs-message__content,
+.cs-message__content,
+.message-content,
+.animated-content-wrapper,
+.compact-final-content,
+.markdown-transition {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  /* Prevent any container stretching that would affect spacing proportionally */
+  min-height: auto !important;
+  height: auto !important;
+}
