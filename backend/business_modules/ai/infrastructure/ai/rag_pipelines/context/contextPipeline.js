@@ -7,6 +7,7 @@ const PineconePlugin = require('./embedding/pineconePlugin');
 const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
 const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
 const CodePreprocessor = require('./processors/codePreprocessor');
+const TextPreprocessor = require('./processors/textPreprocessor');
 const ApiSpecProcessor = require('./processors/apiSpecProcessor');
 const DocsProcessor = require('./processors/docsProcessor');
 const GitHubOperations = require('./loading/githubOperations');
@@ -61,6 +62,7 @@ class ContextPipeline {
     });
     
     this.semanticPreprocessor = new SemanticPreprocessor();
+    this.textPreprocessor = new TextPreprocessor();
     
     this.apiSpecProcessor = new ApiSpecProcessor({
       embeddings: this.embeddings,
@@ -222,20 +224,43 @@ class ContextPipeline {
   }
 
   async processMarkdownDocument(document) {
-    // Step 1: Enhance document with ubiquitous language context before processing
-    const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
-    
-    // Step 2: Apply markdown/documentation-specific splitting
+    // Mirror structure of other document-type processors (per-document only)
+    console.log(`[${new Date().toISOString()}] 📝 MARKDOWN: Processing individual markdown document: ${document.metadata?.source || 'unknown'}`);
+
+    // Step 1: Apply TextPreprocessor for advanced markdown normalization and enhancement
+    const filePath = document.metadata?.source || 'unknown.md';
+    const preprocessedResult = await this.textPreprocessor.preprocessTextFile(
+      document.pageContent,
+      filePath,
+      document.metadata || {}
+    );
+
+    // Create enhanced document with preprocessed content and metadata
+    const preprocessedDocument = {
+      pageContent: preprocessedResult.content,
+      metadata: {
+        ...document.metadata,
+        ...preprocessedResult.metadata,
+        preprocessingApplied: preprocessedResult.preprocessingApplied
+      }
+    };
+
+    // Step 2: Enhance document with ubiquitous language context
+    const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(preprocessedDocument);
+
+    // Step 3: Apply markdown/documentation-specific splitting
     const docs = [ubiquitousEnhanced];
     const splitDocs = await this.docsProcessor.splitMarkdownDocuments(docs);
-    
-    // Step 3: Apply semantic preprocessing to each chunk
+
+    // Step 4: Apply semantic preprocessing to each chunk
     const enhancedChunks = [];
     for (const chunk of splitDocs) {
       const enhanced = await this.semanticPreprocessor.preprocessChunk(chunk);
       enhancedChunks.push(enhanced);
     }
-    
+
+    console.log(`[${new Date().toISOString()}] ✅ MARKDOWN: Processing completed - ${enhancedChunks.length} enhanced chunks ready`);
+
     return enhancedChunks;
   }
 

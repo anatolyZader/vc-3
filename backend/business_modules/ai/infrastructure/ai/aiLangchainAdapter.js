@@ -110,6 +110,8 @@ class AILangchainAdapter extends IAIPort {
       });
       console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline initialized with embedded Pinecone services.`);
 
+  // System documentation is processed via the normal docs pipeline when triggered
+
       // Initialize QueryPipeline for basic functionality (will be enhanced when userId is set)
       this.queryPipeline = new QueryPipeline({  
         embeddings: this.embeddings,
@@ -338,6 +340,12 @@ class AILangchainAdapter extends IAIPort {
       console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
     }
   }
+
+  /**
+   * Manually trigger system documentation processing
+   * Useful for refreshing documentation or debugging
+   */
+  // (No manual system documentation startup here; the DocsProcessor can be invoked where appropriate.)
 }
 
 module.exports = AILangchainAdapter;
