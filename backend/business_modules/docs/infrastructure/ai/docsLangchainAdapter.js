@@ -111,8 +111,10 @@ class DocsLangchainAdapter extends IDocsAiPort {
       // Initialize vector store directly - adapter owns the vector store lifecycle (matching AI module)
       if (process.env.PINECONE_API_KEY && this.pineconeService) {
         // Adapter owns and manages the vector store
-        this.vectorStore = await this.pineconeService.createVectorStore(this.embeddings, this.userId);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId}`);
+        // Use repository-specific namespace format that matches actual document storage (exact match to AI module)
+        const repositoryNamespace = `${this.userId}_anatolyzader_vc-3`;
+        this.vectorStore = await this.pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId} with namespace: ${repositoryNamespace}`);
       } else {
         console.warn(`[${new Date().toISOString()}] Missing Pinecone API key or service - vector store not initialized`);
         this.vectorStore = null;
@@ -179,7 +181,9 @@ class DocsLangchainAdapter extends IDocsAiPort {
     }
     
     try {
-      const businessModulesPath = path.resolve(__dirname, '../../../../business_modules');
+  const businessModulesPath = path.resolve(__dirname, '../../../../business_modules');
+  // Also determine repository root (one level above backend) to find root-level files like ARCHITECTURE.ms
+  const repoRootPath = path.resolve(__dirname, '../../../../..');
       console.log(`[docsLangchainAdapter] Loading files from: ${businessModulesPath}`);
 
       const loader = new DirectoryLoader(
@@ -191,11 +195,28 @@ class DocsLangchainAdapter extends IDocsAiPort {
         true // recursive
       );
 
-      const docs = await loader.load();
-      console.log(`[docsLangchainAdapter] Loaded ${docs.length} documents.`);
+      let docs = await loader.load();
+      console.log(`[docsLangchainAdapter] Loaded ${docs.length} documents from business_modules.`);
+
+      // Attempt to include repository-root architecture.md file
+      const archCandidates = ['ARCHITECTURE.md', 'architecture.md'];
+      for (const candidate of archCandidates) {
+        try {
+          const archPath = path.join(repoRootPath, candidate);
+          await fs.access(archPath);
+          const archContent = await fs.readFile(archPath, 'utf8');
+          // Create a langchain-style document object so the splitter can handle it
+          docs.push({ pageContent: archContent, metadata: { source: archPath } });
+          console.log(`[docsLangchainAdapter] Included repository architecture file for indexing: ${archPath} (${archContent.length} chars)`);
+          this.emitRagStatus('included_architecture_file', { path: archPath, chars: archContent.length, userId });
+          break; // include first match only
+        } catch (err) {
+          // Not found, keep trying other candidate names
+        }
+      }
       this.emitRagStatus('loaded', { message: `Loaded ${docs.length} documents.`, count: docs.length, userId });
 
-      const splitter = this.createSmartSplitter(docs);
+  const splitter = this.createSmartSplitter(docs);
 
       const splits = await splitter.splitDocuments(docs);
       console.log(`[docsLangchainAdapter] Created ${splits.length} document splits.`);
@@ -212,8 +233,9 @@ class DocsLangchainAdapter extends IDocsAiPort {
       }
 
       // Use the userId-based vector store for consistent namespacing (matching AI module)
+      const repositoryNamespace = `${userId}_anatolyzader_vc-3`;
       await this.pineconeService.upsertDocuments(splits, this.embeddings, {
-        namespace: userId, // Use userId-based namespace for proper isolation
+        namespace: repositoryNamespace, // Use repository-specific namespace to match AI module
         batchSize: 100,
         onProgress: (processed, total) => {
           console.log(`[docsLangchainAdapter] Progress: ${processed}/${total} documents processed`);
@@ -267,18 +289,30 @@ class DocsLangchainAdapter extends IDocsAiPort {
     
     try {
         // Load ARCHITECTURE.md for context
+        // Search for architecture.md file in backend root first, then repo root
         const backendRootPath = path.resolve(__dirname, '../../../../');
+        const repoRootPath = path.resolve(__dirname, '../../../../..');
         let architectureContent = '';
-        try {
-          const architecturePath = path.join(backendRootPath, 'ARCHITECTURE.md');
-          architectureContent = await fs.readFile(architecturePath, 'utf8');
-          console.log(`[docsLangchainAdapter] Loaded ARCHITECTURE.md for context (${architectureContent.length} chars)`);
-        } catch (error) {
-          console.log(`[docsLangchainAdapter] Could not load ARCHITECTURE.md: ${error.message}`);
+        const archCandidates = ['ARCHITECTURE.md', 'architecture.md'];
+        for (const basePath of [backendRootPath, repoRootPath]) {
+          for (const candidate of archCandidates) {
+            try {
+              const architecturePath = path.join(basePath, candidate);
+              await fs.access(architecturePath);
+              architectureContent = await fs.readFile(architecturePath, 'utf8');
+              console.log(`[docsLangchainAdapter] Loaded ${candidate} for context from ${basePath} (${architectureContent.length} chars)`);
+              // stop searching once found
+              break;
+            } catch (error) {
+              // continue searching
+            }
+          }
+          if (architectureContent) break;
         }
         console.log(`[docsLangchainAdapter] Using vector store for module: ${moduleName}`);
-        // Use the existing userId-based vector store (matching AI module)
-        const vectorStore = this.vectorStore || await this.pineconeService.createVectorStore(this.embeddings, this.userId);
+        // Use the existing repository-specific vector store (matching AI module)
+        const repositoryNamespace = `${this.userId}_anatolyzader_vc-3`;
+        const vectorStore = this.vectorStore || await this.pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
         console.log(`[docsLangchainAdapter] Vector store ready for module: ${moduleName}`);
 
         // Monitor memory before similarity search
@@ -421,8 +455,9 @@ class DocsLangchainAdapter extends IDocsAiPort {
       const backendRootPath = path.resolve(__dirname, '../../../../');
       console.log(`[docsLangchainAdapter] Backend root path: ${backendRootPath}`);
 
-      // Use the existing userId-based vector store (matching AI module)
-      const vectorStore = this.vectorStore || await this.pineconeService.createVectorStore(this.embeddings, this.userId);
+      // Use the existing repository-specific vector store (matching AI module)
+      const repositoryNamespace = `${this.userId}_anatolyzader_vc-3`;
+      const vectorStore = this.vectorStore || await this.pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
 
       // Define root files to document
       const rootFiles = [
@@ -691,8 +726,9 @@ Generate comprehensive, well-structured documentation that helps developers unde
     try {
       const backendRootPath = path.resolve(__dirname, '../../../../');
       
-      // Initialize Pinecone components
-      const vectorStore = await this.pineconeService.createVectorStore(this.embeddings);
+      // Initialize Pinecone components with repository-specific namespace
+      const repositoryNamespace = `${userId}_anatolyzader_vc-3`;
+      const vectorStore = await this.pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
 
       this.emitRagStatus('generating_architecture_doc', { 
         message: `${isUpdating ? 'Updating' : 'Generating'} overall application architecture documentation...`, 
@@ -890,7 +926,7 @@ Focus on both the technical implementation and the business value delivered by e
       if (['js', 'jsx', 'ts', 'tsx'].includes(extension)) languageCount.javascript = (languageCount.javascript || 0) + 1;
     });
     const predominantLanguage = Object.keys(languageCount).length > 0 ? 'javascript' : 'text';
-    console.log(`Using {predominantLanguage} code splitter for document processing.`);
+    console.log(`Using ${predominantLanguage} code splitter for document processing.`);
     if (predominantLanguage === 'javascript') {
         return RecursiveCharacterTextSplitter.fromLanguage("js", { chunkSize, chunkOverlap });
     }
