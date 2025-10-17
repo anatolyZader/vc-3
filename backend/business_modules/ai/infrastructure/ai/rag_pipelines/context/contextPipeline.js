@@ -187,28 +187,22 @@ class ContextPipeline {
   //--------------------------------------------------
   
   async processCodeDocument(document) {
-    console.log(`[${new Date().toISOString()}] 🚀 Starting code document processing pipeline`);
+    // Code document processing - removed per-step logging for performance
+    console.log(`[${new Date().toISOString()}] � Processing code document: ${document.metadata?.source || 'unknown'}`);
     
-    // Step 1: Code preprocessing - Clean code (strip markdown, remove imports, process comments, remove boilerplate, remove logs, normalize encoding)
-    console.log(`[${new Date().toISOString()}] 🔧 Step 1: Code preprocessing`);
+    // Apply processing steps efficiently
     const preprocessedDocument = await this.codePreprocessor.preprocessCodeDocument(document, {
       excludeImportsFromChunking: true,
       preserveDocComments: true,
       removeLogStatements: true,
-      preserveErrorLogs: true,  // Keep error logs for context
-      preserveWarnLogs: false,  // Remove warning logs
-      addStructuralMarkers: false // Keep code clean for execution
+      preserveErrorLogs: true,
+      preserveWarnLogs: false,
+      addStructuralMarkers: false
     });
     
-    // Step 2: Enhance document with ubiquitous language context
-    console.log(`[${new Date().toISOString()}] 📚 Step 2: Ubiquitous language enhancement`);
     const ubiquitousEnhanced = await this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(preprocessedDocument);
-    
-    // Step 3: Apply AST-based code splitting 
-    console.log(`[${new Date().toISOString()}] ✂️ Step 3: AST-based code splitting`);
     const rawChunks = this.astCodeSplitter.split(ubiquitousEnhanced.pageContent || ubiquitousEnhanced.content || '', ubiquitousEnhanced.metadata || {});
     
-    // Convert to document format expected by the pipeline
     const chunks = rawChunks.map(chunk => ({
       pageContent: chunk.pageContent,
       metadata: {
@@ -217,19 +211,13 @@ class ContextPipeline {
       }
     }));
     
-    console.log(`[${new Date().toISOString()}] 📦 Initial chunks: ${rawChunks.length}`);
-    console.log(`[${new Date().toISOString()}] 🔧 Optimized chunks: ${chunks.length}`);
-    console.log(`[${new Date().toISOString()}] ✅ Final chunks: ${chunks.length}`);
-    
-    // Step 4: Apply semantic preprocessing to each chunk
-    console.log(`[${new Date().toISOString()}] 🧠 Step 4: Semantic preprocessing (${chunks.length} chunks)`);
     const enhancedChunks = [];
     for (const chunk of chunks) {
       const enhanced = await this.semanticPreprocessor.preprocessChunk(chunk);
       enhancedChunks.push(enhanced);
     }
     
-    console.log(`[${new Date().toISOString()}] ✅ Code document processing completed: ${enhancedChunks.length} enhanced chunks`);
+    console.log(`[${new Date().toISOString()}] ✅ Code document completed: ${enhancedChunks.length} chunks`);
     return enhancedChunks;
   }
 

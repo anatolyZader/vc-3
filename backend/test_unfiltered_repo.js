@@ -88,14 +88,6 @@ async function testUnfilteredRepository() {
         return dir === 'root' ? !source.includes('/') : source.startsWith(dir + '/');
       });
       console.log(`  📁 ${dir}/: ${filesInDir.length} files`);
-      
-      // Show some examples
-      if (filesInDir.length <= 5) {
-        filesInDir.forEach(file => console.log(`    - ${file.metadata.source}`));
-      } else {
-        filesInDir.slice(0, 3).forEach(file => console.log(`    - ${file.metadata.source}`));
-        console.log(`    ... and ${filesInDir.length - 3} more`);
-      }
     });
     
     console.log('\n📄 FILE TYPES:');

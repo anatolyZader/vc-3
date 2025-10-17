@@ -253,6 +253,64 @@ class ASTCodeSplitter {
       options.estimateTokens || ((txt) => defaultEstimateTokens(txt, this.charsPerToken));
   }
 
+  /**
+   * Collect all import statements from AST, including multi-line imports
+   * @param {Object} ast - Babel AST
+   * @param {string[]} lines - Array of source code lines
+   * @returns {string[]} Array of complete import statements
+   */
+  collectImports(ast, lines) {
+    const imports = [];
+    
+    traverse(ast, {
+      ImportDeclaration(path) {
+        const node = path.node;
+        if (node.loc) {
+          // Get the complete import statement including multi-line
+          const startLine = node.loc.start.line - 1; // Convert to 0-based index
+          const endLine = node.loc.end.line - 1;
+          
+          if (startLine === endLine) {
+            // Single line import
+            imports.push(lines[startLine].trim());
+          } else {
+            // Multi-line import - join all lines from start to end
+            const importLines = lines.slice(startLine, endLine + 1);
+            imports.push(importLines.join('\n').trim());
+          }
+        }
+      },
+      
+      VariableDeclaration(path) {
+        const node = path.node;
+        // Check if this is a require statement
+        if (node.declarations) {
+          for (const declarator of node.declarations) {
+            if (declarator.init && 
+                t.isCallExpression(declarator.init) && 
+                t.isIdentifier(declarator.init.callee, { name: 'require' })) {
+              
+              if (node.loc) {
+                const startLine = node.loc.start.line - 1;
+                const endLine = node.loc.end.line - 1;
+                
+                if (startLine === endLine) {
+                  imports.push(lines[startLine].trim());
+                } else {
+                  const requireLines = lines.slice(startLine, endLine + 1);
+                  imports.push(requireLines.join('\n').trim());
+                }
+              }
+              break; // Only process the first require in this declaration
+            }
+          }
+        }
+      }
+    });
+    
+    return imports;
+  }
+
   split(code, metadata = {}) {
     if (!code || typeof code !== "string") return [];
 

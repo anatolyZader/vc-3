@@ -158,28 +158,7 @@ class FileFilteringUtils {
     const extension = path.extname(filePath).slice(1).toLowerCase();
     const filePathLower = filePath.toLowerCase();
     
-    // TEST FILE EXCLUSION - Check for test files and directories first
-    const testPatterns = [
-      '/test/', '/_tests_/', '/__tests__/', '/tests/', '/spec/', '/specs/',
-      'test/', '_tests_/', '__tests__/', 'tests/', 'spec/', 'specs/',
-      '.test.', '.spec.', '_test.', '_spec.'
-    ];
-    
-    for (const testPattern of testPatterns) {
-      if (filePathLower.includes(testPattern)) {
-        console.log(`[FILTER] ❌ TEST EXCLUSION: Excluded test file/directory: ${filePath}`);
-        return false;
-      }
-    }
-    
-    // Also check if filename starts with 'test' or 'spec'
-    const fileNameLower = fileName.toLowerCase();
-    if (fileNameLower.startsWith('test') || fileNameLower.startsWith('spec')) {
-      console.log(`[FILTER] ❌ TEST EXCLUSION: Excluded test file (name starts with test/spec): ${filePath}`);
-      return false;
-    }
-    
-    // CLIENT CODE EXCLUSION - Check for client directories first
+    // File filtering - removed per-file logging for performance    // CLIENT CODE EXCLUSION - Check for client directories first
     const clientDirectories = ['client/', 'frontend/', 'web/', 'www/', 'static/', 'public/', 'assets/'];
     for (const clientDir of clientDirectories) {
       if (filePathLower.includes(clientDir)) {

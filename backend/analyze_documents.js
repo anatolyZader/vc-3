@@ -51,11 +51,8 @@ async function analyzeRepositoryDocuments() {
     console.log('\n📁 Files by directory:');
     for (const [dir, files] of Object.entries(filesByDirectory)) {
       console.log(`  📂 ${dir}/: ${files.length} files`);
-      if (files.length <= 10) {
-        files.forEach(file => console.log(`    - ${file}`));
-      } else {
-        files.slice(0, 5).forEach(file => console.log(`    - ${file}`));
-        console.log(`    ... and ${files.length - 5} more files`);
+      if (files.length > 10) {
+        console.log(`    ... ${files.length} files (too many to list)`);
       }
     }
     

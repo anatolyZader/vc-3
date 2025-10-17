@@ -116,8 +116,7 @@ class ChatService {
 
   // Show contextual info (stored in metadata)
   if (enhanced.metadata.related_tests && enhanced.metadata.related_tests.length > 0) {
-    console.log('\n🧪 RELATED TESTS (stored in metadata):');
-    enhanced.metadata.related_tests.forEach(test => console.log(`   • ${test}`));
+    console.log(`\n🧪 RELATED TESTS: ${enhanced.metadata.related_tests.length} found`);
   }
 
   if (enhanced.metadata.extracted_comments && enhanced.metadata.extracted_comments.length > 0) {

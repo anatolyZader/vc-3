@@ -65,29 +65,20 @@ class RepoProcessor {
     const allDocuments = [];
     let batchNumber = 1;
     
+    // Process batches efficiently with minimal logging
     for (const batch of processingBatches) {
       try {
-        console.log(`[${new Date().toISOString()}] 🔄 BATCH ${batchNumber}/${processingBatches.length}: Processing ${batch.name}`);
-        
         let batchDocuments;
         
-        // Check if this is the specialized backend batch
         if (batch.isSpecialized && batch.name.includes('Backend')) {
-          console.log(`[${new Date().toISOString()}] 🏗️ Using specialized backend loader...`);
           batchDocuments = await this.loadBackendDirectoryFiles(repoUrl, branch);
           
-          // CRITICAL: Validate backend file coverage
           if (batchDocuments.length === 0) {
-            console.error(`[${new Date().toISOString()}] ❌ BACKEND COVERAGE FAILURE: No backend files loaded - this will result in poor AI responses`);
-            console.error(`[${new Date().toISOString()}] 🔍 DIAGNOSIS: Repository ${githubOwner}/${repoName} may have no backend/ directory, or all loading methods failed`);
-            
-            // For now, log error but continue (could be changed to throw error in production)
-            console.warn(`[${new Date().toISOString()}] ⚠️ Continuing processing without backend files - AI responses will be limited`);
+            console.warn(`[${new Date().toISOString()}] ⚠️ No backend files loaded - AI responses will be limited`);
           } else {
-            console.log(`[${new Date().toISOString()}] ✅ BACKEND COVERAGE: Successfully loaded ${batchDocuments.length} backend files`);
+            console.log(`[${new Date().toISOString()}] ✅ Loaded ${batchDocuments.length} backend files`);
           }
           
-          // Add batch metadata to specialized documents
           batchDocuments = batchDocuments.map(doc => ({
             ...doc,
             metadata: {
@@ -98,20 +89,15 @@ class RepoProcessor {
             }
           }));
         } else {
-          // Use standard batch processing
           batchDocuments = await this.processBatch(repoUrl, branch, batch);
         }
         
         if (batchDocuments.length > 0) {
           allDocuments.push(...batchDocuments);
-          console.log(`[${new Date().toISOString()}] ✅ BATCH ${batchNumber}: Loaded ${batchDocuments.length} documents from ${batch.name}`);
-        } else {
-          console.log(`[${new Date().toISOString()}] ⚠️ BATCH ${batchNumber}: No documents found in ${batch.name}`);
         }
         
-        // Small delay between batches to prevent rate limiting
+        // Brief pause between batches
         if (batchNumber < processingBatches.length) {
-          console.log(`[${new Date().toISOString()}] ⏱️ Waiting 2 seconds before next batch...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
         
@@ -127,23 +113,11 @@ class RepoProcessor {
 
     console.log(`[${new Date().toISOString()}] 🎉 BATCHED PROCESSING COMPLETE: Loaded ${allDocuments.length} total documents`);
     
-    // Log detailed breakdown by source directory
-    const directoryBreakdown = {};
-    allDocuments.forEach(doc => {
-      const source = doc.metadata.source || 'unknown';
-      const dir = source.includes('/') ? source.split('/')[0] : 'root';
-      directoryBreakdown[dir] = (directoryBreakdown[dir] || 0) + 1;
-    });
+    // Quick summary (reduced verbosity)
+    const backendCount = allDocuments.filter(doc => doc.metadata.source?.includes('backend')).length;
     
-    console.log(`[${new Date().toISOString()}] 📊 DIRECTORY BREAKDOWN:`);
-    Object.entries(directoryBreakdown).forEach(([dir, count]) => {
-      console.log(`[${new Date().toISOString()}]   📂 ${dir}/: ${count} files`);
-    });
-    
-    // Highlight backend coverage specifically
-    const backendCount = directoryBreakdown['backend'] || 0;
     if (backendCount === 0) {
-      console.error(`[${new Date().toISOString()}] ❌ CRITICAL: No backend files loaded - AI responses will lack code context`);
+      console.warn(`[${new Date().toISOString()}] ⚠️ No backend files loaded - AI responses may lack code context`);
     } else {
       console.log(`[${new Date().toISOString()}] ✅ Backend files loaded: ${backendCount}`);
     }
@@ -201,13 +175,6 @@ class RepoProcessor {
       
       if (backendFiles && backendFiles.length > 0) {
         console.log(`[${new Date().toISOString()}] ✅ CLOUD-NATIVE SUCCESS: Loaded ${backendFiles.length} backend files via direct API`);
-        
-        // Log sample files
-        console.log(`[${new Date().toISOString()}] 📋 Sample backend files:`);
-        backendFiles.slice(0, 5).forEach(doc => {
-          console.log(`  - ${doc.metadata.source} (${doc.pageContent.length} chars)`);
-        });
-        
         return backendFiles;
       }
       
@@ -386,11 +353,6 @@ class RepoProcessor {
       console.log(`[${new Date().toISOString()}] 📄 Loaded ${documents.length} documents for batch "${batchConfig.name}"`);
       
       if (documents.length > 0) {
-        console.log(`[${new Date().toISOString()}] 📋 Sample files:`);
-        documents.slice(0, 5).forEach(doc => {
-          console.log(`  - ${doc.metadata.source}`);
-        });
-        
         // Log backend files specifically
         const backendFiles = documents.filter(doc => doc.metadata?.source?.startsWith('backend/'));
         if (backendFiles.length > 0) {

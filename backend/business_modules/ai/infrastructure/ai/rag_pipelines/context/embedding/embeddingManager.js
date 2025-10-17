@@ -192,24 +192,8 @@ class EmbeddingManager {
    */
   async storeRepositoryDocuments(splitDocs, userId, repoId, githubOwner, repoName) {
     // Log chunk breakdown for repository documents
-    console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] SEMANTICALLY ENHANCED + AST-SPLIT REPOSITORY CHUNK BREAKDOWN:`);
-    splitDocs.forEach((doc, index) => {
-      const preview = doc.pageContent.substring(0, 100).replace(/\n/g, ' ').trim();
-      const semanticInfo = doc.metadata.enhanced ? 
-        `${doc.metadata.semantic_role}|${doc.metadata.layer}|${doc.metadata.eventstorm_module}` : 
-        'not-enhanced';
-      const astInfo = doc.metadata.chunk_type || 'regular';
-      const astDetails = doc.metadata.semantic_unit ? 
-        `${doc.metadata.semantic_unit}(${doc.metadata.function_name})` : 
-        'n/a';
-      
-      console.log(`[${new Date().toISOString()}] 📄 [REPO-CHUNK ${index + 1}/${splitDocs.length}] ${doc.metadata.source} (${doc.pageContent.length} chars)`);
-      console.log(`[${new Date().toISOString()}] 📝 Preview: ${preview}${doc.pageContent.length > 100 ? '...' : ''}`);
-      console.log(`[${new Date().toISOString()}] 🏷️  FileType: ${doc.metadata.fileType}, Repo: ${doc.metadata.repoName}`);
-      console.log(`[${new Date().toISOString()}] 🧠 Semantic: ${semanticInfo}, EntryPoint: ${doc.metadata.is_entrypoint || false}, Complexity: ${doc.metadata.complexity || 'unknown'}`);
-      console.log(`[${new Date().toISOString()}] 🌳 AST: ${astInfo}, Unit: ${astDetails}, Lines: ${doc.metadata.start_line || '?'}-${doc.metadata.end_line || '?'}`);
-      console.log(`[${new Date().toISOString()}] ${'─'.repeat(80)}`);
-    });
+    // Removed excessive per-chunk logging for performance - logging summary only
+    console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] Processing ${splitDocs.length} repository chunks for storage`);
 
     console.log(`[${new Date().toISOString()}] 🚀 PINECONE STORAGE: Storing ${splitDocs.length} vector embeddings with unique IDs in user-specific namespace '${userId}'`);
 
