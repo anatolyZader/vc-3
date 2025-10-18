@@ -157,7 +157,7 @@ class AILangchainAdapter extends IAIPort {
       const githubMatch = remoteUrl.match(/github\.com[\/:]([^\/]+)\/([^\/\.]+)/);
       if (githubMatch) {
         return {
-          gitUser: githubMatch[1], // Preserves original case
+          gitUser: githubMatch[1], // Preservesss original case
           gitRepo: githubMatch[2]
         };
       }

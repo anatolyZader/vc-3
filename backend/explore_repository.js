@@ -3,6 +3,8 @@
 // Let's see what's actually in the anatolyZader/vc-3 repository
 const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
 
+const FileFilteringUtils = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/FileFilteringUtils');
+
 async function exploreRepository() {
   console.log('🔍 EXPLORING ACTUAL REPOSITORY CONTENTS');
   console.log('🎯 Let\'s see what\'s really in anatolyZader/vc-3');
@@ -26,7 +28,7 @@ async function exploreRepository() {
       recursive: true,
       maxConcurrency: 1,
       accessToken: githubToken,
-      ignorePaths: ['node_modules/**', '.git/**'] // Only ignore the obvious ones
+      ignorePaths: FileFilteringUtils.getRepositoryIgnorePatterns().slice(0, 2) // Only ignore the most critical ones
     });
     
     const allDocuments = await allFilesLoader.load();

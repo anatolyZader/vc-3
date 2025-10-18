@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Detailed document analysis script
-const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
+const FileFilteringUtils = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/FileFilteringUtils');
 
 async function analyzeRepositoryDocuments() {
   console.log('🔍 DETAILED REPOSITORY DOCUMENT ANALYSIS');
@@ -69,9 +69,8 @@ async function analyzeRepositoryDocuments() {
         name: 'Core Documentation',
         recursive: false,
         ignoreFiles: [
-          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
-          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
-          'backend/**', 'client/**', 'tools/**'
+          ...FileFilteringUtils.getRepositoryIgnorePatterns(),
+          'backend/**', 'tools/**'
         ]
       },
       {
@@ -79,10 +78,8 @@ async function analyzeRepositoryDocuments() {
         recursive: true,
         fileTypeFilter: ['js', 'ts', 'jsx', 'tsx'],
         ignoreFiles: [
-          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
-          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
-          'client/**', 'tools/**',
-          '**/*.test.js', '**/*.spec.js', '**/*.test.ts', '**/*.spec.ts'
+          ...FileFilteringUtils.getRepositoryIgnorePatterns(),
+          'tools/**'
         ]
       },
       {
@@ -90,10 +87,8 @@ async function analyzeRepositoryDocuments() {
         recursive: true,
         fileTypeFilter: ['md', 'json', 'yml', 'yaml'],
         ignoreFiles: [
-          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 'temp/**',
-          '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store', '*.min.js', '*.min.css',
-          'client/**', 'tools/**',
-          'package-lock.json', 'yarn.lock'
+          ...FileFilteringUtils.getRepositoryIgnorePatterns(),
+          'tools/**'
         ]
       }
     ];

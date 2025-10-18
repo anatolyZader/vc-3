@@ -49,18 +49,11 @@ class RepoProcessor {
         priority: 1,
         maxConcurrency: 1,
         ignorePaths: [
-          'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 
-          'temp/**', '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
-          'backend/**', 'client/**', '.github/**', '.vscode/**', // Exclude directories we'll process separately
-          // Exclude debug and chunking report directories
-          'chunking_reports/**', '**/chunking_reports/**',
-          // Exclude debug files
-          'debug_*.js', '**/debug_*.js', 'test_*.js', '**/test_*.js',
-          // Exclude LangSmith files and archives
-          '**/langsmith/**', '**/langsmith-archive/**',
-          'trace-*.md', '**/trace-*.md', '*-trace-analysis*.md', '**/*-trace-analysis*.md',
-          // Allow root-level markdown documentation files
-          '!*.md', '!ROOT_DOCUMENTATION.md', '!ARCHITECTURE.md'
+          ...FileFilteringUtils.getRepositoryIgnorePatterns(),
+          // Batch-specific: Exclude directories we'll process separately
+          'backend/**',
+          // Batch-specific: Allow root-level documentation files
+          ...FileFilteringUtils.getRootLevelFileExceptions().map(pattern => `!${pattern}`)
         ]
       },
       {
@@ -211,32 +204,20 @@ class RepoProcessor {
       recursive: true,
       maxConcurrency: 1,
       ignorePaths: [
-        // Exclude ALL non-backend directories completely
-        'client/**', '.github/**', '.vscode/**',
-        // Exclude debug and chunking report directories
-        'chunking_reports/**', '**/chunking_reports/**',
-        // Exclude debug files
-        'debug_*.js', '**/debug_*.js', 'test_*.js', '**/test_*.js',
-        // Exclude LangSmith files and archives
-        '**/langsmith/**', '**/langsmith-archive/**',
-        'trace-*.md', '**/trace-*.md', '*-trace-analysis*.md', '**/*-trace-analysis*.md',
-        // Exclude root files EXCEPT markdown documentation
+        ...FileFilteringUtils.getRepositoryIgnorePatterns(),
+        // Backend-specific: Exclude root files EXCEPT markdown documentation
         'package.json', 'bfg.jar', '*.txt', '*.log', '*.js',
         '.gitignore', 'package-lock.json', '*.jar',
-        // Allow root-level markdown documentation files
-        '!*.md', '!ROOT_DOCUMENTATION.md', '!ARCHITECTURE.md', '!README.md',
-        // Standard excludes
-        'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**',
-        'temp/**', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
-        // Backend excludes - be very specific about what to exclude
+        // Backend-specific: Allow root-level documentation files
+        ...FileFilteringUtils.getRootLevelFileExceptions().map(pattern => `!${pattern}`),
+        '!README.md',
+        // Backend-specific excludes
         'backend/node_modules/**', 'backend/dist/**', 'backend/build/**',
         'backend/coverage/**', 'backend/_tests_/**', 'backend/test_*.js',
         'backend/**/*.test.js', 'backend/**/*.spec.js', 
         'backend/package-lock.json', 'backend/*.log', 'backend/server.log',
         'backend/jest.*.config.js', 'backend/bfg.jar', 'backend/cookie*.txt',
-        'backend/cloud-sql-proxy', 'backend/*-credentials.json',
-        // Exclude debug files from backend
-        'backend/debug_*.js', 'backend/**/debug_*.js'
+        'backend/cloud-sql-proxy', 'backend/*-credentials.json'
       ]
     };
 

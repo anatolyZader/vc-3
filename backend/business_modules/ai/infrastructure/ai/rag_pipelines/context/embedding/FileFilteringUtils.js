@@ -6,9 +6,126 @@ const path = require('path');
 
 /**
  * Enhanced file filtering utilities for vector database indexing
- * Prevents binary files, executables, and other non-indexable content from being processed
+ * 
+ * 🚨 CRITICAL: This is the SINGLE SOURCE OF TRUTH for all file filtering/exclusion logic 🚨
+ * 
+ * All other components MUST use methods from this class instead of defining their own patterns:
+ * - repoProcessor.js ✅ (now uses getRepositoryIgnorePatterns())
+ * - cloudNativeRepoLoader.js ✅ (already uses this class)
+ * - analyze_documents.js ✅ (now uses getRepositoryIgnorePatterns())
+ * - explore_repository.js ✅ (now uses getRepositoryIgnorePatterns())
+ * - Any new loaders/processors MUST use this class
+ * 
+ * DO NOT CREATE LOCAL ignorePaths ARRAYS - use this centralized filtering!
+ * 
+ * Purpose: Prevents vector database pollution from debug files, traces, and irrelevant content
  */
 class FileFilteringUtils {
+  
+  /**
+   * SINGLE SOURCE OF TRUTH: Complete ignore patterns for repository processing
+   * Used by: repoProcessor.js, cloudNativeRepoLoader.js, and other loaders
+   */
+  static getRepositoryIgnorePatterns() {
+    return [
+      // Dependencies and modules
+      'node_modules/**', 
+      '.git/**', 
+      'dist/**', 
+      'build/**', 
+      'coverage/**',
+      'temp/**', 
+      '*.log', 
+      '*.lock', 
+      '*.tmp', 
+      '.DS_Store', 
+      '**/.DS_Store',
+      
+      // Client/frontend code (exclude from backend RAG)
+      'client/**', 
+      'frontend/**',
+      '.github/**', 
+      '.vscode/**',
+      
+      // Debug and analysis files that cause vector pollution
+      'chunking_reports/**', 
+      '**/chunking_reports/**',
+      'chunking_*/**',  // Added pattern for chunking directories
+      '**/chunking_*/**',
+      'debug_*.js', 
+      '**/debug_*.js', 
+      'test_*.js', 
+      '**/test_*.js',
+      'chunking_*.js',
+      '**/chunking_*.js',
+      
+      // LangSmith trace files that contain hallucinated content
+      '**/langsmith/**', 
+      '**/langsmith-archive/**',
+      'trace-*.md', 
+      '**/trace-*.md', 
+      '*-trace-analysis*.md', 
+      '**/*-trace-analysis*.md',
+      'latest-trace-analysis.md',
+      
+      // Test directories and files
+      'test/**',
+      'tests/**',
+      '__tests__/**',
+      'spec/**',
+      'specs/**',
+      '*.test.js',
+      '*.spec.js',
+      '*.test.ts',
+      '*.spec.ts',
+      
+      // Temporary and cache files
+      '.nyc_output/**',
+      'jest_cache/**',
+      '__pycache__/**',
+      'pytest_cache/**',
+      
+      // Large lock and bundle files
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      '*.bundle.js',
+      '*.min.js',
+      '*.min.css',
+      
+      // Binary and media files
+      '*.exe', 
+      '*.dll', 
+      '*.so', 
+      '*.dylib',
+      '*.jpg', 
+      '*.jpeg', 
+      '*.png', 
+      '*.gif',
+      '*.mp3', 
+      '*.mp4', 
+      '*.pdf', 
+      '*.doc', 
+      '*.docx',
+      '*.zip', 
+      '*.tar', 
+      '*.gz'
+    ];
+  }
+  
+  /**
+   * SINGLE SOURCE OF TRUTH: Root level file exceptions
+   * Files that should be included even if they match some ignore patterns
+   */
+  static getRootLevelFileExceptions() {
+    return [
+      '*.md',           // Root documentation files
+      'ROOT_DOCUMENTATION.md',
+      'ARCHITECTURE.md',
+      'README.md',
+      'CHANGELOG.md'
+    ];
+  }
   
   /**
    * Comprehensive file extension filtering
