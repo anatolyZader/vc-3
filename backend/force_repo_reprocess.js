@@ -47,14 +47,41 @@ async function forceRepoReprocessing() {
     try {
       const ContextPipeline = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline');
       const { OpenAIEmbeddings } = require('@langchain/openai');
+      const PineconePlugin = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconePlugin');
+      const PineconeService = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeService');
+      const EmbeddingManager = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/embeddingManager');
+      const PineconeLimiter = require('./business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeLimiter');
       
+      console.log('🔌 Initializing AI processing dependencies...');
+      
+      // Initialize embeddings
       const embeddings = new OpenAIEmbeddings({
         model: 'text-embedding-3-large',
         apiKey: process.env.OPENAI_API_KEY
       });
       
+      // Initialize Pinecone dependencies  
+      const pineconePlugin = new PineconePlugin();
+      const pineconeLimiter = new PineconeLimiter();
+      const pineconeService = new PineconeService({
+        pineconePlugin: pineconePlugin,
+        rateLimiter: pineconeLimiter
+      });
+      
+      // Initialize embedding manager with proper dependencies
+      const embeddingManager = new EmbeddingManager({
+        embeddings: embeddings,
+        pineconeLimiter: pineconeLimiter,
+        pineconeService: pineconeService
+      });
+      
+      console.log('✅ AI dependencies initialized successfully');
+      
       const pipeline = new ContextPipeline({
-        embeddings: embeddings
+        embeddings: embeddings,
+        embeddingManager: embeddingManager,
+        pineconeManager: pineconePlugin,
+        pineconeLimiter: pineconeLimiter
       });
       
       console.log('🎯 Calling internal processPushedRepo function...');

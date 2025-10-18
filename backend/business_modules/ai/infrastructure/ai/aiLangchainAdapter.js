@@ -48,9 +48,9 @@ class AILangchainAdapter extends IAIPort {
 
     // Initialize request queue for rate limiting and queuing
     this.requestQueue = new RequestQueue({
-      maxRequestsPerMinute: 20,  // Conservative rate to avoid API limits
-      retryDelay: 5000,          // 5 seconds between retries
-      maxRetries: 3              // Reasonable retry count (15s max retry time)
+      maxRequestsPerMinute: 60,  // Increased from 20 to 60 for better throughput
+      retryDelay: 2000,          // Reduced from 5000ms to 2000ms for faster retries
+      maxRetries: 5              // Increased retries for better reliability
     });
 
     // Keep direct access to pineconeLimiter for backward compatibility

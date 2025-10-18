@@ -629,8 +629,8 @@ class ContextPipeline {
         throw new Error('workerManager is not initialized');
       }
       
-      // Process using worker manager
-      const result = await this.workerManager.processLargeRepository(repositoryJob);
+      // Process using worker manager with embeddingManager for storage
+      const result = await this.workerManager.processLargeRepository(repositoryJob, this.embeddingManager);
       
       if (result.success) {
         logConfig.logProcessing(`[${new Date().toISOString()}] ✅ Worker processing successful, storing tracking info...`);
