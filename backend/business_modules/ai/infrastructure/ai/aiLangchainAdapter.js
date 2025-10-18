@@ -136,6 +136,11 @@ class AILangchainAdapter extends IAIPort {
         console.warn(`[${new Date().toISOString()}] Missing Pinecone API key - vector services not initialized`);
       }
 
+      // Initialize text search services
+      this.textSearchService = null;
+      this.hybridSearchService = null;
+      console.log(`[${new Date().toISOString()}] [DEBUG] Text search services will be initialized after PostgresAdapter is available`);
+
       // Initialize QueryPipeline with shared Pinecone resources (no duplication)
       this.queryPipeline = new QueryPipeline({  
         embeddings: this.embeddings,
@@ -244,6 +249,41 @@ class AILangchainAdapter extends IAIPort {
     }
 
     return this;
+  }
+
+  /**
+   * Initialize text search services with PostgreSQL adapter
+   * Call this method after PostgreSQL adapter is available in DI container
+   */
+  async initializeTextSearch(postgresAdapter) {
+    try {
+      console.log(`[${new Date().toISOString()}] 🔍 Initializing text search services...`);
+      
+      const TextSearchService = require('../search/textSearchService');
+      const HybridSearchService = require('../search/hybridSearchService');
+      
+      this.textSearchService = new TextSearchService({ 
+        postgresAdapter,
+        logger: console 
+      });
+
+      this.hybridSearchService = new HybridSearchService({
+        vectorSearchOrchestrator: this.vectorSearchOrchestrator,
+        textSearchService: this.textSearchService,
+        logger: console
+      });
+
+      console.log(`[${new Date().toISOString()}] ✅ Text search services initialized successfully`);
+      
+      // Test the services
+      const isTextSearchAvailable = await this.textSearchService.isAvailable();
+      console.log(`[${new Date().toISOString()}] 📊 Text search availability: ${isTextSearchAvailable}`);
+      
+      return true;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Failed to initialize text search services:`, error.message);
+      return false;
+    }
   }
 
   // RAG Data Preparation Phase: Loading, chunking, and embedding (both core docs and repo code)
@@ -358,6 +398,163 @@ class AILangchainAdapter extends IAIPort {
       }
     }
     return exec();
+  }
+
+  /**
+   * Perform text search using PostgreSQL
+   * @param {string} query - Search query
+   * @param {object} options - Search options
+   * @returns {Array} Text search results
+   */
+  async searchText(query, options = {}) {
+    if (!this.textSearchService) {
+      throw new Error('Text search service not initialized. Call initializeTextSearch() first.');
+    }
+
+    try {
+      console.log(`[${new Date().toISOString()}] 🔍 Performing text search: "${query}"`);
+      
+      const results = await this.textSearchService.searchDocuments(query, {
+        userId: this.userId,
+        ...options
+      });
+      
+      console.log(`[${new Date().toISOString()}] 📄 Text search found ${results.length} results`);
+      return results;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Text search failed:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Perform hybrid search combining vector and text search
+   * @param {string} query - Search query
+   * @param {object} options - Search options
+   * @returns {Array} Combined search results
+   */
+  async searchHybrid(query, options = {}) {
+    if (!this.hybridSearchService) {
+      throw new Error('Hybrid search service not initialized. Call initializeTextSearch() first.');
+    }
+
+    try {
+      console.log(`[${new Date().toISOString()}] 🔄 Performing hybrid search: "${query}"`);
+      
+      // Add user's namespace for vector search
+      const searchOptions = {
+        userId: this.userId,
+        namespace: this.vectorStore?.namespace,
+        ...options
+      };
+
+      const results = await this.hybridSearchService.search(query, searchOptions);
+      
+      console.log(`[${new Date().toISOString()}] 🎯 Hybrid search found ${results.length} results`);
+      return results;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Hybrid search failed:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get search capabilities and statistics
+   * @returns {object} Information about available search capabilities
+   */
+  async getSearchCapabilities() {
+    const capabilities = {
+      vectorSearch: {
+        available: !!this.vectorSearchOrchestrator,
+        connected: this.vectorSearchOrchestrator?.isConnected() || false
+      },
+      textSearch: {
+        available: !!this.textSearchService,
+        connected: false
+      },
+      hybridSearch: {
+        available: !!this.hybridSearchService
+      }
+    };
+
+    // Check text search connectivity
+    if (this.textSearchService) {
+      try {
+        capabilities.textSearch.connected = await this.textSearchService.isAvailable();
+      } catch (error) {
+        console.warn(`[${new Date().toISOString()}] Could not check text search availability:`, error.message);
+      }
+    }
+
+    // Get detailed capabilities from hybrid service if available
+    if (this.hybridSearchService) {
+      try {
+        const detailedCapabilities = await this.hybridSearchService.getSearchCapabilities(this.userId);
+        capabilities.detailed = detailedCapabilities;
+      } catch (error) {
+        console.warn(`[${new Date().toISOString()}] Could not get detailed search capabilities:`, error.message);
+      }
+    }
+
+    return capabilities;
+  }
+
+  /**
+   * Test search functionality
+   * @param {string} testQuery - Query to test with
+   * @returns {object} Test results from all search systems
+   */
+  async testSearchSystems(testQuery = 'function') {
+    const results = {
+      vectorSearch: { available: false, success: false, results: [], error: null },
+      textSearch: { available: false, success: false, results: [], error: null },
+      hybridSearch: { available: false, success: false, results: [], error: null }
+    };
+
+    // Test vector search
+    if (this.vectorSearchOrchestrator) {
+      results.vectorSearch.available = true;
+      try {
+        const vectorResults = await this.vectorSearchOrchestrator.searchSimilar(testQuery, {
+          namespace: this.vectorStore?.namespace,
+          topK: 3,
+          threshold: 0.3
+        });
+        results.vectorSearch.success = true;
+        results.vectorSearch.results = vectorResults;
+      } catch (error) {
+        results.vectorSearch.error = error.message;
+      }
+    }
+
+    // Test text search
+    if (this.textSearchService) {
+      results.textSearch.available = true;
+      try {
+        const textResults = await this.textSearchService.searchDocumentsSimple(testQuery, { 
+          userId: this.userId, 
+          limit: 3 
+        });
+        results.textSearch.success = true;
+        results.textSearch.results = textResults;
+      } catch (error) {
+        results.textSearch.error = error.message;
+      }
+    }
+
+    // Test hybrid search
+    if (this.hybridSearchService) {
+      results.hybridSearch.available = true;
+      try {
+        const hybridResults = await this.hybridSearchService.testSearchSystems(testQuery);
+        results.hybridSearch.success = true;
+        results.hybridSearch.results = hybridResults;
+      } catch (error) {
+        results.hybridSearch.error = error.message;
+      }
+    }
+
+    return results;
   }
 
   /**

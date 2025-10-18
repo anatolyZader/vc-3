@@ -59,6 +59,11 @@ const Chat = () => {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Debug logging for mobile menu state - temporarily disabled
+  // useEffect(() => {
+  //   console.log('Mobile menu state changed:', { isMobile, isMobileMenuOpen });
+  // }, [isMobile, isMobileMenuOpen]);
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(sidebarWidth);
@@ -136,10 +141,14 @@ const Chat = () => {
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      if (mobile && isMobileMenuOpen) {
-        // Close mobile menu when switching to mobile view
-        setIsMobileMenuOpen(false);
+      
+      // Only update if mobile state actually changed
+      if (mobile !== isMobile) {
+        setIsMobile(mobile);
+        // Only close menu when switching FROM mobile TO desktop
+        if (!mobile && isMobileMenuOpen) {
+          setIsMobileMenuOpen(false);
+        }
       }
     };
 
@@ -147,7 +156,7 @@ const Chat = () => {
     window.addEventListener('resize', checkMobile);
     
     return () => window.removeEventListener('resize', checkMobile);
-  }, [isMobileMenuOpen]);
+  }, [isMobile]); // Removed isMobileMenuOpen from dependencies
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -165,8 +174,20 @@ const Chat = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const closeMobileMenu = () => {
+  const closeMobileMenu = (e) => {
+    // Only close if the click is not on the sidebar itself
+    if (e && e.target.closest('.sidebar')) {
+      return;
+    }
     setIsMobileMenuOpen(false);
+  };
+
+  const handleMainContainerClick = (e) => {
+    // Only close the menu if clicking directly on the main container or its children
+    // but not if clicking on the sidebar
+    if (!e.target.closest('.sidebar') && !e.target.closest('.mobile-header')) {
+      setIsMobileMenuOpen(false);
+    }
   };
 
   // Show loading spinner while auth is loading
@@ -324,10 +345,11 @@ const Chat = () => {
             className="mobile-menu-button"
             onClick={toggleMobileMenu}
             aria-label="Toggle sidebar"
+            type="button"
           >
             ☰
           </button>
-          <span className="mobile-header-title">Chat</span>
+          <span className="mobile-header-title"></span>
         </div>
       )}
 
@@ -340,10 +362,10 @@ const Chat = () => {
         <div className="sidebar-content">
           {isMobile && (
             <div className="mobile-sidebar-header">
-              <span>Menu</span>
+              <span></span>
               <button
                 className="mobile-close-button"
-                onClick={closeMobileMenu}
+                onClick={() => setIsMobileMenuOpen(false)}
                 aria-label="Close sidebar"
               >
                 ×
@@ -430,7 +452,7 @@ const Chat = () => {
       {isMobile && isMobileMenuOpen && (
         <div 
           className="mobile-overlay" 
-          onClick={closeMobileMenu}
+          onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
@@ -443,7 +465,7 @@ const Chat = () => {
 
       <MainContainer 
         className="chat-container"
-        onClick={isMobile ? closeMobileMenu : undefined}
+        onClick={isMobile ? handleMainContainerClick : undefined}
       >
         <ConversationHeader>
           <Avatar src={eventstorm_logo} name="AI Assistant" />

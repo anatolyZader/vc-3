@@ -142,6 +142,180 @@ async function aiController(fastify, options) {
     }
   });
 
+  // Text search endpoint handler
+  fastify.decorate('searchText', async (request, reply) => {
+    try {
+      const { query, repoId, limit = 10, offset = 0 } = request.query;
+      const userId = request.user?.id || request.userId;
+      
+      fastify.log.info(`🔍 AI Controller: Text search for user ${userId}, query: "${query}"`);
+      
+      const aiService = await request.diScope.resolve('aiService');
+      if (!aiService) {
+        throw new Error('AI service not found in DI container');
+      }
+
+      // Initialize text search if not already done
+      if (!aiService.aiAdapter.textSearchService) {
+        const postgresAdapter = await request.diScope.resolve('aiPersistAdapter');
+        await aiService.aiAdapter.initializeTextSearch(postgresAdapter);
+      }
+
+      // Set userId if needed
+      if (aiService.aiAdapter && typeof aiService.aiAdapter.setUserId === 'function') {
+        await aiService.aiAdapter.setUserId(userId);
+      }
+
+      const results = await aiService.aiAdapter.searchText(query, {
+        repoId,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+      
+      return {
+        results,
+        query,
+        totalResults: results.length,
+        searchType: 'text'
+      };
+    } catch (error) {
+      fastify.log.error('Error in text search:', error);
+      throw fastify.httpErrors.internalServerError('Text search failed', { cause: error });
+    }
+  });
+
+  // Hybrid search endpoint handler
+  fastify.decorate('searchHybrid', async (request, reply) => {
+    try {
+      const { 
+        query, 
+        repoId, 
+        limit = 10, 
+        includeVector = true, 
+        includeText = true, 
+        strategy = 'interleave' 
+      } = request.query;
+      const userId = request.user?.id || request.userId;
+      
+      fastify.log.info(`🔄 AI Controller: Hybrid search for user ${userId}, query: "${query}"`);
+      
+      const aiService = await request.diScope.resolve('aiService');
+      if (!aiService) {
+        throw new Error('AI service not found in DI container');
+      }
+
+      // Initialize text search if not already done
+      if (!aiService.aiAdapter.hybridSearchService) {
+        const postgresAdapter = await request.diScope.resolve('aiPersistAdapter');
+        await aiService.aiAdapter.initializeTextSearch(postgresAdapter);
+      }
+
+      // Set userId if needed
+      if (aiService.aiAdapter && typeof aiService.aiAdapter.setUserId === 'function') {
+        await aiService.aiAdapter.setUserId(userId);
+      }
+
+      const results = await aiService.aiAdapter.searchHybrid(query, {
+        repoId,
+        limit: parseInt(limit),
+        includeVector: includeVector === 'true',
+        includeText: includeText === 'true',
+        strategy
+      });
+
+      // Calculate search stats
+      const vectorResults = results.filter(r => r.searchType === 'vector').length;
+      const textResults = results.filter(r => r.searchType === 'text' || r.searchType === 'simple_text').length;
+      
+      return {
+        results,
+        query,
+        totalResults: results.length,
+        searchType: 'hybrid',
+        searchStats: {
+          vectorResults,
+          textResults
+        }
+      };
+    } catch (error) {
+      fastify.log.error('Error in hybrid search:', error);
+      throw fastify.httpErrors.internalServerError('Hybrid search failed', { cause: error });
+    }
+  });
+
+  // Search capabilities endpoint handler
+  fastify.decorate('getSearchCapabilities', async (request, reply) => {
+    try {
+      const userId = request.user?.id || request.userId;
+      
+      fastify.log.info(`📊 AI Controller: Getting search capabilities for user ${userId}`);
+      
+      const aiService = await request.diScope.resolve('aiService');
+      if (!aiService) {
+        throw new Error('AI service not found in DI container');
+      }
+
+      // Initialize text search if not already done
+      if (!aiService.aiAdapter.textSearchService) {
+        try {
+          const postgresAdapter = await request.diScope.resolve('aiPersistAdapter');
+          await aiService.aiAdapter.initializeTextSearch(postgresAdapter);
+        } catch (error) {
+          fastify.log.warn('Could not initialize text search for capabilities check:', error.message);
+        }
+      }
+
+      // Set userId if needed
+      if (aiService.aiAdapter && typeof aiService.aiAdapter.setUserId === 'function') {
+        await aiService.aiAdapter.setUserId(userId);
+      }
+
+      const capabilities = await aiService.aiAdapter.getSearchCapabilities();
+      
+      return capabilities;
+    } catch (error) {
+      fastify.log.error('Error getting search capabilities:', error);
+      throw fastify.httpErrors.internalServerError('Failed to get search capabilities', { cause: error });
+    }
+  });
+
+  // Test search systems endpoint handler
+  fastify.decorate('testSearchSystems', async (request, reply) => {
+    try {
+      const { testQuery = 'function' } = request.body || {};
+      const userId = request.user?.id || request.userId;
+      
+      fastify.log.info(`🧪 AI Controller: Testing search systems for user ${userId} with query: "${testQuery}"`);
+      
+      const aiService = await request.diScope.resolve('aiService');
+      if (!aiService) {
+        throw new Error('AI service not found in DI container');
+      }
+
+      // Initialize text search if not already done
+      if (!aiService.aiAdapter.textSearchService) {
+        try {
+          const postgresAdapter = await request.diScope.resolve('aiPersistAdapter');
+          await aiService.aiAdapter.initializeTextSearch(postgresAdapter);
+        } catch (error) {
+          fastify.log.warn('Could not initialize text search for testing:', error.message);
+        }
+      }
+
+      // Set userId if needed
+      if (aiService.aiAdapter && typeof aiService.aiAdapter.setUserId === 'function') {
+        await aiService.aiAdapter.setUserId(userId);
+      }
+
+      const testResults = await aiService.aiAdapter.testSearchSystems(testQuery);
+      
+      return testResults;
+    } catch (error) {
+      fastify.log.error('Error testing search systems:', error);
+      throw fastify.httpErrors.internalServerError('Failed to test search systems', { cause: error });
+    }
+  });
+
 }
 
 module.exports = fp(aiController);
