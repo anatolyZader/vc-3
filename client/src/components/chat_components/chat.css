@@ -314,16 +314,37 @@ body.resizing {
 
 .conversation-title {
   font-weight: 500;
-  font-size: 14px;
+  font-size: 0.875rem;
   margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  outline: 0;
+  border: 0;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+  text-decoration: none;
 }
 
 .conversation-date {
-  font-size: 12px;
+  font-size: 0.75rem;
   opacity: 0.7;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
 }
 
 .delete-conversation {
@@ -581,4 +602,364 @@ body.resizing {
 .message-input-container .voice-input.inline .mic-button {
   width: 36px;
   height: 36px;
+}
+
+/* Mobile New Conversation Container */
+.mobile-new-conversation-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 40px 20px;
+  min-height: 400px;
+  background: transparent;
+  border: none;
+}
+
+.mobile-new-conversation-content {
+  text-align: center;
+  max-width: 300px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+
+.mobile-new-conversation-content h2 {
+  color: #1a202c;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.mobile-new-conversation-content p {
+  color: #64748b;
+  font-size: 16px;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+/* Style the New Conversation button when in mobile center */
+.mobile-new-conversation-content .new-chat-button {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.mobile-new-conversation-content .new-chat-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.mobile-new-conversation-content .new-chat-button:active {
+  transform: translateY(0);
+}
+
+.mobile-new-conversation-content .new-chat-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Desktop New Conversation Button Center Layout */
+.desktop-new-conversation-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 70vh;
+  background: transparent; /* Invisible container */
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.desktop-new-conversation-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent; /* Invisible content wrapper */
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+
+/* Style the New Conversation button when in desktop center */
+.desktop-new-conversation-content .new-convers-btn {
+  background: transparent; /* Make button container transparent */
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mobile-menu-hint {
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.mobile-menu-hint p {
+  margin: 0;
+  font-size: 14px;
+  color: #667eea;
+  font-weight: 500;
+}
+
+/* Account section in sidebar */
+.account-section {
+  padding: 8px 0;
+}
+
+.account-section .logout-btn {
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  margin: 0;
+}
+
+/* Account item - clickable list item */
+.account-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  margin: 8px 0;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.account-item:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateY(-1px);
+}
+
+.account-item-content {
+  flex: 1;
+}
+
+.account-item-title {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #1a202c;
+  margin-bottom: 2px;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  outline: 0;
+  border: 0;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+  text-decoration: none;
+}
+
+.account-item-subtitle {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
+}
+
+.account-item-arrow {
+  font-size: 18px;
+  color: #94a3b8;
+  font-weight: bold;
+}
+
+/* Account modal content */
+.account-modal-content {
+  padding: 16px 0;
+}
+
+.account-info {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.account-info p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.account-actions {
+  text-align: center;
+}
+
+/* Account Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  backdrop-filter: blur(2px);
+}
+
+.account-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 2001;
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.account-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.account-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.modal-close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Search Conversations Section */
+.search-section {
+  padding: 8px 0;
+}
+
+.search-input-container {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 35px 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  color: #374151;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.search-clear-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #374151;
+}
+
+.search-results {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+}
+
+.search-results-header {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
+  text-transform: uppercase;
+}
+
+.search-result {
+  border-radius: 6px;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+}
+
+.search-result:hover {
+  background-color: rgba(102, 126, 234, 0.1);
+}
+
+.no-search-results {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  padding: 20px;
+  font-style: italic;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  line-height: 1.75;
+  letter-spacing: 0.02857em;
 }

@@ -59,6 +59,9 @@ const Chat = () => {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredConversations, setFilteredConversations] = useState([]);
 
   // Debug logging for mobile menu state - temporarily disabled
   // useEffect(() => {
@@ -169,6 +172,28 @@ const Chat = () => {
       return () => clearTimeout(timer);
     }
   }, [messages.length]);
+
+  // Search functionality for conversations
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredConversations(conversations);
+    } else {
+      const filtered = conversations.filter(conversation =>
+        (conversation.title || 'Untitled Conversation')
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      );
+      setFilteredConversations(filtered);
+    }
+  }, [conversations, searchQuery]);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -362,7 +387,7 @@ const Chat = () => {
         <div className="sidebar-content">
           {isMobile && (
             <div className="mobile-sidebar-header">
-              <span></span>
+              <span>Menu</span>
               <button
                 className="mobile-close-button"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -373,12 +398,71 @@ const Chat = () => {
             </div>
           )}
 
-          <NewConversationBtn 
-            onNewConversation={handleNewConversation}
-            disabled={loading}
-          />
+          {/* Only show New Conversation button in sidebar on desktop if there's an active conversation */}
+          {!isMobile && currentConversationId && (
+            <NewConversationBtn 
+              onNewConversation={handleNewConversation}
+              disabled={loading}
+            />
+          )}
 
-          <ExpansionPanel open title="Conversations">
+          {/* Search in Conversations Section */}
+          <ExpansionPanel open={false} title="Search Conversations">
+            <div className="search-section">
+              <div className="search-input-container">
+                <input
+                  type="text"
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="search-input"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="search-clear-btn"
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              {searchQuery && (
+                <div className="search-results">
+                  <div className="search-results-header">
+                    {filteredConversations.length} result{filteredConversations.length !== 1 ? 's' : ''} found
+                  </div>
+                  {filteredConversations.map((conversation) => {
+                    const convId = conversation.id || conversation.conversationId;
+                    const createdAt = conversation.created_at || conversation.createdAt || new Date().toISOString();
+                    return (
+                      <div
+                        key={convId}
+                        className={`conversation-item search-result ${
+                          convId === currentConversationId ? 'active' : ''
+                        }`}
+                        onClick={() => handleConversationSelect(convId)}
+                      >
+                        <div className="conversation-title">
+                          {conversation.title || 'Untitled Conversation'}
+                        </div>
+                        <div className="conversation-date">
+                          {formatDate(createdAt)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filteredConversations.length === 0 && (
+                    <div className="no-search-results">
+                      No conversations found matching "{searchQuery}"
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </ExpansionPanel>
+
+          <ExpansionPanel open={false} title="Conversations">
             <div className="conversations-list">
               {loading && conversations.length === 0 && (
                 <p>Loading conversations...</p>
@@ -417,6 +501,14 @@ const Chat = () => {
               )}
             </div>
           </ExpansionPanel>
+
+          {/* Account/Logout clickable item */}
+          <div className="account-item" onClick={() => setIsAccountModalOpen(true)}>
+            <div className="account-item-content">
+              <div className="account-item-title">Account</div>
+            </div>
+            <div className="account-item-arrow">›</div>
+          </div>
         </div>
       </Sidebar>
 
@@ -470,9 +562,6 @@ const Chat = () => {
         <ConversationHeader>
           <Avatar src={eventstorm_logo} name="AI Assistant" />
           <ConversationHeader.Content userName="AI Assistant" />
-          <ConversationHeader.Actions>
-            <LogoutBtn /> 
-          </ConversationHeader.Actions>
         </ConversationHeader>
 
         <MessageList 
@@ -480,6 +569,18 @@ const Chat = () => {
             <TypingIndicator content="AI Assistant is typing..." />
           ) : undefined}
         >
+          {/* New Conversation Button in center - show when no active conversation */}
+          {!currentConversationId && (
+            <div className={isMobile ? "mobile-new-conversation-container" : "desktop-new-conversation-container"}>
+              <div className={isMobile ? "mobile-new-conversation-content" : "desktop-new-conversation-content"}>
+                <NewConversationBtn 
+                  onNewConversation={handleNewConversation}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+          )}
+
           {currentConversationId && messages.length > 0 && (
             <MessageSeparator content={formatDate(new Date())} />
           )}
@@ -514,6 +615,34 @@ const Chat = () => {
           </div>
         )}
       </MainContainer>
+
+      {/* Account Modal */}
+      {isAccountModalOpen && (
+        <>
+          <div className="modal-overlay" onClick={() => setIsAccountModalOpen(false)} />
+          <div className="account-modal">
+            <div className="account-modal-header">
+              <h3>Account Settings</h3>
+              <button 
+                className="modal-close-btn"
+                onClick={() => setIsAccountModalOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="account-modal-content">
+              <div className="account-info">
+                <p><strong>User:</strong> {userProfile?.name || 'anatolyZader'}</p>
+                <p><strong>Email:</strong> {userProfile?.email || 'Not available'}</p>
+              </div>
+              <div className="account-actions">
+                <LogoutBtn />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Confirmation Dialog for deleting conversations */}
       <ConfirmationDialog
