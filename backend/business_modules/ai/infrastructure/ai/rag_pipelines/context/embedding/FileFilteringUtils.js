@@ -41,6 +41,13 @@ class FileFilteringUtils {
       '.DS_Store', 
       '**/.DS_Store',
       
+      // Configuration files that don't help with code understanding
+      '.gitignore',
+      '.gitattributes',
+      '.dockerignore',
+      '.eslintignore',
+      '.prettierignore',
+      
       // Client/frontend code (exclude from backend RAG)
       'client/**', 
       'frontend/**',
@@ -68,16 +75,22 @@ class FileFilteringUtils {
       '**/*-trace-analysis*.md',
       'latest-trace-analysis.md',
       
-      // Test directories and files
+      // Test directories and files - MORE COMPREHENSIVE
       'test/**',
       'tests/**',
       '__tests__/**',
+      '_tests_/**',      // Your specific test directory pattern
       'spec/**',
       'specs/**',
       '*.test.js',
       '*.spec.js',
       '*.test.ts',
       '*.spec.ts',
+      '**/test/**',      // Any nested test directories
+      '**/tests/**',
+      '**/__tests__/**', 
+      '**/_tests_/**',   // Your nested test directories
+      'backend/_tests_/**', // Explicitly exclude your test directory
       
       // Temporary and cache files
       '.nyc_output/**',

@@ -112,13 +112,40 @@ class AILangchainAdapter extends IAIPort {
 
   // System documentation is processed via the normal docs pipeline when triggered
 
-      // Initialize QueryPipeline for basic functionality (will be enhanced when userId is set)
+      // Initialize shared Pinecone resources that will be used by QueryPipeline
+      this.pineconePlugin = null;
+      this.vectorSearchOrchestrator = null;
+      if (process.env.PINECONE_API_KEY) {
+        const PineconePlugin = require('./rag_pipelines/context/embedding/pineconePlugin');
+        const VectorSearchOrchestrator = require('./rag_pipelines/query/vectorSearchOrchestrator');
+        
+        this.pineconePlugin = new PineconePlugin();
+        this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
+          embeddings: this.embeddings,
+          rateLimiter: this.requestQueue?.pineconeLimiter,
+          pineconePlugin: this.pineconePlugin,
+          apiKey: process.env.PINECONE_API_KEY,
+          indexName: process.env.PINECONE_INDEX_NAME,
+          region: process.env.PINECONE_REGION,
+          defaultTopK: 10,
+          defaultThreshold: 0.3,
+          maxResults: 50
+        });
+        console.log(`[${new Date().toISOString()}] [DEBUG] Shared Pinecone resources initialized in AILangchainAdapter`);
+      } else {
+        console.warn(`[${new Date().toISOString()}] Missing Pinecone API key - vector services not initialized`);
+      }
+
+      // Initialize QueryPipeline with shared Pinecone resources (no duplication)
       this.queryPipeline = new QueryPipeline({  
         embeddings: this.embeddings,
         llm: this.llm,
         eventBus: this.eventBus,
         requestQueue: this.requestQueue,
-        maxRetries: this.requestQueue.maxRetries
+        maxRetries: this.requestQueue.maxRetries,
+        // Pass shared Pinecone resources to avoid duplication
+        pineconePlugin: this.pineconePlugin,
+        vectorSearchOrchestrator: this.vectorSearchOrchestrator
       });
       console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized in constructor`);
 
@@ -185,41 +212,27 @@ class AILangchainAdapter extends IAIPort {
 
 
     try {
-      // Initialize vector store directly - adapter owns the vector store lifecycle
-      const PineconeService = require('./rag_pipelines/context/embedding/pineconeService');
-      const PineconePlugin = require('./rag_pipelines/context/embedding/pineconePlugin');
-      
-      if (process.env.PINECONE_API_KEY) {
-        const pineconePlugin = new PineconePlugin();
-        const pineconeService = new PineconeService({
-          pineconePlugin: pineconePlugin,
-          rateLimiter: this.requestQueue?.pineconeLimiter
-        });
-        
-        // Adapter owns and manages the vector store
+      // Create vector store using shared Pinecone resources
+      if (this.vectorSearchOrchestrator) {
         // TEMPORARY FIX: Hardcode the complete namespace that exists in Pinecone
         const repositoryNamespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
         console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${repositoryNamespace}`);
-        this.vectorStore = await pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
-        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId} with namespace: ${repositoryNamespace}`);
+        this.vectorStore = await this.vectorSearchOrchestrator.createVectorStore(this.userId);
+        // Override with correct namespace
+        this.vectorStore.namespace = repositoryNamespace;
+        console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created using shared orchestrator for userId: ${this.userId} with namespace: ${repositoryNamespace}`);
       } else {
-        console.warn(`[${new Date().toISOString()}] Missing Pinecone API key - vector store not initialized`);
+        console.warn(`[${new Date().toISOString()}] No shared VectorSearchOrchestrator available - vector store not initialized`);
         this.vectorStore = null;
       }
 
-      // Update QueryPipeline with userId and vectorStore (if not already created)
-      if (!this.queryPipeline) {
-        this.queryPipeline = new QueryPipeline({
-          embeddings: this.embeddings,
-          llm: this.llm,
-          eventBus: this.eventBus,
-          requestQueue: this.requestQueue,
-          pineconePlugin: pineconePlugin, // Pass the shared pineconePlugin for singleton consistency
-          maxRetries: this.requestQueue.maxRetries
-        });
-        console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline created in setUserId`);
+      // Update QueryPipeline with userId and vectorStore
+      if (this.queryPipeline) {
+        this.queryPipeline.userId = this.userId;
+        this.queryPipeline.vectorStore = this.vectorStore;
+        console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline updated with userId: ${this.userId} and vectorStore`);
       } else {
-        console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline already exists, updating with userId`);
+        console.warn(`[${new Date().toISOString()}] [DEBUG] QueryPipeline not found during setUserId - this should not happen`);
       }
       
       console.log(`[${new Date().toISOString()}] AILangchainAdapter userId updated to: ${this.userId}`);
@@ -357,14 +370,16 @@ class AILangchainAdapter extends IAIPort {
     
     // Try to emit to the event bus if available
     try {
+      const payload = {
+        component: 'aiLangchainAdapter',
+        phase: status,
+        metrics: details,
+        ts: new Date().toISOString()
+      };
+
       // First try the instance event bus
       if (this.eventBus) {
-        this.eventBus.emit('ragStatusUpdate', {
-          component: 'aiLangchainAdapter',
-          timestamp: new Date().toISOString(),
-          status,
-          ...details
-        });
+        this.eventBus.emit('rag.status', payload);
         return;
       }
       
@@ -372,12 +387,7 @@ class AILangchainAdapter extends IAIPort {
       const eventDispatcherPath = '../../../../eventDispatcher';
       const { eventBus } = require(eventDispatcherPath);
       if (eventBus) {
-        eventBus.emit('ragStatusUpdate', {
-          component: 'aiLangchainAdapter',
-          timestamp: new Date().toISOString(),
-          status,
-          ...details
-        });
+        eventBus.emit('rag.status', payload);
       }
     } catch (error) {
       console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);

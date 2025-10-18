@@ -71,13 +71,21 @@ describe("QueryPipeline integration", () => {
       embeddings: {}
     });
 
-    const out = await qp.respondToPrompt("u", "c", "how to?", [], {});
+    // Create a proper mock vectorStore that passes validation
+    const mockVectorStore = {
+      embeddings: {},
+      pineconeIndex: {},
+      namespace: 'test-namespace'
+    };
+
+    const out = await qp.respondToPrompt("u", "c", "how to?", [], mockVectorStore);
     expect(out).toMatchObject({ success: true, ragEnabled: true, response: "with-context" });
   expect(mockContextBuilder.formatContext).toHaveBeenCalled();
   });
 
   test("respondToPrompt indicates standard response when vector store missing", async () => {
-    const qp = new QueryPipeline({ pinecone: {} });
+    // Create QueryPipeline without any Pinecone configuration or shared orchestrator
+    const qp = new QueryPipeline({ embeddings: {} });
     const out = await qp.respondToPrompt("u", "c", "question", [], null);
     expect(out).toMatchObject({ success: true, ragEnabled: false });
   });

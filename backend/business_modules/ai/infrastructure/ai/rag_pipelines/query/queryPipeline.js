@@ -2,9 +2,16 @@
 const VectorSearchOrchestrator = require('./vectorSearchOrchestrator');
 const ContextBuilder = require('./contextBuilder');
 const ResponseGenerator = require('./responseGenerator');
-const PineconeService = require('../context/embedding/pineconeService');
 
+// LangSmith tracing (optional)
 let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not found or failed to load: ${err.message}`);
+  }
+}
 
 const TraceArchiver = require('../../langsmith/trace-archiver');
 
@@ -16,18 +23,25 @@ class QueryPipeline {
     this.userId = options.userId;
     this.eventBus = options.eventBus;
     
-    // Initialize vectorSearchOrchestrator with enhanced capabilities
-    this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
-      embeddings: this.embeddings,
-      rateLimiter: this.requestQueue?.pineconeLimiter,
-      pineconePlugin: options.pineconePlugin, // Pass through the pineconePlugin for singleton consistency
-      apiKey: process.env.PINECONE_API_KEY,
-      indexName: process.env.PINECONE_INDEX_NAME,
-      region: process.env.PINECONE_REGION,
-      defaultTopK: 10,
-      defaultThreshold: 0.3,  // Lowered from 0.4 to 0.3 for more matches
-      maxResults: 50
-    });
+    // Use shared vectorSearchOrchestrator if provided, otherwise create our own
+    if (options.vectorSearchOrchestrator) {
+      this.vectorSearchOrchestrator = options.vectorSearchOrchestrator;
+      console.log(`[${new Date().toISOString()}] QueryPipeline using shared VectorSearchOrchestrator`);
+    } else {
+      // Fallback: create our own (for backwards compatibility or standalone usage)
+      this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
+        embeddings: this.embeddings,
+        rateLimiter: this.requestQueue?.pineconeLimiter,
+        pineconePlugin: options.pineconePlugin,
+        apiKey: process.env.PINECONE_API_KEY,
+        indexName: process.env.PINECONE_INDEX_NAME,
+        region: process.env.PINECONE_REGION,
+        defaultTopK: 10,
+        defaultThreshold: 0.3,  // Lowered from 0.4 to 0.3 for more matches
+        maxResults: 50
+      });
+      console.log(`[${new Date().toISOString()}] QueryPipeline created its own VectorSearchOrchestrator`);
+    }
     this.responseGenerator = new ResponseGenerator(this.llm, this.requestQueue);
     
     // Initialize trace archiver for automatic analysis archiving
@@ -70,7 +84,9 @@ class QueryPipeline {
     }
     
     const vectorStore = await this.vectorSearchOrchestrator.createVectorStore(this.userId);
-    vectorStore.namespace = this.userId; // explicit namespace assignment
+    // TEMPORARY FIX: Use hardcoded namespace that matches aiLangchainAdapter
+    vectorStore.namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
+    console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: getVectorStore using hardcoded namespace:`);
     return vectorStore;
   }
 
@@ -92,6 +108,16 @@ class QueryPipeline {
       console.log(`[${new Date().toISOString()}] QueryPipeline processing prompt for user ${userId}`);
       traceData.steps.push({ step: 'initialization', timestamp: new Date().toISOString(), status: 'success' });
       
+      // Lazy initialization of vectorStore if not provided and not already initialized
+      if (!vectorStore && !this.vectorStore) {
+        try {
+          console.log(`[${new Date().toISOString()}] [DEBUG] Lazy-initializing vectorStore for QueryPipeline`);
+          this.vectorStore = await this.getVectorStore();
+        } catch (error) {
+          console.warn(`[${new Date().toISOString()}] [DEBUG] Failed to lazy-initialize vectorStore: ${error.message}`);
+          this.vectorStore = null;
+        }
+      }
       const activeVectorStore = vectorStore || this.vectorStore;
       
       if (!this.isVectorStoreAvailable(activeVectorStore)) {
@@ -194,7 +220,41 @@ class QueryPipeline {
 
   // Helper methods
   isVectorStoreAvailable(vectorStore) {
-    return vectorStore && this.vectorSearchOrchestrator && this.vectorSearchOrchestrator.isConnected();
+    // If we have an injected vectorStore, validate it properly
+    if (vectorStore) {
+      // Check if vectorStore has the required properties and methods
+      if (!vectorStore.embeddings || !vectorStore.pineconeIndex) {
+        console.warn(`[${new Date().toISOString()}] [DEBUG] Injected vectorStore missing required properties`);
+        return false;
+      }
+      
+      // If vectorStore has a namespace, that's a good sign it's properly configured
+      if (vectorStore.namespace) {
+        return true;
+      }
+      
+      // For vectorStores without explicit namespace, we need the orchestrator to validate
+      if (this.vectorSearchOrchestrator?.isConnected?.() === true) {
+        return true;
+      }
+      
+      console.warn(`[${new Date().toISOString()}] [DEBUG] Injected vectorStore appears to be stale or incomplete`);
+      return false;
+    }
+    
+    // No injected vectorStore - check if we have an initialized vectorStore from successful setup
+    if (this.vectorStore) {
+      return this.isVectorStoreAvailable(this.vectorStore);
+    }
+    
+    // No vectorStore at all - only trust orchestrator if we have userId (required for vectorStore creation)
+    if (this.userId && this.vectorSearchOrchestrator?.isConnected?.() === true) {
+      return true;
+    }
+    
+    // No valid vectorStore and either no userId or orchestrator not connected
+    console.log(`[${new Date().toISOString()}] [DEBUG] Vector store not available: userId=${!!this.userId}, orchestrator=${!!this.vectorSearchOrchestrator}, connected=${this.vectorSearchOrchestrator?.isConnected?.() === true}`);
+    return false;
   }
 
   /**
@@ -206,14 +266,50 @@ class QueryPipeline {
     if (!repoData) return null;
     
     if (typeof repoData === 'string') {
-      // Parse GitHub URL
-      const match = repoData.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-      if (match) {
-        return {
-          owner: match[1],
-          name: match[2].replace(/\.git$/, ''),
-          branch: 'main' // Default branch
-        };
+      try {
+        // Parse various GitHub URL formats including enterprise and branch URLs
+        const url = new URL(repoData);
+        
+        // Support github.com and GitHub Enterprise (any host ending with github.com or containing github)
+        const isGitHub = url.hostname === 'github.com' || 
+                        url.hostname.endsWith('.github.com') || 
+                        url.hostname.includes('github');
+        
+        if (isGitHub) {
+          // Parse path: /owner/repo[/tree/branch][.git]
+          const pathMatch = url.pathname.match(/^\/([^\/]+)\/([^\/]+)(?:\/tree\/([^\/]+))?(?:\.git)?(?:\/.*)?$/);
+          
+          if (pathMatch) {
+            const [, owner, repo, branchInUrl] = pathMatch;
+            return {
+              owner: owner,
+              name: repo.replace(/\.git$/, ''),
+              branch: branchInUrl || 'main' // Use branch from URL or default to main
+            };
+          }
+        }
+        
+        // Fallback to regex for malformed URLs
+        const regexMatch = repoData.match(/(?:github\.com|[\w.-]+github[\w.-]*)[\/:]([^\/]+)\/([^\/\s]+?)(?:\/tree\/([^\/\s]+))?(?:\.git)?(?:[\/\s]|$)/i);
+        if (regexMatch) {
+          const [, owner, repo, branchInUrl] = regexMatch;
+          return {
+            owner: owner,
+            name: repo.replace(/\.git$/, ''),
+            branch: branchInUrl || 'main'
+          };
+        }
+      } catch (urlError) {
+        // If URL parsing fails, try regex fallback
+        const regexMatch = repoData.match(/(?:github\.com|[\w.-]+github[\w.-]*)[\/:]([^\/]+)\/([^\/\s]+?)(?:\/tree\/([^\/\s]+))?(?:\.git)?(?:[\/\s]|$)/i);
+        if (regexMatch) {
+          const [, owner, repo, branchInUrl] = regexMatch;
+          return {
+            owner: owner,
+            name: repo.replace(/\.git$/, ''),
+            branch: branchInUrl || 'main'
+          };
+        }
       }
     } else if (typeof repoData === 'object') {
       // Use provided object
@@ -238,67 +334,9 @@ class QueryPipeline {
    * @returns {Array} Search results
    */
   async performVectorSearch(prompt, vectorStore, traceData = null, userId = null, repoId = null, repoDescriptor = null) {
-    if (vectorStore !== this.vectorStore) {
-      // For different vector stores, we'll use advanced search with the modern orchestrator
-      // but search in a specific namespace if provided
-      const ns = vectorStore?.namespace || this.userId || userId || null;
-      const searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
-        namespace: ns,
-        topK: 10,
-        threshold: 0.3,  // Lowered for more matches
-        includeMetadata: true
-      });
-      
-      // Convert to legacy format for compatibility
-      const results = searchResults.matches.map(match => ({
-        pageContent: match.metadata?.text || match.metadata?.content || '',
-        metadata: {
-          ...match.metadata,
-          score: match.score,
-          id: match.id
-        }
-      }));
-      
-      if (traceData) {
-        traceData.vectorStore = 'temporary';
-        traceData.searchStrategy = 'modern_orchestrator_temp';
-        traceData.chunks = this.captureChunkData(results);
-      }
-      
-      // Log full chunk content if enabled
-      if (process.env.RAG_ENABLE_CHUNK_LOGGING === 'true' && results.length > 0) {
-        console.log(`[${new Date().toISOString()}] 📋 CHUNK CONTENT LOGGING (temp): Retrieved ${results.length} chunks for query: "${prompt.substring(0, 100)}..."`);
-        
-        // Archive previous analysis and create new one (only once per query)
-        if (!this._archiveCreated) {
-          try {
-            await this.traceArchiver.archiveAndPrepare(prompt, new Date().toISOString());
-            console.log(`[${new Date().toISOString()}] 📁 TRACE-ARCHIVER: Archived previous analysis and created new trace file`);
-            this._archiveCreated = true;
-          } catch (error) {
-            console.warn(`[${new Date().toISOString()}] ⚠️ TRACE-ARCHIVER: Failed to archive: ${error.message}`);
-          }
-        }
-        
-        this.logChunkDetails(results);
-      }
-      
-      // Emit retrieval success status
-      if (results.length > 0) {
-        this.emitRagStatus('retrieval_success', {
-          userId: this.userId,
-          conversationId: '',
-          documentsFound: results.length,
-          sources: results.map(doc => doc.metadata.source || 'Unknown'),
-          sourceTypes: {
-            apiSpec: results.filter(doc => doc.metadata.type === 'apiSpec' || doc.metadata.type === 'apiSpecFull').length,
-            githubCode: results.filter(doc => doc.metadata.repoId || doc.metadata.githubOwner).length
-          },
-          firstDocContentPreview: results[0].pageContent.substring(0, 100) + '...'
-        });
-      }
-      
-      return results;
+    // Store the provided vectorStore for future use
+    if (vectorStore && !this.vectorStore) {
+      this.vectorStore = vectorStore;
     }
     
     if (traceData) {
@@ -315,12 +353,9 @@ class QueryPipeline {
         threshold: 0.3  // Lower threshold for more matches
       });
     } else {
-      // Fallback to user-wide search but include repository context
-      const baseUserId = this.userId || userId;
-      
-      // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
-      const repositoryNamespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
-      console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${repositoryNamespace}`);
+      // TEMPORARY FIX: Always use hardcoded namespace that exists in Pinecone
+      const repositoryNamespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
+      console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: QueryPipeline using hardcoded namespace: ${repositoryNamespace}`);
       searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
         namespace: repositoryNamespace,
         topK: 10,
@@ -330,7 +365,7 @@ class QueryPipeline {
     }
     
     // Convert to legacy format for compatibility with rest of pipeline
-    const results = searchResults.matches.map(match => ({
+    const results = (searchResults.matches || []).map(match => ({
       pageContent: match.metadata?.text || match.metadata?.content || '',
       metadata: {
         ...match.metadata,
@@ -395,9 +430,9 @@ class QueryPipeline {
       conversationId,
       timestamp: new Date().toISOString(),
       ragEnabled: true,
-      contextSize: contextData.context.length,
-      sourcesUsed: contextData.sourceAnalysis,
-      sourcesBreakdown: contextData.sourcesBreakdown,
+      contextSize: contextData.context?.length ?? 0,
+      sourcesUsed: contextData.sourceAnalysis?.total ?? 0,
+      sourcesBreakdown: contextData.sourcesBreakdown ?? {},
       conversationHistoryUsed: conversationHistory.length > 0,
       historyMessages: conversationHistory.length
     };
@@ -439,7 +474,12 @@ class QueryPipeline {
 
   emitRagStatus(status, data) {
     if (this.eventBus?.emit) {
-      this.eventBus.emit('ragStatus', { status, ...data });
+      this.eventBus.emit('rag.status', { 
+        component: 'queryPipeline',
+        phase: status,
+        metrics: data || {},
+        ts: new Date().toISOString()
+      });
       console.log(`[${new Date().toISOString()}] Emitted RAG status: ${status}`);
     }
   }

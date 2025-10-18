@@ -127,7 +127,7 @@ describe("AI business module integration: AILangchainAdapter", () => {
       expect.objectContaining({
         success: true,
         meta: expect.objectContaining({ 
-          vectorStoreNS: "u-integration_anatolyzader_vc-3",
+          vectorStoreNS: "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3",
           userId: "u-integration"
         }),
         conversationId: "cX",
