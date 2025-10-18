@@ -86,7 +86,9 @@ class ResponseGenerator {
         role: "user", 
         content: `USER QUESTION: "${prompt}"
 
-🔍 AVAILABLE CONTEXT FROM YOUR ACTUAL CODEBASE:
+� CRITICAL INSTRUCTION: Only describe what you can see in the actual code below. Do NOT invent file paths like "src/core/di" or make assumptions about code structure.
+
+�🔍 AVAILABLE CONTEXT FROM YOUR ACTUAL CODEBASE:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ${contextData.context}
@@ -99,7 +101,7 @@ ${contextData.context}
 - 📋 Documentation: ${contextData.sourceAnalysis.rootDocumentation + contextData.sourceAnalysis.moduleDocumentation} docs
 - 🌐 API specs: ${contextData.sourceAnalysis.apiSpec} specs
 
-🎯 INSTRUCTION: Answer the user's question using the ACTUAL CODE and DOCUMENTATION provided above. Reference specific files and implementations from the context.`
+🎯 MANDATORY: Answer using ONLY the actual files and code shown above. If something isn't in the context, say "I don't see that specific implementation in the provided code." Never mention directories that don't appear in the actual code above.`
       };
     }
   }
@@ -189,12 +191,44 @@ ${contextData.context}
       'based on general knowledge'
     ];
     
-    const hasGenericResponse = genericPhrases.some(phrase => responseLower.includes(phrase));
+    // Check for invented file paths that don't exist in context
+    const inventedPaths = [
+      'src/core/di',
+      'src/core/',
+      'lib/di/',
+      'app/di/',
+      'core/di'
+    ];
     
-    if (hasCodebaseContext && hasGenericResponse) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ CONTEXT VALIDATION: AI gave generic response despite having ${contextData.sourceAnalysis.githubRepo} code files and ${contextData.sourceAnalysis.total} total documents`);
-      console.warn(`[${new Date().toISOString()}] ⚠️ Query: "${prompt.substring(0, 100)}..."`);
-      console.warn(`[${new Date().toISOString()}] ⚠️ Response contained generic phrase - this suggests prompt engineering needs improvement`);
+    // Check for specific signs of hallucination
+    const hallucinationIndicators = [
+      'can be found in the src/core/di directory',
+      'located in the src/core/di',
+      'implementation can be found in',
+      'details of the di implementation can be found'
+    ];
+    
+    const hasGenericResponse = genericPhrases.some(phrase => responseLower.includes(phrase));
+    const hasInventedPaths = inventedPaths.some(path => responseLower.includes(path.toLowerCase()));
+    const hasHallucination = hallucinationIndicators.some(indicator => responseLower.includes(indicator));
+    
+    if (hasCodebaseContext && (hasGenericResponse || hasInventedPaths || hasHallucination)) {
+      console.error(`[${new Date().toISOString()}] 🚨 CRITICAL CONTEXT VALIDATION ERROR:`);
+      console.error(`[${new Date().toISOString()}] ⚠️ AI gave problematic response despite having ${contextData.sourceAnalysis.githubRepo} code files and ${contextData.sourceAnalysis.total} total documents`);
+      console.error(`[${new Date().toISOString()}] ⚠️ Query: "${prompt.substring(0, 100)}..."`);
+      
+      if (hasGenericResponse) {
+        console.error(`[${new Date().toISOString()}] ⚠️ ISSUE: Response contained generic "no access" phrases`);
+      }
+      if (hasInventedPaths) {
+        console.error(`[${new Date().toISOString()}] ⚠️ ISSUE: Response mentioned non-existent file paths (e.g., src/core/di)`);
+      }
+      if (hasHallucination) {
+        console.error(`[${new Date().toISOString()}] ⚠️ ISSUE: Response contained hallucinated information`);
+      }
+      
+      console.error(`[${new Date().toISOString()}] 🔧 RECOMMENDATION: Prompt engineering needs further improvement`);
+      console.error(`[${new Date().toISOString()}] 📋 Context had: ${Object.entries(contextData.sourceAnalysis).map(([k,v]) => `${k}:${v}`).join(', ')}`);
     } else if (hasCodebaseContext) {
       console.log(`[${new Date().toISOString()}] ✅ CONTEXT VALIDATION: AI appears to have used provided codebase context (${contextData.sourceAnalysis.total} documents)`);
     }
