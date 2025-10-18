@@ -80,7 +80,9 @@ class RepoWorkerManager {
         console.log(`[${new Date().toISOString()}] 🧠 WORKER MANAGER: Processing ${aggregatedResult.processedChunks.length} chunks for embedding storage`);
         
         try {
-          const namespace = `${userId}_${repoId}`;
+          // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
+          const namespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
+          console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${namespace}`);
           await embeddingManager.storeToPinecone(
             aggregatedResult.processedChunks,
             namespace,

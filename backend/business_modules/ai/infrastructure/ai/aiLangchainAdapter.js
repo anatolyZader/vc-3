@@ -167,7 +167,7 @@ class AILangchainAdapter extends IAIPort {
 
     // Fallback to known correct values for this repository
     return {
-      gitUser: 'anatolyZader', // Correct case!
+      gitUser: 'anatolyZader', // Actual GitHub username (with capital Z)
       gitRepo: 'vc-3'
     };
   }
@@ -197,9 +197,9 @@ class AILangchainAdapter extends IAIPort {
         });
         
         // Adapter owns and manages the vector store
-        // Use dynamic repository-specific namespace format
-        const { gitUser, gitRepo } = this.extractGitHubInfo();
-        const repositoryNamespace = `${this.userId}_${gitUser}_${gitRepo}`;
+        // TEMPORARY FIX: Hardcode the complete namespace that exists in Pinecone
+        const repositoryNamespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
+        console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${repositoryNamespace}`);
         this.vectorStore = await pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
         console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId} with namespace: ${repositoryNamespace}`);
       } else {

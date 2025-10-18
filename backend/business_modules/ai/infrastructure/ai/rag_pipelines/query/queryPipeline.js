@@ -318,17 +318,9 @@ class QueryPipeline {
       // Fallback to user-wide search but include repository context
       const baseUserId = this.userId || userId;
       
-      // Generate repository namespace using consistent sanitizeId helper
-      let repositoryNamespace;
-      if (repoDescriptor && repoDescriptor.owner && repoDescriptor.name) {
-        const { owner, name, branch = 'main' } = repoDescriptor;
-        repositoryNamespace = PineconeService.sanitizeId(`${owner}_${name}_${branch}`);
-      } else {
-        // Fallback: try to derive from existing context or use default
-        repositoryNamespace = baseUserId ? PineconeService.sanitizeId(`${baseUserId}_default_main`) : 'default';
-      }
-      
-      console.log(`[${new Date().toISOString()}] 🌐 User-wide search (with repo context): ${repositoryNamespace}`);
+      // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
+      const repositoryNamespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
+      console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${repositoryNamespace}`);
       searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
         namespace: repositoryNamespace,
         topK: 10,

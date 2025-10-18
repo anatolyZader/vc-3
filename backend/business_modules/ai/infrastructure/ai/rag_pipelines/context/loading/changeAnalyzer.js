@@ -613,7 +613,9 @@ class ChangeAnalyzer {
       }
 
       // Step 4: Process changed documents (using pure processing methods)
-      const namespace = contextPipeline.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
+      const namespace = `anatolyzader_vc-3`;
+      console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${namespace}`);
       
       // Process documents
       const processedDocuments = await contextPipeline.repoProcessor.intelligentProcessDocuments(changedDocuments);

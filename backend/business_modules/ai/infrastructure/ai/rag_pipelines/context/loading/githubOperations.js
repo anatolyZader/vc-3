@@ -289,8 +289,9 @@ class GitHubOperations {
     }
 
     try {
-      // Use consistent namespace pattern: userId_repoId (same as storage and retrieval)
-      const namespace = this.sanitizeId(`${userId}_${repoId}`);
+      // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
+      const namespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
+      console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${namespace}`);
       
       // Handle both PineconeService and raw Pinecone client
       let index;
@@ -784,8 +785,9 @@ class GitHubOperations {
       console.log(`[${new Date().toISOString()}] ✅ DIRECT API: Loaded ${documents.length} documents`);
 
       // Process documents using pure processing methods (no orchestration in repoProcessor)
-      // Use consistent namespace pattern: userId_repoId (same as main processing flow)
-      const namespace = repoPreparation.sanitizeId(`${userId}_${repoId}`);
+      // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
+      const namespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
+      console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${namespace}`);
       
       // Step 1: Process documents
       const processedDocuments = await repoProcessor.intelligentProcessDocuments(documents);

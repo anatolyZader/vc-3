@@ -267,13 +267,15 @@ class RepoWorker {
     try {
       // Simplified processing - just return the document as chunks for main pipeline
       // Main pipeline will handle: embedding generation, advanced chunking, and Pinecone storage
+      // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
+      const namespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
       const chunks = [{
         pageContent: document.pageContent,
         metadata: document.metadata,
         chunkIndex: 0,
         // NOTE: No embedding generation here - main pipeline handles this
         needsEmbedding: true,
-        namespace: `${document.metadata.userId}_${document.metadata.repoId}`,
+        namespace: namespace,
         vectorId: `${document.metadata.repoId}_${document.metadata.filePath}_0`
       }];
       

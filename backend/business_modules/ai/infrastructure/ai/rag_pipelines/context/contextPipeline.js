@@ -637,7 +637,7 @@ class ContextPipeline {
         
         // Step 2: Store repository tracking info for future duplicate detection
         const pineconeClient2 = await this.getPineconeClient();
-        const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+        const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
         
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, commitInfo, 
@@ -749,7 +749,7 @@ class ContextPipeline {
       );
 
       // Step 5: Store processed documents using EmbeddingManager
-      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
       await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
       
       // Step 6: Store repository tracking info for future duplicate detection  
@@ -808,7 +808,7 @@ class ContextPipeline {
    */
   async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
     try {
-      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`);
+      const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
       const pineconeClient = await this.getPineconeClient();
       
       // Query for any existing documents in this namespace
@@ -832,7 +832,7 @@ class ContextPipeline {
       return { exists: false, namespace };
     } catch (error) {
       console.log(`[${new Date().toISOString()}] ℹ️ Repository check: ${error.message}`);
-      return { exists: false, namespace: this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`) };
+      return { exists: false, namespace: 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3' };
     }
   }
 }

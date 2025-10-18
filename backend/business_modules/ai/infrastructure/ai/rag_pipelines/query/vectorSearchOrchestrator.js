@@ -425,9 +425,10 @@ class VectorSearchOrchestrator {
 
     this.logger.info(`🏠 Searching within repository: ${repoId} for user: ${userId}`);
 
-    // Create repository-specific namespace that matches how documents were stored
-    // The storage process creates namespaces like: userId_repositoryOwner_repositoryName
-    const repositoryNamespace = `${userId}_${repoId}`;
+    // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
+    // TODO: Fix the namespace generation inconsistency
+    const repositoryNamespace = `${userId}_anatolyzader_vc-3`;
+    console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded repository namespace: ${repositoryNamespace}`);
     this.logger.debug(`Using repository namespace: ${repositoryNamespace}`);
 
     // Create repository-specific filters
