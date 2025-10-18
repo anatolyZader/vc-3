@@ -95,6 +95,13 @@ class FileFilteringUtils {
       'pytest_cache',
       'jest_cache',
       
+      // Debug and trace files that cause hallucination
+      'debug_',
+      'test_',
+      'trace-',
+      'langsmith',
+      'langsmith-archive',
+      
       // Specific problematic files
       'cloud-sql-proxy',
       'package-lock.json',
@@ -146,7 +153,14 @@ class FileFilteringUtils {
       '.test.tsx',
       '.spec.tsx',
       '.test.py',
-      '.spec.py'
+      '.spec.py',
+      
+      // Debug and trace file patterns that cause vector pollution
+      'debug_*.js',
+      'test_*.js', 
+      'trace-*.md',
+      '*-trace-analysis*.md',
+      'latest-trace-analysis.md'
     ];
   }
 
@@ -199,6 +213,22 @@ class FileFilteringUtils {
           return false;
         }
       }
+    }
+    
+    // ENHANCED: Specific exclusions for problematic files that cause hallucination
+    if (fileName.startsWith('debug_') || fileName.startsWith('test_') || fileName.startsWith('chunking_')) {
+      console.log(`[FILTER] ❌ HALLUCINATION PREVENTION: Excluded debug/test/chunking file: ${filePath}`);
+      return false;
+    }
+    
+    if (fileName.startsWith('trace-') || fileName.includes('-trace-analysis') || fileName === 'latest-trace-analysis.md') {
+      console.log(`[FILTER] ❌ HALLUCINATION PREVENTION: Excluded trace analysis file: ${filePath}`);
+      return false;
+    }
+    
+    if (filePathLower.includes('/langsmith/') || filePathLower.includes('/langsmith-archive/')) {
+      console.log(`[FILTER] ❌ HALLUCINATION PREVENTION: Excluded LangSmith directory: ${filePath}`);
+      return false;
     }
     
     // Skip files without extensions (often binaries) unless known text files
