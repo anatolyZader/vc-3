@@ -301,7 +301,7 @@ class AILangchainAdapter extends IAIPort {
     }
   }
 
-  // 2. Retrieval andd generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  // 2. Retrieval anddd generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
   async respondToPrompt(userId, conversationId, prompt, conversationHistory = []) {
     const exec = async () => {
