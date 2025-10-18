@@ -79,18 +79,26 @@ const TypewriterText = ({
     }
   };
 
+  // Apply the same formatting as the post-animation phase
+  const formatText = (text) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 600; color: #374151;">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px;">$1</code>')
+      .replace(/^\d+\.\s/gm, '<span style="font-weight: 600; color: #374151; margin-right: 0.5em;">$&</span>')
+      .replace(/^[\-\*]\s/gm, '<span style="margin-right: 0.5em;">•</span>');
+  };
+
   return (
     <span 
       className={`typewriter-text ${className}`}
       onClick={handleClick}
-      style={{ cursor: isComplete ? 'default' : 'pointer' }}
+      style={{ cursor: isComplete ? 'default' : 'pointer', whiteSpace: 'pre-wrap' }}
       title={isComplete ? '' : 'Click to show full message'}
-    >
-      {displayedText}
-      {!isComplete && (
-        <span className="typewriter-cursor">|</span>
-      )}
-    </span>
+      dangerouslySetInnerHTML={{
+        __html: formatText(displayedText) + (!isComplete ? '<span class="typewriter-cursor">|</span>' : '')
+      }}
+    />
   );
 };
 
