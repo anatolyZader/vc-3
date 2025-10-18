@@ -130,6 +130,48 @@ class AILangchainAdapter extends IAIPort {
     }
   }
 
+  /**
+   * Extract GitHub user and repository name from various sources
+   * This ensures consistent namespace generation across the system
+   */
+  extractGitHubInfo() {
+    // Try to extract from environment variables first (most reliable)
+    const envUser = process.env.GITHUB_USERNAME || process.env.GITHUB_USER;
+    const envRepo = process.env.GITHUB_REPO || process.env.GITHUB_REPOSITORY_NAME;
+    
+    if (envUser && envRepo) {
+      return {
+        gitUser: envUser,
+        gitRepo: envRepo
+      };
+    }
+
+    // Try to extract from git config (local repository)
+    try {
+      const { execSync } = require('child_process');
+      
+      // Get remote origin URL
+      const remoteUrl = execSync('git config --get remote.origin.url', { encoding: 'utf8' }).trim();
+      
+      // Parse GitHub URL (supports both HTTPS and SSH formats)
+      const githubMatch = remoteUrl.match(/github\.com[\/:]([^\/]+)\/([^\/\.]+)/);
+      if (githubMatch) {
+        return {
+          gitUser: githubMatch[1], // Preserves original case
+          gitRepo: githubMatch[2]
+        };
+      }
+    } catch (error) {
+      console.warn(`[${new Date().toISOString()}] Could not extract GitHub info from git config: ${error.message}`);
+    }
+
+    // Fallback to known correct values for this repository
+    return {
+      gitUser: 'anatolyZader', // Correct case!
+      gitRepo: 'vc-3'
+    };
+  }
+
   // Add method to set userId after construction - this is crucial!
   async setUserId(userId) {
     if (!userId) {
@@ -155,8 +197,9 @@ class AILangchainAdapter extends IAIPort {
         });
         
         // Adapter owns and manages the vector store
-        // Use repository-specific namespace format that matches actual document storage
-        const repositoryNamespace = `${this.userId}_anatolyzader_vc-3`;
+        // Use dynamic repository-specific namespace format
+        const { gitUser, gitRepo } = this.extractGitHubInfo();
+        const repositoryNamespace = `${this.userId}_${gitUser}_${gitRepo}`;
         this.vectorStore = await pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
         console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId} with namespace: ${repositoryNamespace}`);
       } else {
