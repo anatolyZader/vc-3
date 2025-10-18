@@ -21,7 +21,14 @@ class ResponseGenerator {
     
     console.log(`[${new Date().toISOString()}] 🔍 CONVERSATION CONTEXT: Built ${messages.length} messages for LLM (1 system + ${historyMessages.length} history + 1 current)`);
     
-    return await this.generateResponseWithRetry(messages);
+    const response = await this.generateResponseWithRetry(messages);
+    
+    // Validate context usage if we have codebase content
+    if (contextData.sourceAnalysis.githubRepo > 0 || contextData.sourceAnalysis.rootDocumentation > 0) {
+      this.validateContextUsage(response.content, contextData, prompt);
+    }
+    
+    return response;
   }
 
   async generateStandard(prompt, conversationHistory = []) {
@@ -76,8 +83,23 @@ class ResponseGenerator {
     } else {
       console.log(`[${new Date().toISOString()}] 🔍 APPLICATION QUESTION: Including RAG context for technical assistance`);
       return {
-        role: "user",
-        content: `I have a question: "${prompt}"\n\nHere is the relevant information:\n\n${contextData.context}`
+        role: "user", 
+        content: `USER QUESTION: "${prompt}"
+
+🔍 AVAILABLE CONTEXT FROM YOUR ACTUAL CODEBASE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${contextData.context}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 CONTEXT SUMMARY:
+- 📁 Total sources: ${contextData.sourceAnalysis.total} documents
+- 💻 Source code files: ${contextData.sourceAnalysis.githubRepo} files  
+- 📋 Documentation: ${contextData.sourceAnalysis.rootDocumentation + contextData.sourceAnalysis.moduleDocumentation} docs
+- 🌐 API specs: ${contextData.sourceAnalysis.apiSpec} specs
+
+🎯 INSTRUCTION: Answer the user's question using the ACTUAL CODE and DOCUMENTATION provided above. Reference specific files and implementations from the context.`
       };
     }
   }
@@ -150,6 +172,32 @@ class ResponseGenerator {
       error.message.includes('quota') || 
       error.message.includes('rate limit')
     );
+  }
+
+  validateContextUsage(response, contextData, prompt) {
+    const responseLower = response.toLowerCase();
+    const hasCodebaseContext = contextData.sourceAnalysis.githubRepo > 0;
+    
+    // Check for problematic generic responses when we have actual code
+    const genericPhrases = [
+      'without access to the actual source code',
+      'without access to the source code', 
+      'without seeing the actual code',
+      'without access to your codebase',
+      'i don\'t have access to',
+      'i can\'t see the specific implementation',
+      'based on general knowledge'
+    ];
+    
+    const hasGenericResponse = genericPhrases.some(phrase => responseLower.includes(phrase));
+    
+    if (hasCodebaseContext && hasGenericResponse) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ CONTEXT VALIDATION: AI gave generic response despite having ${contextData.sourceAnalysis.githubRepo} code files and ${contextData.sourceAnalysis.total} total documents`);
+      console.warn(`[${new Date().toISOString()}] ⚠️ Query: "${prompt.substring(0, 100)}..."`);
+      console.warn(`[${new Date().toISOString()}] ⚠️ Response contained generic phrase - this suggests prompt engineering needs improvement`);
+    } else if (hasCodebaseContext) {
+      console.log(`[${new Date().toISOString()}] ✅ CONTEXT VALIDATION: AI appears to have used provided codebase context (${contextData.sourceAnalysis.total} documents)`);
+    }
   }
 }
 

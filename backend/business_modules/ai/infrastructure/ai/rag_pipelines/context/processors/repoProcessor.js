@@ -52,10 +52,13 @@ class RepoProcessor {
           'node_modules/**', '.git/**', 'dist/**', 'build/**', 'coverage/**', 
           'temp/**', '*.log', '*.lock', '*.tmp', '.DS_Store', '**/.DS_Store',
           'backend/**', 'client/**', '.github/**', '.vscode/**', // Exclude directories we'll process separately
-          // Excludee debug and chunking report directories
+          // Exclude debug and chunking report directories
           'chunking_reports/**', '**/chunking_reports/**',
           // Exclude debug files
           'debug_*.js', '**/debug_*.js', 'test_*.js', '**/test_*.js',
+          // Exclude LangSmith files and archives
+          '**/langsmith/**', '**/langsmith-archive/**',
+          'trace-*.md', '**/trace-*.md', '*-trace-analysis*.md', '**/*-trace-analysis*.md',
           // Allow root-level markdown documentation files
           '!*.md', '!ROOT_DOCUMENTATION.md', '!ARCHITECTURE.md'
         ]
@@ -214,6 +217,9 @@ class RepoProcessor {
         'chunking_reports/**', '**/chunking_reports/**',
         // Exclude debug files
         'debug_*.js', '**/debug_*.js', 'test_*.js', '**/test_*.js',
+        // Exclude LangSmith files and archives
+        '**/langsmith/**', '**/langsmith-archive/**',
+        'trace-*.md', '**/trace-*.md', '*-trace-analysis*.md', '**/*-trace-analysis*.md',
         // Exclude root files EXCEPT markdown documentation
         'package.json', 'bfg.jar', '*.txt', '*.log', '*.js',
         '.gitignore', 'package-lock.json', '*.jar',

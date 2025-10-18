@@ -61,20 +61,28 @@ class ContextBuilder {
       ? doc.pageContent.substring(0, maxLength) + '...' 
       : doc.pageContent;
       
-    return `${sectionHeader}File: ${source}\n${content}`;
+    // Enhanced formatting with clear emphasis on actual code content
+    const formattedContent = `${sectionHeader}📁 File: ${source}
+🔍 Content Type: ${type}
+📋 Content Length: ${content.length} characters
+
+💻 ACTUAL CONTENT:
+${content}`;
+    
+    return formattedContent;
   }
 
   static getSectionHeader(type, doc, source) {
     if (type === 'apiSpec' || type === 'apiSpecFull') {
-      return '=== API SPECIFICATION ===\n';
+      return '🌐 === API SPECIFICATION ===\n⚡ REAL API ENDPOINTS AND SCHEMAS FROM YOUR APPLICATION\n\n';
     } else if (type === 'root_documentation') {
-      return '=== ROOT DOCUMENTATION (Plugins & Core Files) ===\n';
+      return '📋 === ROOT DOCUMENTATION (Plugins & Core Files) ===\n⚡ ACTUAL CONFIGURATION AND PLUGIN DOCUMENTATION\n\n';
     } else if (type === 'module_documentation') {
-      return `=== ${doc.metadata.module?.toUpperCase() || 'MODULE'} DOCUMENTATION ===\n`;
+      return `📁 === ${doc.metadata.module?.toUpperCase() || 'MODULE'} DOCUMENTATION ===\n⚡ REAL MODULE DOCUMENTATION FROM YOUR APPLICATION\n\n`;
     } else if (doc.metadata.repoId) {
-      return `=== ACTUAL SOURCE CODE FROM REPOSITORY (${source}) ===\nNote: This contains the actual source code from the file.\n`;
+      return `💻 === ACTUAL SOURCE CODE FROM REPOSITORY (${source}) ===\n⚡ THIS IS REAL CODE FROM YOUR CODEBASE - NOT EXAMPLES\n⚡ Repository: ${doc.metadata.githubOwner}/${doc.metadata.repoId}\n\n`;
     }
-    return '';
+    return '📄 === DOCUMENT CONTENT ===\n⚡ ACTUAL CONTENT FROM YOUR APPLICATION\n\n';
   }
 
   static extractModuleDocsUsed(documents) {
