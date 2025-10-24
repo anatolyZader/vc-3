@@ -462,7 +462,7 @@ const Chat = () => {
             </div>
           </ExpansionPanel>
 
-          <ExpansionPanel open={false} title="Conversations">
+          <ExpansionPanel open={false} title="Conversations History">
             <div className="conversations-list">
               {loading && conversations.length === 0 && (
                 <p>Loading conversations...</p>

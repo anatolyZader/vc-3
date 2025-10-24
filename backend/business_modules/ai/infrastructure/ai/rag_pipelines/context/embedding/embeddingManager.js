@@ -117,6 +117,27 @@ class EmbeddingManager {
 
       console.log(`[${new Date().toISOString()}] 🔒 TOKEN-VALIDATED STORAGE: Processing ${safeDocuments.length} token-safe documents`);
 
+      // CLEANUP: Delete old embeddings for this repository before adding new ones
+      console.log(`[${new Date().toISOString()}] 🧹 CLEANUP: Removing old embeddings for namespace: ${namespace}`);
+      try {
+        // Use targeted cleanup that preserves system docs but removes old repo versions
+        const cleanupResult = await pineconeService.cleanupOldRepositoryEmbeddings(namespace, {
+          keepLatestCount: 0, // Remove all old versions since we're adding fresh ones
+          dryRun: false
+        });
+        console.log(`[${new Date().toISOString()}] ✅ CLEANUP: Successfully cleaned up ${cleanupResult.deleted} old embeddings, kept ${cleanupResult.kept} current ones`);
+      } catch (cleanupError) {
+        // If targeted cleanup fails, try full namespace deletion as fallback
+        console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP: Targeted cleanup failed, trying full namespace deletion: ${cleanupError.message}`);
+        try {
+          await pineconeService.deleteNamespace(namespace);
+          console.log(`[${new Date().toISOString()}] ✅ CLEANUP: Successfully cleared namespace as fallback`);
+        } catch (fallbackError) {
+          // Log warning but don't fail - might be first time processing this repo
+          console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP: Could not delete old embeddings (might be first processing): ${fallbackError.message}`);
+        }
+      }
+
       // Use enhanced upsertDocuments with verbose logging and rate limiting
       console.log(`[${new Date().toISOString()}] ⚡ STORAGE: Starting Pinecone upsert with timeout protection...`);
       const storageStartTime = Date.now();

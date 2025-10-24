@@ -252,12 +252,20 @@ class PineconeService {
     try {
       const index = await this.getIndex();
       
-      const deleteOptions = namespace ? { ids, namespace } : { ids };
-
       this.logger.info(`Deleting ${ids.length} vectors`, { namespace });
       
-      // Pinecone serverless SDK: index.delete({ ids, namespace })
-      await index.delete(deleteOptions);
+      // Use namespace method if namespace is provided, similar to query
+      const deleteTarget = namespace ? index.namespace(namespace) : index;
+      
+      // Pinecone SDK: deleteTarget.deleteMany(ids) or deleteTarget.delete({ ids })
+      if (typeof deleteTarget.deleteMany === 'function') {
+        await deleteTarget.deleteMany(ids);
+      } else if (typeof deleteTarget.delete === 'function') {
+        await deleteTarget.delete({ ids });
+      } else {
+        // Fallback: try direct delete on index with namespace parameter
+        await index.delete({ ids, namespace });
+      }
       
       this.logger.info(`Successfully deleted ${ids.length} vectors`);
       
@@ -288,6 +296,112 @@ class PineconeService {
       this.logger.error(`Failed to delete namespace ${namespace}:`, error.message);
       throw error;
     }
+  }
+
+  /**
+   * Clean up old repository embeddings by deleting vectors with older timestamps
+   * This is a more targeted cleanup that preserves system docs while removing old repo versions
+   */
+  async cleanupOldRepositoryEmbeddings(namespace, options = {}) {
+    const { keepLatestCount = 1, dryRun = false } = options;
+    
+    try {
+      this.logger.info(`Cleaning up old repository embeddings in namespace: ${namespace}`);
+      
+      // Sample the namespace to find repository chunks
+      const sampleQuery = await this.querySimilar(new Array(3072).fill(0.1), {
+        namespace: namespace,
+        topK: 100, // Get larger sample to identify patterns
+        threshold: 0.0, // Include all results
+        includeMetadata: true
+      });
+
+      if (!sampleQuery.matches || sampleQuery.matches.length === 0) {
+        this.logger.info('No vectors found in namespace to clean up');
+        return { success: true, deleted: 0, kept: 0 };
+      }
+
+      // Group by content hash (first 200 chars) to identify duplicates
+      const contentGroups = new Map();
+      
+      sampleQuery.matches.forEach(match => {
+        const content = match.metadata?.text || match.metadata?.content || '';
+        const contentHash = content.substring(0, 200).trim();
+        
+        // Only process repository chunks (exclude system docs)
+        if (match.id.includes('_chunk_') && !match.id.startsWith('system_')) {
+          if (!contentGroups.has(contentHash)) {
+            contentGroups.set(contentHash, []);
+          }
+          contentGroups.get(contentHash).push({
+            id: match.id,
+            timestamp: this.extractTimestampFromId(match.id)
+          });
+        }
+      });
+
+      // Identify vectors to delete (keep only the latest for each content group)
+      const toDelete = [];
+      let keptCount = 0;
+
+      contentGroups.forEach((vectors, contentHash) => {
+        if (vectors.length > keepLatestCount) {
+          // Sort by timestamp (newest first)
+          vectors.sort((a, b) => b.timestamp - a.timestamp);
+          
+          // Keep the latest, mark the rest for deletion
+          for (let i = keepLatestCount; i < vectors.length; i++) {
+            toDelete.push(vectors[i].id);
+          }
+          keptCount += keepLatestCount;
+        } else {
+          keptCount += vectors.length;
+        }
+      });
+
+      this.logger.info(`Cleanup plan: ${toDelete.length} old vectors to delete, ${keptCount} vectors to keep`);
+
+      if (dryRun) {
+        this.logger.info('Dry run mode - no vectors will be deleted');
+        return { success: true, deleted: 0, kept: keptCount, plannedDeletions: toDelete.length };
+      }
+
+      // Execute deletions in batches
+      if (toDelete.length > 0) {
+        const batchSize = 50;
+        let deleted = 0;
+
+        for (let i = 0; i < toDelete.length; i += batchSize) {
+          const batch = toDelete.slice(i, i + batchSize);
+          try {
+            await this.deleteVectors(batch, namespace);
+            deleted += batch.length;
+          } catch (error) {
+            this.logger.warn(`Failed to delete batch of ${batch.length} vectors:`, error.message);
+          }
+        }
+
+        this.logger.info(`Successfully cleaned up ${deleted} old repository embeddings`);
+        return { success: true, deleted, kept: keptCount };
+      } else {
+        this.logger.info('No old embeddings found to clean up');
+        return { success: true, deleted: 0, kept: keptCount };
+      }
+
+    } catch (error) {
+      this.logger.error(`Failed to cleanup old repository embeddings:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract timestamp from document ID
+   */
+  extractTimestampFromId(id) {
+    const parts = id.split('_');
+    const lastPart = parts[parts.length - 1];
+    const timestamp = parseInt(lastPart);
+    return isNaN(timestamp) ? 0 : timestamp;
   }
 
   /**

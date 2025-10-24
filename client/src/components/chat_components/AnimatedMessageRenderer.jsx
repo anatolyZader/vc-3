@@ -7,6 +7,7 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 import PropTypes from 'prop-types';
 import TypewriterText from './TypewriterText';
+import SimpleHybridRenderer from './SimpleHybridRenderer';
 import { onTypewriterScroll } from './scrollUtils';
 import './messageRenderer.css';
 import './TypewriterText.css';
@@ -124,13 +125,13 @@ const AnimatedMessageRenderer = ({
   }
 
   // For AI messages with animation enabled
-  // Only skip animation for very complex content that would break with word-by-word animation
+  // Detect different content types to choose appropriate animation strategy
   const hasCodeBlocks = /```[\s\S]*?```/.test(content);
   const hasTables = /^\|.*\|.*$/m.test(content);
   
-  // Skip animation only for code blocks and tables - everything else gets animated
-  if (hasCodeBlocks || hasTables) {
-    console.log('AnimatedMessageRenderer - Code block path, hasCodeBlocks:', hasCodeBlocks, 'hasTables:', hasTables);
+  // Skip animation only for tables (complex layout)
+  if (hasTables) {
+    console.log('AnimatedMessageRenderer - Table detected, skipping animation');
     return (
       <div className={`message-content ai-message compact-spacing-override`}>
         <div 
@@ -278,14 +279,12 @@ const AnimatedMessageRenderer = ({
   //   return false;
   // }, [content]);
 
-  // All content now goes through the animated path
-
-  // For simple content, use typewriter effect with seamless transition
-  // Debug logging
-  console.log('AnimatedMessageRenderer - Animation path, done:', done, 'content preview:', content.substring(0, 100));
+  // Choose animation strategy based on content type
+  console.log('AnimatedMessageRenderer - Animation path, hasCodeBlocks:', hasCodeBlocks, 'done:', done, 'content preview:', content.substring(0, 100));
+  console.log('AnimatedMessageRenderer - Using renderer:', hasCodeBlocks ? 'HybridAnimatedRenderer' : 'TypewriterText');
   
-  // Handle typewriter completion
-  const handleTypewriterComplete = () => {
+  // Handle animation completion
+  const handleAnimationComplete = () => {
     setDone(true);
   };
   
@@ -295,34 +294,98 @@ const AnimatedMessageRenderer = ({
         <div className="unified-content-container">
           {!done ? (
             <div ref={typewriterRef}>
-              <TypewriterText 
-                text={content} 
-                speed={animationSpeed}
-                className="ai-message-text typewriter-animated"
-                onScroll={onTypewriterScroll}
-                onComplete={handleTypewriterComplete}
-              />
+              {hasCodeBlocks ? (
+                // Use simple hybrid renderer for content with code blocks
+                <SimpleHybridRenderer 
+                  content={content}
+                  animationSpeed={animationSpeed}
+                  onComplete={handleAnimationComplete}
+                />
+              ) : (
+                // Use simple typewriter for text-only content
+                <TypewriterText 
+                  text={content} 
+                  speed={animationSpeed}
+                  className="ai-message-text typewriter-animated"
+                  onScroll={onTypewriterScroll}
+                  onComplete={handleAnimationComplete}
+                />
+              )}
             </div>
           ) : (
-            // EXPERIMENT: Use the same plain text approach but with basic formatting
-            <div 
-              className="post-animation-content"
-              style={{
-                whiteSpace: 'pre-wrap',
-                margin: 0,
-                padding: 0,
-                lineHeight: '1.4',
-                fontSize: 'inherit'
-              }}
-              dangerouslySetInnerHTML={{
-                __html: content
-                  .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: 600; color: #374151;">$1</strong>')
-                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                  .replace(/`(.*?)`/g, '<code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px;">$1</code>')
-                  .replace(/^\d+\.\s/gm, '<span style="font-weight: 600; color: #374151; margin-right: 0.5em;">$&</span>')
-                  .replace(/^[\-\*]\s/gm, '<span style="margin-right: 0.5em;">•</span>')
-              }}
-            />
+            // Post-animation: Render proper markdown with code blocks
+            <div className="post-animation-content">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children, ...props }) => (
+                    <p {...props} style={{ margin: '0.2em 0', lineHeight: '1.4' }}>
+                      {children}
+                    </p>
+                  ),
+                  code({ node, inline, className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    const language = match ? match[1] : 'text';
+                    
+                    if (!inline) {
+                      return (
+                        <div className="code-block-container">
+                          <div className="code-block-header">
+                            <span className="code-language">{language}</span>
+                            <button 
+                              className="copy-button"
+                              onClick={() => navigator.clipboard.writeText(String(children))}
+                              title="Copy code"
+                            >
+                              📋
+                            </button>
+                          </div>
+                          <SyntaxHighlighter
+                            style={oneDark}
+                            language={language}
+                            PreTag="div"
+                            customStyle={{
+                              margin: 0,
+                              borderRadius: '0 0 8px 8px',
+                              fontSize: '0.9em',
+                              lineHeight: '1.4'
+                            }}
+                          >
+                            {codeChildrenToString(children)}
+                          </SyntaxHighlighter>
+                        </div>
+                      );
+                    }
+                    
+                    // Handle inline code
+                    const codeText = String(children);
+                    const shouldShowCopyButton = codeText.length > 20 || codeText.includes(' ') || codeText.includes('.');
+                    
+                    if (shouldShowCopyButton) {
+                      return (
+                        <span className="inline-code-with-copy">
+                          <code className="inline-code" {...props}>
+                            {children}
+                          </code>
+                          <button 
+                            className="inline-copy-button"
+                            onClick={() => navigator.clipboard.writeText(codeText)}
+                            title="Copy code"
+                          >
+                            📋
+                          </button>
+                        </span>
+                      );
+                    }
+                    
+                    return <code className="inline-code" {...props}>{children}</code>;
+                  }
+                }}
+                skipHtml={true}
+              >
+                {processedContent}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
       </div>
