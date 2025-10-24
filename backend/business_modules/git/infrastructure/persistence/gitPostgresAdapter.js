@@ -135,6 +135,55 @@ class GitPostgresAdapter extends IGitPersistPort {
       client.release();
     }
   }
+
+  // ✅ Get repository for existence checking (used by persistRepo)
+  async getRepo(userId, repoId) {
+    const pool = await this.getPool();
+    const client = await pool.connect();
+    try {
+      console.log(`[DB] Attempting to get repo: ${repoId} for user: ${userId}`);
+      
+      const query = `
+        SELECT user_id, repo_id, data, created_at, updated_at
+        FROM git.repositories 
+        WHERE user_id = $1 AND repo_id = $2
+      `;
+      
+      console.log(`[DB] Query: ${query}`);
+      console.log(`[DB] Parameters: userId=${userId}, repoId=${repoId}`);
+      
+      const result = await client.query(query, [userId, repoId]);
+      
+      if (result.rows.length === 0) {
+        console.log(`[DB] ℹ️ Repository not found: ${repoId} for user: ${userId}`);
+        throw new Error(`Repository ${repoId} does not exist for user ${userId}`);
+      }
+      
+      console.log(`[DB] ✅ Repository found: ${repoId} for user: ${userId}`);
+      return result.rows[0];
+      
+    } catch (error) {
+      if (error.message.includes('does not exist')) {
+        // Re-throw "not found" errors for service layer handling
+        throw error;
+      }
+      
+      console.error(`[DB] ❌ Error getting repo:`, {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        hint: error.hint,
+        position: error.position,
+        severity: error.severity,
+        userId,
+        repoId,
+        stack: error.stack
+      });
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
 
 module.exports = GitPostgresAdapter;

@@ -78,6 +78,40 @@ async function gitPubsubListener(fastify, options) {
           return;
         }
 
+      } else if (data.event === 'persistRepoRequest') {
+        const { userId, repoId, correlationId, branch = 'main', forceUpdate = false, includeHistory = true } = data.payload;
+        fastify.log.info(`Processing persistRepo event for user: ${userId}, repo: ${repoId}, branch: ${branch}, correlation: ${correlationId}`);
+        
+        const parts = repoId.split('/');
+        if (parts.length !== 2) {
+          fastify.log.error(`Invalid repoId format: ${repoId}. Expected format: owner/repo`);
+          message.nack();
+          return;
+        }
+        const [owner, repo] = parts;
+
+        if (typeof fastify.persistRepo === 'function') {
+          // Create mock request object for persistRepo
+          const mockRequest = {
+            params: { owner, repo },
+            body: { branch, forceUpdate, includeHistory },
+            user: { id: userId },
+            headers: { 'x-correlation-id': correlationId }
+          };
+          const mockReply = {};
+
+          // Call the same HTTP handler with mock request
+          const result = await fastify.persistRepo(mockRequest, mockReply);
+          
+          fastify.log.info(`Repository persisted via PubSub: ${JSON.stringify(result)}`);
+          
+          fastify.log.info(`Repository persistence result published for message ${message.id}`);
+        } else {
+          fastify.log.error(`fastify.persistRepo is not defined. Cannot process message ${message.id}.`);
+          message.nack();
+          return;
+        }
+
       } else {
         fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
       }

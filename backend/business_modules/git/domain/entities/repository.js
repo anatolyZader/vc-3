@@ -23,6 +23,13 @@ class Repository {
     console.log(`Docs fetched for repository: ${repoId.value}`);
     return data;
   }
+
+  async persistRepo(repoIdRaw, branch, IGitPort, options = {}) {
+    const repoId = new RepoId(repoIdRaw);
+    const data = await IGitPort.fetchRepo(this.userId.value, repoId.value);
+    console.log(`Repository data prepared for persistence: ${repoId.value}, branch: ${branch}`);
+    return data;
+  }
 }
 
 module.exports = Repository;

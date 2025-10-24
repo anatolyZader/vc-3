@@ -65,29 +65,13 @@ class GitGithubAdapter extends IGitPort {
 
       console.log(`Tree fetched: ${treeResponse.data.tree.length} items found`);
 
-      console.log('Step 4: Filtering and fetching code files...');
-
-      // 4. Filter for code files and fetch their content
-      const codeFiles = await this.fetchCodebaseForRAG(owner, repo, treeResponse.data.tree);
-
-      console.log(`Codebase fetched: ${codeFiles.length} files processed`);
-
-      // 5. Combine all data in RAG-friendly format
+      // 4. Return clean repository data
       const data = {
-        // Repository metadata
         repository: repoResponse.data,
         branch: branchResponse.data,
-        
-        // RAG-optimized codebase
-        codebase: {
-          totalFiles: codeFiles.length,
-          files: codeFiles,
-          summary: this.generateCodebaseSummary(codeFiles, repoResponse.data),
-          lastUpdated: new Date().toISOString(),
-          fetchedBy: userId,
-          branchName: defaultBranch,
-          commitSha: branchResponse.data.commit.sha
-        }
+        tree: treeResponse.data,
+        fetchedAt: new Date().toISOString(),
+        fetchedBy: userId
       };
 
       console.log('=== GitGithubAdapter.fetchRepo completed successfully ===');
@@ -103,63 +87,7 @@ class GitGithubAdapter extends IGitPort {
     }
   }
 
-  generateCodebaseSummary(codeFiles, repoData) {
-    const languageStats = {};
-    const fileTypeStats = {};
-    let totalLines = 0;
-    let totalCharacters = 0;
 
-    codeFiles.forEach(file => {
-      // Language statistics
-      const lang = file.language;
-      languageStats[lang] = (languageStats[lang] || 0) + 1;
-      
-      // File type statistics
-      const type = file.metadata.fileType;
-      fileTypeStats[type] = (fileTypeStats[type] || 0) + 1;
-      
-      // Size statistics
-      totalLines += file.metadata.lineCount;
-      totalCharacters += file.metadata.characterCount;
-    });
-
-    return {
-      repository: {
-        name: repoData.full_name,
-        description: repoData.description,
-        primaryLanguage: repoData.language,
-        stars: repoData.stargazers_count,
-        forks: repoData.forks_count,
-        size: repoData.size,
-        createdAt: repoData.created_at,
-        updatedAt: repoData.updated_at
-      },
-      codebaseStats: {
-        totalFiles: codeFiles.length,
-        totalLines,
-        totalCharacters,
-        averageFileSize: Math.round(totalCharacters / codeFiles.length),
-        languageDistribution: languageStats,
-        fileTypeDistribution: fileTypeStats
-      },
-      // For RAG context
-      ragContext: {
-        repositoryDescription: repoData.description || `${repoData.full_name} - A ${repoData.language || 'mixed-language'} repository`,
-        mainLanguages: Object.keys(languageStats).slice(0, 3),
-        hasDocumentation: fileTypeStats.documentation > 0,
-        hasTests: fileTypeStats.test > 0,
-        complexityIndicator: this.calculateComplexityIndicator(codeFiles.length, totalLines, Object.keys(languageStats).length)
-      }
-    };
-  }
-
-  calculateComplexityIndicator(fileCount, lineCount, languageCount) {
-    // Simple heuristic for complexity
-    if (fileCount < 10 && lineCount < 1000) return 'simple';
-    if (fileCount < 50 && lineCount < 10000) return 'moderate';
-    if (fileCount < 200 && lineCount < 50000) return 'complex';
-    return 'very_complex';
-  }
 
   async fetchDocs(userId, repoId) {
     // Keep your existing docs method unchanged
@@ -188,6 +116,8 @@ class GitGithubAdapter extends IGitPort {
       throw error;
     }
   }
+
+
 }
 
 module.exports = GitGithubAdapter;

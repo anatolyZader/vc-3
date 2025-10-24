@@ -16,6 +16,10 @@ class IGitService {
     throw new Error('Method not implemented.');
   }
 
+  async persistRepo(userId, repoId, branch, options) {
+    throw new Error('Method not implemented.');
+  }
+
 }
 
 module.exports = IGitService;

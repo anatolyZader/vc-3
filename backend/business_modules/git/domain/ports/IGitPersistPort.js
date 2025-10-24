@@ -16,6 +16,10 @@ class IGitPersistPort {
     async persistDocs(userId, repoId, docs) {
     throw new Error('Method not implemented.');
     }
+
+    async getRepo(userId, repoId) {
+        throw new Error('Method not implemented.');
+    }
 }
 
 module.exports = IGitPersistPort;
