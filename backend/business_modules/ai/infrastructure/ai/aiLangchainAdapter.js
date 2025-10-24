@@ -275,6 +275,13 @@ class AILangchainAdapter extends IAIPort {
 
       console.log(`[${new Date().toISOString()}] ✅ Text search services initialized successfully`);
       
+      // Update QueryPipeline with text search services for hybrid search
+      if (this.queryPipeline) {
+        this.queryPipeline.textSearchService = this.textSearchService;
+        this.queryPipeline.hybridSearchService = this.hybridSearchService;
+        console.log(`[${new Date().toISOString()}] 🔄 QueryPipeline updated with text search services`);
+      }
+      
       // Test the services
       const isTextSearchAvailable = await this.textSearchService.isAvailable();
       console.log(`[${new Date().toISOString()}] 📊 Text search availability: ${isTextSearchAvailable}`);

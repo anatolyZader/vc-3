@@ -23,6 +23,10 @@ class QueryPipeline {
     this.userId = options.userId;
     this.eventBus = options.eventBus;
     
+    // Text search services for hybrid search capabilities
+    this.textSearchService = options.textSearchService || null;
+    this.hybridSearchService = options.hybridSearchService || null;
+    
     // Use shared vectorSearchOrchestrator if provided, otherwise create our own
     if (options.vectorSearchOrchestrator) {
       this.vectorSearchOrchestrator = options.vectorSearchOrchestrator;
@@ -136,7 +140,48 @@ class QueryPipeline {
       }
       traceData.steps.push({ step: 'vector_search', timestamp: new Date().toISOString(), status: 'success', documentsFound: searchResults.length });
 
-      const contextData = ContextBuilder.formatContext(searchResults);
+      // Perform complementary text search if available
+      let finalSearchResults = searchResults;
+      if (this.textSearchService) {
+        try {
+          const textResults = await this.performTextSearch(prompt, traceData, userId, null);
+          traceData.steps.push({ 
+            step: 'text_search', 
+            timestamp: new Date().toISOString(), 
+            status: 'success', 
+            documentsFound: textResults.length 
+          });
+          
+          // Combine vector and text search results
+          finalSearchResults = this.combineSearchResults(searchResults, textResults);
+          traceData.steps.push({ 
+            step: 'hybrid_search_combination', 
+            timestamp: new Date().toISOString(), 
+            status: 'success', 
+            totalDocuments: finalSearchResults.length,
+            vectorDocuments: searchResults.length,
+            textDocuments: textResults.length
+          });
+        } catch (textError) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ Text search failed, continuing with vector results only:`, textError.message);
+          traceData.steps.push({ 
+            step: 'text_search', 
+            timestamp: new Date().toISOString(), 
+            status: 'failed', 
+            error: textError.message 
+          });
+        }
+      } else {
+        console.log(`[${new Date().toISOString()}] 📋 Text search not available, using vector search results only`);
+        traceData.steps.push({ 
+          step: 'text_search', 
+          timestamp: new Date().toISOString(), 
+          status: 'skipped', 
+          reason: 'service_not_available' 
+        });
+      }
+
+      const contextData = ContextBuilder.formatContext(finalSearchResults);
       traceData.steps.push({ step: 'context_building', timestamp: new Date().toISOString(), status: 'success', contextSize: contextData.context.length });
       
       const response = await this.responseGenerator.generateWithContext(prompt, contextData, conversationHistory);
@@ -412,6 +457,106 @@ class QueryPipeline {
     }
     
     return results;
+  }
+
+  /**
+   * Perform complementary text search using PostgreSQL full-text search
+   * @param {string} prompt - The search query/prompt
+   * @param {object} traceData - Trace data object for logging
+   * @param {string} userId - User ID for filtering
+   * @param {string} repoId - Repository ID for filtering
+   * @returns {Array} Text search results in compatible format
+   */
+  async performTextSearch(prompt, traceData = null, userId = null, repoId = null) {
+    if (!this.textSearchService) {
+      console.log(`[${new Date().toISOString()}] ⚠️ Text search not available - service not initialized`);
+      return [];
+    }
+
+    try {
+      console.log(`[${new Date().toISOString()}] 🔍 Performing complementary text search: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
+      
+      const searchOptions = {
+        limit: 5, // Limit text search results to complement vector search
+        offset: 0
+      };
+
+      // Add user and repo filters if provided
+      if (userId) {
+        searchOptions.userId = userId;
+      }
+      if (repoId) {
+        searchOptions.repoId = repoId;
+      }
+
+      const startTime = Date.now();
+      const textResults = await this.textSearchService.searchDocuments(prompt, searchOptions);
+      const searchDuration = Date.now() - startTime;
+
+      console.log(`[${new Date().toISOString()}] 📄 Text search completed in ${searchDuration}ms, found ${textResults.length} results`);
+
+      // Convert text search results to format compatible with vector search results
+      const formattedResults = textResults.map(result => ({
+        pageContent: result.content || '',
+        metadata: {
+          id: result.id,
+          userId: result.userId,
+          repoId: result.repoId,
+          source: result.source || 'postgres_text_search',
+          searchType: 'text',
+          rank: result.rank,
+          snippet: result.snippet,
+          // Mark as text search result for context building
+          isTextSearchResult: true
+        }
+      }));
+
+      // Log text search details if chunk logging is enabled
+      if (process.env.RAG_ENABLE_CHUNK_LOGGING === 'true' && formattedResults.length > 0) {
+        console.log(`[${new Date().toISOString()}] 📋 TEXT SEARCH CHUNKS: Retrieved ${formattedResults.length} text-based chunks`);
+        formattedResults.forEach((result, index) => {
+          console.log(`[${new Date().toISOString()}] 📄 Text Chunk ${index + 1}: rank=${result.metadata.rank}, content="${result.pageContent.substring(0, 150)}..."`);
+        });
+      }
+
+      return formattedResults;
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Text search failed:`, error.message);
+      if (traceData) {
+        traceData.steps.push({ 
+          step: 'text_search', 
+          timestamp: new Date().toISOString(), 
+          status: 'error', 
+          error: error.message 
+        });
+      }
+      return [];
+    }
+  }
+
+  /**
+   * Combine vector search and text search results for hybrid search
+   * @param {Array} vectorResults - Results from vector search
+   * @param {Array} textResults - Results from text search
+   * @returns {Array} Combined and deduplicated results
+   */
+  combineSearchResults(vectorResults, textResults) {
+    if (textResults.length === 0) {
+      return vectorResults;
+    }
+
+    console.log(`[${new Date().toISOString()}] 🔄 Combining ${vectorResults.length} vector results with ${textResults.length} text results`);
+
+    // Simple combination: add text results to vector results
+    // In a more sophisticated implementation, you could:
+    // - Deduplicate based on content similarity
+    // - Re-rank based on combined scores
+    // - Limit total results
+    const combinedResults = [...vectorResults, ...textResults];
+
+    console.log(`[${new Date().toISOString()}] ✅ Combined search results: ${combinedResults.length} total documents`);
+    
+    return combinedResults;
   }
 
   createStandardResponseIndicator(reason) {

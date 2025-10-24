@@ -37,17 +37,19 @@ class TextSearchService {
       const client = await pool.connect();
 
       try {
-        // Build the search query
+        // Build the search query using repo_data table with content_vector
         let query = `
           SELECT 
             id,
             user_id,
             repo_id,
+            file_path,
+            file_extension,
             content,
-            ts_rank(to_tsvector('english', content), plainto_tsquery('english', $1)) AS rank,
+            ts_rank(content_vector, plainto_tsquery('english', $1)) AS rank,
             ts_headline('english', content, plainto_tsquery('english', $1)) AS snippet
-          FROM docs_data
-          WHERE to_tsvector('english', content) @@ plainto_tsquery('english', $1)
+          FROM repo_data
+          WHERE content_vector @@ plainto_tsquery('english', $1)
         `;
 
         const queryParams = [searchQuery];
@@ -88,6 +90,8 @@ class TextSearchService {
           id: row.id,
           userId: row.user_id,
           repoId: row.repo_id,
+          filePath: row.file_path,
+          fileExtension: row.file_extension,
           content: row.content,
           rank: parseFloat(row.rank),
           snippet: row.snippet,
@@ -128,13 +132,15 @@ class TextSearchService {
             id,
             user_id,
             repo_id,
+            file_path,
+            file_extension,
             content,
             CASE 
               WHEN content ILIKE $1 THEN 1.0
               WHEN content ILIKE '%' || $1 || '%' THEN 0.5
               ELSE 0.1
             END AS rank
-          FROM docs_data
+          FROM repo_data
           WHERE content ILIKE '%' || $1 || '%'
         `;
 
@@ -176,6 +182,8 @@ class TextSearchService {
           id: row.id,
           userId: row.user_id,
           repoId: row.repo_id,
+          filePath: row.file_path,
+          fileExtension: row.file_extension,
           content: row.content,
           rank: parseFloat(row.rank),
           snippet: this.createSnippet(row.content, searchQuery),
@@ -233,8 +241,9 @@ class TextSearchService {
             COUNT(*) as total_documents,
             COUNT(DISTINCT user_id) as unique_users,
             COUNT(DISTINCT repo_id) as unique_repos,
+            COUNT(DISTINCT file_extension) as unique_file_types,
             AVG(LENGTH(content)) as avg_content_length
-          FROM docs_data
+          FROM repo_data
           WHERE 1=1
         `;
 
@@ -259,6 +268,7 @@ class TextSearchService {
           totalDocuments: parseInt(result.rows[0].total_documents),
           uniqueUsers: parseInt(result.rows[0].unique_users),
           uniqueRepos: parseInt(result.rows[0].unique_repos),
+          uniqueFileTypes: parseInt(result.rows[0].unique_file_types),
           avgContentLength: Math.round(parseFloat(result.rows[0].avg_content_length) || 0)
         };
 
