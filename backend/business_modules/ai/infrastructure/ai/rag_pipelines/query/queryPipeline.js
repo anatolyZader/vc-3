@@ -40,9 +40,9 @@ class QueryPipeline {
         apiKey: process.env.PINECONE_API_KEY,
         indexName: process.env.PINECONE_INDEX_NAME,
         region: process.env.PINECONE_REGION,
-        defaultTopK: 10,
-        defaultThreshold: 0.3,  // Lowered from 0.4 to 0.3 for more matches
-        maxResults: 50
+        defaultTopK: 30,        // Increased from 10 to 30
+        defaultThreshold: 0.25, // Lowered from 0.3 to 0.25 for even more matches
+        maxResults: 100         // Increased from 50 to 100
       });
       console.log(`[${new Date().toISOString()}] QueryPipeline created its own VectorSearchOrchestrator`);
     }
@@ -379,6 +379,8 @@ class QueryPipeline {
    * @returns {Array} Search results
    */
   async performVectorSearch(prompt, vectorStore, traceData = null, userId = null, repoId = null, repoDescriptor = null) {
+    const VectorSearchStrategy = require('./vectorSearchStrategy');
+    
     // Store the provided vectorStore for future use
     if (vectorStore && !this.vectorStore) {
       this.vectorStore = vectorStore;
@@ -386,38 +388,58 @@ class QueryPipeline {
     
     if (traceData) {
       traceData.vectorStore = 'primary';
-      traceData.searchStrategy = repoId ? 'repository_specific_search' : 'modern_vector_search_orchestrator';
+      traceData.searchStrategy = repoId ? 'repository_specific_search' : 'intelligent_strategy_with_filters';
     }
     
-    // Use repository-specific search if repoId is provided, otherwise use user-wide search
+    // Determine search strategy and apply filters
+    const searchStrategy = VectorSearchStrategy.determineSearchStrategy(prompt);
+    console.log(`[${new Date().toISOString()}] 🎯 SEARCH STRATEGY: ${searchStrategy.codeResults} code + ${searchStrategy.docsResults} docs results`);
+    
+    // Use repository-specific search if repoId is provided, otherwise use intelligent search with filters
     let searchResults;
     if (repoId && userId) {
       console.log(`[${new Date().toISOString()}] 🎯 Repository-specific search: ${userId}/${repoId}`);
       searchResults = await this.vectorSearchOrchestrator.searchInRepository(prompt, userId, repoId, {
-        topK: 10,
-        threshold: 0.3  // Lower threshold for more matches
+        topK: searchStrategy.codeResults + searchStrategy.docsResults,
+        threshold: 0.3,
+        filter: this.combineFilters(searchStrategy.codeFilters, searchStrategy.docsFilters)
       });
     } else {
-      // TEMPORARY FIX: Always use hardcoded namespace that exists in Pinecone
+      // Apply intelligent search strategy with proper filters
       const repositoryNamespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
-      console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: QueryPipeline using hardcoded namespace: ${repositoryNamespace}`);
+      console.log(`[${new Date().toISOString()}] 🔍 Intelligent search with filters in namespace: ${repositoryNamespace}`);
+      
+      // Apply filters to prevent API spec dominance
+      const combinedFilter = this.combineFilters(searchStrategy.codeFilters, searchStrategy.docsFilters);
+      
       searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
         namespace: repositoryNamespace,
-        topK: 10,
-        threshold: 0.3,  // Lower threshold for more matches
-        includeMetadata: true
+        topK: searchStrategy.codeResults + searchStrategy.docsResults,
+        threshold: 0.3,
+        includeMetadata: true,
+        filter: combinedFilter
       });
     }
     
-    // Convert to legacy format for compatibility with rest of pipeline
-    const results = (searchResults.matches || []).map(match => ({
-      pageContent: match.metadata?.text || match.metadata?.content || '',
-      metadata: {
-        ...match.metadata,
-        score: match.score,
-        id: match.id
-      }
-    }));
+    // Convert to legacy format with deduplication and per-source caps
+    const rawResults = (searchResults.matches || []).map((match, index) => {
+      const pageContent = match.metadata?.text || 
+                         match.metadata?.content || 
+                         match.metadata?.pageContent || 
+                         '';
+      
+      return {
+        pageContent,
+        metadata: {
+          ...match.metadata,
+          score: match.score,
+          id: match.id
+        }
+      };
+    });
+    
+    // Apply deduplication and per-source caps
+    const results = this.deduplicateAndCapResults(rawResults, searchStrategy);
     
     if (traceData) {
       traceData.chunks = this.captureChunkData(results);
@@ -457,6 +479,109 @@ class QueryPipeline {
     }
     
     return results;
+  }
+
+  /**
+   * Combine code and docs filters into a single Pinecone filter
+   * @param {object} codeFilters - Filters for code chunks
+   * @param {object} docsFilters - Filters for documentation chunks
+   * @returns {object} Combined Pinecone filter
+   */
+  combineFilters(codeFilters, docsFilters) {
+    const filters = [];
+    
+    // Add code filters
+    if (codeFilters && Object.keys(codeFilters).length > 0) {
+      const codeFilter = { ...codeFilters };
+      filters.push(codeFilter);
+    }
+    
+    // Add docs filters
+    if (docsFilters && Object.keys(docsFilters).length > 0) {
+      const docsFilter = { ...docsFilters };
+      filters.push(docsFilter);
+    }
+    
+    // If we have multiple filter groups, combine with OR
+    if (filters.length > 1) {
+      return { $or: filters };
+    } else if (filters.length === 1) {
+      return filters[0];
+    }
+    
+    // No filters - return undefined to allow all results
+    return undefined;
+  }
+
+  /**
+   * Deduplicate results and apply per-source caps to prevent one source type from dominating
+   * @param {Array} results - Raw search results
+   * @param {object} searchStrategy - Search strategy with caps
+   * @returns {Array} Deduplicated and capped results
+   */
+  deduplicateAndCapResults(results, searchStrategy) {
+    console.log(`[${new Date().toISOString()}] 🔄 Deduplicating ${results.length} raw results`);
+    
+    // Step 1: Deduplicate by content hash
+    const seen = new Set();
+    const deduplicated = [];
+    
+    for (const result of results) {
+      // Create a content hash for deduplication
+      const contentHash = this.createContentHash(result.pageContent);
+      
+      if (!seen.has(contentHash)) {
+        seen.add(contentHash);
+        deduplicated.push(result);
+      }
+    }
+    
+    console.log(`[${new Date().toISOString()}] 🔄 After deduplication: ${deduplicated.length} unique results`);
+    
+    // Step 2: Apply per-source caps to prevent dominance
+    const sourceTypeCaps = {
+      'apiSpec': 5,           // Max 5 API spec chunks (increased)
+      'apiSpecFull': 2,       // Max 2 full API spec (increased)
+      'module_documentation': 8,  // Max 8 module docs (increased)
+      'github-file': 15,      // Max 15 code files (increased significantly)
+      'architecture_documentation': 5  // Max 5 architecture docs (increased)
+    };
+    
+    const sourceTypeCounts = {};
+    const cappedResults = [];
+    
+    for (const result of deduplicated) {
+      const sourceType = result.metadata?.type || 'unknown';
+      const currentCount = sourceTypeCounts[sourceType] || 0;
+      const maxAllowed = sourceTypeCaps[sourceType] || 5; // Default cap of 5
+      
+      if (currentCount < maxAllowed) {
+        cappedResults.push(result);
+        sourceTypeCounts[sourceType] = currentCount + 1;
+      }
+    }
+    
+    console.log(`[${new Date().toISOString()}] 🔄 After per-source capping: ${cappedResults.length} results`);
+    console.log(`[${new Date().toISOString()}] 📊 Source distribution:`, sourceTypeCounts);
+    
+    return cappedResults;
+  }
+
+  /**
+   * Create a content hash for deduplication
+   * @param {string} content - Content to hash
+   * @returns {string} Content hash
+   */
+  createContentHash(content) {
+    // Simple hash based on content length and first/last chars for quick deduplication
+    if (!content || content.length === 0) return 'empty';
+    
+    const cleanContent = content.trim();
+    const length = cleanContent.length;
+    const start = cleanContent.substring(0, 50);
+    const end = cleanContent.substring(Math.max(0, length - 50));
+    
+    return `${length}-${start}-${end}`.replace(/\s+/g, ' ');
   }
 
   /**
@@ -547,16 +672,25 @@ class QueryPipeline {
 
     console.log(`[${new Date().toISOString()}] 🔄 Combining ${vectorResults.length} vector results with ${textResults.length} text results`);
 
-    // Simple combination: add text results to vector results
-    // In a more sophisticated implementation, you could:
-    // - Deduplicate based on content similarity
-    // - Re-rank based on combined scores
-    // - Limit total results
-    const combinedResults = [...vectorResults, ...textResults];
-
-    console.log(`[${new Date().toISOString()}] ✅ Combined search results: ${combinedResults.length} total documents`);
+    // Combine results and deduplicate across both sources
+    const allResults = [...vectorResults, ...textResults];
     
-    return combinedResults;
+    // Deduplicate the combined results
+    const seen = new Set();
+    const deduplicatedResults = [];
+    
+    for (const result of allResults) {
+      const contentHash = this.createContentHash(result.pageContent);
+      
+      if (!seen.has(contentHash)) {
+        seen.add(contentHash);
+        deduplicatedResults.push(result);
+      }
+    }
+
+    console.log(`[${new Date().toISOString()}] ✅ Combined and deduplicated: ${deduplicatedResults.length} unique documents (was ${allResults.length})`);
+    
+    return deduplicatedResults;
   }
 
   createStandardResponseIndicator(reason) {

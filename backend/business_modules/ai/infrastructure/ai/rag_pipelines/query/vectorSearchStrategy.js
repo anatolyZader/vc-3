@@ -17,7 +17,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 8,
-        codeFilters: { layer: 'domain' },
+        codeFilters: { type: 'github-file' },
         docsFilters: { type: 'module_documentation' }
       };
     }
@@ -26,10 +26,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['api', 'endpoint', 'route', 'http', 'request', 'controller', 'fastify'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: API/Endpoint Query`);
       return {
-        codeResults: 12,
-        docsResults: 8,
-        codeFilters: { semantic_role: 'controller' },
-        docsFilters: { type: 'api_endpoint' }
+        codeResults: 20,        // Increased from 12 to 20
+        docsResults: 10,        // Increased from 8 to 10
+        codeFilters: { type: 'github-file' }, // Match actual content type
+        docsFilters: { type: 'apiSpec' } // Match API spec docs
       };
     }
     
@@ -39,7 +39,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 20,
         docsResults: 5,
-        codeFilters: { is_entrypoint: true }, // Focus on entry points where errors often occur
+        codeFilters: { type: 'github-file' }, // Match actual content type
         docsFilters: {}
       };
     }
@@ -50,7 +50,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 5,
-        codeFilters: { eventstorm_module: 'chatModule' },
+        codeFilters: { type: 'github-file' },
         docsFilters: { type: 'module_documentation' }
       };
     }
@@ -61,7 +61,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 5,
-        codeFilters: { eventstorm_module: 'gitModule' },
+        codeFilters: { type: 'github-file' },
         docsFilters: { type: 'module_documentation' }
       };
     }
@@ -72,7 +72,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 8,
-        codeFilters: { eventstorm_module: 'aiModule' },
+        codeFilters: { type: 'github-file' },
         docsFilters: { type: 'module_documentation' }
       };
     }
@@ -124,8 +124,8 @@ class VectorSearchStrategy {
     // Default strategy for general questions
     console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: General Query (default)`);
     return {
-      codeResults: 15,
-      docsResults: 8,
+      codeResults: 20,        // Increased from 15 to 20
+      docsResults: 10,        // Increased from 8 to 10
       codeFilters: {},
       docsFilters: {}
     };

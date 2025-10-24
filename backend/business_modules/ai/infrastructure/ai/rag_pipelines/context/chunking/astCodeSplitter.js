@@ -31,6 +31,23 @@ const sha1 = (s) => crypto.createHash("sha1").update(s || "").digest("hex");
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const within = (a, b) => a.start >= b.start && a.end <= b.end;
 
+// Strip string literals to avoid counting braces inside strings
+function stripStrings(s) { 
+  return s.replace(/(['"`])(?:\\.|(?!\1).)*\1/g, ''); 
+}
+
+// Cheap balance check for better packing decisions (ignores braces in strings)
+function isBalancedBraces(s) {
+  s = stripStrings(s);
+  let b=0,p=0,c=0;
+  for (const ch of s) {
+    if (ch === '{') b++; else if (ch === '}') b--;
+    if (ch === '(') p++; else if (ch === ')') p--;
+    if (ch === '[') c++; else if (ch === ']') c--;
+  }
+  return b===0 && p===0 && c===0;
+}
+
 // Log filters
 function isNonEssentialLogCallee(callee) {
   // console.log/info/debug
@@ -96,12 +113,10 @@ function normalizeExport(path) {
   if (t.isExportDefaultDeclaration(node) || t.isExportNamedDeclaration(node)) {
     if (node.declaration) {
       path.replaceWith(node.declaration);
-      return true;
+    } else {
+      path.remove();
     }
-    path.remove();
-    return true;
   }
-  return false;
 }
 
 // Helpers for Fastify/event labels
@@ -232,23 +247,24 @@ function buildTree(units, fileStart, fileEnd) {
 class ASTCodeSplitter {
   /**
    * @param {object} options
-   * @param {number} [options.maxTokens=800]
-   * @param {number} [options.minTokens=60]
-   * @param {number} [options.overlapTokens=80]
+   * @param {number} [options.maxTokens=2000] - Increased for better semantic preservation
+   * @param {number} [options.minTokens=140] - Increased to avoid tiny fragments
+   * @param {number} [options.overlapTokens=120] - Increased for better context
    * @param {(text:string)=>number} [options.estimateTokens]
    * @param {boolean} [options.enableLineFallback=true]
-   * @param {number} [options.maxUnitsPerChunk=1]
+   * @param {number} [options.maxUnitsPerChunk=4] - Increased to allow small sibling packing
    * @param {number} [options.charsPerToken=4]
-   * @param {number} [options.minResidualChars=12]
+   * @param {number} [options.minResidualChars=100] - Increased to avoid micro-residuals
    */
   constructor(options = {}) {
-    this.maxTokens = options.maxTokens ?? 800;
-    this.minTokens = options.minTokens ?? 60;
-    this.overlapTokens = options.overlapTokens ?? 80;
+    // Safer defaults for better semantic preservation
+    this.maxTokens = options.maxTokens ?? 2000;        // Increased from 800 to preserve whole functions/classes
+    this.minTokens = options.minTokens ?? 140;         // Increased from 60 to avoid tiny fragments
+    this.overlapTokens = options.overlapTokens ?? 120; // Increased from 80 for better context
     this.enableLineFallback = options.enableLineFallback !== false;
-    this.maxUnitsPerChunk = options.maxUnitsPerChunk ?? 1;
+    this.maxUnitsPerChunk = options.maxUnitsPerChunk ?? 4; // Increased from 1 to allow small sibling packing
     this.charsPerToken = options.charsPerToken ?? 4;
-    this.minResidualChars = options.minResidualChars ?? 12;
+    this.minResidualChars = options.minResidualChars ?? 100; // Increased from 12 to avoid micro-residuals
     this.estimateTokens =
       options.estimateTokens || ((txt) => defaultEstimateTokens(txt, this.charsPerToken));
   }
@@ -314,23 +330,27 @@ class ASTCodeSplitter {
   split(code, metadata = {}) {
     if (!code || typeof code !== "string") return [];
 
-    // 1) Parse & sanitize AST
+    // 1) Parse & collect imports before sanitization
     const ast = this._parse(code);
-    this._sanitizeAST(ast);
+    const imports = this.collectImports(ast, code.split(/\r?\n/));
+    
+    // 2) Sanitize AST (pass metadata for context-aware sanitization)
+    this._sanitizeAST(ast, metadata);
 
-    // 2) Generate cleaned code (comments removed)
+    // 3) Generate cleaned code (comments removed)
     const cleaned = generate(ast, { comments: false, compact: false }).code;
 
-    // 3) Reparse cleaned, collect units, and build tree
+    // 4) Reparse cleaned, collect units, and build tree
     const cleanedAST = this._parse(cleaned);
     const units = collectUnits(cleanedAST);
     const root = buildTree(units, 0, cleaned.length);
 
-    // 4) Plan emission recursively (no double-emit)
+    // 5) Plan emission recursively (no double-emit) with imports in metadata
     const emitted = [];
-    this._emitNode(root, cleaned, metadata, emitted);
+    const enrichedMetadata = { ...metadata, imports };
+    this._emitNode(root, cleaned, enrichedMetadata, emitted);
 
-    // 5) Dedupe by span or sha
+    // 6) Dedupe by span or sha
     const seenRange = new Set();
     const seenSha = new Set();
     const out = [];
@@ -345,8 +365,17 @@ class ASTCodeSplitter {
       out.push(d);
     }
 
-    // 6) If nothing (unlikely), fallback whole file
-    if (!out.length) return this._splitByLines(cleaned, metadata);
+    // 7) If nothing (unlikely), fallback whole file
+    if (!out.length) return this._splitByLines(cleaned, enrichedMetadata);
+
+    // 8) Collect telemetry for debugging and validation
+    const telemetry = this._collectTelemetry(out);
+    if (metadata.collectTelemetry !== false) {
+      // Add telemetry to last chunk's metadata for easy access
+      if (out.length > 0) {
+        out[out.length - 1].metadata.splitTelemetry = telemetry;
+      }
+    }
 
     return out;
   }
@@ -371,7 +400,12 @@ class ASTCodeSplitter {
   }
 
   // ---------- AST sanitation ----------
-  _sanitizeAST(ast) {
+  _sanitizeAST(ast, metadata = {}) {
+    const source = metadata.source || '';
+    const isRouteOrPlugin = /\/(routes?|plugins?)\//i.test(source) || 
+                           /Plugin\.js$/i.test(source) || 
+                           /Router\.js$/i.test(source);
+    
     traverse(ast, {
       ImportDeclaration(path) {
         path.remove();
@@ -381,7 +415,45 @@ class ASTCodeSplitter {
       CallExpression(path) {
         const { callee } = path.node;
         if (isEssentialLogCallee(callee)) return;
-        if (isNonEssentialLogCallee(callee)) {
+        
+        // Safety guard: don't remove statements inside route/plugin registration callbacks
+        const isInsideRouteRegistration = () => {
+          return !!path.findParent(p => {
+            if (!t.isCallExpression(p.node)) return false;
+            const callee = p.node.callee;
+            const calleeStr = generate(callee).code; // small cost, scope-limited
+            return calleeStr.includes('.route') ||
+                   calleeStr.includes('.register') ||
+                   calleeStr.includes('.get') ||
+                   calleeStr.includes('.post') ||
+                   calleeStr.includes('.put') ||
+                   calleeStr.includes('.delete') ||
+                   calleeStr.includes('.patch') ||
+                   calleeStr.includes('.addHook') ||
+                   calleeStr.includes('.decorate');
+          });
+        };
+        
+        // In routes/plugins, preserve contextual logs that might carry semantic meaning
+        if (isRouteOrPlugin && isNonEssentialLogCallee(callee)) {
+          // Check if this log contains useful context (route info, registration details, etc.)
+          const args = path.node.arguments || [];
+          const hasContextualInfo = args.some(arg => {
+            if (t.isStringLiteral(arg)) {
+              const content = arg.value.toLowerCase();
+              return content.includes('register') || 
+                     content.includes('route') || 
+                     content.includes('plugin') || 
+                     content.includes('endpoint') ||
+                     content.includes('middleware');
+            }
+            return false;
+          });
+          
+          if (hasContextualInfo || isInsideRouteRegistration()) return; // Keep contextual/nested logs
+        }
+        
+        if (isNonEssentialLogCallee(callee) && !isInsideRouteRegistration()) {
           const stmt = path.getStatementParent();
           if (stmt) stmt.remove();
         }
@@ -402,8 +474,18 @@ class ASTCodeSplitter {
     const tokens = this.estimateTokens(text);
 
     if (tokens > this.maxTokens && node.children?.length) {
-      // Prefer inner units and gaps (no line_window for parent)
-      this._emitChildrenAndGaps(node, code, baseMeta, out);
+      // Soft expansion: if slightly oversized (<1.3×), emit as single coherent chunk
+      // Only recurse for truly oversized units (1.3×+)
+      if (tokens < this.maxTokens * 1.3) {
+        out.push(this._makeDoc(text, baseMeta, {
+          splitting: "ast_semantic_soft_oversize",
+          unit: { type: node.type, name: node.name, loc: node.loc ?? null, kind: node.kind ?? null },
+          span: [segment.start, segment.end],
+        }));
+      } else {
+        // Prefer inner units and gaps (no line_window for parent)
+        this._emitChildrenAndGaps(node, code, baseMeta, out);
+      }
       return;
     }
 
@@ -447,8 +529,12 @@ class ASTCodeSplitter {
         flushPack();
         this._emitNode(child, code, baseMeta, out); // will recurse into its children+gaps
       } else {
-        // Consider packing small units
-        if (this.maxUnitsPerChunk > 1 && this.estimateTokens(childText) < this.minTokens) {
+        // Intelligent packing: avoid tiny fragments and unbalanced blocks
+        const childToks = this.estimateTokens(childText);
+        const willFitPack = this.maxUnitsPerChunk > 1 && childToks < this.minTokens;
+        const looksBalanced = isBalancedBraces(childText);
+        
+        if (willFitPack && looksBalanced) {
           pack.push(child);
           if (pack.length >= this.maxUnitsPerChunk) flushPack();
         } else {
@@ -492,17 +578,45 @@ class ASTCodeSplitter {
 
   // ---------- Construct doc ----------
   _makeDoc(text, baseMeta, extra = {}) {
-    const tokenCount = this.estimateTokens(text);
+    const baseTokenCount = this.estimateTokens(text);
+    let finalText = text.trim();
+    let hasPrependedImports = false;
+    
+    // For semantic chunks, optionally prepend imports if budget allows
+    if (extra?.splitting?.startsWith('ast_semantic') && 
+        baseMeta.imports && 
+        baseMeta.imports.length && 
+        baseTokenCount < this.maxTokens * 0.9) {
+      const importsText = baseMeta.imports.join('\n');
+      const combinedText = importsText + '\n\n' + finalText;
+      const combinedTokens = this.estimateTokens(combinedText);
+      
+      if (combinedTokens <= this.maxTokens) {
+        finalText = combinedText;
+        hasPrependedImports = true;
+      }
+    }
+    
+    const tokenCount = this.estimateTokens(finalText);
     const doc = {
-      pageContent: text.trim(),
+      pageContent: finalText,
       metadata: {
         ...baseMeta,
         tokenCount,
         generatedAt: new Date().toISOString(),
+        ...(hasPrependedImports && { hasPrependedImports: true }),
+        // Retrieval-friendly fields:
+        type: baseMeta.type ?? 'github-file',
+        fileType: baseMeta.fileType ?? 'js',
+        eventstorm_module: baseMeta.eventstorm_module ?? null,
+        semantic_role: extra.unit?.type ?? null,   // function | class | fastify_route | ...
+        unit_name: extra.unit?.name ?? null,
+        is_complete_block: isBalancedBraces(finalText),
+        spanHash: sha1(`${baseMeta.source||''}:${(extra.span||[]).join('-')}:${sha1(finalText)}`),
         ...extra,
       },
       _range: extra.span || null,
-      _sha: sha1(text),
+      _sha: sha1(finalText),
     };
     return doc;
   }
@@ -527,6 +641,33 @@ class ASTCodeSplitter {
     let startLine = 0;
 
     const overlapChars = this.overlapTokens * approxCharsPerToken;
+    
+    // Snap to brace boundaries to reduce dangling blocks
+    function snapToBraceBoundary(lines, start, end) {
+      // Simple heuristic: try to expand end to include complete braced blocks
+      let adjustedEnd = end;
+      let braceCount = 0;
+      
+      // Count braces from start to original end
+      for (let i = start; i < Math.min(end, lines.length); i++) {
+        const line = lines[i];
+        braceCount += (line.match(/\{/g) || []).length;
+        braceCount -= (line.match(/\}/g) || []).length;
+      }
+      
+      // If unbalanced, try to extend a few lines to balance
+      if (braceCount > 0 && adjustedEnd < lines.length) {
+        for (let i = adjustedEnd; i < Math.min(adjustedEnd + 5, lines.length); i++) {
+          const line = lines[i];
+          braceCount += (line.match(/\{/g) || []).length;
+          braceCount -= (line.match(/\}/g) || []).length;
+          adjustedEnd = i + 1;
+          if (braceCount === 0) break;
+        }
+      }
+      
+      return [start, adjustedEnd];
+    }
 
     while (startLine < lines.length) {
       let endLine = startLine;
@@ -543,14 +684,25 @@ class ASTCodeSplitter {
         endLine--;
       }
 
-      const slice = lines.slice(startLine, endLine).join("\n").trim();
+      // Apply brace boundary snapping for better structural integrity
+      let [adjustedStart, adjustedEnd] = snapToBraceBoundary(lines, startLine, endLine);
+      
+      // Re-check token budget after snapping and shrink if needed
+      let slice = lines.slice(adjustedStart, adjustedEnd).join("\n").trim();
+      while (this.estimateTokens(slice) > this.maxTokens && adjustedEnd - adjustedStart > 5) {
+        // Trim from end until within budget
+        adjustedEnd--;
+        slice = lines.slice(adjustedStart, adjustedEnd).join("\n").trim();
+      }
+      
       if (slice) {
-        const absStart = offset + lines.slice(0, startLine).join("\n").length + (startLine ? 1 : 0);
+        const absStart = offset + lines.slice(0, adjustedStart).join("\n").length + (adjustedStart ? 1 : 0);
         const absEnd = absStart + slice.length;
         chunks.push(
           this._makeDoc(slice, baseMeta, {
-            splitting: "line_window",
-            window: [startLine + 1, endLine],
+            splitting: "line_window_balanced",
+            window: [adjustedStart + 1, adjustedEnd],
+            originalWindow: [startLine + 1, endLine],
             oversizeOf: unit
               ? { type: unit.type, name: unit.name, loc: unit.loc ?? null }
               : null,
@@ -559,19 +711,96 @@ class ASTCodeSplitter {
         );
       }
 
-      if (endLine >= lines.length) break;
+      if (adjustedEnd >= lines.length) break;
 
-      // compute new start with overlap
+      // compute new start with overlap based on adjusted end
       let backChars = 0;
-      let newStart = endLine;
-      while (newStart > startLine && backChars < overlapChars) {
+      let newStart = adjustedEnd;
+      while (newStart > adjustedStart && backChars < overlapChars) {
         newStart--;
         backChars += lines[newStart].length + 1;
       }
-      startLine = newStart;
+      startLine = Math.max(newStart, adjustedEnd - Math.ceil(overlapChars / 80));
     }
 
     return chunks;
+  }
+
+  // ---------- Telemetry collection ----------
+  _collectTelemetry(chunks) {
+    if (!chunks.length) return { totalChunks: 0 };
+
+    const stats = {
+      totalChunks: chunks.length,
+      splittingTypes: {},
+      tokenStats: {
+        total: 0,
+        mean: 0,
+        min: Infinity,
+        max: 0,
+        p95: 0
+      },
+      balanceStats: {
+        completeBlocks: 0,
+        balancedChunks: 0
+      },
+      importStats: {
+        chunksWithImports: 0
+      }
+    };
+
+    const tokenCounts = [];
+    
+    for (const chunk of chunks) {
+      const splitting = chunk.metadata.splitting || 'unknown';
+      stats.splittingTypes[splitting] = (stats.splittingTypes[splitting] || 0) + 1;
+      
+      const tokens = chunk.metadata.tokenCount || this.estimateTokens(chunk.pageContent);
+      tokenCounts.push(tokens);
+      stats.tokenStats.total += tokens;
+      stats.tokenStats.min = Math.min(stats.tokenStats.min, tokens);
+      stats.tokenStats.max = Math.max(stats.tokenStats.max, tokens);
+      
+      // Check if chunk appears to be a complete block (balanced braces)
+      if (isBalancedBraces(chunk.pageContent)) {
+        stats.balanceStats.balancedChunks++;
+        
+        // Heuristic for "complete" semantic units
+        const content = chunk.pageContent.trim();
+        if ((content.includes('function ') || content.includes('class ') || 
+             content.includes('const ') || content.includes('async ')) &&
+            content.endsWith('}')) {
+          stats.balanceStats.completeBlocks++;
+        }
+      }
+      
+      if (chunk.metadata.hasPrependedImports) {
+        stats.importStats.chunksWithImports++;
+      }
+    }
+
+    // Calculate percentiles and averages
+    if (tokenCounts.length > 0) {
+      stats.tokenStats.mean = Math.round(stats.tokenStats.total / tokenCounts.length);
+      tokenCounts.sort((a, b) => a - b);
+      const p95Index = Math.floor(tokenCounts.length * 0.95);
+      stats.tokenStats.p95 = tokenCounts[p95Index] || tokenCounts[tokenCounts.length - 1];
+    }
+
+    // Calculate percentages
+    for (const [type, count] of Object.entries(stats.splittingTypes)) {
+      stats.splittingTypes[type] = {
+        count,
+        percentage: Math.round((count / stats.totalChunks) * 100)
+      };
+    }
+
+    stats.balanceStats.completeBlocksPercentage = 
+      Math.round((stats.balanceStats.completeBlocks / stats.totalChunks) * 100);
+    stats.balanceStats.balancedChunksPercentage = 
+      Math.round((stats.balanceStats.balancedChunks / stats.totalChunks) * 100);
+
+    return stats;
   }
 }
 
@@ -582,14 +811,19 @@ Usage example:
 
 const ASTCodeSplitter = require('./astCodeSplitter');
 const splitter = new ASTCodeSplitter({
-  maxTokens: 800,
-  minTokens: 60,
-  overlapTokens: 80,
-  maxUnitsPerChunk: 1,
+  maxTokens: 2000,           // Increased for better semantic preservation
+  minTokens: 140,            // Increased to avoid tiny fragments
+  overlapTokens: 120,        // Increased for better context
+  maxUnitsPerChunk: 4,       // Increased to allow small sibling packing
   // Optional: precise tokenizer
   // estimateTokens: (txt) => enc.encode(txt || "").length
 });
 
-const chunks = splitter.split(sourceCode, { source: '/path/to/file.js' });
-// => [{ pageContent, metadata }, ...]
+const chunks = splitter.split(sourceCode, { 
+  source: '/path/to/file.js',
+  type: 'github-file',
+  fileType: 'js',
+  eventstorm_module: 'ai'
+});
+// => [{ pageContent, metadata: { spanHash, semantic_role, unit_name, is_complete_block, ... } }, ...]
 */
