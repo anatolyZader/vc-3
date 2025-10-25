@@ -1,12 +1,12 @@
-# LangSmith RAG Trace Analysis - 10/25/2025, 1:49:40 PM
+# LangSmith RAG Trace Analysis - 10/25/2025, 1:55:30 PM
 
 ## 🔍 Query Details
-- **Query**: "explain redisStore.js"
+- **Query**: "list business modules in eventstorm.me app"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
-- **Conversation ID**: 6e87e6cd-3b25-41e5-8469-ebb300481b4e
-- **Started**: 2025-10-25T13:49:40.972Z
-- **Completed**: 2025-10-25T13:49:49.510Z
-- **Total Duration**: 8538ms
+- **Conversation ID**: ebb589d2-f271-4bf4-b8d3-ec2ec3c69f9c
+- **Started**: 2025-10-25T13:55:30.497Z
+- **Completed**: 2025-10-25T13:55:33.572Z
+- **Total Duration**: 3075ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,23 +16,23 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-10-25T13:49:40.972Z) - success
-2. **vector_store_check** (2025-10-25T13:49:40.972Z) - success
-3. **vector_search** (2025-10-25T13:49:42.957Z) - success - Found 3 documents
-4. **text_search** (2025-10-25T13:49:42.957Z) - skipped
-5. **context_building** (2025-10-25T13:49:42.957Z) - success - Context: 4063 chars
-6. **response_generation** (2025-10-25T13:49:49.510Z) - success - Response: 3302 chars
+1. **initialization** (2025-10-25T13:55:30.497Z) - success
+2. **vector_store_check** (2025-10-25T13:55:30.497Z) - success
+3. **vector_search** (2025-10-25T13:55:31.761Z) - success - Found 4 documents
+4. **text_search** (2025-10-25T13:55:31.761Z) - skipped
+5. **context_building** (2025-10-25T13:55:31.761Z) - success - Context: 5914 chars
+6. **response_generation** (2025-10-25T13:55:33.572Z) - success - Response: 896 chars
 
 ## 📊 Vector Search Analysis
 
 ### Search Configuration:
 - **Vector Store**: primary
 - **Search Strategy**: intelligent_strategy_with_filters
-- **Documents Retrieved**: 3
-- **Total Context**: 6,041 characters
+- **Documents Retrieved**: 4
+- **Total Context**: 13,171 characters
 
 ### Source Type Distribution:
-- **GitHub Repository Code**: 3 chunks (100%)
+- **GitHub Repository Code**: 4 chunks (100%)
 - **Module Documentation**: 0 chunks (0%)  
 - **Architecture Documentation**: 0 chunks (0%)
 - **API Specification**: 0 chunks (0%)
@@ -41,322 +41,606 @@
 ## 📋 Complete Chunk Analysis
 
 
-### Chunk 1/3
+### Chunk 1/4
 - **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 936 characters
-- **Score**: 0.660369873
+- **Size**: 6338 characters
+- **Score**: 0.473024368
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-18T13:07:30.362Z
+- **Processed At**: 2025-10-25T11:06:25.893Z
 
 **Full Content**:
 ```
-'use strict';
+! this file is to be updated manually only !
 
-const fastifySession = require('@fastify/session');
-const { Store } = fastifySession;
+Eventstorm.me Architecture
 
-class RedisStore extends Store {
-  constructor(sendCommand) {
-    super();
-    this.send = sendCommand;
+(In this document, file names are taken from the ai module for exemplary purposes.)
+
+General Overview
+
+Eventstorm.me is a full-stack React – Fastify application.
+
+Client Side
+
+to be added…
+
+Backend Side
+
+Modular Monolith
+
+Eventstorm.me backend is a modular monolith with two kinds of modules:
+
+AOP modules – for cross-cutting concerns
+
+Business modules – for main business concerns, 
+Each business module represents a bounded context in Domain-Driven Design.
+
+The Business modules represent the core business capabilities with strict boundaries and event-driven communication, while AOP modules provide shared technical services that cross module boundaries. This creates a clean separation between business concerns (what the system does) and technical concerns (how the system works), following both Domain-Driven Design and Aspect-Oriented Programming principles. 
+
+This architecture allows Eventstorm.me to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.
+
+Difference in communication:
+
+Business → Business: async only via Pub/Sub (domain or integration events). No direct calls. Contracts = event schemas.
+
+Business → AOP: direct method calls (e.g., permissions.check(), auth.verify(), log.info()) through well-defined interfaces.
+
+AOP → Business: never call back into business logic (prevents cycles). AOP modules are dependency sinks.
+
+AOP modules are globally accessible via Fastify decorators
+
+DDD + Hexagonal Architecture:
+
+Each module (AOP or business) is built according to DDD and Hexagonal (Ports and Adapters) multilayered architecture, with a rich domain layer and strict isolation between layers.
+
+Layers in Each Module:
+1. Input
+
+Incoming requests are accepted here.
+
+The Input folder in the module directory usually includes:
+
+aiRouter.js
+
+HTTP route endpoints
+
+Fastify schema for each endpoint
+
+Pre-validation of request
+
+Handler set (Fastify decorator function)
+
+This function is defined in the controller file from the same module
+
+aiPubsubListener.js
+
+Listener for a given pubsub topic
+
+Messages are received
+
+Payload is extracted and transferred to the controller file method as a mocked Request object (to behave like an HTTP request)
+
+Example:
+
+subscription.on('message', async (message) => {
+  fastify.log.info(`Received docs message ${message.id} on subscription ${subscriptionName}`);
+
+  try {
+    const data = JSON.parse(message.data.toString());
+
+    if (data.event === 'fetchDocsRequest') {
+      const { userId, repoId, correlationId } = data.payload;
+
+      const mockRequest = {
+        params: { repoId },
+        user: { id: userId },
+        userId
+      };
+      const mockReply = {};
+
+      await fastify.fetchDocs(mockRequest, mockReply);
+    }
+  } catch (err) {
+    fastify.log.error(err);
   }
+});
 
-  // get session data from Redis
-  // sid - session ID, sess - session object, ttlMs - time to live in milliseconds (for JavaScript/Node.js), cb - callback function
-  get(sid, cb) {
-    this.send(['GET', sid])
-      .then((data) => cb(null, data ? JSON.parse(data) : null))
-      .catch(cb);
-  }
+2. Controller
 
-  // store session data in Redis
-  set(sid, sess, ttlMs, cb) {
-    const data = JSON.stringify(sess);
-    const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;
-    const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];
-    this.send(cmd).then(() => cb(null)).catch(cb);
-  }
+Each module includes a thin controller.
 
-  destroy(sid, cb) {
-    this.send(['DEL', sid]).then(() => cb(null)).catch(cb);
+Purpose: accept a request object (or its mock), extract required data, call the module’s service file (aiService.js).
+
+Each controller method is set up as a Fastify decorator.
+
+Accessible to the module-specific child Fastify instance (isolated from the root instance by Fastify encapsulation).
+
+3. Service
+
+Contains the main business logic of the app.
+
+Calls methods of domain entities/aggregates.
+
+Replaces domain ports with specific adapters (ports and adapters / hexagonal).
+
+Deals with persistence, messaging, etc.
+
+Note: Controller + Service = Application Layer.
+
+4. Domain
+
+The domain layer includes a rich model with DDD tactical patterns:
+
+Aggregates
+
+Entities
+
+Ports (persistence, messaging, AI, etc.)
+
+Value objects
+
+Domain events
+
+The DDD ubiquitous language dictionary has been split into focused catalogs:
+- `ubiq-language.json` - Pure business terminology and domain concepts
+- `arch-catalog.json` - Architectural patterns, layers, and design principles  
+- `infra-catalog.json` - Infrastructure configuration and technical dependencies
+- `workflows.json` - High-level business processes and integration patterns
+
+5. Infrastructure
+
+The infrastructure layer includes specific adapters implementing ports from the domain layer to interact with external systems.
+
+More than one adapter can exist for a port.
+
+Example: aiPostgresAdapter.js and aiMySQLAdapter.js both implement IAIPersistPort.js.
+
+Active adapter set in infraConfig.json.
+
+Example:
+
+{
+  "aop_modules": {
+    "auth": {
+      "authPersistAdapter": "authPostgresAdapter"
+    }
+  },
+  "business_modules": {
+    "chat": {
+      "chatPersistAdapter": "chatPostgresAdapter",
+      "chatAiAdapter": "chatAiAdapter",
+      "chatMessagingAdapter": "chatPubsubAdapter",
+      "chatVoiceAdapter": "chatGCPVoiceAdapter"
+    },
+    "git": {
+      "gitAdapter": "gitGithubAdapter",
+      "gitMessagingAdapter": "gitPubsubAdapter",
+      "gitPersistAdapter": "gitPostgresAdapter"
+    },
+    "docs": {
+      "docsMessagingAdapter": "docsPubsubAdapter",
+      "docsPersistAdapter": "docsPostgresAdapter",
+      "docsAiAdapter": "docsLangchainAdapter",
+      "docsGitAdapter": "docsGithubAdapter"
+    },
+    "ai": {
+      "aiPersistAdapter": "aiPostgresAdapter",
+      "aiAdapter": "aiLangchainAdapter",
+      "aiProvider": "anthropic",
+      "aiMessagingAdapter": "aiPubsubAdapter",
+      "aiGitAdapter": "aiGithubAdapter",
+      "aiDocsAdapter": "aiGithubDocsAdapter"
+    },
+    "messaging": {
+      "messagingPersistAdapter": "messagingPostgresAdapter",
+      "messagingAIAdapter": "messagingLangchainAdapter",
+      "messagingMessagingAdapter": "messagingPubsubAdapter"
+    },
+    "api": {
+      "apiPersistAdapter": "apiPostgresAdapter",
+      "apiMessagingAdapter": "apiPubsubAdapter",
+      "apiAdapter": "apiSwaggerAdapter"
+    }
   }
 }
 
-module.exports = RedisStore;
+Important Notes:
 
+- Fastify code is limited to Input and Application layers.
+
+- Domain and Infrastructure layers are isolated from Fastify, built on regular JS files (not Fastify plugins).
+
+Additional Topics:
+
+Dependency Injection
+
+- Used in each module
+
+- Keeps data flow inside-out (domain → adapters)
+
+- Implements hexagonal design effectively
+
+Environmental Variables
+
+- Set in .env file at root app directory
+
+Backend For Frontend (BFF)
+
+- Implemented partially
+
+- Example: Chat module (handles user interaction via Chat UI)
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "filePath": "backend/redisStore.js",
-  "fileSize": 936,
-  "loaded_at": "2025-10-18T13:07:30.362Z",
+  "filePath": "backend/ARCHITECTURE.md",
+  "fileSize": 6356,
+  "loaded_at": "2025-10-25T11:06:25.893Z",
   "loading_method": "cloud_native_api",
   "priority": 50,
-  "processedAt": "2025-10-18T13:07:30.362Z",
-  "repoId": "vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "43899208707444bea9bcddab2c8ca825325b004a",
-  "size": 936,
-  "source": "anatolyZader/vc-3",
-  "text": "'use strict';\n\nconst fastifySession = require('@fastify/session');\nconst { Store } = fastifySession;\n\nclass RedisStore extends Store {\n  constructor(sendCommand) {\n    super();\n    this.send = sendCommand;\n  }\n\n  // get session data from Redis\n  // sid - session ID, sess - session object, ttlMs - time to live in milliseconds (for JavaScript/Node.js), cb - callback function\n  get(sid, cb) {\n    this.send(['GET', sid])\n      .then((data) => cb(null, data ? JSON.parse(data) : null))\n      .catch(cb);\n  }\n\n  // store session data in Redis\n  set(sid, sess, ttlMs, cb) {\n    const data = JSON.stringify(sess);\n    const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;\n    const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];\n    this.send(cmd).then(() => cb(null)).catch(cb);\n  }\n\n  destroy(sid, cb) {\n    this.send(['DEL', sid]).then(() => cb(null)).catch(cb);\n  }\n}\n\nmodule.exports = RedisStore;\n",
-  "type": "github-file",
-  "userId": "anatolyzader",
-  "workerId": 1,
-  "score": 0.660369873,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_964_1760792870758"
-}
-```
-
----
-
-### Chunk 2/3
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 1112 characters
-- **Score**: 0.527198792
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-25T10:43:36.465Z
-
-**Full Content**:
-```
-// redisPlugin
-'use strict'
-
-const fp = require('fastify-plugin')
-const fastifyRedis = require('@fastify/redis')
-
-async function redisPlugin (fastify, opts) {
-
-  fastify.log.debug('Registering Redis client with REDIS_HOST: ', fastify.secrets.REDIS_HOST)
-
-  const redisOpts = {
-    host: fastify.secrets.REDIS_HOST,
-    port: fastify.secrets.REDIS_PORT,
-    connectionTimeout: opts.connectionTimeout ?? 1000, // how long (in milliseconds) the client will wait when trying to establish a connection before giving up.
-    lazyConnect: true, //If true, the Redis client will not connect automatically on instantiation. Instead, you must explicitly call .connect() to initiate the connection.
-    timeout: 1000 // Sets the socket timeout for network operations (in milliseconds). If any Redis operation takes longer than this, it will fail with a timeout error.
-  }
-
-  fastify.log.info({ redisOpts }, 'About to register @fastify/redis');
-
-  await fastify.register(fastifyRedis, redisOpts)
-  // afterwards: fastify.redis.get(...), fastify.redis.set(...)
-}
-
-module.exports = fp(redisPlugin, {
-  name: 'redis-client'
-})
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/redisPlugin.js",
-  "fileSize": 1112,
-  "loaded_at": "2025-10-25T10:43:36.465Z",
-  "loading_method": "cloud_native_api",
-  "priority": 100,
-  "processedAt": "2025-10-25T10:43:36.465Z",
+  "processedAt": "2025-10-25T11:06:25.893Z",
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "f4fada1cf64a230b3479ca89331e309163a6e132",
-  "size": 1112,
+  "sha": "db4ad51498c1e9eeb54237f67c32d6fd0d60de24",
+  "size": 6356,
   "source": "anatolyZader/vc-3",
-  "text": "// redisPlugin\n'use strict'\n\nconst fp = require('fastify-plugin')\nconst fastifyRedis = require('@fastify/redis')\n\nasync function redisPlugin (fastify, opts) {\n\n  fastify.log.debug('Registering Redis client with REDIS_HOST: ', fastify.secrets.REDIS_HOST)\n\n  const redisOpts = {\n    host: fastify.secrets.REDIS_HOST,\n    port: fastify.secrets.REDIS_PORT,\n    connectionTimeout: opts.connectionTimeout ?? 1000, // how long (in milliseconds) the client will wait when trying to establish a connection before giving up.\n    lazyConnect: true, //If true, the Redis client will not connect automatically on instantiation. Instead, you must explicitly call .connect() to initiate the connection.\n    timeout: 1000 // Sets the socket timeout for network operations (in milliseconds). If any Redis operation takes longer than this, it will fail with a timeout error.\n  }\n\n  fastify.log.info({ redisOpts }, 'About to register @fastify/redis');\n\n  await fastify.register(fastifyRedis, redisOpts)\n  // afterwards: fastify.redis.get(...), fastify.redis.set(...)\n}\n\nmodule.exports = fp(redisPlugin, {\n  name: 'redis-client'\n})\n",
+  "text": "! this file is to be updated manually only !\n\nEventstorm.me Architecture\n\n(In this document, file names are taken from the ai module for exemplary purposes.)\n\nGeneral Overview\n\nEventstorm.me is a full-stack React – Fastify application.\n\nClient Side\n\nto be added…\n\nBackend Side\n\nModular Monolith\n\nEventstorm.me backend is a modular monolith with two kinds of modules:\n\nAOP modules – for cross-cutting concerns\n\nBusiness modules – for main business concerns, \nEach business module represents a bounded context in Domain-Driven Design.\n\nThe Business modules represent the core business capabilities with strict boundaries and event-driven communication, while AOP modules provide shared technical services that cross module boundaries. This creates a clean separation between business concerns (what the system does) and technical concerns (how the system works), following both Domain-Driven Design and Aspect-Oriented Programming principles. \n\nThis architecture allows Eventstorm.me to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.\n\nDifference in communication:\n\nBusiness → Business: async only via Pub/Sub (domain or integration events). No direct calls. Contracts = event schemas.\n\nBusiness → AOP: direct method calls (e.g., permissions.check(), auth.verify(), log.info()) through well-defined interfaces.\n\nAOP → Business: never call back into business logic (prevents cycles). AOP modules are dependency sinks.\n\nAOP modules are globally accessible via Fastify decorators\n\nDDD + Hexagonal Architecture:\n\nEach module (AOP or business) is built according to DDD and Hexagonal (Ports and Adapters) multilayered architecture, with a rich domain layer and strict isolation between layers.\n\nLayers in Each Module:\n1. Input\n\nIncoming requests are accepted here.\n\nThe Input folder in the module directory usually includes:\n\naiRouter.js\n\nHTTP route endpoints\n\nFastify schema for each endpoint\n\nPre-validation of request\n\nHandler set (Fastify decorator function)\n\nThis function is defined in the controller file from the same module\n\naiPubsubListener.js\n\nListener for a given pubsub topic\n\nMessages are received\n\nPayload is extracted and transferred to the controller file method as a mocked Request object (to behave like an HTTP request)\n\nExample:\n\nsubscription.on('message', async (message) => {\n  fastify.log.info(`Received docs message ${message.id} on subscription ${subscriptionName}`);\n\n  try {\n    const data = JSON.parse(message.data.toString());\n\n    if (data.event === 'fetchDocsRequest') {\n      const { userId, repoId, correlationId } = data.payload;\n\n      const mockRequest = {\n        params: { repoId },\n        user: { id: userId },\n        userId\n      };\n      const mockReply = {};\n\n      await fastify.fetchDocs(mockRequest, mockReply);\n    }\n  } catch (err) {\n    fastify.log.error(err);\n  }\n});\n\n2. Controller\n\nEach module includes a thin controller.\n\nPurpose: accept a request object (or its mock), extract required data, call the module’s service file (aiService.js).\n\nEach controller method is set up as a Fastify decorator.\n\nAccessible to the module-specific child Fastify instance (isolated from the root instance by Fastify encapsulation).\n\n3. Service\n\nContains the main business logic of the app.\n\nCalls methods of domain entities/aggregates.\n\nReplaces domain ports with specific adapters (ports and adapters / hexagonal).\n\nDeals with persistence, messaging, etc.\n\nNote: Controller + Service = Application Layer.\n\n4. Domain\n\nThe domain layer includes a rich model with DDD tactical patterns:\n\nAggregates\n\nEntities\n\nPorts (persistence, messaging, AI, etc.)\n\nValue objects\n\nDomain events\n\nThe DDD ubiquitous language dictionary has been split into focused catalogs:\n- `ubiq-language.json` - Pure business terminology and domain concepts\n- `arch-catalog.json` - Architectural patterns, layers, and design principles  \n- `infra-catalog.json` - Infrastructure configuration and technical dependencies\n- `workflows.json` - High-level business processes and integration patterns\n\n5. Infrastructure\n\nThe infrastructure layer includes specific adapters implementing ports from the domain layer to interact with external systems.\n\nMore than one adapter can exist for a port.\n\nExample: aiPostgresAdapter.js and aiMySQLAdapter.js both implement IAIPersistPort.js.\n\nActive adapter set in infraConfig.json.\n\nExample:\n\n{\n  \"aop_modules\": {\n    \"auth\": {\n      \"authPersistAdapter\": \"authPostgresAdapter\"\n    }\n  },\n  \"business_modules\": {\n    \"chat\": {\n      \"chatPersistAdapter\": \"chatPostgresAdapter\",\n      \"chatAiAdapter\": \"chatAiAdapter\",\n      \"chatMessagingAdapter\": \"chatPubsubAdapter\",\n      \"chatVoiceAdapter\": \"chatGCPVoiceAdapter\"\n    },\n    \"git\": {\n      \"gitAdapter\": \"gitGithubAdapter\",\n      \"gitMessagingAdapter\": \"gitPubsubAdapter\",\n      \"gitPersistAdapter\": \"gitPostgresAdapter\"\n    },\n    \"docs\": {\n      \"docsMessagingAdapter\": \"docsPubsubAdapter\",\n      \"docsPersistAdapter\": \"docsPostgresAdapter\",\n      \"docsAiAdapter\": \"docsLangchainAdapter\",\n      \"docsGitAdapter\": \"docsGithubAdapter\"\n    },\n    \"ai\": {\n      \"aiPersistAdapter\": \"aiPostgresAdapter\",\n      \"aiAdapter\": \"aiLangchainAdapter\",\n      \"aiProvider\": \"anthropic\",\n      \"aiMessagingAdapter\": \"aiPubsubAdapter\",\n      \"aiGitAdapter\": \"aiGithubAdapter\",\n      \"aiDocsAdapter\": \"aiGithubDocsAdapter\"\n    },\n    \"messaging\": {\n      \"messagingPersistAdapter\": \"messagingPostgresAdapter\",\n      \"messagingAIAdapter\": \"messagingLangchainAdapter\",\n      \"messagingMessagingAdapter\": \"messagingPubsubAdapter\"\n    },\n    \"api\": {\n      \"apiPersistAdapter\": \"apiPostgresAdapter\",\n      \"apiMessagingAdapter\": \"apiPubsubAdapter\",\n      \"apiAdapter\": \"apiSwaggerAdapter\"\n    }\n  }\n}\n\nImportant Notes:\n\n- Fastify code is limited to Input and Application layers.\n\n- Domain and Infrastructure layers are isolated from Fastify, built on regular JS files (not Fastify plugins).\n\nAdditional Topics:\n\nDependency Injection\n\n- Used in each module\n\n- Keeps data flow inside-out (domain → adapters)\n\n- Implements hexagonal design effectively\n\nEnvironmental Variables\n\n- Set in .env file at root app directory\n\nBackend For Frontend (BFF)\n\n- Implemented partially\n\n- Example: Chat module (handles user interaction via Chat UI)",
   "type": "github-file",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 3,
-  "score": 0.527198792,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3243_1761389106810"
+  "workerId": 0,
+  "score": 0.473024368,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1863_1761390472217"
 }
 ```
 
 ---
 
-### Chunk 3/3
+### Chunk 2/4
 - **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 3993 characters
-- **Score**: 0.467952728
+- **Size**: 3956 characters
+- **Score**: 0.509710312
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-24T12:21:47.069Z
+- **Processed At**: 2025-10-24T14:46:49.483Z
 
 **Full Content**:
 ```
-} catch (err) {
-      fastify.log.error({ err }, '❌ Redis PING failed');
-    }
-  }
-
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(
-      fastifyCookie,
-      {
-        secret: fastify.secrets.COOKIE_SECRET,
-        parseOptions: { 
-          secure: true, // Only send cookies over HTTPS.
-          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.
-          sameSite: 'None' }, // Allows cross-site cookies (e.g., for third-party integrations). Must be used with secure: true (required by modern browsers).
-      },
-      { encapsulate: false }
-    );
-  }
-
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(fastifySession, {
-    secret: fastify.secrets.SESSION_SECRET,
-    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
-    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)), // where session data is stored.
-    saveUninitialized: false, // Do not create session until something stored in session.
-  });
-  }
-
-  // ────────────────────────────────────────────────────────────────
-  // HEALTH ROUTE
-  // ────────────────────────────────────────────────────────────────
-  fastify.get('/', {
-    schema: {
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            status: { type: 'string' },
-            timestamp: { type: 'string', format: 'date-time' }
-          },
-          required: ['status', 'timestamp'],
-          additionalProperties: false
+}
+      ],
+      "aggregateRoots": ["HttpApi"],
+      "domainEvents": [
+        {
+          "name": "HttpApiFetchedEvent",
+          "description": "API specification fetched from repository",
+          "attributes": ["userId", "repoId", "spec", "occurredAt"]
+        },
+        {
+          "name": "HttpApiSavedEvent",
+          "description": "API specification persisted to storage",
+          "attributes": ["userId", "repoId", "spec", "occurredAt"]
         }
-      }
-    }
-  }, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
-
-  // Dedicateddd health check endpoint
-  fastify.get('/health', {
-    schema: {
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            status: { type: 'string' },
-            timestamp: { type: 'string', format: 'date-time' },
-            version: { type: 'string' }
-          },
-          required: ['status', 'timestamp'],
-          additionalProperties: false
-        }
-      }
-    }
-  }, async () => ({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0'
-  }));
-
-  // ────────────────────────────────────────────────────────────────
-  // AUTOLOAD MODULES
-  // ────────────────────────────────────────────────────────────────
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'aop_modules'),
-    encapsulate: false,
-    maxDepth: 1,
-    dirNameRoutePrefix: false,
-    prefix: '/api',
-    options: { ...opts},
-  });
-
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'business_modules'),
-    encapsulate: true,
-    maxDepth: 1,
-    dirNameRoutePrefix: false,
-    prefix: '/api',
-    options: { ...opts},
-  });
-
-  fastify.get('/api/debug/swagger-routes', async (request, reply) => {
-  try {
-    const spec = fastify.swagger();
-    return {
-      hasSwagger: typeof fastify.swagger === 'function',
-      specKeys: Object.keys(spec),
-      pathsCount: spec.paths ? Object.keys(spec.paths).length : 0,
-      paths: spec.paths ? Object.keys(spec.paths) : [],
-      info: spec.info || null,
-      openapi: spec.openapi || null
-    };
-  } catch (error) {
-    return {
-      error: error.message,
-      hasSwagger: typeof fastify.swagger === 'function'
-    };
-  }
-  });
-
-  // Debug route
-  fastify.route({
-    method: 'GET',
-    url: '/api/debug/clear-state-cookie',
-    handler: (req, reply) => {
-      reply.clearCookie('oauth2-redirect-state', { path: '/' });
-      reply.send({ message: 'cleared' });
+      ]
     },
-    schema: {
-      $id: 'schema:debug:clear-state-cookie',
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            message: {
-              type: 'string',
-              description: 'Confirmation message that the state cookie was cleared.'
-            }
-          },
-          additionalProperties: false
+    "docs": {
+      "name": "Docs Module",
+      "description": "Knowledge management and documentation generation",
+      "role": "Documentation and knowledge base",
+      "boundedContext": "Knowledge Management and Documentation",
+      "entities": [
+        {
+          "name": "Docs",
+          "description": "Collection of documentation for a project",
+          "attributes": ["docsId", "userId", "repoId", "pages"],
+          "behaviors": ["createDocs", "addPage", "updateContent"]
+        },
+        {
+          "name": "DocsPage", 
+          "description": "Individual documentation page",
+          "attributes": ["pageId", "title", "content", "metadata"],
+          "behaviors": ["updateContent", "addMetadata"]
         }
-      }
+      ],
+      "valueObjects": [
+        {
+          "name": "DocsContent",
+          "description": "Textual content of docs pages",
+          "attributes": ["content"],
+          "invariants": ["Must be valid text content"]
+        }
+      ],
+      "aggregateRoots": ["Docs"],
+      "domainEvents": [
+        {
+          "name": "DocsCreatedEvent",
+          "description": "New docs created for project",
+          "attributes": ["userId", "docsId", "repoId", "occurredAt"]
+        },
+        {
+          "name": "DocsPageUpdatedEvent",
+          "description": "Docs page content updated",
+          "attributes": ["docsId", "pageId", "content", "occurredAt"]
+        }
+      ]
+    },
+    "auth": {
+      "name": "Authentication Module",
+      "description": "Cross-cutting authentication and authorization",
+      "role": "Security and user management",
+      "boundedContext": "Identity and Access Management",
+      "type": "AOP Module",
+      "entities": [
+        {
+          "name": "Account",
+          "description": "User account with profile and preferences",
+          "attributes": ["accountId", "userId", "accountType", "videos", "createdAt"],
+          "behaviors": ["createAccount", "fetchAccountDetails", "addVideo", "removeVideo"]
+        },
+        {
+          "name": "User",
+          "description": "System user with authentication data",
+          "attributes": ["userId", "username", "email", "roles"],
+          "behaviors": ["getUserInfo", "registerUser", "removeUser", "addRole", "removeRole"]
+        },
+        {
+          "name": "Session",
+          "description": "User session management",
+          "attributes": ["sessionId", "userId", "createdAt", "expiresAt"],
+          "behaviors": ["setSessionInMem", "validateSession", "logout"]
+        }
+      ],
+      "valueObjects": [
+        {
+          "name": "Email",
+          "description": "User email address",
+          "attributes": ["value"],
+          "invariants": ["Must be valid email format"]
+        },
+        {
+          "name": "Role", 
+          "description": "User authorization role",
+          "attributes": ["name", "permissions"],
+          "invariants": ["Must be predefined role"]
+        }
+      ],
+      "aggregateRoots": ["Account", "User", "Session"],
+      "domainEvents": [
+        {
+          "name": "UserRegisteredEvent",
+          "description": "New user registered in system",
+          "attributes": ["userId", "email", "username", "occurredAt"]
+        },
+        {
+          "name": "SessionCreatedEvent",
+          "description": "User session established",
+          "attributes": ["sessionId", "userId", "occurredAt"]
+        }
+      ]
     }
-  });
-
-  // Debug route to clear auth cookies
+  },
+  "businessTerms": {
+    "eventstorm": {
+      "name": "EventStorm",
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "chunkIndex": 1,
-  "chunkTokens": 999,
-  "filePath": "backend/processing_report_app.md",
-  "fileSize": 33397,
-  "loaded_at": "2025-10-24T12:21:47.069Z",
+  "chunkIndex": 2,
+  "chunkTokens": 989,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/ubiq-language.json",
+  "fileSize": 13071,
+  "loaded_at": "2025-10-24T14:46:49.483Z",
   "loading_method": "cloud_native_api",
-  "originalTokens": 7519,
+  "originalTokens": 2915,
   "priority": 50,
-  "processedAt": "2025-10-24T12:21:47.069Z",
+  "processedAt": "2025-10-24T14:46:49.483Z",
   "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "af6d7713f03ea1a4aca3f5561ae100832080affc",
-  "size": 33397,
+  "sha": "78c2a67106f4c8aeb38c0781e2e7c00594b34754",
+  "size": 13071,
   "source": "anatolyZader/vc-3",
-  "text": "} catch (err) {\n      fastify.log.error({ err }, '❌ Redis PING failed');\n    }\n  }\n\n  if (!BUILDING_API_SPEC) {\n    await fastify.register(\n      fastifyCookie,\n      {\n        secret: fastify.secrets.COOKIE_SECRET,\n        parseOptions: { \n          secure: true, // Only send cookies over HTTPS.\n          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.\n          sameSite: 'None' }, // Allows cross-site cookies (e.g., for third-party integrations). Must be used with secure: true (required by modern browsers).\n      },\n      { encapsulate: false }\n    );\n  }\n\n  if (!BUILDING_API_SPEC) {\n    await fastify.register(fastifySession, {\n    secret: fastify.secrets.SESSION_SECRET,\n    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },\n    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)), // where session data is stored.\n    saveUninitialized: false, // Do not create session until something stored in session.\n  });\n  }\n\n  // ────────────────────────────────────────────────────────────────\n  // HEALTH ROUTE\n  // ────────────────────────────────────────────────────────────────\n  fastify.get('/', {\n    schema: {\n      response: {\n        200: {\n          type: 'object',\n          properties: {\n            status: { type: 'string' },\n            timestamp: { type: 'string', format: 'date-time' }\n          },\n          required: ['status', 'timestamp'],\n          additionalProperties: false\n        }\n      }\n    }\n  }, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));\n\n  // Dedicateddd health check endpoint\n  fastify.get('/health', {\n    schema: {\n      response: {\n        200: {\n          type: 'object',\n          properties: {\n            status: { type: 'string' },\n            timestamp: { type: 'string', format: 'date-time' },\n            version: { type: 'string' }\n          },\n          required: ['status', 'timestamp'],\n          additionalProperties: false\n        }\n      }\n    }\n  }, async () => ({ \n    status: 'healthy', \n    timestamp: new Date().toISOString(),\n    version: process.env.npm_package_version || '1.0.0'\n  }));\n\n  // ────────────────────────────────────────────────────────────────\n  // AUTOLOAD MODULES\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'aop_modules'),\n    encapsulate: false,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: { ...opts},\n  });\n\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'business_modules'),\n    encapsulate: true,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: { ...opts},\n  });\n\n  fastify.get('/api/debug/swagger-routes', async (request, reply) => {\n  try {\n    const spec = fastify.swagger();\n    return {\n      hasSwagger: typeof fastify.swagger === 'function',\n      specKeys: Object.keys(spec),\n      pathsCount: spec.paths ? Object.keys(spec.paths).length : 0,\n      paths: spec.paths ? Object.keys(spec.paths) : [],\n      info: spec.info || null,\n      openapi: spec.openapi || null\n    };\n  } catch (error) {\n    return {\n      error: error.message,\n      hasSwagger: typeof fastify.swagger === 'function'\n    };\n  }\n  });\n\n  // Debug route\n  fastify.route({\n    method: 'GET',\n    url: '/api/debug/clear-state-cookie',\n    handler: (req, reply) => {\n      reply.clearCookie('oauth2-redirect-state', { path: '/' });\n      reply.send({ message: 'cleared' });\n    },\n    schema: {\n      $id: 'schema:debug:clear-state-cookie',\n      response: {\n        200: {\n          type: 'object',\n          properties: {\n            message: {\n              type: 'string',\n              description: 'Confirmation message that the state cookie was cleared.'\n            }\n          },\n          additionalProperties: false\n        }\n      }\n    }\n  });\n\n  // Debug route to clear auth cookies",
+  "text": "}\n      ],\n      \"aggregateRoots\": [\"HttpApi\"],\n      \"domainEvents\": [\n        {\n          \"name\": \"HttpApiFetchedEvent\",\n          \"description\": \"API specification fetched from repository\",\n          \"attributes\": [\"userId\", \"repoId\", \"spec\", \"occurredAt\"]\n        },\n        {\n          \"name\": \"HttpApiSavedEvent\",\n          \"description\": \"API specification persisted to storage\",\n          \"attributes\": [\"userId\", \"repoId\", \"spec\", \"occurredAt\"]\n        }\n      ]\n    },\n    \"docs\": {\n      \"name\": \"Docs Module\",\n      \"description\": \"Knowledge management and documentation generation\",\n      \"role\": \"Documentation and knowledge base\",\n      \"boundedContext\": \"Knowledge Management and Documentation\",\n      \"entities\": [\n        {\n          \"name\": \"Docs\",\n          \"description\": \"Collection of documentation for a project\",\n          \"attributes\": [\"docsId\", \"userId\", \"repoId\", \"pages\"],\n          \"behaviors\": [\"createDocs\", \"addPage\", \"updateContent\"]\n        },\n        {\n          \"name\": \"DocsPage\", \n          \"description\": \"Individual documentation page\",\n          \"attributes\": [\"pageId\", \"title\", \"content\", \"metadata\"],\n          \"behaviors\": [\"updateContent\", \"addMetadata\"]\n        }\n      ],\n      \"valueObjects\": [\n        {\n          \"name\": \"DocsContent\",\n          \"description\": \"Textual content of docs pages\",\n          \"attributes\": [\"content\"],\n          \"invariants\": [\"Must be valid text content\"]\n        }\n      ],\n      \"aggregateRoots\": [\"Docs\"],\n      \"domainEvents\": [\n        {\n          \"name\": \"DocsCreatedEvent\",\n          \"description\": \"New docs created for project\",\n          \"attributes\": [\"userId\", \"docsId\", \"repoId\", \"occurredAt\"]\n        },\n        {\n          \"name\": \"DocsPageUpdatedEvent\",\n          \"description\": \"Docs page content updated\",\n          \"attributes\": [\"docsId\", \"pageId\", \"content\", \"occurredAt\"]\n        }\n      ]\n    },\n    \"auth\": {\n      \"name\": \"Authentication Module\",\n      \"description\": \"Cross-cutting authentication and authorization\",\n      \"role\": \"Security and user management\",\n      \"boundedContext\": \"Identity and Access Management\",\n      \"type\": \"AOP Module\",\n      \"entities\": [\n        {\n          \"name\": \"Account\",\n          \"description\": \"User account with profile and preferences\",\n          \"attributes\": [\"accountId\", \"userId\", \"accountType\", \"videos\", \"createdAt\"],\n          \"behaviors\": [\"createAccount\", \"fetchAccountDetails\", \"addVideo\", \"removeVideo\"]\n        },\n        {\n          \"name\": \"User\",\n          \"description\": \"System user with authentication data\",\n          \"attributes\": [\"userId\", \"username\", \"email\", \"roles\"],\n          \"behaviors\": [\"getUserInfo\", \"registerUser\", \"removeUser\", \"addRole\", \"removeRole\"]\n        },\n        {\n          \"name\": \"Session\",\n          \"description\": \"User session management\",\n          \"attributes\": [\"sessionId\", \"userId\", \"createdAt\", \"expiresAt\"],\n          \"behaviors\": [\"setSessionInMem\", \"validateSession\", \"logout\"]\n        }\n      ],\n      \"valueObjects\": [\n        {\n          \"name\": \"Email\",\n          \"description\": \"User email address\",\n          \"attributes\": [\"value\"],\n          \"invariants\": [\"Must be valid email format\"]\n        },\n        {\n          \"name\": \"Role\", \n          \"description\": \"User authorization role\",\n          \"attributes\": [\"name\", \"permissions\"],\n          \"invariants\": [\"Must be predefined role\"]\n        }\n      ],\n      \"aggregateRoots\": [\"Account\", \"User\", \"Session\"],\n      \"domainEvents\": [\n        {\n          \"name\": \"UserRegisteredEvent\",\n          \"description\": \"New user registered in system\",\n          \"attributes\": [\"userId\", \"email\", \"username\", \"occurredAt\"]\n        },\n        {\n          \"name\": \"SessionCreatedEvent\",\n          \"description\": \"User session established\",\n          \"attributes\": [\"sessionId\", \"userId\", \"occurredAt\"]\n        }\n      ]\n    }\n  },\n  \"businessTerms\": {\n    \"eventstorm\": {\n      \"name\": \"EventStorm\",",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 0,
+  "score": 0.509710312,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_844_1761317259318"
+}
+```
+
+---
+
+### Chunk 3/4
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 1345 characters
+- **Score**: 0.486915588
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-24T12:21:35.144Z
+
+**Full Content**:
+```
+{
+  "aop_modules": {
+    "auth": {
+      "authPersistAdapter": "authPostgresAdapter"
+    }
+  },
+
+  "business_modules": {
+    "chat": {
+      "chatPersistAdapter": "chatPostgresAdapter",
+      "chatAiAdapter": "chatAiAdapter",
+      "chatMessagingAdapter": "chatPubsubAdapter",
+      "chatVoiceAdapter": "chatGCPVoiceAdapter"
+    },
+    "git": {
+      "gitAdapter": "gitGithubAdapter",
+      "gitMessagingAdapter": "gitPubsubAdapter",
+      "gitPersistAdapter": "gitPostgresAdapter"
+    },
+
+    "docs": {
+      "docsMessagingAdapter": "docsPubsubAdapter",
+      "docsPersistAdapter": "docsPostgresAdapter",
+      "docsAiAdapter": "docsLangchainAdapter",
+      "docsGitAdapter": "docsGithubAdapter"
+    },
+    "ai": {
+      "aiPersistAdapter": "aiPostgresAdapter",
+      "aiAdapter": "aiLangchainAdapter", 
+      "aiProvider": "anthropic", 
+      "aiMessagingAdapter": "aiPubsubAdapter",
+      "aiGitAdapter": "aiGithubAdapter",
+      "aiDocsAdapter": "aiGithubDocsAdapter"
+    },
+    "messaging": {
+      "messagingPersistAdapter": "messagingPostgresAdapter",
+      "messagingAIAdapter": "messagingLangchainAdapter",
+      "messagingMessagingAdapter": "messagingPubsubAdapter"
+    },
+    "api": {
+      "apiPersistAdapter": "apiPostgresAdapter",
+      "apiMessagingAdapter": "apiPubsubAdapter",
+      "apiAdapter": "apiSwaggerAdapter"
+    }
+  }
+}
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/infraConfig.json",
+  "fileSize": 1345,
+  "loaded_at": "2025-10-24T12:21:35.144Z",
+  "loading_method": "cloud_native_api",
+  "priority": 50,
+  "processedAt": "2025-10-24T12:21:35.144Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "f01e4acaf3b8bbe075eb5348da821547e0c6a6f7",
+  "size": 1345,
+  "source": "anatolyZader/vc-3",
+  "text": "{\n  \"aop_modules\": {\n    \"auth\": {\n      \"authPersistAdapter\": \"authPostgresAdapter\"\n    }\n  },\n\n  \"business_modules\": {\n    \"chat\": {\n      \"chatPersistAdapter\": \"chatPostgresAdapter\",\n      \"chatAiAdapter\": \"chatAiAdapter\",\n      \"chatMessagingAdapter\": \"chatPubsubAdapter\",\n      \"chatVoiceAdapter\": \"chatGCPVoiceAdapter\"\n    },\n    \"git\": {\n      \"gitAdapter\": \"gitGithubAdapter\",\n      \"gitMessagingAdapter\": \"gitPubsubAdapter\",\n      \"gitPersistAdapter\": \"gitPostgresAdapter\"\n    },\n\n    \"docs\": {\n      \"docsMessagingAdapter\": \"docsPubsubAdapter\",\n      \"docsPersistAdapter\": \"docsPostgresAdapter\",\n      \"docsAiAdapter\": \"docsLangchainAdapter\",\n      \"docsGitAdapter\": \"docsGithubAdapter\"\n    },\n    \"ai\": {\n      \"aiPersistAdapter\": \"aiPostgresAdapter\",\n      \"aiAdapter\": \"aiLangchainAdapter\", \n      \"aiProvider\": \"anthropic\", \n      \"aiMessagingAdapter\": \"aiPubsubAdapter\",\n      \"aiGitAdapter\": \"aiGithubAdapter\",\n      \"aiDocsAdapter\": \"aiGithubDocsAdapter\"\n    },\n    \"messaging\": {\n      \"messagingPersistAdapter\": \"messagingPostgresAdapter\",\n      \"messagingAIAdapter\": \"messagingLangchainAdapter\",\n      \"messagingMessagingAdapter\": \"messagingPubsubAdapter\"\n    },\n    \"api\": {\n      \"apiPersistAdapter\": \"apiPostgresAdapter\",\n      \"apiMessagingAdapter\": \"apiPubsubAdapter\",\n      \"apiAdapter\": \"apiSwaggerAdapter\"\n    }\n  }\n}",
   "type": "github-file",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 2,
-  "score": 0.467952728,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_761_1761308530712"
+  "score": 0.486915588,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_600_1761308530712"
+}
+```
+
+---
+
+### Chunk 4/4
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 1532 characters
+- **Score**: 0.473827362
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-25T11:07:04.890Z
+
+**Full Content**:
+```
+scription": "User session established",
+          "attributes": ["sessionId", "userId", "occurredAt"]
+        }
+      ]
+    }
+  },
+  "businessTerms": {
+    "eventstorm": {
+      "name": "EventStorm",
+      "description": "The application name and approach - event storming for DDD",
+      "aliases": ["eventstorm.me", "EventStorm.me"]
+    },
+    "videocode": {
+      "name": "Videocode", 
+      "description": "Previous name of the eventstorm.me application",
+      "status": "deprecated"
+    },
+    "developer_toolkit": {
+      "name": "Developer Toolkit",
+      "description": "Suite of integrated tools for software development automation",
+      "components": ["AI Assistant", "Code Analysis", "Documentation Generation", "API Management"]
+    },
+    "bounded_context": {
+      "name": "Bounded Context",
+      "description": "DDD concept - explicit boundary where domain model is valid",
+      "examples": ["Chat Context", "Git Context", "AI Context", "Auth Context"]
+    }
+  },
+  "domainEvents": {
+    "chat": [
+      "ConversationStartedEvent",
+      "QuestionAddedEvent", 
+      "AnswerAddedEvent",
+      "ConversationDeletedEvent"
+    ],
+    "ai": [
+      "AiResponseGeneratedEvent",
+      "RepoPushedEvent"
+    ],
+    "git": [
+      "ProjectCreatedEvent",
+      "RepoFetchedEvent"
+    ],
+    "api": [
+      "HttpApiFetchedEvent",
+      "HttpApiSavedEvent"
+    ],
+    "docs": [
+      "DocsCreatedEvent", 
+      "DocsPageUpdatedEvent"
+    ],
+    "auth": [
+      "UserRegisteredEvent",
+      "SessionCreatedEvent"
+    ]
+  }
+}
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 3,
+  "chunkTokens": 383,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/ubiq-language.json",
+  "fileSize": 13071,
+  "loaded_at": "2025-10-25T11:07:04.890Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 2915,
+  "priority": 50,
+  "processedAt": "2025-10-25T11:07:04.890Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "78c2a67106f4c8aeb38c0781e2e7c00594b34754",
+  "size": 13071,
+  "source": "anatolyZader/vc-3",
+  "text": "scription\": \"User session established\",\n          \"attributes\": [\"sessionId\", \"userId\", \"occurredAt\"]\n        }\n      ]\n    }\n  },\n  \"businessTerms\": {\n    \"eventstorm\": {\n      \"name\": \"EventStorm\",\n      \"description\": \"The application name and approach - event storming for DDD\",\n      \"aliases\": [\"eventstorm.me\", \"EventStorm.me\"]\n    },\n    \"videocode\": {\n      \"name\": \"Videocode\", \n      \"description\": \"Previous name of the eventstorm.me application\",\n      \"status\": \"deprecated\"\n    },\n    \"developer_toolkit\": {\n      \"name\": \"Developer Toolkit\",\n      \"description\": \"Suite of integrated tools for software development automation\",\n      \"components\": [\"AI Assistant\", \"Code Analysis\", \"Documentation Generation\", \"API Management\"]\n    },\n    \"bounded_context\": {\n      \"name\": \"Bounded Context\",\n      \"description\": \"DDD concept - explicit boundary where domain model is valid\",\n      \"examples\": [\"Chat Context\", \"Git Context\", \"AI Context\", \"Auth Context\"]\n    }\n  },\n  \"domainEvents\": {\n    \"chat\": [\n      \"ConversationStartedEvent\",\n      \"QuestionAddedEvent\", \n      \"AnswerAddedEvent\",\n      \"ConversationDeletedEvent\"\n    ],\n    \"ai\": [\n      \"AiResponseGeneratedEvent\",\n      \"RepoPushedEvent\"\n    ],\n    \"git\": [\n      \"ProjectCreatedEvent\",\n      \"RepoFetchedEvent\"\n    ],\n    \"api\": [\n      \"HttpApiFetchedEvent\",\n      \"HttpApiSavedEvent\"\n    ],\n    \"docs\": [\n      \"DocsCreatedEvent\", \n      \"DocsPageUpdatedEvent\"\n    ],\n    \"auth\": [\n      \"UserRegisteredEvent\",\n      \"SessionCreatedEvent\"\n    ]\n  }\n}",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.473827362,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3174_1761390472218"
 }
 ```
 
@@ -367,102 +651,31 @@ module.exports = fp(redisPlugin, {
 
 ### Generated Response:
 **Status**: ✅ Generated Successfully
-**Response Length**: 3302 characters
-**Generated At**: 2025-10-25T13:49:49.512Z
+**Response Length**: 896 characters
+**Generated At**: 2025-10-25T13:55:33.574Z
 
 ### Response Content:
 ```markdown
-Certainly! `redisStore.js` is a file that likely contains the implementation of a Redis-based session store for a web application. Redis is an open-source, in-memory data structure store that is often used as a database, cache, and message broker.
+Based on the architecture overview provided in the code context, the main business modules in the EventStorm.me application are:
 
-In the context of web applications, session management is an important aspect, as it allows the server to keep track of user sessions and maintain state across multiple requests. A session store is a component that is responsible for storing and retrieving session data.
+1. **Chat Module**: Responsible for the chat functionality, including conversations, questions, and answers.
+2. **Git Module**: Responsible for integrating with Git repositories and managing related data.
+3. **Docs Module**: Responsible for the knowledge management and documentation generation features.
+4. **AI Module**: Responsible for integrating with AI services and providing AI-powered capabilities.
+5. **Messaging Module**: Responsible for the messaging and communication functionality across the application.
+6. **API Module**: Responsible for the HTTP API and integration with external systems.
 
-The `redisStore.js` file would typically contain the following:
-
-1. **Redis Client Configuration**: This section would set up the connection to the Redis server, including the host, port, and any other necessary configuration options.
-
-2. **Session Store Implementation**: This section would define a custom session store class that extends the functionality of the default session store provided by the web framework (e.g., Express.js, Node.js). The class would typically include methods for:
-   - Storing session data in Redis
-   - Retrieving session data from Redis
-   - Deleting session data from Redis
-   - Handling session expiration
-
-3. **Middleware Integration**: This section would integrate the custom Redis-based session store with the web framework, typically by creating a middleware function that can be used in the application's middleware stack.
-
-Here's a high-level example of what the `redisStore.js` file might look like:
-
-```javascript
-const redis = require('redis');
-const session = require('express-session');
-
-// Redis client configuration
-const redisClient = redis.createClient({
-  host: 'localhost',
-  port: 6379
-});
-
-// Custom Redis-based session store
-class RedisStore extends session.Store {
-  constructor(options) {
-    super(options);
-    this.client = redisClient;
-  }
-
-  get(sid, callback) {
-    this.client.get(`sess:${sid}`, (err, data) => {
-      if (err) return callback(err);
-      if (!data) return callback();
-      try {
-        callback(null, JSON.parse(data));
-      } catch (err) {
-        callback(err);
-      }
-    });
-  }
-
-  set(sid, session, callback) {
-    this.client.set(`sess:${sid}`, JSON.stringify(session), (err) => {
-      if (err) return callback(err);
-      callback();
-    });
-  }
-
-  destroy(sid, callback) {
-    this.client.del(`sess:${sid}`, (err) => {
-      if (err) return callback(err);
-      callback();
-    });
-  }
-}
-
-// Middleware integration
-module.exports = (app) => {
-  app.use(session({
-    store: new RedisStore(),
-    secret: 'your-secret-key',
-    resave: false,
-    saveUninitialized: true
-  }));
-};
-```
-
-In this example, the `redisStore.js` file sets up a Redis client, defines a custom `RedisStore` class that extends the `session.Store` class, and then exports a middleware function that integrates the Redis-based session store with the web application.
-
-The `RedisStore` class implements the necessary methods for storing, retrieving, and deleting session data in Redis. The middleware function then configures the Express.js session middleware to use the custom Redis-based session store.
-
-This approach allows the web application to leverage the speed and scalability of Redis for session management, rather than relying on the default session store (e.g., in-memory, file-based, or database-backed).
+The code context also mentions that the application has "AOP modules" for cross-cutting concerns, but does not provide any specific details about those modules.
 ```
 
 ### Response Quality Assessment:
-- **Relevance to Query**: MEDIUM - Partially addresses query
-- **Use of Context**: LOW - Limited use of retrieved context
+- **Relevance to Query**: HIGH - Directly addresses query terms
+- **Use of Context**: MEDIUM - Implicit context usage
 - **Response Completeness**: GOOD - Structured with adequate detail
 
 ### Key Response Elements:
-- **Code Examples**: 1 code blocks included
-- **Structured Lists**: 3 numbered points
-- **Bullet Points**: 4 bullet items
-- **File References**: 7 specific files mentioned
-- **Technical Terms**: 11 technical concepts used
+- **Structured Lists**: 6 numbered points
+- **Technical Terms**: 8 technical concepts used
 
 ---
 
@@ -470,15 +683,15 @@ This approach allows the web application to leverage the speed and scalability o
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 8538ms
-- **Documents Retrieved**: 3
+- **Query Processing Time**: 3075ms
+- **Documents Retrieved**: 4
 - **Unique Sources**: 1
-- **Average Chunk Size**: 2014 characters
+- **Average Chunk Size**: 3293 characters
 
 ### Context Quality:
-- **Relevance Score**: HIGH (3 relevant chunks found)
+- **Relevance Score**: HIGH (4 relevant chunks found)
 - **Diversity Score**: LOW (1 unique sources)
-- **Completeness Score**: HIGH (6,041 total characters)
+- **Completeness Score**: HIGH (13,171 total characters)
 
 ### LangSmith Integration:
 - **Tracing Status**: ✅ Active
@@ -488,7 +701,7 @@ This approach allows the web application to leverage the speed and scalability o
 ## 🔍 Source Analysis
 
 ### Most Frequent Sources:
-- **anatolyZader/vc-3**: 3 chunks
+- **anatolyZader/vc-3**: 4 chunks
 
 ### Repository Coverage:
 - anatolyZader/vc-3
@@ -498,11 +711,10 @@ This approach allows the web application to leverage the speed and scalability o
 - **Query Type**: General/Conversational
 - **Domain Focus**: General Application
 - **Technical Complexity**: Medium
-- **Expected Response Type**: Explanatory
+- **Expected Response Type**: General
 
 ## 🚀 Recommendations
 
-- **Optimize Query Performance**: Query took over 5 seconds, consider caching or index optimization
 - **Increase Source Diversity**: All chunks from same source, consider broader indexing
 
 ## ✨ Conclusion
@@ -516,7 +728,7 @@ This comprehensive LangSmith trace demonstrates good RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-10-25T13:49:49.512Z  
+**Generated**: 2025-10-25T13:55:33.574Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true
