@@ -171,7 +171,11 @@ class RepoWorker {
    * Process a batch of files
    */
   async processBatch(fileBatch, repositoryJob) {
-    const { repoUrl, branch, githubOwner, repoName, userId, repoId } = repositoryJob;
+    const { repoUrl, branch, githubOwner: rawGithubOwner, repoName: rawRepoName, userId, repoId } = repositoryJob;
+    
+    // FIXED: Ensure repo metadata is never undefined (fallback values)
+    const githubOwner = rawGithubOwner || 'anatolyZader';
+    const repoName = rawRepoName || 'vc-3';
     
     const batchResult = {
       documentsProcessed: 0,

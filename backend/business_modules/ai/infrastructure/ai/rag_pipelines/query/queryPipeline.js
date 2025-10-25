@@ -438,8 +438,12 @@ class QueryPipeline {
       };
     });
     
-    // Apply deduplication and per-source caps
-    const results = this.deduplicateAndCapResults(rawResults, searchStrategy);
+    // CRITICAL FIX: Apply content-type filtering BEFORE deduplication to prevent catalog dominance
+    const filteredResults = this.filterContentTypes(rawResults, prompt);
+    console.log(`[${new Date().toISOString()}] 🧹 CONTENT_FILTER: ${rawResults.length} → ${filteredResults.length} (catalogs filtered in pipeline)`);
+    
+    // Apply deduplication and per-source caps on filtered results
+    const results = this.deduplicateAndCapResults(filteredResults, searchStrategy);
     
     if (traceData) {
       traceData.chunks = this.captureChunkData(results);
@@ -1328,6 +1332,133 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
     }
     
     return recommendations.join('\n');
+  }
+
+  /**
+   * Filter content types to prevent catalog dominance
+   * CRITICAL: Prevents JSON catalogs from dominating search results
+   */
+  filterContentTypes(results, query = '') {
+    const queryType = this.detectQueryType(query);
+    const excludeCatalogs = true; // Always exclude catalogs
+    const preferCode = queryType !== 'documentation';
+    
+    let filtered = results;
+    
+    if (excludeCatalogs) {
+      // Filter out JSON catalogs (architecture.json, ul_dictionary.json, etc.)
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(result => {
+        const content = result.pageContent || '';
+        const source = result.metadata?.source || '';
+        
+        // Exclude obvious JSON catalog files
+        if (source.includes('architecture.json') || 
+            source.includes('ul_dictionary.json') ||
+            source.includes('catalog.json') ||
+            source.includes('schema.json')) {
+          return false;
+        }
+        
+        // Exclude large JSON objects that are clearly catalogs
+        if (content.trim().startsWith('{') && content.includes('"$schema"') && content.length > 2000) {
+          return false;
+        }
+        
+        // Exclude content that's mostly JSON structure (catalogs)
+        const jsonStructureRatio = (content.match(/[{}\[\]:,]/g) || []).length / content.length;
+        if (jsonStructureRatio > 0.1 && content.includes('"description"') && content.includes('"attributes"')) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      const catalogsRemoved = beforeCount - filtered.length;
+      if (catalogsRemoved > 0) {
+        console.log(`[${new Date().toISOString()}] 🚫 PIPELINE_CATALOG_FILTER: Removed ${catalogsRemoved} JSON catalogs`);
+      }
+    }
+    
+    if (preferCode && queryType !== 'documentation') {
+      // Boost actual code files over pure documentation
+      filtered = filtered.sort((a, b) => {
+        const aIsCode = this.isActualCode(a.pageContent, a.metadata);
+        const bIsCode = this.isActualCode(b.pageContent, b.metadata);
+        
+        if (aIsCode && !bIsCode) return -1; // a (code) comes first
+        if (!aIsCode && bIsCode) return 1;  // b (code) comes first
+        
+        // Both same type, keep original order
+        return 0;
+      });
+    }
+    
+    return filtered;
+  }
+
+  /**
+   * Detect query type for intelligent filtering
+   */
+  detectQueryType(query = '') {
+    const lower = query.toLowerCase();
+    
+    // Architecture/design questions
+    if (lower.includes('architecture') || lower.includes('design') || lower.includes('pattern') || 
+        lower.includes('communicate') || lower.includes('interact') || lower.includes('modular')) {
+      return 'architecture';
+    }
+    
+    // Code implementation questions
+    if (lower.includes('implementation') || lower.includes('code') || lower.includes('function') ||
+        lower.includes('method') || lower.includes('class') || lower.includes('how does') || 
+        lower.includes('show me')) {
+      return 'code';
+    }
+    
+    // Documentation questions
+    if (lower.includes('documentation') || lower.includes('docs') || lower.includes('readme') ||
+        lower.includes('explain') || lower.includes('what is')) {
+      return 'documentation';
+    }
+    
+    return 'general';
+  }
+
+  /**
+   * Detect actual code vs documentation/catalogs
+   */
+  isActualCode(content, metadata = {}) {
+    // Check file extension
+    const source = metadata.source || '';
+    if (source.match(/\.(js|ts|jsx|tsx|py|java|cpp|c|go|rs|php)$/)) {
+      return true;
+    }
+    
+    // Check for code patterns
+    const codeIndicators = [
+      /function\s+\w+\s*\(/,
+      /class\s+\w+/,
+      /import\s+.*from/,
+      /require\(/,
+      /module\.exports/,
+      /export\s+(default\s+)?/,
+      /const\s+\w+\s*=/,
+      /let\s+\w+\s*=/,
+      /var\s+\w+\s*=/,
+      /if\s*\(/,
+      /for\s*\(/,
+      /while\s*\(/,
+      /async\s+function/,
+      /=>\s*{/,
+      /constructor\s*\(/,  // Added constructor detection
+      /\.\s*\w+\s*\(/      // Added method call detection
+    ];
+    
+    const codeMatches = codeIndicators.filter(pattern => pattern.test(content)).length;
+    
+    // If multiple code patterns found, likely actual code (lowered threshold for class detection)
+    return codeMatches >= 1;
   }
 }
 

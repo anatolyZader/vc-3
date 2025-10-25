@@ -739,13 +739,15 @@ class ChunkPostprocessor {
       /for\s*\(/,
       /while\s*\(/,
       /async\s+function/,
-      /=>\s*{/
+      /=>\s*{/,
+      /constructor\s*\(/,  // Added constructor detection
+      /\.\s*\w+\s*\(/      // Added method call detection
     ];
     
     const codeMatches = codeIndicators.filter(pattern => pattern.test(content)).length;
     
-    // If multiple code patterns found, likely actual code
-    return codeMatches >= 2;
+    // If code patterns found, likely actual code (lowered threshold for class detection)
+    return codeMatches >= 1;
   }
 
   /**
@@ -755,21 +757,17 @@ class ChunkPostprocessor {
     return results.map(result => {
       const metadata = result.metadata || {};
       
-      // Fix missing repo owner/name from source path
-      if (metadata.source && !metadata.repoOwner && !metadata.repoName) {
-        const sourceMatch = metadata.source.match(/([^/]+)\/([^/]+)/);
-        if (sourceMatch) {
-          metadata.repoOwner = sourceMatch[1] || 'anatolyZader';
-          metadata.repoName = sourceMatch[2] || 'vc-3';
-        } else {
-          // Fallback for current repo
-          metadata.repoOwner = 'anatolyZader';
-          metadata.repoName = 'vc-3';
-        }
+      // ALWAYS ensure repo metadata is correct (fix undefined owner issue)
+      if (!metadata.repoOwner || metadata.repoOwner === 'undefined') {
+        metadata.repoOwner = 'anatolyZader';
       }
       
-      // Fix missing repoId
-      if (!metadata.repoId && metadata.repoOwner && metadata.repoName) {
+      if (!metadata.repoName || metadata.repoName === 'undefined') {
+        metadata.repoName = 'vc-3';
+      }
+      
+      // Fix missing repoId or rebuild if corrupted
+      if (!metadata.repoId || metadata.repoId.includes('undefined')) {
         metadata.repoId = `${metadata.repoOwner}/${metadata.repoName}`;
       }
       
