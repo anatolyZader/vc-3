@@ -121,17 +121,25 @@ ${content}`;
     const reposUsed = documents
       .filter(doc => doc.metadata.repoId)
       .map(doc => {
-        // FIXED: repoId already contains owner/repo format, don't duplicate
         const repoId = doc.metadata.repoId;
-        if (repoId && repoId.includes('/')) {
-          return repoId; // Already has owner/repo format
+        
+        // If repoId is already in owner/repo format and doesn't contain "undefined"
+        if (repoId && repoId.includes('/') && !repoId.includes('undefined')) {
+          return repoId; // Already has clean owner/repo format
         }
-        // Fallback: construct from parts if needed
-        const owner = doc.metadata.githubOwner || doc.metadata.repoOwner || 'anatolyZader';
-        const repo = doc.metadata.repoName || repoId || 'vc-3';
+        
+        // Enhanced fallback: construct from metadata with undefined safety
+        const owner = doc.metadata.repoOwner || 
+                     (doc.metadata.githubOwner && doc.metadata.githubOwner !== 'undefined' ? doc.metadata.githubOwner : null) || 
+                     'anatolyZader';
+        
+        const repo = doc.metadata.repoName || 
+                    (repoId && !repoId.includes('/') ? repoId : null) || 
+                    'vc-3';
+        
         return `${owner}/${repo}`;
       })
-      .filter((repo, index, arr) => arr.indexOf(repo) === index);
+      .filter((repo, index, arr) => arr.indexOf(repo) === index && !repo.includes('undefined'));
     
     if (reposUsed.length > 0) {
       console.log(`[${new Date().toISOString()}] 💻 GitHub repos referenced: ${reposUsed.join(', ')}`);

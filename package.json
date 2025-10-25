@@ -2,5 +2,9 @@
   "dependencies": {
     "dotenv": "^17.2.3",
     "pg": "^8.16.3"
+  },
+  "optionalDependencies": {
+    "xxhash-addon": "^2.0.1",
+    "blake3": "^2.1.7"
   }
 }

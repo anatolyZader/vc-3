@@ -58,7 +58,10 @@ class ContextPipeline {
       overlapTokens: this.options.overlapTokens || 50, // Token overlap
       enableLineFallback: true,                        // Enable fallback for large files
       maxUnitsPerChunk: 1,                            // One semantic unit per chunk for granularity
-      charsPerToken: 4                                // Characters per token estimate
+      charsPerToken: 4,                               // Characters per token estimate
+      // UL Enhancement: Smart comment inclusion based on file type
+      includeComments: this.shouldIncludeCommentsForUL.bind(this),
+      includeImports: false
     });
     
     this.semanticPreprocessor = new SemanticPreprocessor();
@@ -107,14 +110,58 @@ class ContextPipeline {
     this._initializeTracing();
   }
 
+  /**
+   * Smart comment inclusion for UL enhancement
+   * Enable comments for domain/application files where UL terms are more likely
+   */
+  shouldIncludeCommentsForUL(source) {
+    if (!source) return false;
+    
+    // Always include comments for domain and application layers
+    const domainPatterns = [
+      /domain\//,
+      /application\//,
+      /business_modules\/[^/]+\/(domain|application)\//,
+      /entities\//,
+      /services\//,
+      /use[_-]?cases?\//
+    ];
+    
+    if (domainPatterns.some(pattern => pattern.test(source))) {
+      return true;
+    }
+    
+    // Include comments for files with domain-specific names
+    const domainNames = [
+      'conversation', 'message', 'user', 'account',
+      'event', 'command', 'query', 'aggregate',
+      'repository', 'factory', 'specification'
+    ];
+    
+    const filename = source.toLowerCase().split('/').pop() || '';
+    if (domainNames.some(name => filename.includes(name))) {
+      return true;
+    }
+    
+    // Exclude comments for infrastructure code where they add noise
+    const infraPatterns = [
+      /infrastructure\//,
+      /adapters?\//,
+      /repositories?\//,
+      /config\//,
+      /build\//,
+      /test/
+    ];
+    
+    return !infraPatterns.some(pattern => pattern.test(source));
+  }
+
   _initializeTracing() {
     this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
-    
+
     if (!this.enableTracing) {
       return;
-    }
-
-    // bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.
+    }    // bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.
     try {
       this.processPushedRepo = traceable(
         this.processPushedRepo.bind(this), // 

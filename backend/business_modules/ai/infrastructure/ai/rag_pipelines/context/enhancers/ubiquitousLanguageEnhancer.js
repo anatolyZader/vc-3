@@ -209,27 +209,38 @@ class UbiquitousLanguageEnhancer {
     // Get relevant domain context
     const boundedContext = this.getBoundedContext(businessModule);
     const relevantEvents = this.getRelevantDomainEvents(businessModule);
-    const relevantTerms = this.extractRelevantTerms(content);
+    const relevantTerms = this.extractRelevantTerms(content, source);
     
     // Generate contextual annotation (store in metadata only)
     const contextualAnnotation = this.generateContextualAnnotation(businessModule, content);
     
-    // Enhanced document with ubiquitous language metadata
+    // Enhanced document with ubiquitous language metadata (ALWAYS STAMP FIELDS)
     const enhancedDocument = {
       ...document,
       // DO NOT pollute pageContent - keep original for RAG quality
       pageContent: document.pageContent,
       metadata: {
         ...document.metadata,
+        // UL Core fields (always present)
+        ul_version: 'ul-1.0.0',
+        ul_bounded_context: boundedContext || this.inferBoundedContextFromPath(source),
+        ul_terms: relevantTerms || [],
+        ul_match_count: (relevantTerms || []).length,
+        
+        // Legacy compatibility fields
         ubiq_business_module: businessModule,
         ubiq_bounded_context: boundedContext,
         ubiq_domain_events: relevantEvents,
         ubiq_terminology: relevantTerms,
-        ubiq_annotation: contextualAnnotation, // Store annotation in metadata
+        ubiq_annotation: contextualAnnotation,
         ubiq_enhanced: true,
         ubiq_enhancement_timestamp: new Date().toISOString()
       }
     };
+    
+    // Debug logging to make UL processing visible
+    console.log(`[${new Date().toISOString()}] 🏷️ UL_ENHANCED: ${source}`);
+    console.log(`[${new Date().toISOString()}] 🏢 [UL] BC: ${enhancedDocument.metadata.ul_bounded_context}, Terms: ${enhancedDocument.metadata.ul_terms.length}, Module: ${businessModule}`);
 
     // Safely handle commitInfo - only add if it exists and is valid
     if (document.metadata?.commitInfo && typeof document.metadata.commitInfo === 'object') {
@@ -368,6 +379,36 @@ class UbiquitousLanguageEnhancer {
   }
 
   /**
+   * Infer bounded context from file path when module detection fails
+   */
+  inferBoundedContextFromPath(source) {
+    if (!source) return null;
+    
+    // Extract bounded context from path patterns
+    const pathPatterns = [
+      { pattern: /business_modules\/([^/]+)\//, context: (match) => match[1] },
+      { pattern: /domain\/([^/]+)\//, context: (match) => `${match[1]}_domain` },
+      { pattern: /application\/([^/]+)\//, context: (match) => `${match[1]}_application` },
+      { pattern: /infrastructure\/([^/]+)\//, context: (match) => `${match[1]}_infrastructure` }
+    ];
+    
+    for (const { pattern, context } of pathPatterns) {
+      const match = source.match(pattern);
+      if (match) {
+        return context(match);
+      }
+    }
+    
+    // Fallback inference from filenames and identifiers
+    if (source.includes('Adapter')) return 'infrastructure';
+    if (source.includes('Port')) return 'domain';
+    if (source.includes('Service')) return 'application';
+    if (source.includes('Event')) return 'domain_events';
+    
+    return null;
+  }
+
+  /**
    * Get relevant domain events for a business module
    */
   getRelevantDomainEvents(moduleName) {
@@ -376,9 +417,9 @@ class UbiquitousLanguageEnhancer {
   }
 
   /**
-   * Extract relevant business terms from content
+   * Extract relevant business terms from content (enhanced for infra files)
    */
-  extractRelevantTerms(content) {
+  extractRelevantTerms(content, source = '') {
     const relevantTerms = [];
     
     // Check business terms from ubiquitous language catalog
@@ -399,7 +440,96 @@ class UbiquitousLanguageEnhancer {
       }
     }
     
-    return relevantTerms;
+    // Enhanced: Extract terms from identifiers and patterns (for infra files)
+    const identifierTerms = this.extractIdentifierTerms(content, source);
+    relevantTerms.push(...identifierTerms);
+    
+    // Remove duplicates and return
+    return [...new Set(relevantTerms)];
+  }
+  
+  /**
+   * Extract UL terms from code identifiers and architectural patterns
+   */
+  extractIdentifierTerms(content, source = '') {
+    const terms = [];
+    
+    // Pattern-based extraction for common DDD/architectural patterns
+    const patterns = [
+      { pattern: /(\w*Port\w*)/gi, mapTo: 'port' },
+      { pattern: /(\w*Adapter\w*)/gi, mapTo: 'adapter' },
+      { pattern: /(\w*Repository\w*)/gi, mapTo: 'repository' },
+      { pattern: /(\w*Service\w*)/gi, mapTo: 'service' },
+      { pattern: /(\w*Factory\w*)/gi, mapTo: 'factory' },
+      { pattern: /(\w*Event\w*)/gi, mapTo: 'domain_event' },
+      { pattern: /(\w*Entity\w*)/gi, mapTo: 'entity' },
+      { pattern: /(\w*ValueObject\w*)/gi, mapTo: 'value_object' },
+      { pattern: /(\w*Aggregate\w*)/gi, mapTo: 'aggregate' },
+      { pattern: /EventDispatcher|PubSub/gi, mapTo: 'messaging' }
+    ];
+    
+    patterns.forEach(({ pattern, mapTo }) => {
+      const matches = content.match(pattern);
+      if (matches) {
+        terms.push(mapTo);
+        // Also extract the specific identifier terms
+        matches.forEach(match => {
+          const splitTerms = this.splitIdentifier(match);
+          terms.push(...splitTerms);
+        });
+      }
+    });
+    
+    // Path-based term extraction
+    if (source) {
+      const pathTerms = this.extractPathTerms(source);
+      terms.push(...pathTerms);
+    }
+    
+    return [...new Set(terms.filter(term => term.length > 2))]; // Filter short terms
+  }
+  
+  /**
+   * Split camelCase/PascalCase identifiers into meaningful terms
+   */
+  splitIdentifier(identifier) {
+    if (!identifier) return [];
+    
+    // Split on camelCase boundaries and common separators
+    return identifier
+      .replace(/([a-z])([A-Z])/g, '$1 $2')  // camelCase -> camel Case
+      .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')  // XMLHttp -> XML Http
+      .split(/[\s_-]+/)
+      .map(term => term.toLowerCase())
+      .filter(term => term.length > 2 && term !== 'js' && term !== 'ts');
+  }
+  
+  /**
+   * Extract bounded context and domain terms from file paths
+   */
+  extractPathTerms(source) {
+    const terms = [];
+    
+    // Business module extraction
+    const moduleMatch = source.match(/business_modules\/([^/]+)/);
+    if (moduleMatch) {
+      terms.push(moduleMatch[1]);
+    }
+    
+    // Layer identification
+    if (source.includes('/domain/')) terms.push('domain');
+    if (source.includes('/application/')) terms.push('application');
+    if (source.includes('/infrastructure/')) terms.push('infrastructure');
+    
+    // Common domain directories
+    const domainDirs = ['entities', 'services', 'repositories', 'factories', 'events', 'commands', 'queries'];
+    domainDirs.forEach(dir => {
+      if (source.includes(`/${dir}/`)) {
+        terms.push(dir.slice(0, -1)); // Remove plural
+      }
+    });
+    
+    return terms;
   }
 
   /**

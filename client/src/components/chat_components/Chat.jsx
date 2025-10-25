@@ -406,7 +406,48 @@ const Chat = () => {
             />
           )}
 
-          {/* Search in Conversations Section */}
+          {/* 1. Conversations History - First */}
+          <ExpansionPanel open={false} title="Conversations History">
+            <div className="conversations-list">
+              {loading && conversations.length === 0 && (
+                <p>Loading conversations...</p>
+              )}
+              
+              {conversations.map((conversation) => {
+                const convId = conversation.id || conversation.conversationId; // support both shapes
+                const createdAt = conversation.created_at || conversation.createdAt || new Date().toISOString();
+                return (
+                  <div
+                    key={convId}
+                    className={`conversation-item ${
+                      convId === currentConversationId ? 'active' : ''
+                    }`}
+                    onClick={() => handleConversationSelect(convId)}
+                  >
+                    <div className="conversation-title">
+                      {conversation.title || 'Untitled Conversation'}
+                    </div>
+                    <div className="conversation-date">
+                      {formatDate(createdAt)}
+                    </div>
+                    <button
+                      className="delete-conversation"
+                      onClick={(e) => handleDeleteConversation(convId, e)}
+                      title="Delete conversation"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+              
+              {conversations.length === 0 && !loading && (
+                <p>No conversations yet</p>
+              )}
+            </div>
+          </ExpansionPanel>
+
+          {/* 2. Search Conversations - Second */}
           <ExpansionPanel open={false} title="Search Conversations">
             <div className="search-section">
               <div className="search-input-container">
@@ -462,53 +503,71 @@ const Chat = () => {
             </div>
           </ExpansionPanel>
 
-          <ExpansionPanel open={false} title="Conversations History">
-            <div className="conversations-list">
-              {loading && conversations.length === 0 && (
-                <p>Loading conversations...</p>
-              )}
+          {/* 3. Settings - Third */}
+          <ExpansionPanel open={false} title="Settings">
+            <div className="settings-section">
+              <div className="settings-group">
+                <h4 className="settings-group-title">Appearance</h4>
+                <div className="setting-item">
+                  <label className="setting-label">Theme</label>
+                  <select className="setting-select">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="auto">Auto</option>
+                  </select>
+                </div>
+                <div className="setting-item">
+                  <label className="setting-label">
+                    <input type="checkbox" className="setting-checkbox" />
+                    Compact mode
+                  </label>
+                </div>
+              </div>
               
-              {conversations.map((conversation) => {
-                const convId = conversation.id || conversation.conversationId; // support both shapes
-                const createdAt = conversation.created_at || conversation.createdAt || new Date().toISOString();
-                return (
-                  <div
-                    key={convId}
-                    className={`conversation-item ${
-                      convId === currentConversationId ? 'active' : ''
-                    }`}
-                    onClick={() => handleConversationSelect(convId)}
-                  >
-                    <div className="conversation-title">
-                      {conversation.title || 'Untitled Conversation'}
-                    </div>
-                    <div className="conversation-date">
-                      {formatDate(createdAt)}
-                    </div>
-                    <button
-                      className="delete-conversation"
-                      onClick={(e) => handleDeleteConversation(convId, e)}
-                      title="Delete conversation"
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
-              
-              {conversations.length === 0 && !loading && (
-                <p>No conversations yet</p>
-              )}
+              <div className="settings-group">
+                <h4 className="settings-group-title">Chat</h4>
+                <div className="setting-item">
+                  <label className="setting-label">
+                    <input type="checkbox" className="setting-checkbox" />
+                    Auto-scroll to new messages
+                  </label>
+                </div>
+                <div className="setting-item">
+                  <label className="setting-label">
+                    <input type="checkbox" className="setting-checkbox" />
+                    Sound notifications
+                  </label>
+                </div>
+              </div>
+
+              <div className="settings-group">
+                <h4 className="settings-group-title">Privacy</h4>
+                <div className="setting-item">
+                  <label className="setting-label">
+                    <input type="checkbox" className="setting-checkbox" />
+                    Save chat history
+                  </label>
+                </div>
+              </div>
             </div>
           </ExpansionPanel>
 
-          {/* Account/Logout clickable item */}
-          <div className="account-item" onClick={() => setIsAccountModalOpen(true)}>
-            <div className="account-item-content">
-              <div className="account-item-title">Account</div>
+          {/* 4. Account - Fourth (Bottom) */}
+          <ExpansionPanel 
+            open={false} 
+            title="Account"
+            className="account-expansion-panel"
+          >
+            <div className="account-actions-content" onClick={() => setIsAccountModalOpen(true)}>
+              <div className="account-info-preview">
+                <p><strong>User:</strong> {userProfile?.name || 'anatolyZader'}</p>
+                <p><strong>Email:</strong> {userProfile?.email || 'Not available'}</p>
+              </div>
+              <div className="account-quick-actions">
+                <button className="account-settings-btn">Open Account Settings</button>
+              </div>
             </div>
-            <div className="account-item-arrow">›</div>
-          </div>
+          </ExpansionPanel>
         </div>
       </Sidebar>
 

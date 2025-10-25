@@ -431,8 +431,108 @@ class RepoProcessor {
   // ... (rest of methods remain the same as in original RepositoryProcessor)
   
   async intelligentProcessDocuments(documents) {
-    // Same implementation as original
-    return documents;
+    console.log(`[${new Date().toISOString()}] 🧠 INTELLIGENT_PROCESSING: Processing ${documents.length} documents with full pipeline`);
+    
+    const processedDocuments = [];
+    
+    for (const document of documents) {
+      try {
+        let processed = document;
+        const source = document.metadata?.source || '';
+        
+        // Step 1: File header enrichment (provides context for UL)
+        processed = {
+          ...processed,
+          metadata: {
+            ...processed.metadata,
+            file_header: {
+              file_path: source,
+              file_type: this.inferFileType(source),
+              language: this.inferLanguage(source),
+              main_entities: this.extractMainEntities(document.pageContent),
+              imports_excluded: false
+            }
+          }
+        };
+        
+        // Step 2: UL enhancement (CRITICAL - this was missing!)
+        if (this.ubiquitousLanguageProcessor) {
+          console.log(`[${new Date().toISOString()}] 🏷️ UL_PROCESSING: ${source}`);
+          processed = await this.ubiquitousLanguageProcessor.enhanceWithUbiquitousLanguage(processed);
+        } else {
+          console.warn(`[${new Date().toISOString()}] ⚠️ UL_MISSING: No UL processor available for ${source}`);
+        }
+        
+        // Step 3: Quality filtering and metadata completion
+        processed = {
+          ...processed,
+          metadata: {
+            ...processed.metadata,
+            processed_at: new Date().toISOString(),
+            workerId: process.pid,
+            batch_priority: 'standard'
+          }
+        };
+        
+        processedDocuments.push(processed);
+        
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ PROCESSING_ERROR: ${document.metadata?.source}:`, error.message);
+        processedDocuments.push(document); // Add as-is if processing fails
+      }
+    }
+    
+    console.log(`[${new Date().toISOString()}] ✅ INTELLIGENT_PROCESSING: Completed ${processedDocuments.length}/${documents.length} documents`);
+    return processedDocuments;
+  }
+  
+  /**
+   * Helper methods for document processing
+   */
+  inferFileType(source) {
+    const ext = this.getFileExtension(source).toLowerCase();
+    if (this.isCodeFile(ext)) return 'code';
+    if (['.md', '.txt', '.rst'].includes(ext)) return 'documentation';
+    if (['.json', '.yaml', '.yml'].includes(ext)) return 'configuration';
+    return 'unknown';
+  }
+  
+  inferLanguage(source) {
+    const ext = this.getFileExtension(source).toLowerCase();
+    const languageMap = {
+      '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
+      '.ts': 'typescript', '.tsx': 'typescript',
+      '.py': 'python', '.pyx': 'python', '.pyi': 'python',
+      '.java': 'java', '.kt': 'kotlin', '.scala': 'scala',
+      '.go': 'go', '.rs': 'rust',
+      '.cpp': 'cpp', '.c': 'c', '.h': 'c', '.hpp': 'cpp',
+      '.cs': 'csharp', '.vb': 'visualbasic', '.fs': 'fsharp',
+      '.php': 'php', '.rb': 'ruby', '.swift': 'swift', '.dart': 'dart'
+    };
+    return languageMap[ext] || 'unknown';
+  }
+  
+  extractMainEntities(content) {
+    if (!content) return [];
+    
+    const entities = [];
+    
+    // Extract class names
+    const classMatches = content.match(/class\s+(\w+)/gi);
+    if (classMatches) {
+      entities.push(...classMatches.map(match => match.replace(/class\s+/i, '')));
+    }
+    
+    // Extract function names (top-level)
+    const functionMatches = content.match(/(?:function\s+(\w+)|const\s+(\w+)\s*=|let\s+(\w+)\s*=|var\s+(\w+)\s*=)/gi);
+    if (functionMatches) {
+      functionMatches.forEach(match => {
+        const parts = match.split(/\s+/);
+        if (parts.length > 1) entities.push(parts[1]);
+      });
+    }
+    
+    return [...new Set(entities.filter(e => e && e.length > 2))].slice(0, 10); // Cap at 10 entities
   }
 
   async intelligentSplitDocuments(documents, routingFunction = null) {

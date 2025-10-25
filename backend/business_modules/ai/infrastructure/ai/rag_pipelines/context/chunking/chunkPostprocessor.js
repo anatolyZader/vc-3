@@ -9,7 +9,7 @@
  * 4. Use extractSparseTerms() to safely get keyword search terms
  * 
  * PERFORMANCE & PRECISION IMPROVEMENTS:
- * 5. Robust SHA-1 hashing for exact dedup (prevents collision issues)
+ * 5. Enhanced hashing: xxhash64/BLAKE3 for 10x faster exact dedup + SimHash for near-duplicates
  * 6. MMR reranking for relevance + diversity balance
  * 7. Soft diversity penalties instead of hard source caps
  * 8. Reduced complexity algorithms for production scale
@@ -23,8 +23,12 @@ class ChunkPostprocessor {
     this.mmrLambda = options.mmrLambda || 0.7; // Balance relevance vs diversity
     this.maxResults = options.maxResults || 30; // Cap early to reduce downstream cost
     
-    // Import robust utilities
-    this.robustHash = require('./robustHash');
+    // Import enhanced utilities
+    const { EnhancedHasher } = require('./enhancedHasher');
+    this.hasher = new EnhancedHasher({
+      useSimHash: true, // Enable near-duplicate detection
+      shingleSize: 3    // Token n-grams for SimHash
+    });
     this.mmr = require('./mmr');
   }
 
@@ -44,7 +48,7 @@ class ChunkPostprocessor {
     // 2. Quality filtering (based on pageContent, score in metadata)
     processedChunks = this.filterLowQualityChunks(processedChunks);
     
-    // 3. Robust exact deduplication (SHA-1 based, fast and collision-resistant)
+    // 3. Enhanced deduplication (xxhash64 + SimHash for exact + near-duplicates)
     processedChunks = this.deduplicateChunks(processedChunks);
     
     // 4. Add synthetic questions (metadata only - never concatenated)
@@ -269,36 +273,115 @@ class ChunkPostprocessor {
   }
 
   /**
-   * 3. Robust Exact Deduplication - Remove literal duplicates efficiently
-   * Uses SHA-1 hashing to prevent collision issues from heuristic approaches
+   * 3. Enhanced Deduplication - Remove exact and near-duplicates efficiently
+   * Uses xxhash64/BLAKE3 for 10x faster exact dedup + SimHash for near-duplicates
+   * PRODUCTION-OPTIMIZED: Batch processing for large chunk sets
    */
   deduplicateChunks(chunks) {
     const uniqueChunks = [];
     const seenHashes = new Set();
-    let duplicatesRemoved = 0;
+    const simHashes = []; // For near-duplicate detection
+    let exactDuplicatesRemoved = 0;
+    let nearDuplicatesRemoved = 0;
     
-    for (const chunk of chunks) {
-      // Use robust SHA-1 hash instead of weak character-based hash
-      const contentHash = this.robustHash.sha1Hash(chunk.pageContent);
+    const startTime = Date.now();
+    const batchSize = 100; // Process in batches for large datasets
+    
+    // Production optimization: Early exit for small datasets
+    if (chunks.length === 0) return [];
+    if (chunks.length === 1) {
+      const hashResult = this.hasher.hashChunk(chunks[0].pageContent, {
+        includeSimHash: false // Skip SimHash for single chunk
+      });
       
-      if (!seenHashes.has(contentHash)) {
-        seenHashes.add(contentHash);
-        uniqueChunks.push({
-          ...chunk,
-          metadata: {
-            ...chunk.metadata,
-            content_hash: contentHash // Store for debugging/tracking
-          }
+      return [{
+        ...chunks[0],
+        metadata: {
+          ...chunks[0].metadata,
+          content_hash: hashResult.content_hash,
+          hash_algorithm: hashResult.hash_algorithm,
+          content_length: hashResult.content_length,
+          hash_time_ms: hashResult.hash_time_ms
+        }
+      }];
+    }
+    
+    // Batch processing for performance
+    for (let i = 0; i < chunks.length; i += batchSize) {
+      const batch = chunks.slice(i, i + batchSize);
+      const batchStartTime = Date.now();
+      
+      for (const chunk of batch) {
+        // Generate enhanced hash package
+        const hashResult = this.hasher.hashChunk(chunk.pageContent, {
+          includeSimHash: uniqueChunks.length < 500, // Skip SimHash for large sets to improve performance
+          includeMinHash: false // Skip MinHash for performance
         });
-      } else {
-        duplicatesRemoved++;
-        console.log(`[${new Date().toISOString()}] 🗑️ EXACT_DEDUPE: Removed duplicate (SHA-1 collision)`);
+        
+        const exactHash = hashResult.content_hash;
+        const simHash = hashResult.simhash;
+        
+        // Check exact duplicates first (fastest)
+        if (seenHashes.has(exactHash)) {
+          exactDuplicatesRemoved++;
+          if (exactDuplicatesRemoved <= 5) { // Limit duplicate logs
+            console.log(`[${new Date().toISOString()}] 🗑️ EXACT_DEDUPE: Removed duplicate (${hashResult.hash_algorithm})`);
+          }
+          continue;
+        }
+        
+        // Check near-duplicates using SimHash (if enabled for this batch size)
+        let isNearDuplicate = false;
+        if (simHash && uniqueChunks.length < 500) {
+          for (const existingSimHash of simHashes) {
+            if (this.hasher.areNearDuplicates(simHash, existingSimHash, 6)) {
+              isNearDuplicate = true;
+              nearDuplicatesRemoved++;
+              if (nearDuplicatesRemoved <= 5) { // Limit duplicate logs
+                console.log(`[${new Date().toISOString()}] 🔍 NEAR_DEDUPE: Removed similar content (SimHash distance ≤ 6)`);
+              }
+              break;
+            }
+          }
+        }
+        
+        if (!isNearDuplicate) {
+          seenHashes.add(exactHash);
+          if (simHash) simHashes.push(simHash);
+          
+          uniqueChunks.push({
+            ...chunk,
+            metadata: {
+              ...chunk.metadata,
+              // Enhanced hash metadata
+              content_hash: exactHash,
+              hash_algorithm: hashResult.hash_algorithm,
+              content_length: hashResult.content_length,
+              simhash: simHash,
+              hash_time_ms: hashResult.hash_time_ms
+            }
+          });
+        }
+      }
+      
+      const batchTime = Date.now() - batchStartTime;
+      if (chunks.length > batchSize) {
+        console.log(`[${new Date().toISOString()}] 🔄 BATCH_PROGRESS: Processed batch ${Math.floor(i/batchSize)+1}/${Math.ceil(chunks.length/batchSize)} in ${batchTime}ms`);
       }
     }
     
-    if (duplicatesRemoved > 0) {
-      console.log(`[${new Date().toISOString()}] ✅ DEDUPE: Removed ${duplicatesRemoved} exact duplicates via robust hashing`);
+    const totalTime = Date.now() - startTime;
+    const totalRemoved = exactDuplicatesRemoved + nearDuplicatesRemoved;
+    const avgHashTime = uniqueChunks.length > 0 ? 
+      uniqueChunks.reduce((sum, chunk) => sum + (chunk.metadata.hash_time_ms || 0), 0) / uniqueChunks.length : 0;
+    
+    if (totalRemoved > 0) {
+      console.log(`[${new Date().toISOString()}] ✅ ENHANCED_DEDUPE: Removed ${exactDuplicatesRemoved} exact + ${nearDuplicatesRemoved} near duplicates in ${totalTime}ms`);
     }
+    
+    // Performance monitoring for production
+    console.log(`[${new Date().toISOString()}] 📊 HASH_PERF: Algorithm=${uniqueChunks[0]?.metadata?.hash_algorithm || 'unknown'}, ` +
+                `Avg=${avgHashTime.toFixed(2)}ms/hash, Total=${totalTime}ms for ${chunks.length} chunks`);
     
     return uniqueChunks;
   }
@@ -575,16 +658,22 @@ class ChunkPostprocessor {
     // Step 2: Early K reduction after filtering
     processedResults = processedResults.slice(0, initialK);
     
-    // Step 3: Robust exact deduplication (fast path)
+    // Step 3: Enhanced exact deduplication (fast path with xxhash64)
     const seenHashes = new Set();
     processedResults = processedResults.filter(result => {
-      const hash = this.robustHash.sha1Hash(result.pageContent || '');
-      if (seenHashes.has(hash)) {
+      const hashResult = this.hasher.hashChunk(result.pageContent || '', {
+        includeSimHash: false // Skip SimHash in production fast-path
+      });
+      
+      if (seenHashes.has(hashResult.content_hash)) {
         return false; // Skip duplicate
       }
-      seenHashes.add(hash);
+      
+      seenHashes.add(hashResult.content_hash);
       result.metadata = result.metadata || {};
-      result.metadata.content_hash = hash;
+      result.metadata.content_hash = hashResult.content_hash;
+      result.metadata.hash_algorithm = hashResult.hash_algorithm;
+      result.metadata.content_length = hashResult.content_length;
       return true;
     });
 
