@@ -120,7 +120,17 @@ ${content}`;
     // Log GitHub repositories being used
     const reposUsed = documents
       .filter(doc => doc.metadata.repoId)
-      .map(doc => `${doc.metadata.githubOwner}/${doc.metadata.repoId}`)
+      .map(doc => {
+        // FIXED: repoId already contains owner/repo format, don't duplicate
+        const repoId = doc.metadata.repoId;
+        if (repoId && repoId.includes('/')) {
+          return repoId; // Already has owner/repo format
+        }
+        // Fallback: construct from parts if needed
+        const owner = doc.metadata.githubOwner || doc.metadata.repoOwner || 'anatolyZader';
+        const repo = doc.metadata.repoName || repoId || 'vc-3';
+        return `${owner}/${repo}`;
+      })
       .filter((repo, index, arr) => arr.indexOf(repo) === index);
     
     if (reposUsed.length > 0) {
