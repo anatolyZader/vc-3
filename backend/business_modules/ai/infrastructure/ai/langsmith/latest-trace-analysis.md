@@ -1,12 +1,12 @@
-# LangSmith RAG Trace Analysis - 10/25/2025, 11:21:04 AM
+# LangSmith RAG Trace Analysis - 10/25/2025, 1:49:40 PM
 
 ## 🔍 Query Details
-- **Query**: "explain in details how contextPipeline.js file in eventstorm.me app works"
+- **Query**: "explain redisStore.js"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
-- **Conversation ID**: f32b426c-b783-4f27-be21-369e45a27563
-- **Started**: 2025-10-25T11:21:04.483Z
-- **Completed**: 2025-10-25T11:21:12.515Z
-- **Total Duration**: 8032ms
+- **Conversation ID**: 6e87e6cd-3b25-41e5-8469-ebb300481b4e
+- **Started**: 2025-10-25T13:49:40.972Z
+- **Completed**: 2025-10-25T13:49:49.510Z
+- **Total Duration**: 8538ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,23 +16,23 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-10-25T11:21:04.483Z) - success
-2. **vector_store_check** (2025-10-25T11:21:04.483Z) - success
-3. **vector_search** (2025-10-25T11:21:05.625Z) - success - Found 4 documents
-4. **text_search** (2025-10-25T11:21:05.625Z) - skipped
-5. **context_building** (2025-10-25T11:21:05.625Z) - success - Context: 5914 chars
-6. **response_generation** (2025-10-25T11:21:12.515Z) - success - Response: 1617 chars
+1. **initialization** (2025-10-25T13:49:40.972Z) - success
+2. **vector_store_check** (2025-10-25T13:49:40.972Z) - success
+3. **vector_search** (2025-10-25T13:49:42.957Z) - success - Found 3 documents
+4. **text_search** (2025-10-25T13:49:42.957Z) - skipped
+5. **context_building** (2025-10-25T13:49:42.957Z) - success - Context: 4063 chars
+6. **response_generation** (2025-10-25T13:49:49.510Z) - success - Response: 3302 chars
 
 ## 📊 Vector Search Analysis
 
 ### Search Configuration:
 - **Vector Store**: primary
 - **Search Strategy**: intelligent_strategy_with_filters
-- **Documents Retrieved**: 4
-- **Total Context**: 15,928 characters
+- **Documents Retrieved**: 3
+- **Total Context**: 6,041 characters
 
 ### Source Type Distribution:
-- **GitHub Repository Code**: 4 chunks (100%)
+- **GitHub Repository Code**: 3 chunks (100%)
 - **Module Documentation**: 0 chunks (0%)  
 - **Architecture Documentation**: 0 chunks (0%)
 - **API Specification**: 0 chunks (0%)
@@ -41,126 +41,295 @@
 ## 📋 Complete Chunk Analysis
 
 
-### Chunk 1/4
+### Chunk 1/3
 - **Source**: anatolyZader/vc-3
 - **Type**: github-file
-- **Size**: 3971 characters
-- **Score**: 0.610895157
+- **Size**: 936 characters
+- **Score**: 0.660369873
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-25T11:15:41.486Z
+- **Processed At**: 2025-10-18T13:07:30.362Z
 
 **Full Content**:
 ```
-**Tokens:** 454 | **Characters:** 2,206 | **Lines:** 50 (1-50)
-**Modifiers:** method
+'use strict';
 
-**Preview:** `// contextPipeline.js "use strict";  const logConfig = require('./logConfig'); const EventManager = ...`
+const fastifySession = require('@fastify/session');
+const { Store } = fastifySession;
 
-**Full Content:**
-```javascript
-// contextPipeline.js
-"use strict";
+class RedisStore extends Store {
+  constructor(sendCommand) {
+    super();
+    this.send = sendCommand;
+  }
 
-const logConfig = require('./logConfig');
-const EventManager = require('./eventManager');
-const PineconePlugin = require('./embedding/pineconePlugin');
-const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
-const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
-const CodePreprocessor = require('./processors/codePreprocessor');
-const ApiSpecProcessor = require('./processors/apiSpecProcessor');
-const DocsProcessor = require('./processors/docsProcessor');
-const GitHubOperations = require('./loading/githubOperations');
-const ASTCodeSplitter = require('./chunking/astCodeSplitter');
-const RepoProcessor = require('./processors/repoProcessor');
-const EmbeddingManager = require('./embedding/embeddingManager');
-const PineconeService = require('./embedding/pineconeService');
-const RepoWorkerManager = require('./loading/repoWorkerManager');
-const ChangeAnalyzer = require('./loading/changeAnalyzer');
-const ContextPipelineUtils = require('./contextPipelineUtils');
+  // get session data from Redis
+  // sid - session ID, sess - session object, ttlMs - time to live in milliseconds (for JavaScript/Node.js), cb - callback function
+  get(sid, cb) {
+    this.send(['GET', sid])
+      .then((data) => cb(null, data ? JSON.parse(data) : null))
+      .catch(cb);
+  }
 
-let traceable;
-try {
-  ({ traceable } = require('langsmith/traceable'));
-} catch (err) {
-  if (process.env.LANGSMITH_TRACING === 'true') {
-    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  // store session data in Redis
+  set(sid, sess, ttlMs, cb) {
+    const data = JSON.stringify(sess);
+    const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;
+    const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];
+    this.send(cmd).then(() => cb(null)).catch(cb);
+  }
+
+  destroy(sid, cb) {
+    this.send(['DEL', sid]).then(() => cb(null)).catch(cb);
   }
 }
 
-class ContextPipeline {
-  constructor(options = {}) {
-// Store options for lazy initialization
-    this.options = options;
-    this.embeddings = options.embeddings;
-    this.eventBus = options.eventBus;
-    this.pineconeLimiter = options.pineconeLimiter;
-    this.config = options.config || {};
+module.exports = RedisStore;
 
-// Initialize core components only
-    this.pineconeManager = new PineconePlugin();
-    this.githubOperations = new GitHubOperations();
-    this.changeAnalyzer = new ChangeAnalyzer();
-    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
-    this.workerManager = new RepoWorkerManager();
+```
 
-// Initialize document processing components
-    this.codePreprocessor = new CodePreprocessor({
-      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
-      preserveDocComments: this.options.preserveDocComments !== false,
-      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/redisStore.js",
+  "fileSize": 936,
+  "loaded_at": "2025-10-18T13:07:30.362Z",
+  "loading_method": "cloud_native_api",
+  "priority": 50,
+  "processedAt": "2025-10-18T13:07:30.362Z",
+  "repoId": "vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "43899208707444bea9bcddab2c8ca825325b004a",
+  "size": 936,
+  "source": "anatolyZader/vc-3",
+  "text": "'use strict';\n\nconst fastifySession = require('@fastify/session');\nconst { Store } = fastifySession;\n\nclass RedisStore extends Store {\n  constructor(sendCommand) {\n    super();\n    this.send = sendCommand;\n  }\n\n  // get session data from Redis\n  // sid - session ID, sess - session object, ttlMs - time to live in milliseconds (for JavaScript/Node.js), cb - callback function\n  get(sid, cb) {\n    this.send(['GET', sid])\n      .then((data) => cb(null, data ? JSON.parse(data) : null))\n      .catch(cb);\n  }\n\n  // store session data in Redis\n  set(sid, sess, ttlMs, cb) {\n    const data = JSON.stringify(sess);\n    const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;\n    const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];\n    this.send(cmd).then(() => cb(null)).catch(cb);\n  }\n\n  destroy(sid, cb) {\n    this.send(['DEL', sid]).then(() => cb(null)).catch(cb);\n  }\n}\n\nmodule.exports = RedisStore;\n",
+  "type": "github-file",
+  "userId": "anatolyzader",
+  "workerId": 1,
+  "score": 0.660369873,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_964_1760792870758"
+}
 ```
 
 ---
 
-### Chunk 2: unknown (line_based_fallback)
+### Chunk 2/3
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 1112 characters
+- **Score**: 0.527198792
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-25T10:43:36.465Z
 
-**Type:** unknown | **Method Kind:** N/A | **Class:** N/A
-**Tokens:** 341 | **Characters:** 1,538 | **Lines:** 50 (51-100)
-**Modifiers:** method
+**Full Content**:
+```
+// redisPlugin
+'use strict'
 
-**Preview:** `      extractStructuralInfo: this.options.extractStructuralInfo !== false     });      this.astCodeS...`
+const fp = require('fastify-plugin')
+const fastifyRedis = require('@fastify/redis')
 
-**Full Content:**
-```javascript
-      extractStructuralInfo: this.options.extractStructuralInfo !== false
-    });
+async function redisPlugin (fastify, opts) {
 
-    this.astCodeSplitter = new ASTCodeSplitter({
-      maxChunkSize: this.options.maxChunkSize || 2000,
-      includeComments: false,
-      includeImports: false
-    });
+  fastify.log.debug('Registering Redis client with REDIS_HOST: ', fastify.secrets.REDIS_HOST)
 
-    this.semanticPreprocessor = new SemanticPreprocessor();
+  const redisOpts = {
+    host: fastify.secrets.REDIS_HOST,
+    port: fastify.secrets.REDIS_PORT,
+    connectionTimeout: opts.connectionTimeout ?? 1000, // how long (in milliseconds) the client will wait when trying to establish a connection before giving up.
+    lazyConnect: true, //If true, the Redis client will not connect automatically on instantiation. Instead, you must explicitly call .connect() to initiate the connection.
+    timeout: 1000 // Sets the socket timeout for network operations (in milliseconds). If any Redis operation takes longer than this, it will fail with a timeout error.
+  }
 
-    this.apiSpecProcessor = new ApiSpecProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter
-    });
+  fastify.log.info({ redisOpts }, 'About to register @fastify/redis');
 
-    this.docsProcessor = new DocsProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repoPreparation: this.githubOperations,
-      pineconeManager: this.pineconeManager
-    });
+  await fastify.register(fastifyRedis, redisOpts)
+  // afterwards: fastify.redis.get(...), fastify.redis.set(...)
+}
 
-// Initialize EmbeddingManager with PineconeService dependency
-    const pineconeService = new PineconeService({
-      pineconePlugin: this.pineconeManager,
-      rateLimiter: this.pineconeLimiter
-    });
+module.exports = fp(redisPlugin, {
+  name: 'redis-client'
+})
 
-    this.embeddingManager = new EmbeddingManager({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      pineconeService: pineconeService
-    });
+```
 
-// Initialize repoProcessor with pure processing dependencies only
-    this.repoProcessor = new RepoProcessor({
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/redisPlugin.js",
+  "fileSize": 1112,
+  "loaded_at": "2025-10-25T10:43:36.465Z",
+  "loading_method": "cloud_native_api",
+  "priority": 100,
+  "processedAt": "2025-10-25T10:43:36.465Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "f4fada1cf64a230b3479ca89331e309163a6e132",
+  "size": 1112,
+  "source": "anatolyZader/vc-3",
+  "text": "// redisPlugin\n'use strict'\n\nconst fp = require('fastify-plugin')\nconst fastifyRedis = require('@fastify/redis')\n\nasync function redisPlugin (fastify, opts) {\n\n  fastify.log.debug('Registering Redis client with REDIS_HOST: ', fastify.secrets.REDIS_HOST)\n\n  const redisOpts = {\n    host: fastify.secrets.REDIS_HOST,\n    port: fastify.secrets.REDIS_PORT,\n    connectionTimeout: opts.connectionTimeout ?? 1000, // how long (in milliseconds) the client will wait when trying to establish a connection before giving up.\n    lazyConnect: true, //If true, the Redis client will not connect automatically on instantiation. Instead, you must explicitly call .connect() to initiate the connection.\n    timeout: 1000 // Sets the socket timeout for network operations (in milliseconds). If any Redis operation takes longer than this, it will fail with a timeout error.\n  }\n\n  fastify.log.info({ redisOpts }, 'About to register @fastify/redis');\n\n  await fastify.register(fastifyRedis, redisOpts)\n  // afterwards: fastify.redis.get(...), fastify.redis.set(...)\n}\n\nmodule.exports = fp(redisPlugin, {\n  name: 'redis-client'\n})\n",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.527198792,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3243_1761389106810"
+}
+```
+
+---
+
+### Chunk 3/3
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 3993 characters
+- **Score**: 0.467952728
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-24T12:21:47.069Z
+
+**Full Content**:
+```
+} catch (err) {
+      fastify.log.error({ err }, '❌ Redis PING failed');
+    }
+  }
+
+  if (!BUILDING_API_SPEC) {
+    await fastify.register(
+      fastifyCookie,
+      {
+        secret: fastify.secrets.COOKIE_SECRET,
+        parseOptions: { 
+          secure: true, // Only send cookies over HTTPS.
+          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.
+          sameSite: 'None' }, // Allows cross-site cookies (e.g., for third-party integrations). Must be used with secure: true (required by modern browsers).
+      },
+      { encapsulate: false }
+    );
+  }
+
+  if (!BUILDING_API_SPEC) {
+    await fastify.register(fastifySession, {
+    secret: fastify.secrets.SESSION_SECRET,
+    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
+    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)), // where session data is stored.
+    saveUninitialized: false, // Do not create session until something stored in session.
+  });
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // HEALTH ROUTE
+  // ────────────────────────────────────────────────────────────────
+  fastify.get('/', {
+    schema: {
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' }
+          },
+          required: ['status', 'timestamp'],
+          additionalProperties: false
+        }
+      }
+    }
+  }, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  // Dedicateddd health check endpoint
+  fastify.get('/health', {
+    schema: {
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' },
+            version: { type: 'string' }
+          },
+          required: ['status', 'timestamp'],
+          additionalProperties: false
+        }
+      }
+    }
+  }, async () => ({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0'
+  }));
+
+  // ────────────────────────────────────────────────────────────────
+  // AUTOLOAD MODULES
+  // ────────────────────────────────────────────────────────────────
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'aop_modules'),
+    encapsulate: false,
+    maxDepth: 1,
+    dirNameRoutePrefix: false,
+    prefix: '/api',
+    options: { ...opts},
+  });
+
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'business_modules'),
+    encapsulate: true,
+    maxDepth: 1,
+    dirNameRoutePrefix: false,
+    prefix: '/api',
+    options: { ...opts},
+  });
+
+  fastify.get('/api/debug/swagger-routes', async (request, reply) => {
+  try {
+    const spec = fastify.swagger();
+    return {
+      hasSwagger: typeof fastify.swagger === 'function',
+      specKeys: Object.keys(spec),
+      pathsCount: spec.paths ? Object.keys(spec.paths).length : 0,
+      paths: spec.paths ? Object.keys(spec.paths) : [],
+      info: spec.info || null,
+      openapi: spec.openapi || null
+    };
+  } catch (error) {
+    return {
+      error: error.message,
+      hasSwagger: typeof fastify.swagger === 'function'
+    };
+  }
+  });
+
+  // Debug route
+  fastify.route({
+    method: 'GET',
+    url: '/api/debug/clear-state-cookie',
+    handler: (req, reply) => {
+      reply.clearCookie('oauth2-redirect-state', { path: '/' });
+      reply.send({ message: 'cleared' });
+    },
+    schema: {
+      $id: 'schema:debug:clear-state-cookie',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            message: {
+              type: 'string',
+              description: 'Confirmation message that the state cookie was cleared.'
+            }
+          },
+          additionalProperties: false
+        }
+      }
+    }
+  });
+
+  // Debug route to clear auth cookies
 ```
 
 **Metadata**:
@@ -168,468 +337,26 @@ class ContextPipeline {
 {
   "branch": "main",
   "chunkIndex": 1,
-  "chunkTokens": 993,
-  "filePath": "backend/forced_method_analysis_contextPipeline.md",
-  "fileSize": 43115,
-  "loaded_at": "2025-10-25T11:15:41.486Z",
+  "chunkTokens": 999,
+  "filePath": "backend/processing_report_app.md",
+  "fileSize": 33397,
+  "loaded_at": "2025-10-24T12:21:47.069Z",
   "loading_method": "cloud_native_api",
-  "originalTokens": 9565,
+  "originalTokens": 7519,
   "priority": 50,
-  "processedAt": "2025-10-25T11:15:41.486Z",
+  "processedAt": "2025-10-24T12:21:47.069Z",
   "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "ac5739be3da9d14652c2bebf734462f562dd2ed1",
-  "size": 43115,
+  "sha": "af6d7713f03ea1a4aca3f5561ae100832080affc",
+  "size": 33397,
   "source": "anatolyZader/vc-3",
-  "text": "**Tokens:** 454 | **Characters:** 2,206 | **Lines:** 50 (1-50)\n**Modifiers:** method\n\n**Preview:** `// contextPipeline.js \"use strict\";  const logConfig = require('./logConfig'); const EventManager = ...`\n\n**Full Content:**\n```javascript\n// contextPipeline.js\n\"use strict\";\n\nconst logConfig = require('./logConfig');\nconst EventManager = require('./eventManager');\nconst PineconePlugin = require('./embedding/pineconePlugin');\nconst SemanticPreprocessor = require('./enhancers/semanticPreprocessor');\nconst UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');\nconst CodePreprocessor = require('./processors/codePreprocessor');\nconst ApiSpecProcessor = require('./processors/apiSpecProcessor');\nconst DocsProcessor = require('./processors/docsProcessor');\nconst GitHubOperations = require('./loading/githubOperations');\nconst ASTCodeSplitter = require('./chunking/astCodeSplitter');\nconst RepoProcessor = require('./processors/repoProcessor');\nconst EmbeddingManager = require('./embedding/embeddingManager');\nconst PineconeService = require('./embedding/pineconeService');\nconst RepoWorkerManager = require('./loading/repoWorkerManager');\nconst ChangeAnalyzer = require('./loading/changeAnalyzer');\nconst ContextPipelineUtils = require('./contextPipelineUtils');\n\nlet traceable;\ntry {\n  ({ traceable } = require('langsmith/traceable'));\n} catch (err) {\n  if (process.env.LANGSMITH_TRACING === 'true') {\n    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);\n  }\n}\n\nclass ContextPipeline {\n  constructor(options = {}) {\n// Store options for lazy initialization\n    this.options = options;\n    this.embeddings = options.embeddings;\n    this.eventBus = options.eventBus;\n    this.pineconeLimiter = options.pineconeLimiter;\n    this.config = options.config || {};\n\n// Initialize core components only\n    this.pineconeManager = new PineconePlugin();\n    this.githubOperations = new GitHubOperations();\n    this.changeAnalyzer = new ChangeAnalyzer();\n    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();\n    this.workerManager = new RepoWorkerManager();\n\n// Initialize document processing components\n    this.codePreprocessor = new CodePreprocessor({\n      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,\n      preserveDocComments: this.options.preserveDocComments !== false,\n      normalizeWhitespace: this.options.normalizeWhitespace !== false,\n```\n\n---\n\n### Chunk 2: unknown (line_based_fallback)\n\n**Type:** unknown | **Method Kind:** N/A | **Class:** N/A\n**Tokens:** 341 | **Characters:** 1,538 | **Lines:** 50 (51-100)\n**Modifiers:** method\n\n**Preview:** `      extractStructuralInfo: this.options.extractStructuralInfo !== false     });      this.astCodeS...`\n\n**Full Content:**\n```javascript\n      extractStructuralInfo: this.options.extractStructuralInfo !== false\n    });\n\n    this.astCodeSplitter = new ASTCodeSplitter({\n      maxChunkSize: this.options.maxChunkSize || 2000,\n      includeComments: false,\n      includeImports: false\n    });\n\n    this.semanticPreprocessor = new SemanticPreprocessor();\n\n    this.apiSpecProcessor = new ApiSpecProcessor({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter\n    });\n\n    this.docsProcessor = new DocsProcessor({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter,\n      repoPreparation: this.githubOperations,\n      pineconeManager: this.pineconeManager\n    });\n\n// Initialize EmbeddingManager with PineconeService dependency\n    const pineconeService = new PineconeService({\n      pineconePlugin: this.pineconeManager,\n      rateLimiter: this.pineconeLimiter\n    });\n\n    this.embeddingManager = new EmbeddingManager({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter,\n      pineconeService: pineconeService\n    });\n\n// Initialize repoProcessor with pure processing dependencies only\n    this.repoProcessor = new RepoProcessor({",
+  "text": "} catch (err) {\n      fastify.log.error({ err }, '❌ Redis PING failed');\n    }\n  }\n\n  if (!BUILDING_API_SPEC) {\n    await fastify.register(\n      fastifyCookie,\n      {\n        secret: fastify.secrets.COOKIE_SECRET,\n        parseOptions: { \n          secure: true, // Only send cookies over HTTPS.\n          httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.\n          sameSite: 'None' }, // Allows cross-site cookies (e.g., for third-party integrations). Must be used with secure: true (required by modern browsers).\n      },\n      { encapsulate: false }\n    );\n  }\n\n  if (!BUILDING_API_SPEC) {\n    await fastify.register(fastifySession, {\n    secret: fastify.secrets.SESSION_SECRET,\n    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },\n    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)), // where session data is stored.\n    saveUninitialized: false, // Do not create session until something stored in session.\n  });\n  }\n\n  // ────────────────────────────────────────────────────────────────\n  // HEALTH ROUTE\n  // ────────────────────────────────────────────────────────────────\n  fastify.get('/', {\n    schema: {\n      response: {\n        200: {\n          type: 'object',\n          properties: {\n            status: { type: 'string' },\n            timestamp: { type: 'string', format: 'date-time' }\n          },\n          required: ['status', 'timestamp'],\n          additionalProperties: false\n        }\n      }\n    }\n  }, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));\n\n  // Dedicateddd health check endpoint\n  fastify.get('/health', {\n    schema: {\n      response: {\n        200: {\n          type: 'object',\n          properties: {\n            status: { type: 'string' },\n            timestamp: { type: 'string', format: 'date-time' },\n            version: { type: 'string' }\n          },\n          required: ['status', 'timestamp'],\n          additionalProperties: false\n        }\n      }\n    }\n  }, async () => ({ \n    status: 'healthy', \n    timestamp: new Date().toISOString(),\n    version: process.env.npm_package_version || '1.0.0'\n  }));\n\n  // ────────────────────────────────────────────────────────────────\n  // AUTOLOAD MODULES\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'aop_modules'),\n    encapsulate: false,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: { ...opts},\n  });\n\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'business_modules'),\n    encapsulate: true,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: { ...opts},\n  });\n\n  fastify.get('/api/debug/swagger-routes', async (request, reply) => {\n  try {\n    const spec = fastify.swagger();\n    return {\n      hasSwagger: typeof fastify.swagger === 'function',\n      specKeys: Object.keys(spec),\n      pathsCount: spec.paths ? Object.keys(spec.paths).length : 0,\n      paths: spec.paths ? Object.keys(spec.paths) : [],\n      info: spec.info || null,\n      openapi: spec.openapi || null\n    };\n  } catch (error) {\n    return {\n      error: error.message,\n      hasSwagger: typeof fastify.swagger === 'function'\n    };\n  }\n  });\n\n  // Debug route\n  fastify.route({\n    method: 'GET',\n    url: '/api/debug/clear-state-cookie',\n    handler: (req, reply) => {\n      reply.clearCookie('oauth2-redirect-state', { path: '/' });\n      reply.send({ message: 'cleared' });\n    },\n    schema: {\n      $id: 'schema:debug:clear-state-cookie',\n      response: {\n        200: {\n          type: 'object',\n          properties: {\n            message: {\n              type: 'string',\n              description: 'Confirmation message that the state cookie was cleared.'\n            }\n          },\n          additionalProperties: false\n        }\n      }\n    }\n  });\n\n  // Debug route to clear auth cookies",
   "type": "github-file",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 2,
-  "score": 0.610895157,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_599_1761390979664"
-}
-```
-
----
-
-### Chunk 2/4
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 3974 characters
-- **Score**: 0.575746536
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-24T14:46:43.400Z
-
-**Full Content**:
-```
-omments
-- ✅ Removed console.log statements (preserved error/warn)
-- ✅ Normalized whitespace and encoding
-- ✅ Removed boilerplate and debugging code
-
-```javascript
-"use strict";
-
-
-let traceable;
-try {
-  ({ traceable } = require('langsmith/traceable'));
-} catch (err) {
-  if (process.env.LANGSMITH_TRACING === 'true') {
-    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
-  }
-}
-
-class ContextPipeline {
-  constructor(options = {}) {
-// Store options for lazy initialization
-    this.options = options;
-    this.embeddings = options.embeddings;
-    this.eventBus = options.eventBus;
-    this.pineconeLimiter = options.pineconeLimiter;
-    this.config = options.config || {};
-
-// Initialize core components only
-    this.pineconeManager = new PineconePlugin();
-    this.githubOperations = new GitHubOperations();
-    this.changeAnalyzer = new ChangeAnalyzer();
-    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
-    this.workerManager = new RepoWorkerManager();
-
-// Initialize document processing components
-    this.codePreprocessor = new CodePreprocessor({
-      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
-      preserveDocComments: this.options.preserveDocComments !== false,
-      normalizeWhitespace: this.options.normalizeWhitespace !== false,
-      extractStructuralInfo: this.options.extractStructuralInfo !== false
-    });
-
-    this.astCodeSplitter = new ASTCodeSplitter({
-      maxChunkSize: this.options.maxChunkSize || 2000,
-      includeComments: false,
-      includeImports: false
-    });
-
-    this.semanticPreprocessor = new SemanticPreprocessor();
-
-    this.apiSpecProcessor = new ApiSpecProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter
-    });
-
-    this.docsProcessor = new DocsProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repoPreparation: this.githubOperations,
-      pineconeManager: this.pineconeManager
-    });
-
-// Initialize EmbeddingManager with PineconeService dependency
-    const pineconeService = new PineconeService({
-      pineconePlugin: this.pineconeManager,
-      rateLimiter: this.pineconeLimiter
-    });
-
-    this.embeddingManager = new EmbeddingManager({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      pineconeService: pineconeService
-    });
-
-// Initialize repoProcessor with pure processing dependencies only
-    this.repoProcessor = new RepoProcessor({
-      astBasedSplitter: this.astCodeSplitter,
-      semanticPreprocessor: this.semanticPreprocessor,
-      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer
-    });
-
-// Initialize EventManager
-    this.eventManager = new EventManager({
-      eventBus: this.eventBus
-    });
-
-// Pinecone will be initialized inline when needed
-    this.pinecone = null;
-
-// Initialize tracing if enabled
-    this._initializeTracing();
-  }
-
-  _initializeTracing() {
-    this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
-
-    if (!this.enableTracing) {
-      return;
-    }
-
-// bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.
-    try {
-      this.processPushedRepo = traceable(
-        this.processPushedRepo.bind(this), //
-        {
-          name: 'ContextPipeline.processPushedRepo',
-          project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
-          metadata: { component: 'ContextPipeline' },
-          tags: ['rag', 'ingestion']
-        }
-      );
-
-      .toISOString()}] [TRACE] ContextPipeline tracing enabled.`);
-      .toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
-    } catch (err) {
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "chunkIndex": 9,
-  "chunkTokens": 994,
-  "filePath": "backend/contextPipeline_method_level_analysis.md",
-  "fileSize": 125660,
-  "loaded_at": "2025-10-24T14:46:43.400Z",
-  "loading_method": "cloud_native_api",
-  "originalTokens": 26649,
-  "priority": 50,
-  "processedAt": "2025-10-24T14:46:43.400Z",
-  "rechunked": true,
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
-  "size": 125660,
-  "source": "anatolyZader/vc-3",
-  "text": "omments\n- ✅ Removed console.log statements (preserved error/warn)\n- ✅ Normalized whitespace and encoding\n- ✅ Removed boilerplate and debugging code\n\n```javascript\n\"use strict\";\n\n\nlet traceable;\ntry {\n  ({ traceable } = require('langsmith/traceable'));\n} catch (err) {\n  if (process.env.LANGSMITH_TRACING === 'true') {\n    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);\n  }\n}\n\nclass ContextPipeline {\n  constructor(options = {}) {\n// Store options for lazy initialization\n    this.options = options;\n    this.embeddings = options.embeddings;\n    this.eventBus = options.eventBus;\n    this.pineconeLimiter = options.pineconeLimiter;\n    this.config = options.config || {};\n\n// Initialize core components only\n    this.pineconeManager = new PineconePlugin();\n    this.githubOperations = new GitHubOperations();\n    this.changeAnalyzer = new ChangeAnalyzer();\n    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();\n    this.workerManager = new RepoWorkerManager();\n\n// Initialize document processing components\n    this.codePreprocessor = new CodePreprocessor({\n      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,\n      preserveDocComments: this.options.preserveDocComments !== false,\n      normalizeWhitespace: this.options.normalizeWhitespace !== false,\n      extractStructuralInfo: this.options.extractStructuralInfo !== false\n    });\n\n    this.astCodeSplitter = new ASTCodeSplitter({\n      maxChunkSize: this.options.maxChunkSize || 2000,\n      includeComments: false,\n      includeImports: false\n    });\n\n    this.semanticPreprocessor = new SemanticPreprocessor();\n\n    this.apiSpecProcessor = new ApiSpecProcessor({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter\n    });\n\n    this.docsProcessor = new DocsProcessor({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter,\n      repoPreparation: this.githubOperations,\n      pineconeManager: this.pineconeManager\n    });\n\n// Initialize EmbeddingManager with PineconeService dependency\n    const pineconeService = new PineconeService({\n      pineconePlugin: this.pineconeManager,\n      rateLimiter: this.pineconeLimiter\n    });\n\n    this.embeddingManager = new EmbeddingManager({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter,\n      pineconeService: pineconeService\n    });\n\n// Initialize repoProcessor with pure processing dependencies only\n    this.repoProcessor = new RepoProcessor({\n      astBasedSplitter: this.astCodeSplitter,\n      semanticPreprocessor: this.semanticPreprocessor,\n      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer\n    });\n\n// Initialize EventManager\n    this.eventManager = new EventManager({\n      eventBus: this.eventBus\n    });\n\n// Pinecone will be initialized inline when needed\n    this.pinecone = null;\n\n// Initialize tracing if enabled\n    this._initializeTracing();\n  }\n\n  _initializeTracing() {\n    this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;\n\n    if (!this.enableTracing) {\n      return;\n    }\n\n// bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.\n    try {\n      this.processPushedRepo = traceable(\n        this.processPushedRepo.bind(this), //\n        {\n          name: 'ContextPipeline.processPushedRepo',\n          project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',\n          metadata: { component: 'ContextPipeline' },\n          tags: ['rag', 'ingestion']\n        }\n      );\n\n      .toISOString()}] [TRACE] ContextPipeline tracing enabled.`);\n      .toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);\n    } catch (err) {",
-  "type": "github-file",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.575746536,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3423_1761317259320"
-}
-```
-
----
-
-### Chunk 3/4
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 3992 characters
-- **Score**: 0.574621201
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-25T11:06:54.729Z
-
-**Full Content**:
-```
-# ContextPipeline.js - Complete Code Processing Analysis
-
-**File:** `./business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js`
-**Processed:** 2025-10-11T12:54:34.271Z
-**Analysis Type:** Method-Level AST Splitting with Aggressive Token Limits
-
-## 📋 Executive Summary
-
-This comprehensive analysis processes the ContextPipeline.js file through a complete RAG pipeline preprocessing workflow, demonstrating how the code is cleaned, enhanced, and intelligently split for optimal retrieval-augmented generation.
-
-## 📊 Processing Statistics
-
-| Metric | Value | Change |
-|--------|-------|--------|
-| **Original Size** | 32,983 chars | - |
-| **After Preprocessing** | 29,535 chars | -10.5% |
-| **After Enhancement** | 29,535 chars | 0.0% |
-| **Total Chunks** | 1 | **Final Output** |
-| **Average Chunk Size** | 29,535 chars | Optimal for RAG |
-
-### 🏷️ Chunk Type Distribution
-
-- **unknown**: 1 chunks (100.0%)
-
-## 🔄 Complete Pipeline Processing
-
-### 📄 Step 0: Original Source Code
-
-**Size:** 32,983 characters
-
-```javascript
-// contextPipeline.js
-"use strict";
-
-const logConfig = require('./logConfig');
-const EventManager = require('./eventManager');
-const PineconePlugin = require('./embedding/pineconePlugin');
-const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
-const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
-const CodePreprocessor = require('./processors/codePreprocessor');
-const ApiSpecProcessor = require('./processors/apiSpecProcessor');
-const DocsProcessor = require('./processors/docsProcessor');
-const GitHubOperations = require('./loading/githubOperations');
-const ASTCodeSplitter = require('./chunking/astCodeSplitter');
-const RepoProcessor = require('./processors/repoProcessor');
-const EmbeddingManager = require('./embedding/embeddingManager');
-const PineconeService = require('./embedding/pineconeService');
-const RepoWorkerManager = require('./loading/repoWorkerManager');
-const ChangeAnalyzer = require('./loading/changeAnalyzer');
-const ContextPipelineUtils = require('./contextPipelineUtils');
-
-let traceable;
-try {
-  ({ traceable } = require('langsmith/traceable'));
-} catch (err) {
-  if (process.env.LANGSMITH_TRACING === 'true') {
-    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
-  }
-}
-
-class ContextPipeline {
-  constructor(options = {}) {
-    // Store options for lazy initialization
-    this.options = options;
-    this.embeddings = options.embeddings;
-    this.eventBus = options.eventBus;
-    this.pineconeLimiter = options.pineconeLimiter;
-    this.config = options.config || {};
-    
-    // Initialize core components only
-    this.pineconeManager = new PineconePlugin();
-    this.githubOperations = new GitHubOperations();
-    this.changeAnalyzer = new ChangeAnalyzer();
-    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
-    this.workerManager = new RepoWorkerManager();
-    
-    // Initialize document processing components
-    this.codePreprocessor = new CodePreprocessor({
-      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
-      preserveDocComments: this.options.preserveDocComments !== false,
-      normalizeWhitespace: this.options.normalizeWhitespace !== false,
-      extractStructuralInfo: this.options.extractStructuralInfo !== false
-    });
-    
-    this.astCodeSplitter = new ASTCodeSplitter({
-      maxChunkSize: this.options.maxChunkSize || 2000,
-      includeComments: false,
-      includeImports: false
-    });
-    
-    this.semanticPreprocessor = new SemanticPreprocessor();
-    
-    this.apiSpecProcessor = new ApiSpecProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter
-    });
-    
-    this.docsProcessor = new DocsProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repoPreparation: this.githubOperations,
-      pineconeManager: this.pineconeManager
-    });
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "chunkIndex": 0,
-  "chunkTokens": 998,
-  "filePath": "backend/contextPipeline_method_level_analysis.md",
-  "fileSize": 125660,
-  "loaded_at": "2025-10-25T11:06:54.729Z",
-  "loading_method": "cloud_native_api",
-  "originalTokens": 26649,
-  "priority": 50,
-  "processedAt": "2025-10-25T11:06:54.729Z",
-  "rechunked": true,
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
-  "size": 125660,
-  "source": "anatolyZader/vc-3",
-  "text": "# ContextPipeline.js - Complete Code Processing Analysis\n\n**File:** `./business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js`\n**Processed:** 2025-10-11T12:54:34.271Z\n**Analysis Type:** Method-Level AST Splitting with Aggressive Token Limits\n\n## 📋 Executive Summary\n\nThis comprehensive analysis processes the ContextPipeline.js file through a complete RAG pipeline preprocessing workflow, demonstrating how the code is cleaned, enhanced, and intelligently split for optimal retrieval-augmented generation.\n\n## 📊 Processing Statistics\n\n| Metric | Value | Change |\n|--------|-------|--------|\n| **Original Size** | 32,983 chars | - |\n| **After Preprocessing** | 29,535 chars | -10.5% |\n| **After Enhancement** | 29,535 chars | 0.0% |\n| **Total Chunks** | 1 | **Final Output** |\n| **Average Chunk Size** | 29,535 chars | Optimal for RAG |\n\n### 🏷️ Chunk Type Distribution\n\n- **unknown**: 1 chunks (100.0%)\n\n## 🔄 Complete Pipeline Processing\n\n### 📄 Step 0: Original Source Code\n\n**Size:** 32,983 characters\n\n```javascript\n// contextPipeline.js\n\"use strict\";\n\nconst logConfig = require('./logConfig');\nconst EventManager = require('./eventManager');\nconst PineconePlugin = require('./embedding/pineconePlugin');\nconst SemanticPreprocessor = require('./enhancers/semanticPreprocessor');\nconst UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');\nconst CodePreprocessor = require('./processors/codePreprocessor');\nconst ApiSpecProcessor = require('./processors/apiSpecProcessor');\nconst DocsProcessor = require('./processors/docsProcessor');\nconst GitHubOperations = require('./loading/githubOperations');\nconst ASTCodeSplitter = require('./chunking/astCodeSplitter');\nconst RepoProcessor = require('./processors/repoProcessor');\nconst EmbeddingManager = require('./embedding/embeddingManager');\nconst PineconeService = require('./embedding/pineconeService');\nconst RepoWorkerManager = require('./loading/repoWorkerManager');\nconst ChangeAnalyzer = require('./loading/changeAnalyzer');\nconst ContextPipelineUtils = require('./contextPipelineUtils');\n\nlet traceable;\ntry {\n  ({ traceable } = require('langsmith/traceable'));\n} catch (err) {\n  if (process.env.LANGSMITH_TRACING === 'true') {\n    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);\n  }\n}\n\nclass ContextPipeline {\n  constructor(options = {}) {\n    // Store options for lazy initialization\n    this.options = options;\n    this.embeddings = options.embeddings;\n    this.eventBus = options.eventBus;\n    this.pineconeLimiter = options.pineconeLimiter;\n    this.config = options.config || {};\n    \n    // Initialize core components only\n    this.pineconeManager = new PineconePlugin();\n    this.githubOperations = new GitHubOperations();\n    this.changeAnalyzer = new ChangeAnalyzer();\n    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();\n    this.workerManager = new RepoWorkerManager();\n    \n    // Initialize document processing components\n    this.codePreprocessor = new CodePreprocessor({\n      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,\n      preserveDocComments: this.options.preserveDocComments !== false,\n      normalizeWhitespace: this.options.normalizeWhitespace !== false,\n      extractStructuralInfo: this.options.extractStructuralInfo !== false\n    });\n    \n    this.astCodeSplitter = new ASTCodeSplitter({\n      maxChunkSize: this.options.maxChunkSize || 2000,\n      includeComments: false,\n      includeImports: false\n    });\n    \n    this.semanticPreprocessor = new SemanticPreprocessor();\n    \n    this.apiSpecProcessor = new ApiSpecProcessor({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter\n    });\n    \n    this.docsProcessor = new DocsProcessor({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter,\n      repoPreparation: this.githubOperations,\n      pineconeManager: this.pineconeManager\n    });",
-  "type": "github-file",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.574621201,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_232_1761390472215"
-}
-```
-
----
-
-### Chunk 4/4
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 3991 characters
-- **Score**: 0.573728561
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-25T10:44:07.261Z
-
-**Full Content**:
-```
-// contextPipeline.js
-"use strict";
-
-const logConfig = require('./logConfig');
-const EventManager = require('./eventManager');
-const PineconePlugin = require('./embedding/pineconePlugin');
-const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
-const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
-const CodePreprocessor = require('./processors/codePreprocessor');
-const TextPreprocessor = require('./processors/textPreprocessor');
-const ApiSpecProcessor = require('./processors/apiSpecProcessor');
-const DocsProcessor = require('./processors/docsProcessor');
-const GitHubOperations = require('./loading/githubOperations');
-const ASTCodeSplitter = require('./chunking/astCodeSplitterBackup');
-const RepoProcessor = require('./processors/repoProcessor');
-const EmbeddingManager = require('./embedding/embeddingManager');
-const PineconeService = require('./embedding/pineconeService');
-const RepoWorkerManager = require('./loading/repoWorkerManager');
-const ChangeAnalyzer = require('./loading/changeAnalyzer');
-const ContextPipelineUtils = require('./contextPipelineUtils');
-
-let traceable;
-try {
-  ({ traceable } = require('langsmith/traceable'));
-} catch (err) {
-  if (process.env.LANGSMITH_TRACING === 'true') {
-    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
-  }
-}
-
-class ContextPipeline {
-  constructor(options = {}) {
-    // Store options for lazy initialization
-    this.options = options;
-    this.embeddings = options.embeddings;
-    this.eventBus = options.eventBus;
-    this.pineconeLimiter = options.pineconeLimiter;
-    this.config = options.config || {};
-    
-    // Initialize core components only
-    this.pineconeManager = new PineconePlugin();
-    this.githubOperations = new GitHubOperations();
-    this.changeAnalyzer = new ChangeAnalyzer();
-    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
-    this.workerManager = new RepoWorkerManager();
-    
-    // Initialize document processing components
-    this.codePreprocessor = new CodePreprocessor({
-      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
-      preserveDocComments: this.options.preserveDocComments !== false,
-      normalizeWhitespace: this.options.normalizeWhitespace !== false,
-      extractStructuralInfo: this.options.extractStructuralInfo !== false
-    });
-    
-    this.astCodeSplitter = new ASTCodeSplitter({
-      maxTokens: this.options.maxTokens || 500,        // Token-based chunking
-      minTokens: this.options.minTokens || 30,         // Minimum meaningful tokens  
-      overlapTokens: this.options.overlapTokens || 50, // Token overlap
-      enableLineFallback: true,                        // Enable fallback for large files
-      maxUnitsPerChunk: 1,                            // One semantic unit per chunk for granularity
-      charsPerToken: 4                                // Characters per token estimate
-    });
-    
-    this.semanticPreprocessor = new SemanticPreprocessor();
-    this.textPreprocessor = new TextPreprocessor();
-    
-    this.apiSpecProcessor = new ApiSpecProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter
-    });
-    
-    this.docsProcessor = new DocsProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repoPreparation: this.githubOperations,
-      pineconeManager: this.pineconeManager
-    });
-    
-    // Initialize EmbeddingManager with PineconeService dependency
-    const pineconeService = new PineconeService({
-      pineconePlugin: this.pineconeManager,
-      rateLimiter: this.pineconeLimiter
-    });
-    
-    this.embeddingManager = new EmbeddingManager({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      pineconeService: pineconeService
-    });
-    
-    // Initialize repoProcessor with pure processing dependencies only
-    this.repoProcessor = new RepoProcessor({
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "chunkIndex": 0,
-  "chunkTokens": 998,
-  "filePath": "backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js",
-  "fileSize": 34282,
-  "loaded_at": "2025-10-25T10:44:07.261Z",
-  "loading_method": "cloud_native_api",
-  "originalTokens": 7233,
-  "priority": 50,
-  "processedAt": "2025-10-25T10:44:07.261Z",
-  "rechunked": true,
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "245042492ca24eefe0c195210d2ef3dc2e779194",
-  "size": 34282,
-  "source": "anatolyZader/vc-3",
-  "text": "// contextPipeline.js\n\"use strict\";\n\nconst logConfig = require('./logConfig');\nconst EventManager = require('./eventManager');\nconst PineconePlugin = require('./embedding/pineconePlugin');\nconst SemanticPreprocessor = require('./enhancers/semanticPreprocessor');\nconst UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');\nconst CodePreprocessor = require('./processors/codePreprocessor');\nconst TextPreprocessor = require('./processors/textPreprocessor');\nconst ApiSpecProcessor = require('./processors/apiSpecProcessor');\nconst DocsProcessor = require('./processors/docsProcessor');\nconst GitHubOperations = require('./loading/githubOperations');\nconst ASTCodeSplitter = require('./chunking/astCodeSplitterBackup');\nconst RepoProcessor = require('./processors/repoProcessor');\nconst EmbeddingManager = require('./embedding/embeddingManager');\nconst PineconeService = require('./embedding/pineconeService');\nconst RepoWorkerManager = require('./loading/repoWorkerManager');\nconst ChangeAnalyzer = require('./loading/changeAnalyzer');\nconst ContextPipelineUtils = require('./contextPipelineUtils');\n\nlet traceable;\ntry {\n  ({ traceable } = require('langsmith/traceable'));\n} catch (err) {\n  if (process.env.LANGSMITH_TRACING === 'true') {\n    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);\n  }\n}\n\nclass ContextPipeline {\n  constructor(options = {}) {\n    // Store options for lazy initialization\n    this.options = options;\n    this.embeddings = options.embeddings;\n    this.eventBus = options.eventBus;\n    this.pineconeLimiter = options.pineconeLimiter;\n    this.config = options.config || {};\n    \n    // Initialize core components only\n    this.pineconeManager = new PineconePlugin();\n    this.githubOperations = new GitHubOperations();\n    this.changeAnalyzer = new ChangeAnalyzer();\n    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();\n    this.workerManager = new RepoWorkerManager();\n    \n    // Initialize document processing components\n    this.codePreprocessor = new CodePreprocessor({\n      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,\n      preserveDocComments: this.options.preserveDocComments !== false,\n      normalizeWhitespace: this.options.normalizeWhitespace !== false,\n      extractStructuralInfo: this.options.extractStructuralInfo !== false\n    });\n    \n    this.astCodeSplitter = new ASTCodeSplitter({\n      maxTokens: this.options.maxTokens || 500,        // Token-based chunking\n      minTokens: this.options.minTokens || 30,         // Minimum meaningful tokens  \n      overlapTokens: this.options.overlapTokens || 50, // Token overlap\n      enableLineFallback: true,                        // Enable fallback for large files\n      maxUnitsPerChunk: 1,                            // One semantic unit per chunk for granularity\n      charsPerToken: 4                                // Characters per token estimate\n    });\n    \n    this.semanticPreprocessor = new SemanticPreprocessor();\n    this.textPreprocessor = new TextPreprocessor();\n    \n    this.apiSpecProcessor = new ApiSpecProcessor({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter\n    });\n    \n    this.docsProcessor = new DocsProcessor({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter,\n      repoPreparation: this.githubOperations,\n      pineconeManager: this.pineconeManager\n    });\n    \n    // Initialize EmbeddingManager with PineconeService dependency\n    const pineconeService = new PineconeService({\n      pineconePlugin: this.pineconeManager,\n      rateLimiter: this.pineconeLimiter\n    });\n    \n    this.embeddingManager = new EmbeddingManager({\n      embeddings: this.embeddings,\n      pineconeLimiter: this.pineconeLimiter,\n      pineconeService: pineconeService\n    });\n    \n    // Initialize repoProcessor with pure processing dependencies only\n    this.repoProcessor = new RepoProcessor({",
-  "type": "github-file",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 0,
-  "score": 0.573728561,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1690_1761389106809"
+  "score": 0.467952728,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_761_1761308530712"
 }
 ```
 
@@ -640,35 +367,102 @@ class ContextPipeline {
 
 ### Generated Response:
 **Status**: ✅ Generated Successfully
-**Response Length**: 1617 characters
-**Generated At**: 2025-10-25T11:21:12.518Z
+**Response Length**: 3302 characters
+**Generated At**: 2025-10-25T13:49:49.512Z
 
 ### Response Content:
 ```markdown
-Based on the actual code provided in the `contextPipeline.js` file, here's how it works:
+Certainly! `redisStore.js` is a file that likely contains the implementation of a Redis-based session store for a web application. Redis is an open-source, in-memory data structure store that is often used as a database, cache, and message broker.
 
-1. The file starts by importing various modules and classes that are used throughout the `ContextPipeline` class, such as `logConfig`, `EventManager`, `PineconePlugin`, `SemanticPreprocessor`, `UbiquitousLanguageEnhancer`, and several other processors and managers.
+In the context of web applications, session management is an important aspect, as it allows the server to keep track of user sessions and maintain state across multiple requests. A session store is a component that is responsible for storing and retrieving session data.
 
-2. The `ContextPipeline` class is defined, which serves as the main entry point for the context processing pipeline. The constructor initializes the class with various options, including `embeddings`, `eventBus`, `pineconeLimiter`, and `config`.
+The `redisStore.js` file would typically contain the following:
 
-3. Inside the constructor, the class initializes several core components, such as `PineconePlugin`, `GitHubOperations`, `ChangeAnalyzer`, `UbiquitousLanguageEnhancer`, and `RepoWorkerManager`.
+1. **Redis Client Configuration**: This section would set up the connection to the Redis server, including the host, port, and any other necessary configuration options.
 
-4. The constructor also initializes various document processing components, including `CodePreprocessor`, `TextPreprocessor`, `ApiSpecProcessor`, `DocsProcessor`, `RepoProcessor`, `EmbeddingManager`, and `PineconeService`.
+2. **Session Store Implementation**: This section would define a custom session store class that extends the functionality of the default session store provided by the web framework (e.g., Express.js, Node.js). The class would typically include methods for:
+   - Storing session data in Redis
+   - Retrieving session data from Redis
+   - Deleting session data from Redis
+   - Handling session expiration
 
-5. The `ContextPipeline` class likely contains methods that orchestrate the execution of these various processors and managers to handle the processing of code, API specifications, documentation, and other content related to the EventStorm.me application.
+3. **Middleware Integration**: This section would integrate the custom Redis-based session store with the web framework, typically by creating a middleware function that can be used in the application's middleware stack.
 
-Unfortunately, I don't see the specific implementation details of how the `contextPipeline.js` file works beyond the high-level overview provided in the code snippet. The context does not include the full implementation of the `ContextPipeline` class or the details of how the various processors and managers are used within the pipeline.
+Here's a high-level example of what the `redisStore.js` file might look like:
+
+```javascript
+const redis = require('redis');
+const session = require('express-session');
+
+// Redis client configuration
+const redisClient = redis.createClient({
+  host: 'localhost',
+  port: 6379
+});
+
+// Custom Redis-based session store
+class RedisStore extends session.Store {
+  constructor(options) {
+    super(options);
+    this.client = redisClient;
+  }
+
+  get(sid, callback) {
+    this.client.get(`sess:${sid}`, (err, data) => {
+      if (err) return callback(err);
+      if (!data) return callback();
+      try {
+        callback(null, JSON.parse(data));
+      } catch (err) {
+        callback(err);
+      }
+    });
+  }
+
+  set(sid, session, callback) {
+    this.client.set(`sess:${sid}`, JSON.stringify(session), (err) => {
+      if (err) return callback(err);
+      callback();
+    });
+  }
+
+  destroy(sid, callback) {
+    this.client.del(`sess:${sid}`, (err) => {
+      if (err) return callback(err);
+      callback();
+    });
+  }
+}
+
+// Middleware integration
+module.exports = (app) => {
+  app.use(session({
+    store: new RedisStore(),
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: true
+  }));
+};
+```
+
+In this example, the `redisStore.js` file sets up a Redis client, defines a custom `RedisStore` class that extends the `session.Store` class, and then exports a middleware function that integrates the Redis-based session store with the web application.
+
+The `RedisStore` class implements the necessary methods for storing, retrieving, and deleting session data in Redis. The middleware function then configures the Express.js session middleware to use the custom Redis-based session store.
+
+This approach allows the web application to leverage the speed and scalability of Redis for session management, rather than relying on the default session store (e.g., in-memory, file-based, or database-backed).
 ```
 
 ### Response Quality Assessment:
-- **Relevance to Query**: HIGH - Directly addresses query terms
-- **Use of Context**: MEDIUM - Implicit context usage
+- **Relevance to Query**: MEDIUM - Partially addresses query
+- **Use of Context**: LOW - Limited use of retrieved context
 - **Response Completeness**: GOOD - Structured with adequate detail
 
 ### Key Response Elements:
-- **Structured Lists**: 5 numbered points
-- **File References**: 2 specific files mentioned
-- **Technical Terms**: 7 technical concepts used
+- **Code Examples**: 1 code blocks included
+- **Structured Lists**: 3 numbered points
+- **Bullet Points**: 4 bullet items
+- **File References**: 7 specific files mentioned
+- **Technical Terms**: 11 technical concepts used
 
 ---
 
@@ -676,15 +470,15 @@ Unfortunately, I don't see the specific implementation details of how the `conte
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 8032ms
-- **Documents Retrieved**: 4
+- **Query Processing Time**: 8538ms
+- **Documents Retrieved**: 3
 - **Unique Sources**: 1
-- **Average Chunk Size**: 3982 characters
+- **Average Chunk Size**: 2014 characters
 
 ### Context Quality:
-- **Relevance Score**: HIGH (4 relevant chunks found)
+- **Relevance Score**: HIGH (3 relevant chunks found)
 - **Diversity Score**: LOW (1 unique sources)
-- **Completeness Score**: HIGH (15,928 total characters)
+- **Completeness Score**: HIGH (6,041 total characters)
 
 ### LangSmith Integration:
 - **Tracing Status**: ✅ Active
@@ -694,16 +488,16 @@ Unfortunately, I don't see the specific implementation details of how the `conte
 ## 🔍 Source Analysis
 
 ### Most Frequent Sources:
-- **anatolyZader/vc-3**: 4 chunks
+- **anatolyZader/vc-3**: 3 chunks
 
 ### Repository Coverage:
 - anatolyZader/vc-3
 
 ## 🎯 Query Classification & Analysis
 
-- **Query Type**: Informational/Explanatory
+- **Query Type**: General/Conversational
 - **Domain Focus**: General Application
-- **Technical Complexity**: High
+- **Technical Complexity**: Medium
 - **Expected Response Type**: Explanatory
 
 ## 🚀 Recommendations
@@ -722,7 +516,7 @@ This comprehensive LangSmith trace demonstrates good RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-10-25T11:21:12.518Z  
+**Generated**: 2025-10-25T13:49:49.512Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true

@@ -199,10 +199,12 @@
 
 .markdown-ul {
   list-style-type: disc;
+  list-style-position: inside;
 }
 
 .markdown-ol {
   list-style-type: decimal;
+  list-style-position: inside;
 }
 
 /* Link styling */
@@ -361,16 +363,20 @@
 .animated-content-wrapper ol {
   margin: 0.2em 0 !important;
   padding-left: 1.2em !important;
+  list-style-position: inside !important;
 }
 
 .animated-content-wrapper li {
   margin: 0.05em 0 !important; /* Even more compact list item spacing */
   line-height: 1.4 !important;
+  list-style-position: inside !important;
+  display: list-item !important;
 }
 
 .animated-content-wrapper ul li,
 .animated-content-wrapper ol li {
   margin: 0.05em 0 !important; /* Force compact spacing for all list items */
+  list-style-position: inside !important;
 }
 
 /* Override any default markdown list styling */
@@ -388,12 +394,15 @@
 .cs-message--incoming .cs-message__content .message-content.ai-message ol {
   margin: 0.2em 0 !important;
   padding-left: 1.2em !important;
+  list-style-position: inside !important;
 }
 
 .cs-message--incoming .cs-message__content .message-content.ai-message li {
   margin: 0.05em 0 !important;
   line-height: 1.4 !important;
   padding: 0 !important;
+  list-style-position: inside !important;
+  display: list-item !important;
 }
 
 .cs-message--incoming .cs-message__content .message-content.ai-message p {
@@ -414,12 +423,15 @@
 .cs-message--incoming .cs-message__content .animated-content-wrapper .markdown-transition ol {
   margin: 0.2em 0 !important;
   padding-left: 1.2em !important;
+  list-style-position: inside !important;
 }
 
 .cs-message--incoming .cs-message__content .animated-content-wrapper .markdown-transition li {
   margin: 0.05em 0 !important;
   line-height: 1.4 !important;
   padding: 0 !important;
+  list-style-position: inside !important;
+  display: list-item !important;
 }
 
 .cs-message--incoming .cs-message__content .animated-content-wrapper .markdown-transition p {

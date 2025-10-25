@@ -21,10 +21,26 @@ const SimpleMessageRenderer = ({ content, isUserMessage = false }) => {
         elements.push(...renderTextWithInlineCode(textBefore, elements.length));
       }
       
-      // Add code block
+      // Extract language and code
       const language = match[1] || 'text';
       const code = match[2].trim();
       
+      // Check if this should be inline instead of a block
+      const isSingleLine = !code.includes('\n');
+      const isInertLang = !match[1] || /^(text|txt|plain|plaintext)$/i.test(language);
+      
+      // Render short single-line inert-language blocks as inline code
+      if (isSingleLine && isInertLang && code.length <= 80) {
+        elements.push(
+          <code key={`inline-${elements.length}`} className="inline-code">
+            {code}
+          </code>
+        );
+        currentIndex = match.index + match[0].length;
+        continue;
+      }
+      
+      // Add full code block for everything else
       elements.push(
         <div key={`codeblock-${elements.length}`} className="code-block-container">
           <div className="code-block-header">

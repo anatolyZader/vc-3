@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Item Number Position Fix Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-case {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        /* Simulate the old problematic styling */
+        .old-style ol {
+            list-style-position: outside;
+            padding-left: 1.5em;
+        }
+        
+        .old-style li {
+            list-style-position: outside;
+            display: list-item;
+            margin: 0.05em 0;
+            line-height: 1.4;
+        }
+        
+        /* Simulate the new fixed styling */
+        .new-style ol {
+            list-style-position: inside;
+            padding-left: 1.2em;
+            margin: 0.2em 0;
+        }
+        
+        .new-style li {
+            list-style-position: inside;
+            display: list-item;
+            margin: 0.05em 0;
+            line-height: 1.4;
+        }
+        
+        .expected {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .problematic {
+            background: #ffe8e8;
+            border-left: 4px solid #f44336;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .explanation {
+            background: #f0f8ff;
+            border-left: 4px solid #2196f3;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>List Item Number Position Fix Test</h1>
+    
+    <div class="explanation">
+        <strong>Issue:</strong> List item numbers were appearing on separate lines above the text content instead of inline.<br>
+        <strong>Fix Applied:</strong> Changed <code>list-style-position</code> from <code>'outside'</code> to <code>'inside'</code> and adjusted padding.
+    </div>
+
+    <div class="test-case">
+        <h3>Old Style (Problematic)</h3>
+        <div class="old-style">
+            <ol>
+                <li>The <code>ContextPipeline</code> class is defined, which serves as the main entry point for the context processing pipeline. The constructor initializes the class with various options, including <code>embeddings</code>, <code>eventBus</code>, <code>pineconeLimiter</code>, and <code>config</code>.</li>
+                <li>Inside the constructor, the class initializes several core components, such as <code>PineconePlugin</code>, <code>GitHubOperations</code>, <code>ChangeAnalyzer</code>, <code>UbiquitousLanguageEnhancer</code>, and <code>RepoWorkerManager</code>.</li>
+                <li>The constructor also initializes various document processing components, including <code>CodePreprocessor</code>, <code>TextPreprocessor</code>, <code>ApiSpecProcessor</code>, <code>DocsProcessor</code>, <code>RepoProcessor</code>, <code>EmbeddingManager</code>, and <code>PineconeService</code>.</li>
+            </ol>
+        </div>
+        
+        <div class="problematic">
+            <strong>Problem:</strong> With <code>list-style-position: outside</code>, numbers may appear on separate lines, especially with inline code elements.
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>New Style (Fixed)</h3>
+        <div class="new-style">
+            <ol>
+                <li>The <code>ContextPipeline</code> class is defined, which serves as the main entry point for the context processing pipeline. The constructor initializes the class with various options, including <code>embeddings</code>, <code>eventBus</code>, <code>pineconeLimiter</code>, and <code>config</code>.</li>
+                <li>Inside the constructor, the class initializes several core components, such as <code>PineconePlugin</code>, <code>GitHubOperations</code>, <code>ChangeAnalyzer</code>, <code>UbiquitousLanguageEnhancer</code>, and <code>RepoWorkerManager</code>.</li>
+                <li>The constructor also initializes various document processing components, including <code>CodePreprocessor</code>, <code>TextPreprocessor</code>, <code>ApiSpecProcessor</code>, <code>DocsProcessor</code>, <code>RepoProcessor</code>, <code>EmbeddingManager</code>, and <code>PineconeService</code>.</li>
+            </ol>
+        </div>
+        
+        <div class="expected">
+            <strong>Expected:</strong> With <code>list-style-position: inside</code>, numbers appear inline with the text content, maintaining proper flow.
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>Mixed Content Test</h3>
+        <div class="new-style">
+            <ol>
+                <li>Simple text item without any special formatting.</li>
+                <li>Item with <code>inline code</code> that should not break the flow.</li>
+                <li>Item with multiple <code>code elements</code> like <code>ContextPipeline</code> and <code>config.json</code>.</li>
+                <li>Longer item with <code>const result = await fetchUserDataFromDatabase(userId, options)</code> that might get a copy button.</li>
+            </ol>
+        </div>
+        
+        <div class="expected">
+            <strong>Expected:</strong> All numbers should appear inline with their respective text content.
+        </div>
+    </div>
+
+    <script>
+        console.log('List numbering fix test loaded. Check the visual differences between old and new styles.');
+    </script>
+</body>
+</html>

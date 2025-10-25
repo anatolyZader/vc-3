@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inline Code Fix Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-case {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .expected {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .explanation {
+            background: #f0f8ff;
+            border-left: 4px solid #2196f3;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Inline Code Copy Button Logic - Test Cases</h1>
+    
+    <div class="explanation">
+        <strong>Fix Applied:</strong> Changed the copy button logic from:<br>
+        <code>codeText.length > 20 || codeText.includes(' ') || codeText.includes('.')</code><br>
+        <strong>To:</strong><br>
+        <code>codeText.length > 40 || (codeText.includes(' ') && codeText.length > 15) || codeText.includes('\n') || (codeText.includes('()') && codeText.length > 10)</code>
+    </div>
+
+    <div class="test-case">
+        <h3>Test Case 1: Simple Filenames (Should stay inline)</h3>
+        <p>The file <code>contextPipeline.js</code> contains the main logic.</p>
+        <p>Check the <code>ContextPipeline</code> class implementation.</p>
+        <p>Look at <code>app.js</code> and <code>index.html</code> files.</p>
+        
+        <div class="expected">
+            <strong>Expected:</strong> These should render as simple inline code without copy buttons, preserving text flow.
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>Test Case 2: Short Code Snippets (Should stay inline)</h3>
+        <p>Use <code>npm install</code> to install dependencies.</p>
+        <p>Run <code>git status</code> to check changes.</p>
+        <p>Call <code>getData()</code> function.</p>
+        
+        <div class="expected">
+            <strong>Expected:</strong> These should render as simple inline code without copy buttons.
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>Test Case 3: Longer Code (Should get copy buttons)</h3>
+        <p>Execute <code>const result = await fetchUserDataFromDatabase(userId, options)</code> to get user data.</p>
+        <p>Use <code>npm install --save-dev @types/node typescript eslint</code> for setup.</p>
+        
+        <div class="expected">
+            <strong>Expected:</strong> These should get copy buttons due to length > 40 characters or spaces + length > 15.
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>Test Case 4: Function Calls (Should get copy buttons)</h3>
+        <p>Call <code>longFunctionName()</code> to process data.</p>
+        <p>Use <code>calculateTotal(items, tax)</code> for computation.</p>
+        
+        <div class="expected">
+            <strong>Expected:</strong> These should get copy buttons due to () + length > 10.
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>Test Case 5: Multi-line Code (Should get copy buttons)</h3>
+        <p>Here's the code structure:</p>
+        <p><code>function test() {
+  return true;
+}</code></p>
+        
+        <div class="expected">
+            <strong>Expected:</strong> This should get a copy button due to containing newlines.
+        </div>
+    </div>
+
+    <div class="test-case">
+        <h3>Test Case 6: Mixed Content (Edge cases)</h3>
+        <p>The <code>config.json</code> file and <code>package.json</code> should be inline.</p>
+        <p>But <code>very.long.filename.with.many.dots.and.extensions.js</code> should get a copy button.</p>
+        <p>And <code>someFunction() { return value; }</code> should also get a copy button.</p>
+        
+        <div class="expected">
+            <strong>Expected:</strong> First two stay inline, last two get copy buttons.
+        </div>
+    </div>
+
+    <script>
+        console.log('Test page loaded. Inspect the rendered code elements to verify the fix.');
+        
+        // Log the new logic for reference
+        function testCopyButtonLogic(codeText) {
+            const shouldShowCopyButton = codeText.length > 40 || 
+                (codeText.includes(' ') && codeText.length > 15) || 
+                (codeText.includes('\n')) ||
+                (codeText.includes('()') && codeText.length > 10);
+            
+            console.log(`"${codeText}" -> Copy button: ${shouldShowCopyButton}`);
+            return shouldShowCopyButton;
+        }
+        
+        // Test the logic
+        console.log('=== Testing new copy button logic ===');
+        testCopyButtonLogic('contextPipeline.js');
+        testCopyButtonLogic('ContextPipeline');
+        testCopyButtonLogic('app.js');
+        testCopyButtonLogic('npm install');
+        testCopyButtonLogic('const result = await fetchUserDataFromDatabase(userId, options)');
+        testCopyButtonLogic('longFunctionName()');
+        testCopyButtonLogic('calculateTotal(items, tax)');
+        testCopyButtonLogic('very.long.filename.with.many.dots.and.extensions.js');
+        testCopyButtonLogic('function test() {\n  return true;\n}');
+    </script>
+</body>
+</html>

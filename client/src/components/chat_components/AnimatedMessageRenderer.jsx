@@ -17,14 +17,28 @@ import './avatarFix.css';
 // Convert short single-line fenced code blocks into inline code for better text flow
 function inlineShortFenced(md) {
   if (!md) return md;
-  const singleLineFence = /(?:\n{1,2}|^)\s*```(?:\w+)?\s*\n([^\n\r]+)\n\s*```(?:\n{1,2}|$)/g;
-  return md.replace(singleLineFence, (match, code) => {
-    const text = String(code).trim();
-    if (text.length <= 80 && !text.includes('```')) {
-      return ` \`${text}\` `;
+  // Match any fenced code block (supports indentation and CRLF)
+  const fencePattern = /```(\w+)?[^\S\r\n]*\r?\n([\s\S]*?)\r?\n[ \t]*```/g;
+  let replacements = 0;
+  const result = md.replace(fencePattern, (match, lang, body) => {
+    // If the fenced block contains exactly one non-empty line, inline it
+    const lines = String(body).split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length === 1) {
+      const text = lines[0].trim();
+      // Inline if no language or "inert" languages like text/txt/plain
+      const inertLang = !lang || /^(text|txt|plain|plaintext)$/i.test(lang);
+      if (inertLang && text.length <= 80 && !text.includes('```')) {
+        replacements++;
+        console.log(`[AnimatedMessageRenderer] inlineShortFenced: Converting \`\`\`${lang||''}\\n${text}\\n\`\`\` to inline`);
+        return ` \`${text}\` `;
+      }
     }
     return match;
   });
+  if (replacements > 0) {
+    console.log(`[AnimatedMessageRenderer] inlineShortFenced: Made ${replacements} replacements`);
+  }
+  return result;
 }
 
 // Safely convert ReactMarkdown code children to string
@@ -44,7 +58,12 @@ const AnimatedMessageRenderer = ({
   animationSpeed = 80 
 }) => {
   // All hooks must be called at the top level
-  const processedContent = useMemo(() => inlineShortFenced(content), [content]);
+  const processedContent = useMemo(() => {
+    console.log('[AnimatedMessageRenderer] Raw content received:', content.substring(0, 500));
+    const result = inlineShortFenced(content);
+    console.log('[AnimatedMessageRenderer] Processed content:', result.substring(0, 500));
+    return result;
+  }, [content]);
   const [done, setDone] = useState(false);
   const typewriterRef = useRef(null);
 
@@ -58,11 +77,14 @@ const AnimatedMessageRenderer = ({
             code({ node, inline, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : 'text';
-              const codeTextAll = codeChildrenToString(children);
-              // Treat very short single-line, language-less blocks as inline
+              // Normalize by trimming trailing whitespace (including \n)
+              const codeTextAll = codeChildrenToString(children).replace(/\s+$/, '');
               const isSingle = !codeTextAll.includes('\n');
-              if (!inline && isSingle && (!match || language === 'text') && codeTextAll.trim().length <= 80) {
-                return <code className="inline-code" {...props}>{children}</code>;
+              const isInertLang = !match || /^(text|txt|plain|plaintext)$/i.test(language);
+              
+              // Treat very short single-line blocks with inert language as inline
+              if (!inline && isSingle && isInertLang && codeTextAll.length <= 80) {
+                return <code className="inline-code" {...props}>{codeTextAll}</code>;
               }
 
               if (!inline) {
@@ -95,8 +117,13 @@ const AnimatedMessageRenderer = ({
                 );
               }
 
-              const codeText = codeTextAll;
-              const shouldShowCopyButton = codeText.length > 20 || codeText.includes(' ') || codeText.includes('.');
+              // codeTextAll already normalized above
+              // Only show copy button for longer code snippets or multi-word content that looks like actual code
+              // Exclude simple filenames, class names, and single identifiers to preserve text flow
+              const shouldShowCopyButton = codeText.length > 40 || 
+                (codeText.includes(' ') && codeText.length > 15) || 
+                (codeText.includes('\n')) ||
+                (codeText.includes('()') && codeText.length > 10);
               if (shouldShowCopyButton) {
                 return (
                   <span className="inline-code-with-copy">
@@ -165,9 +192,9 @@ const AnimatedMessageRenderer = ({
                   {...props} 
                   style={{ 
                     margin: '0.2em 0', 
-                    paddingLeft: '1.5em',
+                    paddingLeft: '1.2em',
                     listStyleType: 'disc',
-                    listStylePosition: 'outside',
+                    listStylePosition: 'inside',
                     display: 'block'
                   }}
                 >
@@ -179,8 +206,8 @@ const AnimatedMessageRenderer = ({
                   {...props} 
                   style={{ 
                     margin: '0.2em 0', 
-                    paddingLeft: '1.5em',
-                    listStylePosition: 'outside',
+                    paddingLeft: '1.2em',
+                    listStylePosition: 'inside',
                     display: 'block'
                   }}
                 >
@@ -195,7 +222,7 @@ const AnimatedMessageRenderer = ({
                     padding: 0,
                     lineHeight: '1.4',
                     display: 'list-item',
-                    listStylePosition: 'outside',
+                    listStylePosition: 'inside',
                     textAlign: 'left'
                   }}
                 >
@@ -205,6 +232,15 @@ const AnimatedMessageRenderer = ({
             code({ node, inline, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '');
               const language = match ? match[1] : 'text';
+              // Normalize by trimming trailing whitespace
+              const codeText = String(children).replace(/\s+$/, '');
+              const isSingle = !codeText.includes('\n');
+              const isInertLang = !match || /^(text|txt|plain|plaintext)$/i.test(language);
+              
+              // Force inline for short, single-line "text" blocks
+              if (!inline && isSingle && isInertLang && codeText.length <= 80) {
+                return <code className="inline-code" {...props}>{codeText}</code>;
+              }
               
               if (!inline) {
                 return (
@@ -213,7 +249,7 @@ const AnimatedMessageRenderer = ({
                       <span className="code-language">{language}</span>
                       <button 
                         className="copy-button"
-                        onClick={() => navigator.clipboard.writeText(String(children))}
+                        onClick={() => navigator.clipboard.writeText(codeText)}
                         title="Copy code"
                       >
                         📋
@@ -230,15 +266,19 @@ const AnimatedMessageRenderer = ({
                       }}
                       {...props}
                     >
-                      {String(children).replace(/\n$/, '')}
+                      {codeText.replace(/\n$/, '')}
                     </SyntaxHighlighter>
                   </div>
                 );
               }
               
-              // Handle inline code appropriately
-              const codeText = String(children);
-              const shouldShowCopyButton = codeText.length > 20 || codeText.includes(' ') || codeText.includes('.');
+              // codeText already normalized above
+              // Only show copy button for longer code snippets or multi-word content that looks like actual code
+              // Exclude simple filenames, class names, and single identifiers to preserve text flow
+              const shouldShowCopyButton = codeText.length > 40 || 
+                (codeText.includes(' ') && codeText.length > 15) || 
+                (codeText.includes('\n')) ||
+                (codeText.includes('()') && codeText.length > 10);
               
               if (shouldShowCopyButton) {
                 return (
@@ -326,6 +366,17 @@ const AnimatedMessageRenderer = ({
                   code({ node, inline, className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || '');
                     const language = match ? match[1] : 'text';
+                    // Normalize by trimming trailing whitespace
+                    const codeText = String(children).replace(/\s+$/, '');
+                    const isSingleLine = !codeText.includes('\n');
+                    const isInertLang = !match || /^(text|txt|plain|plaintext)$/i.test(language);
+                    
+                    // Treat very short single-line blocks with no/inert language as inline to preserve flow
+                    if (!inline && isSingleLine && isInertLang && codeText.length <= 80) {
+                      return (
+                        <code className="inline-code" {...props}>{codeText}</code>
+                      );
+                    }
                     
                     if (!inline) {
                       return (
@@ -334,7 +385,7 @@ const AnimatedMessageRenderer = ({
                             <span className="code-language">{language}</span>
                             <button 
                               className="copy-button"
-                              onClick={() => navigator.clipboard.writeText(String(children))}
+                              onClick={() => navigator.clipboard.writeText(codeText)}
                               title="Copy code"
                             >
                               📋
@@ -357,9 +408,13 @@ const AnimatedMessageRenderer = ({
                       );
                     }
                     
-                    // Handle inline code
-                    const codeText = String(children);
-                    const shouldShowCopyButton = codeText.length > 20 || codeText.includes(' ') || codeText.includes('.');
+                    // Handle inline code - codeText already defined above
+                    // Only show copy button for longer code snippets or multi-word content that looks like actual code
+                    // Exclude simple filenames, class names, and single identifiers to preserve text flow
+                    const shouldShowCopyButton = codeText.length > 40 || 
+                      (codeText.includes(' ') && codeText.length > 15) || 
+                      (codeText.includes('\n')) ||
+                      (codeText.includes('()') && codeText.length > 10);
                     
                     if (shouldShowCopyButton) {
                       return (

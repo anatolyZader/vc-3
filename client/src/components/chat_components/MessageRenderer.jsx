@@ -11,26 +11,42 @@ import './messageRenderer.css';
 // Convert short single-line fenced code blocks into inline code for better text flow
 function inlineShortFenced(md) {
   if (!md) return md;
-  const singleLineFence = /(?:\n{1,2}|^)\s*```(?:\w+)?\s*\n([^\n\r]+)\n\s*```(?:\n{1,2}|$)/g;
-  return md.replace(singleLineFence, (match, code) => {
-    const text = String(code).trim();
-    if (text.length <= 80 && !text.includes('```')) {
-      return ` \`${text}\` `;
+  // Match any fenced code block (supports indentation and CRLF)
+  const fencePattern = /```(\w+)?[^\S\r\n]*\r?\n([\s\S]*?)\r?\n[ \t]*```/g;
+  let replacements = 0;
+  const result = md.replace(fencePattern, (match, lang, body) => {
+    const lines = String(body).split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length === 1) {
+      const text = lines[0].trim();
+      // Inline if no language or "inert" languages like text/txt/plain
+      const inertLang = !lang || /^(text|txt|plain|plaintext)$/i.test(lang);
+      if (inertLang && text.length <= 80 && !text.includes('```')) {
+        replacements++;
+        console.log(`[MessageRenderer] inlineShortFenced: Converting \`\`\`${lang||''}\\n${text}\\n\`\`\` to inline`);
+        return ` \`${text}\` `;
+      }
     }
     return match;
   });
+  if (replacements > 0) {
+    console.log(`[MessageRenderer] inlineShortFenced: Made ${replacements} replacements`);
+  }
+  return result;
 }
 
 // Renderers for ReactMarkdown (defined outside to avoid unstable nested components)
 function CodeRenderer({ node, inline, className, children, ...props }) {
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : 'text';
-  // Treat very short single-line, language-less blocks as inline to preserve flow
-  const codeTextRaw = String(children);
-  const isSingleLine = !codeTextRaw.includes('\n');
-  if (!inline && isSingleLine && (!match || language === 'text') && codeTextRaw.trim().length <= 80) {
+  // Normalize by trimming trailing whitespace (including \n) to properly detect single-line blocks
+  const codeText = String(children).replace(/\s+$/, '');
+  const isSingleLine = !codeText.includes('\n');
+  const isInertLang = !match || /^(text|txt|plain|plaintext)$/i.test(language);
+  
+  // Treat very short single-line blocks with no/inert language as inline to preserve flow
+  if (!inline && isSingleLine && isInertLang && codeText.length <= 80) {
     return (
-      <code className="inline-code" {...props}>{children}</code>
+      <code className="inline-code" {...props}>{codeText}</code>
     );
   }
 
@@ -41,7 +57,7 @@ function CodeRenderer({ node, inline, className, children, ...props }) {
           <span className="code-language">{language}</span>
           <button 
             className="copy-button"
-            onClick={() => navigator.clipboard.writeText(String(children))}
+            onClick={() => navigator.clipboard.writeText(codeText)}
             title="Copy code"
           >
             📋
@@ -59,14 +75,20 @@ function CodeRenderer({ node, inline, className, children, ...props }) {
           }}
           {...props}
         >
-          {String(children).replace(/\n$/, '')}
+          {codeText.replace(/\n$/, '')}
         </SyntaxHighlighter>
       </div>
     );
   }
 
-  const codeText = String(children);
-  const shouldShowCopyButton = codeText.length > 20 || codeText.includes(' ') || codeText.includes('.');
+  // codeText already defined above - normalized
+  // Only show copy button for longer code snippets or multi-word content that looks like actual code
+  // Exclude simple filenames, class names, and single identifiers to preserve text flow
+  const shouldShowCopyButton = codeText.length > 40 || 
+    (codeText.includes(' ') && codeText.length > 15) || 
+    (codeText.includes('\n')) ||
+    (codeText.includes('()') && codeText.length > 10);
+    
   if (shouldShowCopyButton) {
     return (
       <span className="inline-code-with-copy">
