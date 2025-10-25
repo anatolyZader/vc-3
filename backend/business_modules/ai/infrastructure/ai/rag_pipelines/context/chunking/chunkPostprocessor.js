@@ -53,8 +53,17 @@ class ChunkPostprocessor {
     // 5. Enhance metadata for retrieval (sparse search terms separate)
     processedChunks = this.enhanceRetrievalMetadata(processedChunks);
 
-    // 6. Optional: Rerank with MMR if we have too many results
-    if (options.maxResults && processedChunks.length > options.maxResults) {
+    // 6. Optional: Apply production retrieval pipeline for better results
+    if (options.queryEmbedding && processedChunks.length > 10) {
+      const retrievalOptions = {
+        ...options,
+        queryType: this.detectQueryType(originalDocument?.pageContent || ''),
+        excludeCatalogs: true,
+        preferCode: !options.queryType || options.queryType !== 'documentation'
+      };
+      processedChunks = await this.processRetrievalResults(processedChunks, options.queryEmbedding, retrievalOptions);
+    } else if (options.maxResults && processedChunks.length > options.maxResults) {
+      // Fallback: simple rerank
       processedChunks = this.rerank(processedChunks, options.queryEmbedding, options.maxResults);
     }
 
@@ -539,27 +548,34 @@ class ChunkPostprocessor {
   /**
    * Production retrieval pipeline - implements your recommended flow
    * 1. Vector search with smaller topK (reduce downstream cost)
-   * 2. Exact dedup via robust hash
-   * 3. Optional near-duplicate detection for large K
+   * 2. Type-based filtering (prevent catalog dominance)
+   * 3. Exact dedup via robust hash
    * 4. MMR rerank with relevance vs diversity
    * 5. Soft diversity penalties instead of hard caps
    */
   async processRetrievalResults(results, queryEmbedding, options = {}) {
     const {
-      initialK = 50,        // Reduced from typical 100 to cut O(n²) operations
-      finalK = 20,          // Final results after reranking
-      lambda = 0.7,         // MMR balance: higher = more relevance, lower = more diversity
+      initialK = 20,        // FIXED: Reduced to 20 to prevent catalog contamination
+      finalK = 12,          // FIXED: Reduced final results for better precision
+      lambda = 0.6,         // FIXED: Lower lambda for more diversity vs pure relevance
       enableNearDedupe = false,  // Set true if scaling beyond K=50
-      diversityField = 'source'  // Field to use for soft diversity penalties
+      diversityField = 'source',  // Field to use for soft diversity penalties
+      excludeCatalogs = true,     // FIXED: Filter out JSON catalogs by default
+      preferCode = true,          // FIXED: Boost actual code files over documentation
+      queryType = 'general'      // FIXED: Allow query-specific tuning
     } = options;
 
     console.log(`[${new Date().toISOString()}] 🔍 RETRIEVAL: Processing ${results.length} results (production pipeline)`);
     const startTime = Date.now();
 
-    // Step 1: Early K reduction - already done by vector search
-    let processedResults = results.slice(0, initialK);
+    // Step 1: Content-type filtering (CRITICAL: prevent catalog dominance)
+    let processedResults = this.filterContentTypes(results, { excludeCatalogs, preferCode, queryType });
+    console.log(`[${new Date().toISOString()}] 🧹 CONTENT_FILTER: ${results.length} → ${processedResults.length} (catalogs filtered)`);
+
+    // Step 2: Early K reduction after filtering
+    processedResults = processedResults.slice(0, initialK);
     
-    // Step 2: Robust exact deduplication (fast path)
+    // Step 3: Robust exact deduplication (fast path)
     const seenHashes = new Set();
     processedResults = processedResults.filter(result => {
       const hash = this.robustHash.sha1Hash(result.pageContent || '');
@@ -572,16 +588,19 @@ class ChunkPostprocessor {
       return true;
     });
 
-    // Step 3: Optional near-duplicate detection for larger scales
+    // Step 4: Fix incomplete metadata (repo names showing undefined)
+    processedResults = this.fixIncompleteMetadata(processedResults);
+
+    // Step 5: Optional near-duplicate detection for larger scales
     if (enableNearDedupe && processedResults.length > 30) {
       // TODO: Implement LSH-based near-duplicate clustering if needed
       console.log(`[${new Date().toISOString()}] ⚠️  Near-dedupe recommended for ${processedResults.length} results but not implemented`);
     }
 
-    // Step 4: Apply soft diversity penalties
+    // Step 6: Apply soft diversity penalties
     processedResults = this.mmr.applyDiversityPenalties(processedResults, diversityField);
 
-    // Step 5: MMR reranking for relevance + diversity
+    // Step 7: MMR reranking for relevance + diversity
     const candidates = processedResults.map(result => ({
       ...result,
       relevance: result.score || result.metadata?.relevance_score || 0.5,
@@ -604,6 +623,172 @@ class ChunkPostprocessor {
         processed_at: new Date().toISOString()
       }
     }));
+  }
+
+  /**
+   * Detect query type for intelligent filtering
+   */
+  detectQueryType(query = '') {
+    const lower = query.toLowerCase();
+    
+    // Architecture/design questions
+    if (lower.includes('architecture') || lower.includes('design') || lower.includes('pattern') || 
+        lower.includes('communicate') || lower.includes('interact') || lower.includes('modular')) {
+      return 'architecture';
+    }
+    
+    // Code implementation questions
+    if (lower.includes('implementation') || lower.includes('code') || lower.includes('function') ||
+        lower.includes('method') || lower.includes('class') || lower.includes('how does') || 
+        lower.includes('show me')) {
+      return 'code';
+    }
+    
+    // Documentation questions
+    if (lower.includes('documentation') || lower.includes('docs') || lower.includes('readme') ||
+        lower.includes('explain') || lower.includes('what is')) {
+      return 'documentation';
+    }
+    
+    return 'general';
+  }
+
+  /**
+   * Filter content types to prevent catalog dominance
+   * CRITICAL: This addresses the 6/6 github-file JSON catalog issue
+   */
+  filterContentTypes(results, options = {}) {
+    const { excludeCatalogs = true, preferCode = true, queryType = 'general' } = options;
+    
+    let filtered = results;
+    
+    if (excludeCatalogs) {
+      // Filter out JSON catalogs (architecture.json, ul_dictionary.json, etc.)
+      const beforeCount = filtered.length;
+      filtered = filtered.filter(result => {
+        const content = result.pageContent || '';
+        const source = result.metadata?.source || '';
+        
+        // Exclude obvious JSON catalog files
+        if (source.includes('architecture.json') || 
+            source.includes('ul_dictionary.json') ||
+            source.includes('catalog.json') ||
+            source.includes('schema.json')) {
+          return false;
+        }
+        
+        // Exclude large JSON objects that are clearly catalogs
+        if (content.trim().startsWith('{') && content.includes('"$schema"') && content.length > 2000) {
+          return false;
+        }
+        
+        // Exclude content that's mostly JSON structure (catalogs)
+        const jsonStructureRatio = (content.match(/[{}\[\]:,]/g) || []).length / content.length;
+        if (jsonStructureRatio > 0.1 && content.includes('"description"') && content.includes('"attributes"')) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      const catalogsRemoved = beforeCount - filtered.length;
+      if (catalogsRemoved > 0) {
+        console.log(`[${new Date().toISOString()}] 🚫 CATALOG_FILTER: Removed ${catalogsRemoved} JSON catalogs`);
+      }
+    }
+    
+    if (preferCode && queryType !== 'documentation') {
+      // Boost actual code files over pure documentation
+      filtered = filtered.sort((a, b) => {
+        const aIsCode = this.isActualCode(a.pageContent, a.metadata);
+        const bIsCode = this.isActualCode(b.pageContent, b.metadata);
+        
+        if (aIsCode && !bIsCode) return -1; // a (code) comes first
+        if (!aIsCode && bIsCode) return 1;  // b (code) comes first
+        
+        // Both same type, keep original order
+        return 0;
+      });
+    }
+    
+    return filtered;
+  }
+  
+  /**
+   * Detect actual code vs documentation/catalogs
+   */
+  isActualCode(content, metadata = {}) {
+    // Check file extension
+    const source = metadata.source || '';
+    if (source.match(/\.(js|ts|jsx|tsx|py|java|cpp|c|go|rs|php)$/)) {
+      return true;
+    }
+    
+    // Check for code patterns
+    const codeIndicators = [
+      /function\s+\w+\s*\(/,
+      /class\s+\w+/,
+      /import\s+.*from/,
+      /require\(/,
+      /module\.exports/,
+      /export\s+(default\s+)?/,
+      /const\s+\w+\s*=/,
+      /let\s+\w+\s*=/,
+      /var\s+\w+\s*=/,
+      /if\s*\(/,
+      /for\s*\(/,
+      /while\s*\(/,
+      /async\s+function/,
+      /=>\s*{/
+    ];
+    
+    const codeMatches = codeIndicators.filter(pattern => pattern.test(content)).length;
+    
+    // If multiple code patterns found, likely actual code
+    return codeMatches >= 2;
+  }
+
+  /**
+   * Fix incomplete metadata (addresses undefined repo names)
+   */
+  fixIncompleteMetadata(results) {
+    return results.map(result => {
+      const metadata = result.metadata || {};
+      
+      // Fix missing repo owner/name from source path
+      if (metadata.source && !metadata.repoOwner && !metadata.repoName) {
+        const sourceMatch = metadata.source.match(/([^/]+)\/([^/]+)/);
+        if (sourceMatch) {
+          metadata.repoOwner = sourceMatch[1] || 'anatolyZader';
+          metadata.repoName = sourceMatch[2] || 'vc-3';
+        } else {
+          // Fallback for current repo
+          metadata.repoOwner = 'anatolyZader';
+          metadata.repoName = 'vc-3';
+        }
+      }
+      
+      // Fix missing repoId
+      if (!metadata.repoId && metadata.repoOwner && metadata.repoName) {
+        metadata.repoId = `${metadata.repoOwner}/${metadata.repoName}`;
+      }
+      
+      // Ensure type is properly set
+      if (!metadata.type) {
+        if (metadata.source?.includes('.json')) {
+          metadata.type = 'github-file-json';
+        } else if (this.isActualCode(result.pageContent, metadata)) {
+          metadata.type = 'github-file-code';
+        } else {
+          metadata.type = 'github-file';
+        }
+      }
+      
+      return {
+        ...result,
+        metadata
+      };
+    });
   }
 
   /**
