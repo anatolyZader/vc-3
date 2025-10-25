@@ -254,18 +254,14 @@ class PineconeService {
       
       this.logger.info(`Deleting ${ids.length} vectors`, { namespace });
       
-      // Use namespace method if namespace is provided, similar to query
-      const deleteTarget = namespace ? index.namespace(namespace) : index;
-      
-      // Pinecone SDK: deleteTarget.deleteMany(ids) or deleteTarget.delete({ ids })
-      if (typeof deleteTarget.deleteMany === 'function') {
-        await deleteTarget.deleteMany(ids);
-      } else if (typeof deleteTarget.delete === 'function') {
-        await deleteTarget.delete({ ids });
-      } else {
-        // Fallback: try direct delete on index with namespace parameter
-        await index.delete({ ids, namespace });
+      // Build delete options
+      const deleteOptions = { ids };
+      if (namespace) {
+        deleteOptions.namespace = namespace;
       }
+      
+      // Use the delete method with namespace as parameter
+      await index.delete(deleteOptions);
       
       this.logger.info(`Successfully deleted ${ids.length} vectors`);
       
