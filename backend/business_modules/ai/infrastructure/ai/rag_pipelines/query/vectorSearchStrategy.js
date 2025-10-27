@@ -17,10 +17,19 @@ class VectorSearchStrategy {
     
     if (mentionedFiles && mentionedFiles.length > 0) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Explicit File Request (${mentionedFiles.join(', ')})`);
+      console.log(`[${new Date().toISOString()}] 🔍 Building explicit filename filters for metadata matching`);
       
       // Calculate dynamic code results based on number of files mentioned
       // Allocate approximately 8-10 chunks per file, with a reasonable maximum
       const codeResultsForFiles = Math.min(30, Math.max(20, mentionedFiles.length * 8));
+      
+      // Build filename filters for exact metadata matching
+      // This ensures files are found even if semantic similarity is low
+      const filenameFilters = mentionedFiles.map(file => ({
+        source: { $regex: `.*${file}.*` }
+      }));
+      
+      console.log(`[${new Date().toISOString()}] 📁 Created ${filenameFilters.length} filename filters for explicit matching`);
       
       return {
         codeResults: codeResultsForFiles,
@@ -30,6 +39,7 @@ class VectorSearchStrategy {
           type: { $in: ['github-code', 'github-test', 'github-docs'] }
         },
         docsFilters: {},
+        filenameFilters: filenameFilters,  // NEW: Pass filename filters to search orchestrator
         explicitFiles: mentionedFiles,
         priority: 'file-specific'
       };
