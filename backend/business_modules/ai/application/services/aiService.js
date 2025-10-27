@@ -123,6 +123,22 @@ class AIService extends IAIService {
       const userIdVO = new UserId(userId);
       const repoIdVO = new RepoId(repoId);
       console.log(`[${new Date().toISOString()}] Processing pushed repository for user: ${userIdVO.value}, repository: ${repoIdVO.value}`);
+      
+      // CRITICAL: Ensure text search is initialized before processing repo
+      if (this.aiPersistAdapter && this.aiAdapter && typeof this.aiAdapter.initializeTextSearch === 'function') {
+        if (!this.aiAdapter.textSearchService) {
+          console.log(`[${new Date().toISOString()}] 🔍 Initializing text search before repo processing...`);
+          try {
+            await this.aiAdapter.initializeTextSearch(this.aiPersistAdapter);
+            console.log(`[${new Date().toISOString()}] ✅ Text search initialized successfully before repo processing`);
+          } catch (error) {
+            console.warn(`[${new Date().toISOString()}] ⚠️  Text search initialization failed (non-fatal): ${error.message}`);
+          }
+        } else {
+          console.log(`[${new Date().toISOString()}] ℹ️  Text search already initialized`);
+        }
+      }
+      
       const pushedRepo = new PushedRepo(userIdVO, repoIdVO);
       const { response } = await pushedRepo.processPushedRepo(userIdVO, repoIdVO, repoData, this.aiAdapter);
       // Create and publish domain event
