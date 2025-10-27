@@ -623,7 +623,7 @@ class QueryPipeline {
     const sourceTypeCaps = { ...baseSourceTypeCaps };
     
     // Boost code cap for file-specific queries (explicit file mentions)
-    if (config && config.priority === 'file-specific') {
+    if (searchStrategy && searchStrategy.priority === 'file-specific') {
       sourceTypeCaps['github-code'] = 25;  // Higher limit for explicit file requests
       console.log(`[${new Date().toISOString()}] 🎯 FILE-SPECIFIC QUERY: Boosted github-code cap to 25`);
     }

@@ -17,6 +17,22 @@ class AIService extends IAIService {
     this.aiAdapter = aiAdapter;
     this.aiPersistAdapter = aiPersistAdapter;
     this.aiMessagingAdapter = aiMessagingAdapter;
+    
+    // Initialize text search if postgres adapter is available and text search not yet initialized
+    if (this.aiPersistAdapter && this.aiAdapter && typeof this.aiAdapter.initializeTextSearch === 'function') {
+      // Don't block constructor, initialize asynchronously
+      setImmediate(async () => {
+        try {
+          // Check if already initialized
+          if (!this.aiAdapter.textSearchService) {
+            await this.aiAdapter.initializeTextSearch(this.aiPersistAdapter);
+            console.log(`[${new Date().toISOString()}] ✅ Text search initialized in AIService constructor`);
+          }
+        } catch (error) {
+          console.warn(`[${new Date().toISOString()}] ⚠️  Could not initialize text search: ${error.message}`);
+        }
+      });
+    }
   }
 
   async respondToPrompt(userId, conversationId, prompt) {

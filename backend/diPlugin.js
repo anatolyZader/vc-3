@@ -148,14 +148,23 @@ module.exports = fp(async function (fastify, opts) {
     gitPostgresAdapter: asClass(GitPostgresAdapter).scoped(),
     aiPostgresAdapter: asClass(AIPostgresAdapter).scoped(),
     aiLangchainAdapter: asClass(AILangchainAdapter, {
-      injector: (container) => ({
-        aiProvider: container.resolve('aiProvider'),
-        aiPersistAdapter: container.resolve('aiPersistAdapter'),
-        maxRequestsPerMinute: 60,
-        retryDelay: 5000,
-        maxRetries: 10
-      })
-    }).scoped(),
+      injector: (container) => {
+        const adapter = {
+          aiProvider: container.resolve('aiProvider'),
+          aiPersistAdapter: container.resolve('aiPersistAdapter'),
+          maxRequestsPerMinute: 60,
+          retryDelay: 5000,
+          maxRetries: 10
+        };
+        return adapter;
+      }
+    }).scoped()
+      .disposer((aiAdapter) => {
+        // Cleanup on disposal
+        if (aiAdapter && typeof aiAdapter.cleanup === 'function') {
+          return aiAdapter.cleanup();
+        }
+      }),
     aiPubsubAdapter: asClass(AIPubsubAdapter).scoped(),
     aiGithubAdapter: asClass(AIGithubAdapter).scoped(),
     aiGithubDocsAdapter: asClass(AIGithubDocsAdapter).scoped(),
