@@ -543,14 +543,15 @@ class QueryPipeline {
     console.log(`[${new Date().toISOString()}] 🔄 After deduplication: ${deduplicated.length} unique results`);
     
     // Step 2: Apply per-source caps to prevent dominance
-    const sourceTypeCaps = {
+    // Note: Caps can be adjusted based on search strategy priority
+    const baseSourceTypeCaps = {
       'apiSpec': 5,                      // Max 5 API spec chunks
       'apiSpecFull': 2,                  // Max 2 full API spec
       'module_documentation': 8,         // Max 8 module docs
       'architecture_documentation': 5,   // Max 5 architecture docs
       
       // Specific GitHub file types (new)
-      'github-code': 15,                 // Actual implementation code
+      'github-code': 20,                 // Increased from 15 to 20 for better multi-file coverage
       'github-docs': 8,                  // Documentation files
       'github-test': 5,                  // Test files (less priority)
       'github-config': 3,                // Configuration files (minimal)
@@ -561,6 +562,15 @@ class QueryPipeline {
       'github-file-code': 12,            // Legacy code type
       'github-file-json': 3              // Legacy JSON type
     };
+    
+    // Apply dynamic adjustments based on search strategy
+    const sourceTypeCaps = { ...baseSourceTypeCaps };
+    
+    // Boost code cap for file-specific queries (explicit file mentions)
+    if (config && config.priority === 'file-specific') {
+      sourceTypeCaps['github-code'] = 25;  // Higher limit for explicit file requests
+      console.log(`[${new Date().toISOString()}] 🎯 FILE-SPECIFIC QUERY: Boosted github-code cap to 25`);
+    }
     
     const sourceTypeCounts = {};
     const cappedResults = [];

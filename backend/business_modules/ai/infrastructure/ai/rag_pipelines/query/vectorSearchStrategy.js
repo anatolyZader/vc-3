@@ -17,8 +17,13 @@ class VectorSearchStrategy {
     
     if (mentionedFiles && mentionedFiles.length > 0) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Explicit File Request (${mentionedFiles.join(', ')})`);
+      
+      // Calculate dynamic code results based on number of files mentioned
+      // Allocate approximately 8-10 chunks per file, with a reasonable maximum
+      const codeResultsForFiles = Math.min(30, Math.max(20, mentionedFiles.length * 8));
+      
       return {
-        codeResults: 20,
+        codeResults: codeResultsForFiles,
         docsResults: 5,
         codeFilters: {
           // Prioritize actual code and docs over configs/catalogs
