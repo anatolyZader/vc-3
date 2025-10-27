@@ -4,16 +4,53 @@ class ContextBuilder {
       apiSpec: 0,
       rootDocumentation: 0,
       moduleDocumentation: 0,
-      githubRepo: 0,
+      githubCode: 0,        // Implementation code
+      githubDocs: 0,        // Documentation files
+      githubTest: 0,        // Test files
+      githubConfig: 0,      // Configuration files
+      githubCatalog: 0,     // Catalog files (should be 0 if filtered)
+      githubLegacy: 0,      // Legacy github-file type
       total: documents.length
     };
 
     documents.forEach(doc => {
       const type = doc.metadata.type || 'unknown';
-      if (type === 'apiSpec' || type === 'apiSpecFull') sourceAnalysis.apiSpec++;
-      else if (type === 'root_documentation') sourceAnalysis.rootDocumentation++;
-      else if (type === 'module_documentation') sourceAnalysis.moduleDocumentation++;
-      else if (doc.metadata.repoId || doc.metadata.githubOwner) sourceAnalysis.githubRepo++;
+      
+      switch (type) {
+        case 'apiSpec':
+        case 'apiSpecFull':
+          sourceAnalysis.apiSpec++;
+          break;
+        case 'root_documentation':
+        case 'architecture_documentation':
+          sourceAnalysis.rootDocumentation++;
+          break;
+        case 'module_documentation':
+          sourceAnalysis.moduleDocumentation++;
+          break;
+        case 'github-code':
+          sourceAnalysis.githubCode++;
+          break;
+        case 'github-docs':
+          sourceAnalysis.githubDocs++;
+          break;
+        case 'github-test':
+          sourceAnalysis.githubTest++;
+          break;
+        case 'github-config':
+          sourceAnalysis.githubConfig++;
+          break;
+        case 'github-catalog':
+          sourceAnalysis.githubCatalog++;
+          break;
+        default:
+          // Legacy handling for old 'github-file' type
+          if (type === 'github-file' || type === 'github-file-code' || type === 'github-file-json') {
+            sourceAnalysis.githubLegacy++;
+          } else if (doc.metadata?.source?.includes('github.com') || doc.metadata?.repoId) {
+            sourceAnalysis.githubCode++;  // Assume code for unknown GitHub files
+          }
+      }
     });
 
     return sourceAnalysis;
@@ -37,7 +74,10 @@ class ContextBuilder {
       hasApiSpec: sourceAnalysis.apiSpec > 0,
       hasRootDocs: sourceAnalysis.rootDocumentation > 0,
       hasModuleDocs: sourceAnalysis.moduleDocumentation > 0,
-      hasGithubCode: sourceAnalysis.githubRepo > 0
+      hasGithubCode: sourceAnalysis.githubCode > 0,
+      hasGithubDocs: sourceAnalysis.githubDocs > 0,
+      hasGithubTest: sourceAnalysis.githubTest > 0,
+      hasGithubConfig: sourceAnalysis.githubConfig > 0
     };
 
     return {
@@ -104,8 +144,20 @@ ${content}`;
     console.log(`[${new Date().toISOString()}] 🌐 API Specification: ${sourceAnalysis.apiSpec} chunks`);
     console.log(`[${new Date().toISOString()}] 📋 Root Documentation (plugins/core): ${sourceAnalysis.rootDocumentation} chunks`);
     console.log(`[${new Date().toISOString()}] 📁 Module Documentation: ${sourceAnalysis.moduleDocumentation} chunks`);
-    console.log(`[${new Date().toISOString()}] 💻 GitHub Repository Code: ${sourceAnalysis.githubRepo} chunks`);
-    console.log(`[${new Date().toISOString()}] 📊 TOTAL CONTEXT SOURCES: ${sourceAnalysis.total} chunks from ${Object.values(sourceAnalysis).filter(v => v > 0).length - 1} different source types`);
+    console.log(`[${new Date().toISOString()}] 💻 GitHub Code Files: ${sourceAnalysis.githubCode} chunks`);
+    console.log(`[${new Date().toISOString()}] 📖 GitHub Documentation: ${sourceAnalysis.githubDocs} chunks`);
+    console.log(`[${new Date().toISOString()}] 🧪 GitHub Test Files: ${sourceAnalysis.githubTest} chunks`);
+    console.log(`[${new Date().toISOString()}] ⚙️  GitHub Config Files: ${sourceAnalysis.githubConfig} chunks`);
+    
+    if (sourceAnalysis.githubLegacy > 0) {
+      console.log(`[${new Date().toISOString()}] 📦 Legacy GitHub Files: ${sourceAnalysis.githubLegacy} chunks (need re-indexing)`);
+    }
+    
+    if (sourceAnalysis.githubCatalog > 0) {
+      console.warn(`[${new Date().toISOString()}] ⚠️  WARNING: ${sourceAnalysis.githubCatalog} catalog files included (should be filtered)`);
+    }
+    
+    console.log(`[${new Date().toISOString()}] 📊 TOTAL CONTEXT SOURCES: ${sourceAnalysis.total} chunks from multiple source types`);
     
     // Log specific module documentation being used
     const moduleDocsUsed = documents
@@ -119,7 +171,7 @@ ${content}`;
     
     // Log GitHub repositories being used
     const reposUsed = documents
-      .filter(doc => doc.metadata.repoId)
+      .filter(doc => doc.metadata.repoId || doc.metadata.type?.startsWith('github-'))
       .map(doc => {
         const repoId = doc.metadata.repoId;
         

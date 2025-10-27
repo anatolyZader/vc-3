@@ -544,11 +544,22 @@ class QueryPipeline {
     
     // Step 2: Apply per-source caps to prevent dominance
     const sourceTypeCaps = {
-      'apiSpec': 5,           // Max 5 API spec chunks (increased)
-      'apiSpecFull': 2,       // Max 2 full API spec (increased)
-      'module_documentation': 8,  // Max 8 module docs (increased)
-      'github-file': 15,      // Max 15 code files (increased significantly)
-      'architecture_documentation': 5  // Max 5 architecture docs (increased)
+      'apiSpec': 5,                      // Max 5 API spec chunks
+      'apiSpecFull': 2,                  // Max 2 full API spec
+      'module_documentation': 8,         // Max 8 module docs
+      'architecture_documentation': 5,   // Max 5 architecture docs
+      
+      // Specific GitHub file types (new)
+      'github-code': 15,                 // Actual implementation code
+      'github-docs': 8,                  // Documentation files
+      'github-test': 5,                  // Test files (less priority)
+      'github-config': 3,                // Configuration files (minimal)
+      'github-catalog': 0,               // Exclude catalogs by default
+      
+      // Legacy support
+      'github-file': 10,                 // Fallback for uncategorized GitHub files
+      'github-file-code': 12,            // Legacy code type
+      'github-file-json': 3              // Legacy JSON type
     };
     
     const sourceTypeCounts = {};
@@ -1346,17 +1357,25 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
     let filtered = results;
     
     if (excludeCatalogs) {
-      // Filter out JSON catalogs (architecture.json, ul_dictionary.json, etc.)
+      // Filter out catalog files by type first, then fallback to content analysis
       const beforeCount = filtered.length;
       filtered = filtered.filter(result => {
+        const type = result.metadata?.type;
         const content = result.pageContent || '';
         const source = result.metadata?.source || '';
         
-        // Exclude obvious JSON catalog files
+        // Exclude catalog files by type
+        if (type === 'github-catalog') {
+          console.log(`[${new Date().toISOString()}] 🧹 FILTERED OUT: Catalog file by type ${source}`);
+          return false;
+        }
+        
+        // Legacy filtering for files that haven't been re-indexed yet
         if (source.includes('architecture.json') || 
             source.includes('ul_dictionary.json') ||
             source.includes('catalog.json') ||
             source.includes('schema.json')) {
+          console.log(`[${new Date().toISOString()}] 🧹 FILTERED OUT: Legacy catalog detection ${source}`);
           return false;
         }
         
@@ -1376,7 +1395,7 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
       
       const catalogsRemoved = beforeCount - filtered.length;
       if (catalogsRemoved > 0) {
-        console.log(`[${new Date().toISOString()}] 🚫 PIPELINE_CATALOG_FILTER: Removed ${catalogsRemoved} JSON catalogs`);
+        console.log(`[${new Date().toISOString()}] 🚫 PIPELINE_CATALOG_FILTER: Removed ${catalogsRemoved} catalogs (${catalogsRemoved} by type, rest by content)`);
       }
     }
     

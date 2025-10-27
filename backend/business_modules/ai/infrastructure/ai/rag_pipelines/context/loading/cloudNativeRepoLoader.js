@@ -218,12 +218,16 @@ class CloudNativeRepoLoader {
       // Decode base64 content
       const content = Buffer.from(data.content, 'base64').toString('utf-8');
       
+      // Determine specific file type
+      const FileTypeClassifier = require('../utils/fileTypeClassifier');
+      const fileType = FileTypeClassifier.determineGitHubFileType(fileInfo.path, content);
+      
       // Create LangChain-compatible document
       const document = {
         pageContent: content,
         metadata: {
           source: fileInfo.path,
-          type: 'github-file',
+          type: fileType,
           size: data.size,
           sha: data.sha,
           repository: `${this.owner}/${this.repo}`,

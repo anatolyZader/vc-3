@@ -598,6 +598,14 @@ class ASTCodeSplitter {
     }
     
     const tokenCount = this.estimateTokens(finalText);
+    
+    // Determine specific file type if not already set
+    let fileType = baseMeta.type;
+    if (!fileType || fileType === 'github-file') {
+      const FileTypeClassifier = require('../utils/fileTypeClassifier');
+      fileType = FileTypeClassifier.determineGitHubFileType(baseMeta.source || '', finalText);
+    }
+    
     const doc = {
       pageContent: finalText,
       metadata: {
@@ -606,7 +614,7 @@ class ASTCodeSplitter {
         generatedAt: new Date().toISOString(),
         ...(hasPrependedImports && { hasPrependedImports: true }),
         // Retrieval-friendly fields:
-        type: baseMeta.type ?? 'github-file',
+        type: fileType,
         fileType: baseMeta.fileType ?? 'js',
         eventstorm_module: baseMeta.eventstorm_module ?? null,
         semantic_role: extra.unit?.type ?? null,   // function | class | fastify_route | ...
@@ -821,7 +829,7 @@ const splitter = new ASTCodeSplitter({
 
 const chunks = splitter.split(sourceCode, { 
   source: '/path/to/file.js',
-  type: 'github-file',
+  type: 'github-code',  // Will be auto-detected if not provided
   fileType: 'js',
   eventstorm_module: 'ai'
 });

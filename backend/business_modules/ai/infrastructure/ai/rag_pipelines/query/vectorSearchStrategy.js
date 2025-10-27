@@ -11,13 +11,32 @@ class VectorSearchStrategy {
   static determineSearchStrategy(prompt) {
     const promptLower = prompt.toLowerCase();
     
+    // Check for explicit file mentions first
+    const filePattern = /([a-zA-Z0-9_\-\.]+\.(js|ts|jsx|tsx|py|java|go|md|json|yaml|yml))/gi;
+    const mentionedFiles = prompt.match(filePattern);
+    
+    if (mentionedFiles && mentionedFiles.length > 0) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Explicit File Request (${mentionedFiles.join(', ')})`);
+      return {
+        codeResults: 20,
+        docsResults: 5,
+        codeFilters: {
+          // Prioritize actual code and docs over configs/catalogs
+          type: { $in: ['github-code', 'github-test', 'github-docs'] }
+        },
+        docsFilters: {},
+        explicitFiles: mentionedFiles,
+        priority: 'file-specific'
+      };
+    }
+    
     // Domain/business logic questions
     if (TextMatcher.containsKeywords(promptLower, ['domain', 'entity', 'business', 'rule', 'aggregate', 'model'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Domain/Business Logic Query`);
       return {
         codeResults: 15,
         docsResults: 8,
-        codeFilters: { type: 'github-file' },
+        codeFilters: { type: { $in: ['github-code'] } },
         docsFilters: { type: 'module_documentation' }
       };
     }
@@ -26,10 +45,10 @@ class VectorSearchStrategy {
     if (TextMatcher.containsKeywords(promptLower, ['api', 'endpoint', 'route', 'http', 'request', 'controller', 'fastify'])) {
       console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: API/Endpoint Query`);
       return {
-        codeResults: 20,        // Increased from 12 to 20
-        docsResults: 10,        // Increased from 8 to 10
-        codeFilters: { type: 'github-file' }, // Match actual content type
-        docsFilters: { type: 'apiSpec' } // Match API spec docs
+        codeResults: 20,
+        docsResults: 10,
+        codeFilters: { type: { $in: ['github-code'] } },
+        docsFilters: { type: 'apiSpec' }
       };
     }
     
@@ -39,7 +58,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 20,
         docsResults: 5,
-        codeFilters: { type: 'github-file' }, // Match actual content type
+        codeFilters: { type: { $in: ['github-code', 'github-test'] } },
         docsFilters: {}
       };
     }
@@ -50,7 +69,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 5,
-        codeFilters: { type: 'github-file' },
+        codeFilters: { type: { $in: ['github-code'] } },
         docsFilters: { type: 'module_documentation' }
       };
     }
@@ -61,7 +80,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 5,
-        codeFilters: { type: 'github-file' },
+        codeFilters: { type: { $in: ['github-code'] } },
         docsFilters: { type: 'module_documentation' }
       };
     }
@@ -72,18 +91,18 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 8,
-        codeFilters: { type: 'github-file' },
+        codeFilters: { type: { $in: ['github-code'] } },
         docsFilters: { type: 'module_documentation' }
       };
     }
     
     // Docs/documentation questions
-    if (TextMatcher.containsKeywords(promptLower, ['docs', 'documentation', 'search', 'knowledge', 'doc'])) {
-      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Docs Module Query`);
+    if (TextMatcher.containsKeywords(promptLower, ['docs', 'documentation', 'readme', 'how to'])) {
+      console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: Documentation Query`);
       return {
-        codeResults: 12,
-        docsResults: 10,
-        codeFilters: { eventstorm_module: 'docsModule' },
+        codeResults: 8,
+        docsResults: 12,
+        codeFilters: { type: { $in: ['github-docs'] } },
         docsFilters: { type: 'module_documentation' }
       };
     }
@@ -94,7 +113,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 5,
-        codeFilters: { semantic_role: 'test' },
+        codeFilters: { type: { $in: ['github-test', 'github-code'] } },
         docsFilters: {}
       };
     }
@@ -105,7 +124,7 @@ class VectorSearchStrategy {
       return {
         codeResults: 10,
         docsResults: 12,
-        codeFilters: { semantic_role: 'config' },
+        codeFilters: { type: { $in: ['github-config', 'github-code'] } },
         docsFilters: { type: 'configuration' }
       };
     }
@@ -116,17 +135,19 @@ class VectorSearchStrategy {
       return {
         codeResults: 15,
         docsResults: 8,
-        codeFilters: { semantic_role: 'plugin' },
+        codeFilters: { type: { $in: ['github-code'] } },
         docsFilters: {}
       };
     }
     
-    // Default strategy for general questions
+    // Default strategy for general questions - exclude catalogs and configs
     console.log(`[${new Date().toISOString()}] 🧠 SEARCH STRATEGY: General Query (default)`);
     return {
-      codeResults: 20,        // Increased from 15 to 20
-      docsResults: 10,        // Increased from 8 to 10
-      codeFilters: {},
+      codeResults: 20,
+      docsResults: 10,
+      codeFilters: {
+        type: { $nin: ['github-catalog', 'github-config'] }  // Exclude catalogs and configs
+      },
       docsFilters: {}
     };
   }

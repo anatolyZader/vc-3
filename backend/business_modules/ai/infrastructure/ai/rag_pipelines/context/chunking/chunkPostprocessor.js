@@ -860,15 +860,13 @@ class ChunkPostprocessor {
         metadata.repoId = `${metadata.repoOwner}/${metadata.repoName}`;
       }
       
-      // Ensure type is properly set
-      if (!metadata.type) {
-        if (metadata.source?.includes('.json')) {
-          metadata.type = 'github-file-json';
-        } else if (this.isActualCode(result.pageContent, metadata)) {
-          metadata.type = 'github-file-code';
-        } else {
-          metadata.type = 'github-file';
-        }
+      // Ensure type is properly set with specific classification
+      if (!metadata.type || metadata.type === 'github-file') {
+        const FileTypeClassifier = require('../utils/fileTypeClassifier');
+        metadata.type = FileTypeClassifier.determineGitHubFileType(
+          metadata.source || '', 
+          result.pageContent || ''
+        );
       }
       
       return {
