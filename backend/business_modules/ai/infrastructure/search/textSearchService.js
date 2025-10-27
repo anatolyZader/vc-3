@@ -301,6 +301,96 @@ class TextSearchService {
       return false;
     }
   }
+
+  /**
+   * Store document chunks to repo_data table for full-text search
+   * @param {Array} chunks - Array of document chunks with pageContent and metadata
+   * @param {string} userId - User ID who owns the repository
+   * @param {string} repoId - Repository ID
+   * @returns {object} Result with counts of stored chunks
+   */
+  async storeChunks(chunks, userId, repoId) {
+    if (!chunks || chunks.length === 0) {
+      this.logger.warn('No chunks provided to store');
+      return { success: true, stored: 0, skipped: 0 };
+    }
+
+    try {
+      const pool = await this.postgresAdapter.getPool();
+      const client = await pool.connect();
+
+      try {
+        await client.query('BEGIN');
+
+        let stored = 0;
+        let skipped = 0;
+
+        for (const chunk of chunks) {
+          try {
+            const filePath = chunk.metadata?.source || chunk.metadata?.filePath || 'unknown';
+            const content = chunk.pageContent || '';
+            
+            // Skip empty content
+            if (!content || content.trim().length === 0) {
+              skipped++;
+              continue;
+            }
+
+            // Extract file extension
+            const fileExtension = filePath.split('.').pop() || 'unknown';
+
+            // Use simple INSERT (table may not have unique constraint yet)
+            // If it fails due to duplicate, we'll catch and skip it
+            const query = `
+              INSERT INTO repo_data (
+                user_id,
+                repo_id,
+                file_path,
+                file_extension,
+                content,
+                content_vector,
+                language
+              )
+              VALUES ($1, $2, $3, $4, $5, to_tsvector('english', $3 || ' ' || $5), 'english')
+            `;
+
+            await client.query(query, [
+              userId,
+              repoId,
+              filePath,
+              fileExtension,
+              content
+            ]);
+
+            stored++;
+          } catch (chunkError) {
+            this.logger.error(`Error storing chunk for file ${chunk.metadata?.source}:`, chunkError.message);
+            skipped++;
+          }
+        }
+
+        await client.query('COMMIT');
+        
+        this.logger.info(`✅ Stored ${stored} chunks to repo_data, skipped ${skipped}`);
+        
+        return {
+          success: true,
+          stored,
+          skipped,
+          total: chunks.length
+        };
+
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      this.logger.error('Error storing chunks to PostgreSQL:', error);
+      throw new Error(`Failed to store chunks: ${error.message}`);
+    }
+  }
 }
 
 module.exports = TextSearchService;

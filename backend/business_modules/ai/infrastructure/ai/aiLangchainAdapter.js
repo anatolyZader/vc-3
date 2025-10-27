@@ -282,6 +282,12 @@ class AILangchainAdapter extends IAIPort {
         console.log(`[${new Date().toISOString()}] 🔄 QueryPipeline updated with text search services`);
       }
       
+      // Update ContextPipeline with text search service for PostgreSQL storage
+      if (this.contextPipeline) {
+        this.contextPipeline.textSearchService = this.textSearchService;
+        console.log(`[${new Date().toISOString()}] 🔄 ContextPipeline updated with text search service for PostgreSQL storage`);
+      }
+      
       // Test the services
       const isTextSearchAvailable = await this.textSearchService.isAvailable();
       console.log(`[${new Date().toISOString()}] 📊 Text search availability: ${isTextSearchAvailable}`);

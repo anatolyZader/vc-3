@@ -48,7 +48,7 @@ class RepoWorkerManager {
    * Process large repository with horizontal scaling
    * Returns processed chunks to main pipeline for embedding storage
    */
-  async processLargeRepository(repositoryJob, embeddingManager = null) {
+  async processLargeRepository(repositoryJob, embeddingManager = null, textSearchService = null) {
     const { repoId, userId, githubOwner, repoName } = repositoryJob;
     const jobId = `${repoId}_${Date.now()}`;
     
@@ -92,6 +92,25 @@ class RepoWorkerManager {
           
           aggregatedResult.embeddingStorageSuccess = true;
           console.log(`[${new Date().toISOString()}] ✅ WORKER MANAGER: Successfully stored embeddings to namespace ${namespace}`);
+          
+          // Also store to PostgreSQL for full-text search if textSearchService available
+          if (textSearchService) {
+            try {
+              console.log(`[${new Date().toISOString()}] 💾 WORKER MANAGER: Storing ${aggregatedResult.processedChunks.length} chunks to PostgreSQL...`);
+              const storeResult = await textSearchService.storeChunks(
+                aggregatedResult.processedChunks, 
+                userId, 
+                repoId
+              );
+              console.log(`[${new Date().toISOString()}] ✅ WORKER MANAGER: PostgreSQL storage: ${storeResult.stored} chunks stored, ${storeResult.skipped} skipped`);
+              aggregatedResult.postgresStorageSuccess = true;
+              aggregatedResult.postgresStored = storeResult.stored;
+            } catch (pgError) {
+              console.error(`[${new Date().toISOString()}] ⚠️  WORKER MANAGER: PostgreSQL storage failed (non-fatal):`, pgError.message);
+              aggregatedResult.postgresStorageSuccess = false;
+              aggregatedResult.postgresStorageError = pgError.message;
+            }
+          }
           
         } catch (embeddingError) {
           console.error(`[${new Date().toISOString()}] ❌ WORKER MANAGER: Embedding storage failed:`, embeddingError.message);

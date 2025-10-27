@@ -1,12 +1,12 @@
-# LangSmith RAG Trace Analysis - 10/27/2025, 3:34:06 PM
+# LangSmith RAG Trace Analysis - 10/27/2025, 5:22:29 PM
 
 ## 🔍 Query Details
-- **Query**: "explain the functioning of two files in eventstorm.me app: app.js and aiLangchainAdapter.js"
+- **Query**: "explain the difference between app.js and aiService.js files"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
-- **Conversation ID**: 2418b262-9a52-4ba0-a742-d51bc73bf655
-- **Started**: 2025-10-27T15:34:06.975Z
-- **Completed**: 2025-10-27T15:34:11.711Z
-- **Total Duration**: 4736ms
+- **Conversation ID**: 907b9c8f-6e1c-4d05-b3c8-be2e6a4a8346
+- **Started**: 2025-10-27T17:22:29.531Z
+- **Completed**: 2025-10-27T17:22:32.675Z
+- **Total Duration**: 3144ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,12 +16,13 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-10-27T15:34:06.975Z) - success
-2. **vector_store_check** (2025-10-27T15:34:06.975Z) - success
-3. **vector_search** (2025-10-27T15:34:08.868Z) - success - Found 3 documents
-4. **text_search** (2025-10-27T15:34:08.868Z) - skipped
-5. **context_building** (2025-10-27T15:34:08.869Z) - success - Context: 3299 chars
-6. **response_generation** (2025-10-27T15:34:11.711Z) - success - Response: 1291 chars
+1. **initialization** (2025-10-27T17:22:29.532Z) - success
+2. **vector_store_check** (2025-10-27T17:22:29.532Z) - success
+3. **vector_search** (2025-10-27T17:22:30.800Z) - success - Found 3 documents
+4. **text_search** (2025-10-27T17:22:30.811Z) - success
+5. **hybrid_search_combination** (2025-10-27T17:22:30.811Z) - success
+6. **context_building** (2025-10-27T17:22:30.812Z) - success - Context: 4166 chars
+7. **response_generation** (2025-10-27T17:22:32.675Z) - success - Response: 685 chars
 
 ## 📊 Vector Search Analysis
 
@@ -29,298 +30,653 @@
 - **Vector Store**: primary
 - **Search Strategy**: intelligent_strategy_with_filters
 - **Documents Retrieved**: 3
-- **Total Context**: 5,163 characters
+- **Total Context**: 20,134 characters
 
 ### Source Type Distribution:
-- **GitHub Repository Code**: 3 chunks (100%)
+- **GitHub Repository Code**: 0 chunks (0%)
 - **Module Documentation**: 0 chunks (0%)  
 - **Architecture Documentation**: 0 chunks (0%)
 - **API Specification**: 0 chunks (0%)
-- **Other Sources**: 0 chunks (0%)
+- **Other Sources**: 3 chunks (100%)
 
 ## 📋 Complete Chunk Analysis
 
 
 ### Chunk 1/3
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 3892 characters
-- **Score**: 0.542312622
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
+- **Source**: backend/package.json
+- **Type**: github-code
+- **Size**: 2422 characters
+- **Score**: 0.030396355
+- **Repository**: N/A
+- **Branch**: N/A
 - **File Type**: N/A
-- **Processed At**: 2025-10-25T11:07:02.860Z
+- **Processed At**: N/A
 
 **Full Content**:
 ```
-# Enhanced AST Chunks for aiLangchainAdapter.js
+{
+  "name": "eventstorm.me",
+  "version": "0.x.y",
+  "description": "bootstrapped with Fastify-CLI",
+  "main": "",
+  "type": "commonjs",
+  "directories": {},
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watchAll",
+    "lint": "eslint .",
+    "dev": "concurrently --kill-others \"./cloud-sql-proxy eventstorm-1:me-west1:eventstorm-pg-instance --port 5432\" \"NODE_DEBUG=fastify,node-fastify node --watch ./node_modules/fastify-cli/cli.js start server.js -l trace | pino-pretty --translateTime 'SYS:standard' --colorize\"",
+    "debug": "node --inspect-brk app.js",
+    "start": "fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js",
+    "generate:spec": "node generateSpec.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/autoload": "^6.3.0",
+    "@fastify/awilix": "latest",
+    "@fastify/cookie": "latest",
+    "@fastify/cors": "^10.0.1",
+    "@fastify/env": "^5.0.1",
+    "@fastify/formbody": "^7.4.0",
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/jwt": "latest",
+    "@fastify/oauth2": "^8.1.0",
+    "@fastify/postgres": "^5.2.2",
+    "@fastify/redis": "^7.0.2",
+    "@fastify/sensible": "^6.0.2",
+    "@fastify/session": "latest",
+    "@fastify/swagger": "^9.2.0",
+    "@fastify/swagger-ui": "^5.2.1",
+    "@fastify/websocket": "^11.1.0",
+    "@google-cloud/cloud-sql-connector": "^1.4.0",
+    "@google-cloud/pubsub": "^4.10.0",
+    "@google-cloud/redis": "^4.3.0",
+    "@google-cloud/sql": "^0.19.0",
+    "@langchain/langgraph": "^0.2.53",
+    "@langchain/openai": "^0.4.4",
+    "@octokit/rest": "^21.1.1",
+    "bcrypt": "^5.1.1",
+    "concurrently": "^9.1.2",
+    "connect-redis": "^7.1.1",
+    "dotenv": "^16.4.5",
+    "express-session": "^1.18.1",
+    "fastify": "latest",
+    "fastify-cli": "^7.4.0",
+    "fastify-plugin": "^5.0.1",
+    "fastify-secrets-env": "^2.1.8",
+    "googleapis": "^140.0.1",
+    "ioredis": "^5.4.1",
+    "langchain": "^0.3.27",
+    "nc": "^1.0.2",
+    "octokit": "^4.1.2",
+    "openai": "^5.0.1",
+    "pg": "^8.13.0",
+    "pino-pretty": "^13.0.0",
+    "redis": "^4.7.0",
+    "tesseract.js": "^5.1.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.16.0",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-metarhia": "^9.1.1",
+    "eslint-plugin-import": "^2.31.0",
+    "globals": "^15.12.0",
+    "jest": "^29.7.0"
+  }
+}
 
-**Original File:** 14201 characters
-**Total Chunks:** 13
-**Total Tokens:** 2961
-
-## Chunk 1: unknown/code (204 tokens)
-
-**Tokens:** 204
-**Type:** unknown
-
-```javascript
-
-class AILangchainAdapter extends IAIPort {
-  constructor(options = {}) {
-    super();
-
-    // Make userId null by default to avoid DI error
-    this.userId = null;
-
-    // Get provider from infraConfig or options
-    this.aiProvider = options.aiProvider || 'openai';
-    console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing with provider: ${this.aiProvider}`);
-
-    // Get access to the event bus for status updates
-    try {
-      const { eventBus } = require('../../../../eventDispatcher');
-      this.eventBus = eventBus;
-      console.log(`[${new Date().toISOString()}] 📡 Successfully connected to shared event bus`);
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ Could not access shared event bus: ${error.message}`);
-      this.eventBus = null;
-      console.log(`[${new Date().toISOString()}] [DEBUG] Event bus unavailable.`);
-    }
-```
-
----
-
-## Chunk 2: unknown/code (249 tokens)
-
-**Tokens:** 249
-**Type:** unknown
-
-```javascript
-
-    // Initialize request queue for rate limiting and queuing
-    this.requestQueue = new RequestQueue({
-      maxRequestsPerMinute: 20,  // Conservative rate to avoid API limits
-      retryDelay: 5000,          // 5 seconds between retries
-      maxRetries: 3              // Reasonable retry count (15s max retry time)
-    });
-
-    // Keep direct access to pineconeLimiter for backward compatibility
-    this.pineconeLimiter = this.requestQueue.pineconeLimiter;
-
-    try {
-      // Initialize embeddings model: converts text to vectors
-      this.embeddings = new OpenAIEmbeddings({
-        model: 'text-embedding-3-large',
-        apiKey: process.env.OPENAI_API_KEY
-      });
-      console.log(`[${new Date().toISOString()}] [DEBUG] Embeddings model initialized.`);
-
-      // Initialize chat model based on provider
-      this.llmProviderManager = new LLMProviderManager(this.aiProvider, {
-        maxRetries: this.requestQueue.maxRetries
-      });
-      this.llm = this.llmProviderManager.getLLM();
-      console.log(`[${new Date().toISOString()}] [DEBUG] LLM initialized.`);
-
-```
-
----
-
-## Chunk 3: unknown/code (327 tokens)
-
-**Tokens:** 327
-**Type:** unknown
-
-```javascript
-      // LangSmith tracing toggle
-      this.enableTracing = process.env.LANGSMITH_TRACING === 'true';
-      if (this.enableTracing) {
-        console.log(`[${new Date().toISOString()}] [TRACE] LangSmith tracing enabled (adapter level)`);
-        console.log(`[${new Date().toISOString()}] [TRACE] LangSmith env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID} organizationName=${process.env.LANGSMITH_ORGANIZATION_NAME || 'n/a'}`);
-      }
-
-      // Attempt to wrap underlying OpenAI client if available & tracing enabled
-      if (this.enableTracing && this.aiProvider === 'openai' && wrapOpenAI) {
-        try {
-          // Common patterns for underlying client reference
-          if (this.llm?.client) {
-            this.llm.client = wrapOpenAI(this.llm.client);
-            console.log(`[${new Date().toISOString()}] [TRACE] Wrapped this.llm.client with LangSmith`);
-          } else if (this.llm?._client) {
-            this.llm._client = wrapOpenAI(this.llm._client);
-            console.log(`[${new Date().toISOString()}] [TRACE] Wrapped this.llm._client with LangSmith`);
-          } else {
-            console.log(`[${new Date().toISOString()}] [TRACE] No direct raw OpenAI client found to wrap (LangChain may auto-instrument).`);
-          }
-```
-
----
-
-## Chunk 4: unknown/code (193 tokens)
-
-**Tokens:** 193
-**Type:** unknown
-
-```javascript
-        } catch (wrapErr) {
 ```
 
 **Metadata**:
 ```json
 {
-  "branch": "main",
-  "chunkIndex": 0,
-  "chunkTokens": 973,
-  "filePath": "backend/enhanced_ast_ai_adapter_chunks.md",
-  "fileSize": 15014,
-  "loaded_at": "2025-10-25T11:07:02.860Z",
-  "loading_method": "cloud_native_api",
-  "originalTokens": 3361,
-  "priority": 50,
-  "processedAt": "2025-10-25T11:07:02.860Z",
-  "rechunked": true,
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "9981d83fcb2a2f997bbaaea3a6ddda537372c0a3",
-  "size": 15014,
-  "source": "anatolyZader/vc-3",
-  "text": "# Enhanced AST Chunks for aiLangchainAdapter.js\n\n**Original File:** 14201 characters\n**Total Chunks:** 13\n**Total Tokens:** 2961\n\n## Chunk 1: unknown/code (204 tokens)\n\n**Tokens:** 204\n**Type:** unknown\n\n```javascript\n\nclass AILangchainAdapter extends IAIPort {\n  constructor(options = {}) {\n    super();\n\n    // Make userId null by default to avoid DI error\n    this.userId = null;\n\n    // Get provider from infraConfig or options\n    this.aiProvider = options.aiProvider || 'openai';\n    console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing with provider: ${this.aiProvider}`);\n\n    // Get access to the event bus for status updates\n    try {\n      const { eventBus } = require('../../../../eventDispatcher');\n      this.eventBus = eventBus;\n      console.log(`[${new Date().toISOString()}] 📡 Successfully connected to shared event bus`);\n    } catch (error) {\n      console.warn(`[${new Date().toISOString()}] ⚠️ Could not access shared event bus: ${error.message}`);\n      this.eventBus = null;\n      console.log(`[${new Date().toISOString()}] [DEBUG] Event bus unavailable.`);\n    }\n```\n\n---\n\n## Chunk 2: unknown/code (249 tokens)\n\n**Tokens:** 249\n**Type:** unknown\n\n```javascript\n\n    // Initialize request queue for rate limiting and queuing\n    this.requestQueue = new RequestQueue({\n      maxRequestsPerMinute: 20,  // Conservative rate to avoid API limits\n      retryDelay: 5000,          // 5 seconds between retries\n      maxRetries: 3              // Reasonable retry count (15s max retry time)\n    });\n\n    // Keep direct access to pineconeLimiter for backward compatibility\n    this.pineconeLimiter = this.requestQueue.pineconeLimiter;\n\n    try {\n      // Initialize embeddings model: converts text to vectors\n      this.embeddings = new OpenAIEmbeddings({\n        model: 'text-embedding-3-large',\n        apiKey: process.env.OPENAI_API_KEY\n      });\n      console.log(`[${new Date().toISOString()}] [DEBUG] Embeddings model initialized.`);\n\n      // Initialize chat model based on provider\n      this.llmProviderManager = new LLMProviderManager(this.aiProvider, {\n        maxRetries: this.requestQueue.maxRetries\n      });\n      this.llm = this.llmProviderManager.getLLM();\n      console.log(`[${new Date().toISOString()}] [DEBUG] LLM initialized.`);\n\n```\n\n---\n\n## Chunk 3: unknown/code (327 tokens)\n\n**Tokens:** 327\n**Type:** unknown\n\n```javascript\n      // LangSmith tracing toggle\n      this.enableTracing = process.env.LANGSMITH_TRACING === 'true';\n      if (this.enableTracing) {\n        console.log(`[${new Date().toISOString()}] [TRACE] LangSmith tracing enabled (adapter level)`);\n        console.log(`[${new Date().toISOString()}] [TRACE] LangSmith env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID} organizationName=${process.env.LANGSMITH_ORGANIZATION_NAME || 'n/a'}`);\n      }\n\n      // Attempt to wrap underlying OpenAI client if available & tracing enabled\n      if (this.enableTracing && this.aiProvider === 'openai' && wrapOpenAI) {\n        try {\n          // Common patterns for underlying client reference\n          if (this.llm?.client) {\n            this.llm.client = wrapOpenAI(this.llm.client);\n            console.log(`[${new Date().toISOString()}] [TRACE] Wrapped this.llm.client with LangSmith`);\n          } else if (this.llm?._client) {\n            this.llm._client = wrapOpenAI(this.llm._client);\n            console.log(`[${new Date().toISOString()}] [TRACE] Wrapped this.llm._client with LangSmith`);\n          } else {\n            console.log(`[${new Date().toISOString()}] [TRACE] No direct raw OpenAI client found to wrap (LangChain may auto-instrument).`);\n          }\n```\n\n---\n\n## Chunk 4: unknown/code (193 tokens)\n\n**Tokens:** 193\n**Type:** unknown\n\n```javascript\n        } catch (wrapErr) {",
-  "type": "github-file",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.542312622,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_439_1761390472216"
+  "text": "{\n  \"name\": \"eventstorm.me\",\n  \"version\": \"0.x.y\",\n  \"description\": \"bootstrapped with Fastify-CLI\",\n  \"main\": \"\",\n  \"type\": \"commonjs\",\n  \"directories\": {},\n  \"scripts\": {\n    \"test\": \"jest\",\n    \"test:watch\": \"jest --watchAll\",\n    \"lint\": \"eslint .\",\n    \"dev\": \"concurrently --kill-others \\\"./cloud-sql-proxy eventstorm-1:me-west1:eventstorm-pg-instance --port 5432\\\" \\\"NODE_DEBUG=fastify,node-fastify node --watch ./node_modules/fastify-cli/cli.js start server.js -l trace | pino-pretty --translateTime 'SYS:standard' --colorize\\\"\",\n    \"debug\": \"node --inspect-brk app.js\",\n    \"start\": \"fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js\",\n    \"generate:spec\": \"node generateSpec.js\"\n  },\n  \"keywords\": [],\n  \"author\": \"\",\n  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"@fastify/autoload\": \"^6.3.0\",\n    \"@fastify/awilix\": \"latest\",\n    \"@fastify/cookie\": \"latest\",\n    \"@fastify/cors\": \"^10.0.1\",\n    \"@fastify/env\": \"^5.0.1\",\n    \"@fastify/formbody\": \"^7.4.0\",\n    \"@fastify/helmet\": \"^13.0.1\",\n    \"@fastify/jwt\": \"latest\",\n    \"@fastify/oauth2\": \"^8.1.0\",\n    \"@fastify/postgres\": \"^5.2.2\",\n    \"@fastify/redis\": \"^7.0.2\",\n    \"@fastify/sensible\": \"^6.0.2\",\n    \"@fastify/session\": \"latest\",\n    \"@fastify/swagger\": \"^9.2.0\",\n    \"@fastify/swagger-ui\": \"^5.2.1\",\n    \"@fastify/websocket\": \"^11.1.0\",\n    \"@google-cloud/cloud-sql-connector\": \"^1.4.0\",\n    \"@google-cloud/pubsub\": \"^4.10.0\",\n    \"@google-cloud/redis\": \"^4.3.0\",\n    \"@google-cloud/sql\": \"^0.19.0\",\n    \"@langchain/langgraph\": \"^0.2.53\",\n    \"@langchain/openai\": \"^0.4.4\",\n    \"@octokit/rest\": \"^21.1.1\",\n    \"bcrypt\": \"^5.1.1\",\n    \"concurrently\": \"^9.1.2\",\n    \"connect-redis\": \"^7.1.1\",\n    \"dotenv\": \"^16.4.5\",\n    \"express-session\": \"^1.18.1\",\n    \"fastify\": \"latest\",\n    \"fastify-cli\": \"^7.4.0\",\n    \"fastify-plugin\": \"^5.0.1\",\n    \"fastify-secrets-env\": \"^2.1.8\",\n    \"googleapis\": \"^140.0.1\",\n    \"ioredis\": \"^5.4.1\",\n    \"langchain\": \"^0.3.27\",\n    \"nc\": \"^1.0.2\",\n    \"octokit\": \"^4.1.2\",\n    \"openai\": \"^5.0.1\",\n    \"pg\": \"^8.13.0\",\n    \"pino-pretty\": \"^13.0.0\",\n    \"redis\": \"^4.7.0\",\n    \"tesseract.js\": \"^5.1.0\",\n    \"uuid\": \"^10.0.0\"\n  },\n  \"devDependencies\": {\n    \"@eslint/js\": \"^9.16.0\",\n    \"eslint\": \"^8.57.1\",\n    \"eslint-config-airbnb-base\": \"^15.0.0\",\n    \"eslint-config-metarhia\": \"^9.1.1\",\n    \"eslint-plugin-import\": \"^2.31.0\",\n    \"globals\": \"^15.12.0\",\n    \"jest\": \"^29.7.0\"\n  }\n}\n",
+  "content": "{\n  \"name\": \"eventstorm.me\",\n  \"version\": \"0.x.y\",\n  \"description\": \"bootstrapped with Fastify-CLI\",\n  \"main\": \"\",\n  \"type\": \"commonjs\",\n  \"directories\": {},\n  \"scripts\": {\n    \"test\": \"jest\",\n    \"test:watch\": \"jest --watchAll\",\n    \"lint\": \"eslint .\",\n    \"dev\": \"concurrently --kill-others \\\"./cloud-sql-proxy eventstorm-1:me-west1:eventstorm-pg-instance --port 5432\\\" \\\"NODE_DEBUG=fastify,node-fastify node --watch ./node_modules/fastify-cli/cli.js start server.js -l trace | pino-pretty --translateTime 'SYS:standard' --colorize\\\"\",\n    \"debug\": \"node --inspect-brk app.js\",\n    \"start\": \"fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js\",\n    \"generate:spec\": \"node generateSpec.js\"\n  },\n  \"keywords\": [],\n  \"author\": \"\",\n  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"@fastify/autoload\": \"^6.3.0\",\n    \"@fastify/awilix\": \"latest\",\n    \"@fastify/cookie\": \"latest\",\n    \"@fastify/cors\": \"^10.0.1\",\n    \"@fastify/env\": \"^5.0.1\",\n    \"@fastify/formbody\": \"^7.4.0\",\n    \"@fastify/helmet\": \"^13.0.1\",\n    \"@fastify/jwt\": \"latest\",\n    \"@fastify/oauth2\": \"^8.1.0\",\n    \"@fastify/postgres\": \"^5.2.2\",\n    \"@fastify/redis\": \"^7.0.2\",\n    \"@fastify/sensible\": \"^6.0.2\",\n    \"@fastify/session\": \"latest\",\n    \"@fastify/swagger\": \"^9.2.0\",\n    \"@fastify/swagger-ui\": \"^5.2.1\",\n    \"@fastify/websocket\": \"^11.1.0\",\n    \"@google-cloud/cloud-sql-connector\": \"^1.4.0\",\n    \"@google-cloud/pubsub\": \"^4.10.0\",\n    \"@google-cloud/redis\": \"^4.3.0\",\n    \"@google-cloud/sql\": \"^0.19.0\",\n    \"@langchain/langgraph\": \"^0.2.53\",\n    \"@langchain/openai\": \"^0.4.4\",\n    \"@octokit/rest\": \"^21.1.1\",\n    \"bcrypt\": \"^5.1.1\",\n    \"concurrently\": \"^9.1.2\",\n    \"connect-redis\": \"^7.1.1\",\n    \"dotenv\": \"^16.4.5\",\n    \"express-session\": \"^1.18.1\",\n    \"fastify\": \"latest\",\n    \"fastify-cli\": \"^7.4.0\",\n    \"fastify-plugin\": \"^5.0.1\",\n    \"fastify-secrets-env\": \"^2.1.8\",\n    \"googleapis\": \"^140.0.1\",\n    \"ioredis\": \"^5.4.1\",\n    \"langchain\": \"^0.3.27\",\n    \"nc\": \"^1.0.2\",\n    \"octokit\": \"^4.1.2\",\n    \"openai\": \"^5.0.1\",\n    \"pg\": \"^8.13.0\",\n    \"pino-pretty\": \"^13.0.0\",\n    \"redis\": \"^4.7.0\",\n    \"tesseract.js\": \"^5.1.0\",\n    \"uuid\": \"^10.0.0\"\n  },\n  \"devDependencies\": {\n    \"@eslint/js\": \"^9.16.0\",\n    \"eslint\": \"^8.57.1\",\n    \"eslint-config-airbnb-base\": \"^15.0.0\",\n    \"eslint-config-metarhia\": \"^9.1.1\",\n    \"eslint-plugin-import\": \"^2.31.0\",\n    \"globals\": \"^15.12.0\",\n    \"jest\": \"^29.7.0\"\n  }\n}\n",
+  "source": "backend/package.json",
+  "type": "github-code",
+  "isTextSearchResult": true,
+  "snippet": "<b>app.js</b>\",\n    \"start\": \"fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js\",\n    \"generate:spec",
+  "score": 0.030396355,
+  "id": "text_174"
 }
 ```
 
 ---
 
 ### Chunk 2/3
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 1071 characters
-- **Score**: 0.512674332
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
+- **Source**: backend/app.js
+- **Type**: github-code
+- **Size**: 15900 characters
+- **Score**: 0.030396355
+- **Repository**: N/A
+- **Branch**: N/A
 - **File Type**: N/A
-- **Processed At**: 2025-10-24T12:20:43.160Z
+- **Processed At**: N/A
 
 **Full Content**:
 ```
-ails, null, 2) : '');
-    
-    // Try to emit to the event bus if available
-    try {
-      const payload = {
-        component: 'aiLangchainAdapter',
-        phase: status,
-        metrics: details,
-        ts: new Date().toISOString()
-      };
+// app.js
+'use strict';
+/* eslint-disable no-unused-vars */
 
-      // First try the instance event bus
-      if (this.eventBus) {
-        this.eventBus.emit('rag.status', payload);
-        return;
-      }
-      
-      // Fallback to imported event bus if instance one isn't available
-      const eventDispatcherPath = '../../../../eventDispatcher';
-      const { eventBus } = require(eventDispatcherPath);
-      if (eventBus) {
-        eventBus.emit('rag.status', payload);
-      }
-    } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);
+const path              = require('node:path');
+const fs                = require('fs');
+const AutoLoad          = require('@fastify/autoload');
+const fastifySensible   = require('@fastify/sensible');
+
+const fastifyCookie     = require('@fastify/cookie');
+const fastifySession    = require('@fastify/session');
+const { Store }         = fastifySession;
+
+const redisPlugin       = require('./redisPlugin');
+const websocketPlugin   = require('./websocketPlugin');
+
+const loggingPlugin     = require('./aop_modules/log/plugins/logPlugin');
+const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
+const envPlugin         = require('./envPlugin');
+const diPlugin          = require('./diPlugin');
+const corsPlugin        = require('./corsPlugin');
+const helmet            = require('@fastify/helmet');
+const fastifyJwt        = require('@fastify/jwt');
+const fastifyOAuth2     = require('@fastify/oauth2');
+const { OAuth2Client }  = require('google-auth-library');
+const { v4: uuidv4 }    = require('uuid');
+const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
+// const swaggerPlugin     = require('./swaggerPlugin');
+// const swaggerUIPlugin   = require('./swaggerUIPlugin');
+const fastifySwagger    = require('@fastify/swagger');
+const fastifySwaggerUI  = require('@fastify/swagger-ui');
+
+require('dotenv').config();
+
+module.exports = async function (fastify, opts) {
+
+  fastify.addHook('onRoute', (routeOptions) => {
+    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');
+  });
+
+  await fastify.register(loggingPlugin);
+  await fastify.register(schemaLoaderPlugin);
+  await fastify.register(envPlugin);
+  await fastify.register(diPlugin);
+
+  await fastify.register(websocketPlugin);
+  await fastify.register(fastifySensible);
+  await fastify.register(fastifySwagger, {
+    openapi: {
+      openapi: '3.0.0',
+      info: {
+        title: 'EventStorm.me API',
+        description:
+          'EventStorm API – Git analysis, AI insights, wiki, chat and more',
+        version: '1.0.0',
+        contact: {
+          name: 'EventStorm Support',
+          email: 'support@eventstorm.me',
+          url: 'https://eventstorm.me/support'
+        },
+        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },
+        termsOfService: 'https://eventstorm.me/terms'
+      },
+      servers: [
+        {
+          url: process.env.NODE_ENV === 'production'
+            ? 'https://eventstorm.me'
+            : 'http://localhost:3000',
+          description: process.env.NODE_ENV === 'production'
+            ? 'Production server'
+            : 'Development server'
+        }
+      ],
+      tags: [
+        { name: 'auth', description: 'Authentication endpoints' },
+        { name: 'git', description: 'Git-analysis endpoints' },
+        { name: 'ai', description: 'AI-powered endpoints' },
+        { name: 'chat', description: 'Chat endpoints' },
+        { name: 'wiki', description: 'Wiki endpoints' },
+        { name: 'api', description: 'Utility endpoints' }
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' }
+        },
+        responses: {
+          UnauthorizedError: {
+            description: 'Authentication information is missing or invalid',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: { type: 'string' },
+                    message: { type: 'string' },
+                    statusCode: { type: 'number' }
+                  }
+                }
+              }
+            }
+          },
+          ServerError: {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: { type: 'string' },
+                    message: { type: 'string' },
+                    statusCode: { type: 'number' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }, { cookieAuth: [] }]
+    },
+    exposeRoute: true // This is crucial for exposing the /openapi.json and /openapi.yaml routes
+  });
+
+  await fastify.register(helmet, {
+    global: true,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'],
+        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'],  
+        frameSrc: ["'self'", 'https://accounts.google.com/gsi/'],
+        connectSrc: [  
+          "'self'", 
+          'https://accounts.google.com/gsi/',
+          // Add http for local development
+          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
+        ],
+      },
+    },
+  });
+
+
+  await fastify.register(corsPlugin);
+
+  fastify.log.info('🔌 Registering Redis client plugin');
+  await fastify.register(redisPlugin);
+  fastify.log.info('✅ Redis client plugin registered');
+
+  fastify.redis.on('error', (err) => {
+    fastify.log.error({ err }, 'Redis client error');
+  });
+
+  fastify.log.info('⏳ Testing Redis connection with PING…');
+  try {
+    const pong = await fastify.redis.ping();
+    fastify.log.info(`✅ Redis PING response: ${pong}`);
+  } catch (err) {
+    fastify.log.error({ err }, '❌ Redis PING failed');
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // 4️⃣  COOKIE / SESSION
+  // ────────────────────────────────────────────────────────────────
+  await fastify.register(
+    fastifyCookie,
+    {
+      secret: fastify.secrets.COOKIE_SECRET,
+      parseOptions: { secure: true, httpOnly: true, sameSite: 'None' },
+    },
+    { encapsulate: false }
+  );
+
+  class RedisStore extends Store {
+    constructor(sendCommand) {
+      super();
+      this.send = sendCommand;
+    }
+    get(sid, cb) {
+      this.send(['GET', sid])
+        .then((data) => cb(null, data ? JSON.parse(data) : null))
+        .catch(cb);
+    }
+    set(sid, sess, ttlMs, cb) {
+      const data = JSON.stringify(sess);
+      const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;
+      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];
+      this.send(cmd).then(() => cb(null)).catch(cb);
+    }
+    destroy(sid, cb) {
+      this.send(['DEL', sid]).then(() => cb(null)).catch(cb);
     }
   }
 
-  /**
-   * Manually trigger system documentation processing
-   * Useful for refreshing documentation or debugging
-   */
-  // (No manual system documentation startup here; the DocsProcessor can be invoked where appropriate.)
-}
+  await fastify.register(fastifySession, {
+    secret: fastify.secrets.SESSION_SECRET,
+    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
+    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),
+    saveUninitialized: false,
+  });
 
-module.exports = AILangchainAdapter;
+  // ────────────────────────────────────────────────────────────────
+  // 5️⃣  HEALTH ROUTE
+  // ────────────────────────────────────────────────────────────────
+  fastify.get('/', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  // ────────────────────────────────────────────────────────────────
+  // 6️⃣  GOOGLE OAUTH + JWT (UNCHANGED FROM ORIGINAL)
+  // ────────────────────────────────────────────────────────────────
+  let credentialsJsonString, clientId, clientSecret;
+
+  if (
+    process.env.USER_OAUTH2_CREDENTIALS &&
+    process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')
+  ) {
+    credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);
+  } else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {
+    const credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;
+    credentialsJsonString = JSON.parse(
+      await fs.promises.readFile(credentialsPath, { encoding: 'utf8' })
+    );
+  } else {
+    clientId = process.env.FALLBACK_CLIENT_ID;
+    clientSecret = process.env.FALLBACK_CLIENT_SECRET;
+  }
+
+  if (credentialsJsonString) {
+    clientId = credentialsJsonString.web.client_id;
+    clientSecret = credentialsJsonString.web.client_secret;
+  }
+
+  const revokedTokens = new Map();
+
+  fastify.register(fastifyJwt, {
+    secret: fastify.secrets.JWT_SECRET,
+    sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },
+    verify: { requestProperty: 'user' },
+    trusted(request, decoded) {
+      return !revokedTokens.has(decoded.jti);
+    },
+  });
+
+  fastify.decorate('verifyToken', async function (request) {
+    let token = request.cookies?.authToken;
+    if (!token && request.headers.authorization) {
+      const [scheme, value] = request.headers.authorization.split(' ');
+      if (scheme === 'Bearer') token = value;
+    }
+    if (!token) throw fastify.httpErrors.unauthorized('Missing token');
+    request.user = await fastify.jwt.verify(token);
+  });
+
+  fastify.decorateRequest('revokeToken', function () {
+    if (!this.user?.jti) throw this.httpErrors.unauthorized('Missing jti');
+    revokedTokens.set(this.user.jti, true);
+  });
+
+  fastify.decorateRequest('generateToken', async function () {
+    return fastify.jwt.sign(
+      { id: String(this.user.id), username: this.user.username },
+      { jwtid: uuidv4(), expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
+    );
+  });
+
+  const cookieSecure   = process.env.NODE_ENV === 'production';
+  const cookieSameSite = cookieSecure ? 'None' : 'Lax';
+  const googleCallbackUri =
+    cookieSecure
+      ? 'https://eventstorm.me/api/auth/google/callback'
+      : 'http://localhost:3000/api/auth/google/callback';
+
+  await fastify.register(
+    fastifyOAuth2,
+    {
+      name: 'googleOAuth2',
+      scope: ['profile', 'email', 'openid'],
+      cookie: { secure: cookieSecure, sameSite: cookieSameSite, httpOnly: true },
+      credentials: {
+        client: { id: clientId, secret: clientSecret },
+        auth: fastifyOAuth2.GOOGLE_CONFIGURATION,
+      },
+      startRedirectPath: '/api/auth/google',
+      callbackUri: googleCallbackUri,
+    },
+    { encapsulate: false }
+  );
+
+  const googleClient = new OAuth2Client(clientId);
+  fastify.decorate('verifyGoogleIdToken', async (idToken) => {
+    const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });
+    return ticket.getPayload();
+  });
+
+  await fastify.register(authSchemasPlugin);
+
+  fastify.get('/api/auth/google/callback', async (req, reply) => {
+    const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
+    const googleAccessToken = token.token.access_token;
+
+    const userService = await req.diScope.resolve('userService');
+    const googleUser  = await userService.loginWithGoogle(googleAccessToken);
+    if (!googleUser) return reply.unauthorized('Google profile invalid');
+
+    const jti  = uuidv4();
+    const jwt  = fastify.jwt.sign(
+      { id: googleUser.id, username: googleUser.username, jti },
+      { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
+    );
+
+    reply.setCookie('authToken', jwt, {
+      path: '/',
+      httpOnly: true,
+      secure: cookieSecure,
+      sameSite: cookieSameSite,
+    });
+
+    reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');
+  });
+
+  // ────────────────────────────────────────────────────────────────
+  // 7️⃣  AUTOLOAD MODULES
+  // ────────────────────────────────────────────────────────────────
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'aop_modules'),
+    encapsulate: false,
+    maxDepth: 1,
+    dirNameRoutePrefix: false,
+    prefix: '/api',
+    options: Object.assign({}, opts),
+  });
+
+  await fastify.register(AutoLoad, {
+    dir: path.join(__dirname, 'business_modules'),
+    encapsulate: true,
+    maxDepth: 1,
+    dirNameRoutePrefix: false,
+    prefix: '/api',
+    options: Object.assign({}, opts),
+  });
+
+  // Debug route
+  fastify.get('/debug/clear-state-cookie', (req, reply) => {
+    reply.clearCookie('oauth2-redirect-state', { path: '/' });
+    reply.send({ message: 'cleared' });
+  });
+
+  await fastify.register(fastifySwaggerUI, {
+    routePrefix: '/api/doc',
+    staticCSP: true, // Enable static CSP headers for the UI
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: true,
+      defaultModelsExpandDepth: 2,
+      defaultModelExpandDepth: 2,
+      defaultModelRendering: 'example',
+      displayRequestDuration: true,
+      filter: true,
+      tryItOutEnabled: true,
+      persistAuthorization: true,
+      layout: 'StandaloneLayout',
+      // Custom CSS for better aesthetics
+      customCss: `
+        .swagger-ui .topbar{display:none;}
+        .swagger-ui .info .title{color:#1f2937;}
+        .swagger-ui .scheme-container{background:#f8f9fa;padding:10px;border-radius:4px;}
+        .swagger-ui .info .description {font-size: 14px; line-height: 1.6;}
+        .swagger-ui .btn.authorize {background-color: #4f46e5; border-color: #4f46e5;}
+        .swagger-ui .btn.authorize:hover {background-color: #4338ca;}
+      `,
+      customSiteTitle: 'EventStorm.me API Docs',
+      customfavIcon: '/favicon.ico',
+      // Optional: Add request/response interceptors for debugging Swagger UI calls
+      requestInterceptor: req => {
+        console.log('🌐 Swagger UI Request:', {
+          url: req.url, method: req.method, headers: req.headers
+        });
+        return req;
+      },
+      responseInterceptor: res => {
+        console.log('📡 Swagger UI Response:', {
+          url: res.url, status: res.status, statusText: res.statusText
+        });
+        return res;
+      }
+    },
+    // Transform CSP headers for Swagger UI to allow necessary external resources and inline styles/scripts
+    transformStaticCSP: (hdr) => {
+      let newHdr = hdr.replace(
+        /default-src 'self'/g,
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:"
+      );
+      // Add connect-src directives based on environment for local development
+      if (process.env.NODE_ENV !== 'production') {
+        newHdr += "; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:";
+      } else {
+        newHdr += "; connect-src 'self' https: wss: data: blob:";
+      }
+      newHdr += "; style-src 'self' 'unsafe-inline' https:"; // Allow inline styles and HTTPS sources
+      newHdr += "; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:"; // Allow inline scripts, eval, and HTTPS sources
+      return newHdr;
+    },
+    transformSpecificationClone: true, // Clone the spec before transforming
+    // Transform the OpenAPI specification
+    transformSpecification(spec) {
+      spec.info['x-build-time'] = new Date().toISOString();
+      spec.info['x-builder'] = 'anatolyZader';
+      spec.info['x-environment'] = process.env.NODE_ENV || 'development';
+      spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info
+
+      // Adjust server URLs for development environment
+      if (process.env.NODE_ENV !== 'production') {
+        spec.servers = [
+          { url: 'http://localhost:3000', description: 'Development server' },
+          { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }
+        ];
+      }
+
+      spec.info['x-security-note'] = 'This API uses JWT Bearer tokens or cookie-based authentication';
+      return spec;
+    }
+  });
+
+  // fastify.after(async () => {
+  //   await fastify.register(swaggerUIPlugin);
+  // });
+
+  // ────────────────────────────────────────────────────────────────
+  // 9️⃣  READY HOOK – print summary
+  // ────────────────────────────────────────────────────────────────
+
+  fastify.addHook('onReady', async () => {
+    fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
+  });
+};
+
 ```
 
 **Metadata**:
 ```json
 {
-  "branch": "main",
-  "chunkIndex": 6,
-  "chunkTokens": 268,
-  "filePath": "backend/business_modules/ai/infrastructure/ai/aiLangchainAdapter.js",
-  "fileSize": 23860,
-  "loaded_at": "2025-10-24T12:20:43.160Z",
-  "loading_method": "cloud_native_api",
-  "originalTokens": 5237,
-  "priority": 70,
-  "processedAt": "2025-10-24T12:20:43.160Z",
-  "rechunked": true,
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "19b47ef644ae82ba32047f9aabf9a2f4ba591508",
-  "size": 23860,
-  "source": "anatolyZader/vc-3",
-  "text": "ails, null, 2) : '');\n    \n    // Try to emit to the event bus if available\n    try {\n      const payload = {\n        component: 'aiLangchainAdapter',\n        phase: status,\n        metrics: details,\n        ts: new Date().toISOString()\n      };\n\n      // First try the instance event bus\n      if (this.eventBus) {\n        this.eventBus.emit('rag.status', payload);\n        return;\n      }\n      \n      // Fallback to imported event bus if instance one isn't available\n      const eventDispatcherPath = '../../../../eventDispatcher';\n      const { eventBus } = require(eventDispatcherPath);\n      if (eventBus) {\n        eventBus.emit('rag.status', payload);\n      }\n    } catch (error) {\n      console.warn(`[${new Date().toISOString()}] ⚠️ Failed to emit RAG status update: ${error.message}`);\n    }\n  }\n\n  /**\n   * Manually trigger system documentation processing\n   * Useful for refreshing documentation or debugging\n   */\n  // (No manual system documentation startup here; the DocsProcessor can be invoked where appropriate.)\n}\n\nmodule.exports = AILangchainAdapter;",
-  "type": "github-file",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 1,
-  "score": 0.512674332,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3116_1761308530714"
+  "text": "// app.js\n'use strict';\n/* eslint-disable no-unused-vars */\n\nconst path              = require('node:path');\nconst fs                = require('fs');\nconst AutoLoad          = require('@fastify/autoload');\nconst fastifySensible   = require('@fastify/sensible');\n\nconst fastifyCookie     = require('@fastify/cookie');\nconst fastifySession    = require('@fastify/session');\nconst { Store }         = fastifySession;\n\nconst redisPlugin       = require('./redisPlugin');\nconst websocketPlugin   = require('./websocketPlugin');\n\nconst loggingPlugin     = require('./aop_modules/log/plugins/logPlugin');\nconst schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');\nconst envPlugin         = require('./envPlugin');\nconst diPlugin          = require('./diPlugin');\nconst corsPlugin        = require('./corsPlugin');\nconst helmet            = require('@fastify/helmet');\nconst fastifyJwt        = require('@fastify/jwt');\nconst fastifyOAuth2     = require('@fastify/oauth2');\nconst { OAuth2Client }  = require('google-auth-library');\nconst { v4: uuidv4 }    = require('uuid');\nconst authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');\n// const swaggerPlugin     = require('./swaggerPlugin');\n// const swaggerUIPlugin   = require('./swaggerUIPlugin');\nconst fastifySwagger    = require('@fastify/swagger');\nconst fastifySwaggerUI  = require('@fastify/swagger-ui');\n\nrequire('dotenv').config();\n\nmodule.exports = async function (fastify, opts) {\n\n  fastify.addHook('onRoute', (routeOptions) => {\n    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');\n  });\n\n  await fastify.register(loggingPlugin);\n  await fastify.register(schemaLoaderPlugin);\n  await fastify.register(envPlugin);\n  await fastify.register(diPlugin);\n\n  await fastify.register(websocketPlugin);\n  await fastify.register(fastifySensible);\n  await fastify.register(fastifySwagger, {\n    openapi: {\n      openapi: '3.0.0',\n      info: {\n        title: 'EventStorm.me API',\n        description:\n          'EventStorm API – Git analysis, AI insights, wiki, chat and more',\n        version: '1.0.0',\n        contact: {\n          name: 'EventStorm Support',\n          email: 'support@eventstorm.me',\n          url: 'https://eventstorm.me/support'\n        },\n        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },\n        termsOfService: 'https://eventstorm.me/terms'\n      },\n      servers: [\n        {\n          url: process.env.NODE_ENV === 'production'\n            ? 'https://eventstorm.me'\n            : 'http://localhost:3000',\n          description: process.env.NODE_ENV === 'production'\n            ? 'Production server'\n            : 'Development server'\n        }\n      ],\n      tags: [\n        { name: 'auth', description: 'Authentication endpoints' },\n        { name: 'git', description: 'Git-analysis endpoints' },\n        { name: 'ai', description: 'AI-powered endpoints' },\n        { name: 'chat', description: 'Chat endpoints' },\n        { name: 'wiki', description: 'Wiki endpoints' },\n        { name: 'api', description: 'Utility endpoints' }\n      ],\n      components: {\n        securitySchemes: {\n          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },\n          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' }\n        },\n        responses: {\n          UnauthorizedError: {\n            description: 'Authentication information is missing or invalid',\n            content: {\n              'application/json': {\n                schema: {\n                  type: 'object',\n                  properties: {\n                    error: { type: 'string' },\n                    message: { type: 'string' },\n                    statusCode: { type: 'number' }\n                  }\n                }\n              }\n            }\n          },\n          ServerError: {\n            description: 'Internal server error',\n            content: {\n              'application/json': {\n                schema: {\n                  type: 'object',\n                  properties: {\n                    error: { type: 'string' },\n                    message: { type: 'string' },\n                    statusCode: { type: 'number' }\n                  }\n                }\n              }\n            }\n          }\n        }\n      },\n      security: [{ bearerAuth: [] }, { cookieAuth: [] }]\n    },\n    exposeRoute: true // This is crucial for exposing the /openapi.json and /openapi.yaml routes\n  });\n\n  await fastify.register(helmet, {\n    global: true,\n    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },\n    contentSecurityPolicy: {\n      directives: {\n        defaultSrc: [\"'self'\", 'https://accounts.google.com/gsi/'],\n        scriptSrc: [\"'self'\", 'https://accounts.google.com/gsi/client'],\n        styleSrc: [\"'self'\", \"'unsafe-inline'\", 'https://accounts.google.com/gsi/style'],  \n        frameSrc: [\"'self'\", 'https://accounts.google.com/gsi/'],\n        connectSrc: [  \n          \"'self'\", \n          'https://accounts.google.com/gsi/',\n          // Add http for local development\n          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:5173'] : [])\n        ],\n      },\n    },\n  });\n\n\n  await fastify.register(corsPlugin);\n\n  fastify.log.info('🔌 Registering Redis client plugin');\n  await fastify.register(redisPlugin);\n  fastify.log.info('✅ Redis client plugin registered');\n\n  fastify.redis.on('error', (err) => {\n    fastify.log.error({ err }, 'Redis client error');\n  });\n\n  fastify.log.info('⏳ Testing Redis connection with PING…');\n  try {\n    const pong = await fastify.redis.ping();\n    fastify.log.info(`✅ Redis PING response: ${pong}`);\n  } catch (err) {\n    fastify.log.error({ err }, '❌ Redis PING failed');\n  }\n\n  // ────────────────────────────────────────────────────────────────\n  // 4️⃣  COOKIE / SESSION\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(\n    fastifyCookie,\n    {\n      secret: fastify.secrets.COOKIE_SECRET,\n      parseOptions: { secure: true, httpOnly: true, sameSite: 'None' },\n    },\n    { encapsulate: false }\n  );\n\n  class RedisStore extends Store {\n    constructor(sendCommand) {\n      super();\n      this.send = sendCommand;\n    }\n    get(sid, cb) {\n      this.send(['GET', sid])\n        .then((data) => cb(null, data ? JSON.parse(data) : null))\n        .catch(cb);\n    }\n    set(sid, sess, ttlMs, cb) {\n      const data = JSON.stringify(sess);\n      const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;\n      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];\n      this.send(cmd).then(() => cb(null)).catch(cb);\n    }\n    destroy(sid, cb) {\n      this.send(['DEL', sid]).then(() => cb(null)).catch(cb);\n    }\n  }\n\n  await fastify.register(fastifySession, {\n    secret: fastify.secrets.SESSION_SECRET,\n    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },\n    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),\n    saveUninitialized: false,\n  });\n\n  // ────────────────────────────────────────────────────────────────\n  // 5️⃣  HEALTH ROUTE\n  // ────────────────────────────────────────────────────────────────\n  fastify.get('/', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));\n\n  // ────────────────────────────────────────────────────────────────\n  // 6️⃣  GOOGLE OAUTH + JWT (UNCHANGED FROM ORIGINAL)\n  // ────────────────────────────────────────────────────────────────\n  let credentialsJsonString, clientId, clientSecret;\n\n  if (\n    process.env.USER_OAUTH2_CREDENTIALS &&\n    process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')\n  ) {\n    credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);\n  } else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {\n    const credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;\n    credentialsJsonString = JSON.parse(\n      await fs.promises.readFile(credentialsPath, { encoding: 'utf8' })\n    );\n  } else {\n    clientId = process.env.FALLBACK_CLIENT_ID;\n    clientSecret = process.env.FALLBACK_CLIENT_SECRET;\n  }\n\n  if (credentialsJsonString) {\n    clientId = credentialsJsonString.web.client_id;\n    clientSecret = credentialsJsonString.web.client_secret;\n  }\n\n  const revokedTokens = new Map();\n\n  fastify.register(fastifyJwt, {\n    secret: fastify.secrets.JWT_SECRET,\n    sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },\n    verify: { requestProperty: 'user' },\n    trusted(request, decoded) {\n      return !revokedTokens.has(decoded.jti);\n    },\n  });\n\n  fastify.decorate('verifyToken', async function (request) {\n    let token = request.cookies?.authToken;\n    if (!token && request.headers.authorization) {\n      const [scheme, value] = request.headers.authorization.split(' ');\n      if (scheme === 'Bearer') token = value;\n    }\n    if (!token) throw fastify.httpErrors.unauthorized('Missing token');\n    request.user = await fastify.jwt.verify(token);\n  });\n\n  fastify.decorateRequest('revokeToken', function () {\n    if (!this.user?.jti) throw this.httpErrors.unauthorized('Missing jti');\n    revokedTokens.set(this.user.jti, true);\n  });\n\n  fastify.decorateRequest('generateToken', async function () {\n    return fastify.jwt.sign(\n      { id: String(this.user.id), username: this.user.username },\n      { jwtid: uuidv4(), expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }\n    );\n  });\n\n  const cookieSecure   = process.env.NODE_ENV === 'production';\n  const cookieSameSite = cookieSecure ? 'None' : 'Lax';\n  const googleCallbackUri =\n    cookieSecure\n      ? 'https://eventstorm.me/api/auth/google/callback'\n      : 'http://localhost:3000/api/auth/google/callback';\n\n  await fastify.register(\n    fastifyOAuth2,\n    {\n      name: 'googleOAuth2',\n      scope: ['profile', 'email', 'openid'],\n      cookie: { secure: cookieSecure, sameSite: cookieSameSite, httpOnly: true },\n      credentials: {\n        client: { id: clientId, secret: clientSecret },\n        auth: fastifyOAuth2.GOOGLE_CONFIGURATION,\n      },\n      startRedirectPath: '/api/auth/google',\n      callbackUri: googleCallbackUri,\n    },\n    { encapsulate: false }\n  );\n\n  const googleClient = new OAuth2Client(clientId);\n  fastify.decorate('verifyGoogleIdToken', async (idToken) => {\n    const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });\n    return ticket.getPayload();\n  });\n\n  await fastify.register(authSchemasPlugin);\n\n  fastify.get('/api/auth/google/callback', async (req, reply) => {\n    const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);\n    const googleAccessToken = token.token.access_token;\n\n    const userService = await req.diScope.resolve('userService');\n    const googleUser  = await userService.loginWithGoogle(googleAccessToken);\n    if (!googleUser) return reply.unauthorized('Google profile invalid');\n\n    const jti  = uuidv4();\n    const jwt  = fastify.jwt.sign(\n      { id: googleUser.id, username: googleUser.username, jti },\n      { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }\n    );\n\n    reply.setCookie('authToken', jwt, {\n      path: '/',\n      httpOnly: true,\n      secure: cookieSecure,\n      sameSite: cookieSameSite,\n    });\n\n    reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');\n  });\n\n  // ────────────────────────────────────────────────────────────────\n  // 7️⃣  AUTOLOAD MODULES\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'aop_modules'),\n    encapsulate: false,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: Object.assign({}, opts),\n  });\n\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'business_modules'),\n    encapsulate: true,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: Object.assign({}, opts),\n  });\n\n  // Debug route\n  fastify.get('/debug/clear-state-cookie', (req, reply) => {\n    reply.clearCookie('oauth2-redirect-state', { path: '/' });\n    reply.send({ message: 'cleared' });\n  });\n\n  await fastify.register(fastifySwaggerUI, {\n    routePrefix: '/api/doc',\n    staticCSP: true, // Enable static CSP headers for the UI\n    uiConfig: {\n      docExpansion: 'list',\n      deepLinking: true,\n      defaultModelsExpandDepth: 2,\n      defaultModelExpandDepth: 2,\n      defaultModelRendering: 'example',\n      displayRequestDuration: true,\n      filter: true,\n      tryItOutEnabled: true,\n      persistAuthorization: true,\n      layout: 'StandaloneLayout',\n      // Custom CSS for better aesthetics\n      customCss: `\n        .swagger-ui .topbar{display:none;}\n        .swagger-ui .info .title{color:#1f2937;}\n        .swagger-ui .scheme-container{background:#f8f9fa;padding:10px;border-radius:4px;}\n        .swagger-ui .info .description {font-size: 14px; line-height: 1.6;}\n        .swagger-ui .btn.authorize {background-color: #4f46e5; border-color: #4f46e5;}\n        .swagger-ui .btn.authorize:hover {background-color: #4338ca;}\n      `,\n      customSiteTitle: 'EventStorm.me API Docs',\n      customfavIcon: '/favicon.ico',\n      // Optional: Add request/response interceptors for debugging Swagger UI calls\n      requestInterceptor: req => {\n        console.log('🌐 Swagger UI Request:', {\n          url: req.url, method: req.method, headers: req.headers\n        });\n        return req;\n      },\n      responseInterceptor: res => {\n        console.log('📡 Swagger UI Response:', {\n          url: res.url, status: res.status, statusText: res.statusText\n        });\n        return res;\n      }\n    },\n    // Transform CSP headers for Swagger UI to allow necessary external resources and inline styles/scripts\n    transformStaticCSP: (hdr) => {\n      let newHdr = hdr.replace(\n        /default-src 'self'/g,\n        \"default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:\"\n      );\n      // Add connect-src directives based on environment for local development\n      if (process.env.NODE_ENV !== 'production') {\n        newHdr += \"; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:\";\n      } else {\n        newHdr += \"; connect-src 'self' https: wss: data: blob:\";\n      }\n      newHdr += \"; style-src 'self' 'unsafe-inline' https:\"; // Allow inline styles and HTTPS sources\n      newHdr += \"; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\"; // Allow inline scripts, eval, and HTTPS sources\n      return newHdr;\n    },\n    transformSpecificationClone: true, // Clone the spec before transforming\n    // Transform the OpenAPI specification\n    transformSpecification(spec) {\n      spec.info['x-build-time'] = new Date().toISOString();\n      spec.info['x-builder'] = 'anatolyZader';\n      spec.info['x-environment'] = process.env.NODE_ENV || 'development';\n      spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info\n\n      // Adjust server URLs for development environment\n      if (process.env.NODE_ENV !== 'production') {\n        spec.servers = [\n          { url: 'http://localhost:3000', description: 'Development server' },\n          { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }\n        ];\n      }\n\n      spec.info['x-security-note'] = 'This API uses JWT Bearer tokens or cookie-based authentication';\n      return spec;\n    }\n  });\n\n  // fastify.after(async () => {\n  //   await fastify.register(swaggerUIPlugin);\n  // });\n\n  // ────────────────────────────────────────────────────────────────\n  // 9️⃣  READY HOOK – print summary\n  // ────────────────────────────────────────────────────────────────\n\n  fastify.addHook('onReady', async () => {\n    fastify.log.info('▶ Registered routes:\\n' + fastify.printRoutes());\n  });\n};\n",
+  "content": "// app.js\n'use strict';\n/* eslint-disable no-unused-vars */\n\nconst path              = require('node:path');\nconst fs                = require('fs');\nconst AutoLoad          = require('@fastify/autoload');\nconst fastifySensible   = require('@fastify/sensible');\n\nconst fastifyCookie     = require('@fastify/cookie');\nconst fastifySession    = require('@fastify/session');\nconst { Store }         = fastifySession;\n\nconst redisPlugin       = require('./redisPlugin');\nconst websocketPlugin   = require('./websocketPlugin');\n\nconst loggingPlugin     = require('./aop_modules/log/plugins/logPlugin');\nconst schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');\nconst envPlugin         = require('./envPlugin');\nconst diPlugin          = require('./diPlugin');\nconst corsPlugin        = require('./corsPlugin');\nconst helmet            = require('@fastify/helmet');\nconst fastifyJwt        = require('@fastify/jwt');\nconst fastifyOAuth2     = require('@fastify/oauth2');\nconst { OAuth2Client }  = require('google-auth-library');\nconst { v4: uuidv4 }    = require('uuid');\nconst authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');\n// const swaggerPlugin     = require('./swaggerPlugin');\n// const swaggerUIPlugin   = require('./swaggerUIPlugin');\nconst fastifySwagger    = require('@fastify/swagger');\nconst fastifySwaggerUI  = require('@fastify/swagger-ui');\n\nrequire('dotenv').config();\n\nmodule.exports = async function (fastify, opts) {\n\n  fastify.addHook('onRoute', (routeOptions) => {\n    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');\n  });\n\n  await fastify.register(loggingPlugin);\n  await fastify.register(schemaLoaderPlugin);\n  await fastify.register(envPlugin);\n  await fastify.register(diPlugin);\n\n  await fastify.register(websocketPlugin);\n  await fastify.register(fastifySensible);\n  await fastify.register(fastifySwagger, {\n    openapi: {\n      openapi: '3.0.0',\n      info: {\n        title: 'EventStorm.me API',\n        description:\n          'EventStorm API – Git analysis, AI insights, wiki, chat and more',\n        version: '1.0.0',\n        contact: {\n          name: 'EventStorm Support',\n          email: 'support@eventstorm.me',\n          url: 'https://eventstorm.me/support'\n        },\n        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },\n        termsOfService: 'https://eventstorm.me/terms'\n      },\n      servers: [\n        {\n          url: process.env.NODE_ENV === 'production'\n            ? 'https://eventstorm.me'\n            : 'http://localhost:3000',\n          description: process.env.NODE_ENV === 'production'\n            ? 'Production server'\n            : 'Development server'\n        }\n      ],\n      tags: [\n        { name: 'auth', description: 'Authentication endpoints' },\n        { name: 'git', description: 'Git-analysis endpoints' },\n        { name: 'ai', description: 'AI-powered endpoints' },\n        { name: 'chat', description: 'Chat endpoints' },\n        { name: 'wiki', description: 'Wiki endpoints' },\n        { name: 'api', description: 'Utility endpoints' }\n      ],\n      components: {\n        securitySchemes: {\n          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },\n          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' }\n        },\n        responses: {\n          UnauthorizedError: {\n            description: 'Authentication information is missing or invalid',\n            content: {\n              'application/json': {\n                schema: {\n                  type: 'object',\n                  properties: {\n                    error: { type: 'string' },\n                    message: { type: 'string' },\n                    statusCode: { type: 'number' }\n                  }\n                }\n              }\n            }\n          },\n          ServerError: {\n            description: 'Internal server error',\n            content: {\n              'application/json': {\n                schema: {\n                  type: 'object',\n                  properties: {\n                    error: { type: 'string' },\n                    message: { type: 'string' },\n                    statusCode: { type: 'number' }\n                  }\n                }\n              }\n            }\n          }\n        }\n      },\n      security: [{ bearerAuth: [] }, { cookieAuth: [] }]\n    },\n    exposeRoute: true // This is crucial for exposing the /openapi.json and /openapi.yaml routes\n  });\n\n  await fastify.register(helmet, {\n    global: true,\n    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },\n    contentSecurityPolicy: {\n      directives: {\n        defaultSrc: [\"'self'\", 'https://accounts.google.com/gsi/'],\n        scriptSrc: [\"'self'\", 'https://accounts.google.com/gsi/client'],\n        styleSrc: [\"'self'\", \"'unsafe-inline'\", 'https://accounts.google.com/gsi/style'],  \n        frameSrc: [\"'self'\", 'https://accounts.google.com/gsi/'],\n        connectSrc: [  \n          \"'self'\", \n          'https://accounts.google.com/gsi/',\n          // Add http for local development\n          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:5173'] : [])\n        ],\n      },\n    },\n  });\n\n\n  await fastify.register(corsPlugin);\n\n  fastify.log.info('🔌 Registering Redis client plugin');\n  await fastify.register(redisPlugin);\n  fastify.log.info('✅ Redis client plugin registered');\n\n  fastify.redis.on('error', (err) => {\n    fastify.log.error({ err }, 'Redis client error');\n  });\n\n  fastify.log.info('⏳ Testing Redis connection with PING…');\n  try {\n    const pong = await fastify.redis.ping();\n    fastify.log.info(`✅ Redis PING response: ${pong}`);\n  } catch (err) {\n    fastify.log.error({ err }, '❌ Redis PING failed');\n  }\n\n  // ────────────────────────────────────────────────────────────────\n  // 4️⃣  COOKIE / SESSION\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(\n    fastifyCookie,\n    {\n      secret: fastify.secrets.COOKIE_SECRET,\n      parseOptions: { secure: true, httpOnly: true, sameSite: 'None' },\n    },\n    { encapsulate: false }\n  );\n\n  class RedisStore extends Store {\n    constructor(sendCommand) {\n      super();\n      this.send = sendCommand;\n    }\n    get(sid, cb) {\n      this.send(['GET', sid])\n        .then((data) => cb(null, data ? JSON.parse(data) : null))\n        .catch(cb);\n    }\n    set(sid, sess, ttlMs, cb) {\n      const data = JSON.stringify(sess);\n      const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;\n      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];\n      this.send(cmd).then(() => cb(null)).catch(cb);\n    }\n    destroy(sid, cb) {\n      this.send(['DEL', sid]).then(() => cb(null)).catch(cb);\n    }\n  }\n\n  await fastify.register(fastifySession, {\n    secret: fastify.secrets.SESSION_SECRET,\n    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },\n    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),\n    saveUninitialized: false,\n  });\n\n  // ────────────────────────────────────────────────────────────────\n  // 5️⃣  HEALTH ROUTE\n  // ────────────────────────────────────────────────────────────────\n  fastify.get('/', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));\n\n  // ────────────────────────────────────────────────────────────────\n  // 6️⃣  GOOGLE OAUTH + JWT (UNCHANGED FROM ORIGINAL)\n  // ────────────────────────────────────────────────────────────────\n  let credentialsJsonString, clientId, clientSecret;\n\n  if (\n    process.env.USER_OAUTH2_CREDENTIALS &&\n    process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')\n  ) {\n    credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);\n  } else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {\n    const credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;\n    credentialsJsonString = JSON.parse(\n      await fs.promises.readFile(credentialsPath, { encoding: 'utf8' })\n    );\n  } else {\n    clientId = process.env.FALLBACK_CLIENT_ID;\n    clientSecret = process.env.FALLBACK_CLIENT_SECRET;\n  }\n\n  if (credentialsJsonString) {\n    clientId = credentialsJsonString.web.client_id;\n    clientSecret = credentialsJsonString.web.client_secret;\n  }\n\n  const revokedTokens = new Map();\n\n  fastify.register(fastifyJwt, {\n    secret: fastify.secrets.JWT_SECRET,\n    sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },\n    verify: { requestProperty: 'user' },\n    trusted(request, decoded) {\n      return !revokedTokens.has(decoded.jti);\n    },\n  });\n\n  fastify.decorate('verifyToken', async function (request) {\n    let token = request.cookies?.authToken;\n    if (!token && request.headers.authorization) {\n      const [scheme, value] = request.headers.authorization.split(' ');\n      if (scheme === 'Bearer') token = value;\n    }\n    if (!token) throw fastify.httpErrors.unauthorized('Missing token');\n    request.user = await fastify.jwt.verify(token);\n  });\n\n  fastify.decorateRequest('revokeToken', function () {\n    if (!this.user?.jti) throw this.httpErrors.unauthorized('Missing jti');\n    revokedTokens.set(this.user.jti, true);\n  });\n\n  fastify.decorateRequest('generateToken', async function () {\n    return fastify.jwt.sign(\n      { id: String(this.user.id), username: this.user.username },\n      { jwtid: uuidv4(), expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }\n    );\n  });\n\n  const cookieSecure   = process.env.NODE_ENV === 'production';\n  const cookieSameSite = cookieSecure ? 'None' : 'Lax';\n  const googleCallbackUri =\n    cookieSecure\n      ? 'https://eventstorm.me/api/auth/google/callback'\n      : 'http://localhost:3000/api/auth/google/callback';\n\n  await fastify.register(\n    fastifyOAuth2,\n    {\n      name: 'googleOAuth2',\n      scope: ['profile', 'email', 'openid'],\n      cookie: { secure: cookieSecure, sameSite: cookieSameSite, httpOnly: true },\n      credentials: {\n        client: { id: clientId, secret: clientSecret },\n        auth: fastifyOAuth2.GOOGLE_CONFIGURATION,\n      },\n      startRedirectPath: '/api/auth/google',\n      callbackUri: googleCallbackUri,\n    },\n    { encapsulate: false }\n  );\n\n  const googleClient = new OAuth2Client(clientId);\n  fastify.decorate('verifyGoogleIdToken', async (idToken) => {\n    const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });\n    return ticket.getPayload();\n  });\n\n  await fastify.register(authSchemasPlugin);\n\n  fastify.get('/api/auth/google/callback', async (req, reply) => {\n    const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);\n    const googleAccessToken = token.token.access_token;\n\n    const userService = await req.diScope.resolve('userService');\n    const googleUser  = await userService.loginWithGoogle(googleAccessToken);\n    if (!googleUser) return reply.unauthorized('Google profile invalid');\n\n    const jti  = uuidv4();\n    const jwt  = fastify.jwt.sign(\n      { id: googleUser.id, username: googleUser.username, jti },\n      { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }\n    );\n\n    reply.setCookie('authToken', jwt, {\n      path: '/',\n      httpOnly: true,\n      secure: cookieSecure,\n      sameSite: cookieSameSite,\n    });\n\n    reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');\n  });\n\n  // ────────────────────────────────────────────────────────────────\n  // 7️⃣  AUTOLOAD MODULES\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'aop_modules'),\n    encapsulate: false,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: Object.assign({}, opts),\n  });\n\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'business_modules'),\n    encapsulate: true,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: Object.assign({}, opts),\n  });\n\n  // Debug route\n  fastify.get('/debug/clear-state-cookie', (req, reply) => {\n    reply.clearCookie('oauth2-redirect-state', { path: '/' });\n    reply.send({ message: 'cleared' });\n  });\n\n  await fastify.register(fastifySwaggerUI, {\n    routePrefix: '/api/doc',\n    staticCSP: true, // Enable static CSP headers for the UI\n    uiConfig: {\n      docExpansion: 'list',\n      deepLinking: true,\n      defaultModelsExpandDepth: 2,\n      defaultModelExpandDepth: 2,\n      defaultModelRendering: 'example',\n      displayRequestDuration: true,\n      filter: true,\n      tryItOutEnabled: true,\n      persistAuthorization: true,\n      layout: 'StandaloneLayout',\n      // Custom CSS for better aesthetics\n      customCss: `\n        .swagger-ui .topbar{display:none;}\n        .swagger-ui .info .title{color:#1f2937;}\n        .swagger-ui .scheme-container{background:#f8f9fa;padding:10px;border-radius:4px;}\n        .swagger-ui .info .description {font-size: 14px; line-height: 1.6;}\n        .swagger-ui .btn.authorize {background-color: #4f46e5; border-color: #4f46e5;}\n        .swagger-ui .btn.authorize:hover {background-color: #4338ca;}\n      `,\n      customSiteTitle: 'EventStorm.me API Docs',\n      customfavIcon: '/favicon.ico',\n      // Optional: Add request/response interceptors for debugging Swagger UI calls\n      requestInterceptor: req => {\n        console.log('🌐 Swagger UI Request:', {\n          url: req.url, method: req.method, headers: req.headers\n        });\n        return req;\n      },\n      responseInterceptor: res => {\n        console.log('📡 Swagger UI Response:', {\n          url: res.url, status: res.status, statusText: res.statusText\n        });\n        return res;\n      }\n    },\n    // Transform CSP headers for Swagger UI to allow necessary external resources and inline styles/scripts\n    transformStaticCSP: (hdr) => {\n      let newHdr = hdr.replace(\n        /default-src 'self'/g,\n        \"default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:\"\n      );\n      // Add connect-src directives based on environment for local development\n      if (process.env.NODE_ENV !== 'production') {\n        newHdr += \"; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:\";\n      } else {\n        newHdr += \"; connect-src 'self' https: wss: data: blob:\";\n      }\n      newHdr += \"; style-src 'self' 'unsafe-inline' https:\"; // Allow inline styles and HTTPS sources\n      newHdr += \"; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\"; // Allow inline scripts, eval, and HTTPS sources\n      return newHdr;\n    },\n    transformSpecificationClone: true, // Clone the spec before transforming\n    // Transform the OpenAPI specification\n    transformSpecification(spec) {\n      spec.info['x-build-time'] = new Date().toISOString();\n      spec.info['x-builder'] = 'anatolyZader';\n      spec.info['x-environment'] = process.env.NODE_ENV || 'development';\n      spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info\n\n      // Adjust server URLs for development environment\n      if (process.env.NODE_ENV !== 'production') {\n        spec.servers = [\n          { url: 'http://localhost:3000', description: 'Development server' },\n          { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }\n        ];\n      }\n\n      spec.info['x-security-note'] = 'This API uses JWT Bearer tokens or cookie-based authentication';\n      return spec;\n    }\n  });\n\n  // fastify.after(async () => {\n  //   await fastify.register(swaggerUIPlugin);\n  // });\n\n  // ────────────────────────────────────────────────────────────────\n  // 9️⃣  READY HOOK – print summary\n  // ────────────────────────────────────────────────────────────────\n\n  fastify.addHook('onReady', async () => {\n    fastify.log.info('▶ Registered routes:\\n' + fastify.printRoutes());\n  });\n};\n",
+  "source": "backend/app.js",
+  "type": "github-code",
+  "isTextSearchResult": true,
+  "snippet": "<b>app.js</b>\n'use strict';\n/* eslint-disable no-unused-vars */\n\nconst path              = require('node:path');\nconst fs                = require",
+  "score": 0.030396355,
+  "id": "text_59"
 }
 ```
 
 ---
 
 ### Chunk 3/3
-- **Source**: anatolyZader/vc-3
-- **Type**: github-file
-- **Size**: 200 characters
-- **Score**: 0.500659943
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
+- **Source**: backend/aop_modules/auth/index.js
+- **Type**: github-code
+- **Size**: 1812 characters
+- **Score**: 0.030396355
+- **Repository**: N/A
+- **Branch**: N/A
 - **File Type**: N/A
-- **Processed At**: 2025-10-25T12:09:32.403Z
+- **Processed At**: N/A
 
 **Full Content**:
 ```
-* Useful for refreshing documentation or debugging
-   */
-  // (No manual system documentation startup here; the DocsProcessor can be invoked where appropriate.)
-}
+// aop_modules/auth/index.js
+/* eslint-disable no-unused-vars */
+const fp = require('fastify-plugin'); // <-- ADDED: Import fastify-plugin
+const autoload = require('@fastify/autoload');
+const path = require('path');
 
-module.exports = AILangchainAdapter;
+// <<< --- MODIFIED: Wrapped module.exports with fp() --- >>>
+module.exports = fp(async function authModuleIndex(fastify, opts) {
+
+  // Calculate the module-specific prefix.
+  // opts.prefix will be '/api' from app.js.
+  // path.basename(__dirname) will be 'auth'.
+  // So, moduleSpecificPrefix will be '/api/auth'.
+  const moduleSpecificPrefix = opts.prefix ? `${opts.prefix}/${path.basename(__dirname)}` : `/${path.basename(__dirname)}`;
+
+  fastify.register(autoload, {
+    dir: path.join(__dirname, 'application'),
+    // options: { // REMOVED: This was commented out anyway and not needed
+    //   // prefix: '/auth'
+    // },
+    encapsulate: false,
+    maxDepth: 1,
+    matchFilter: (filepath) => filepath.includes('Controller'), // Note: Changed 'path' to 'filepath' for consistency, though 'path' often works.
+    prefix: moduleSpecificPrefix // <-- ADDED: Apply the calculated prefix
+  });
+
+  fastify.register(autoload, {
+    dir: path.join(__dirname, 'routes'),
+    encapsulate: false, // Changed from true to false for consistency, adjust if internal encapsulation is truly needed.
+    // prefix: '/api', // REMOVED: This was commented out anyway and not needed
+    maxDepth: 1,
+    matchFilter: (filepath) => filepath.includes('Router'), // Note: Changed 'path' to 'filepath' for consistency
+    dirNameRoutePrefix: false,
+    prefix: moduleSpecificPrefix // <-- ADDED: Apply the calculated prefix
+  });
+}); // <<< --- MODIFIED: Closing parenthesis for fp() --- >>>
+
+// <<< --- REMOVED: No longer needed with fp() and dynamic prefixing --- >>>
+// module.exports.autoPrefix = '/auth';
 ```
 
 **Metadata**:
 ```json
 {
-  "branch": "main",
-  "chunkIndex": 18,
-  "chunkTokens": 50,
-  "filePath": "backend/business_modules/ai/infrastructure/ai/aiLangchainAdapter.js",
-  "fileSize": 23860,
-  "loaded_at": "2025-10-25T12:09:32.403Z",
-  "loading_method": "cloud_native_api",
-  "originalTokens": 5237,
-  "priority": 70,
-  "processedAt": "2025-10-25T12:09:32.403Z",
-  "rechunked": true,
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "19b47ef644ae82ba32047f9aabf9a2f4ba591508",
-  "size": 23860,
-  "source": "anatolyZader/vc-3",
-  "text": "* Useful for refreshing documentation or debugging\n   */\n  // (No manual system documentation startup here; the DocsProcessor can be invoked where appropriate.)\n}\n\nmodule.exports = AILangchainAdapter;",
-  "type": "github-file",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 0,
-  "score": 0.500659943,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1881_1761394259087"
+  "text": "// aop_modules/auth/index.js\n/* eslint-disable no-unused-vars */\nconst fp = require('fastify-plugin'); // <-- ADDED: Import fastify-plugin\nconst autoload = require('@fastify/autoload');\nconst path = require('path');\n\n// <<< --- MODIFIED: Wrapped module.exports with fp() --- >>>\nmodule.exports = fp(async function authModuleIndex(fastify, opts) {\n\n  // Calculate the module-specific prefix.\n  // opts.prefix will be '/api' from app.js.\n  // path.basename(__dirname) will be 'auth'.\n  // So, moduleSpecificPrefix will be '/api/auth'.\n  const moduleSpecificPrefix = opts.prefix ? `${opts.prefix}/${path.basename(__dirname)}` : `/${path.basename(__dirname)}`;\n\n  fastify.register(autoload, {\n    dir: path.join(__dirname, 'application'),\n    // options: { // REMOVED: This was commented out anyway and not needed\n    //   // prefix: '/auth'\n    // },\n    encapsulate: false,\n    maxDepth: 1,\n    matchFilter: (filepath) => filepath.includes('Controller'), // Note: Changed 'path' to 'filepath' for consistency, though 'path' often works.\n    prefix: moduleSpecificPrefix // <-- ADDED: Apply the calculated prefix\n  });\n\n  fastify.register(autoload, {\n    dir: path.join(__dirname, 'routes'),\n    encapsulate: false, // Changed from true to false for consistency, adjust if internal encapsulation is truly needed.\n    // prefix: '/api', // REMOVED: This was commented out anyway and not needed\n    maxDepth: 1,\n    matchFilter: (filepath) => filepath.includes('Router'), // Note: Changed 'path' to 'filepath' for consistency\n    dirNameRoutePrefix: false,\n    prefix: moduleSpecificPrefix // <-- ADDED: Apply the calculated prefix\n  });\n}); // <<< --- MODIFIED: Closing parenthesis for fp() --- >>>\n\n// <<< --- REMOVED: No longer needed with fp() and dynamic prefixing --- >>>\n// module.exports.autoPrefix = '/auth';",
+  "content": "// aop_modules/auth/index.js\n/* eslint-disable no-unused-vars */\nconst fp = require('fastify-plugin'); // <-- ADDED: Import fastify-plugin\nconst autoload = require('@fastify/autoload');\nconst path = require('path');\n\n// <<< --- MODIFIED: Wrapped module.exports with fp() --- >>>\nmodule.exports = fp(async function authModuleIndex(fastify, opts) {\n\n  // Calculate the module-specific prefix.\n  // opts.prefix will be '/api' from app.js.\n  // path.basename(__dirname) will be 'auth'.\n  // So, moduleSpecificPrefix will be '/api/auth'.\n  const moduleSpecificPrefix = opts.prefix ? `${opts.prefix}/${path.basename(__dirname)}` : `/${path.basename(__dirname)}`;\n\n  fastify.register(autoload, {\n    dir: path.join(__dirname, 'application'),\n    // options: { // REMOVED: This was commented out anyway and not needed\n    //   // prefix: '/auth'\n    // },\n    encapsulate: false,\n    maxDepth: 1,\n    matchFilter: (filepath) => filepath.includes('Controller'), // Note: Changed 'path' to 'filepath' for consistency, though 'path' often works.\n    prefix: moduleSpecificPrefix // <-- ADDED: Apply the calculated prefix\n  });\n\n  fastify.register(autoload, {\n    dir: path.join(__dirname, 'routes'),\n    encapsulate: false, // Changed from true to false for consistency, adjust if internal encapsulation is truly needed.\n    // prefix: '/api', // REMOVED: This was commented out anyway and not needed\n    maxDepth: 1,\n    matchFilter: (filepath) => filepath.includes('Router'), // Note: Changed 'path' to 'filepath' for consistency\n    dirNameRoutePrefix: false,\n    prefix: moduleSpecificPrefix // <-- ADDED: Apply the calculated prefix\n  });\n}); // <<< --- MODIFIED: Closing parenthesis for fp() --- >>>\n\n// <<< --- REMOVED: No longer needed with fp() and dynamic prefixing --- >>>\n// module.exports.autoPrefix = '/auth';",
+  "source": "backend/aop_modules/auth/index.js",
+  "type": "github-code",
+  "isTextSearchResult": true,
+  "snippet": "<b>app.js</b>.\n  // path.basename(__dirname) will be 'auth'.\n  // So, moduleSpecificPrefix will be '/api/auth'.\n  const moduleSpecificPrefix = opts.prefix ? `${opts.prefix",
+  "score": 0.030396355,
+  "id": "text_28"
 }
 ```
 
@@ -331,37 +687,28 @@ module.exports = AILangchainAdapter;
 
 ### Generated Response:
 **Status**: ✅ Generated Successfully
-**Response Length**: 1291 characters
-**Generated At**: 2025-10-27T15:34:11.768Z
+**Response Length**: 685 characters
+**Generated At**: 2025-10-27T17:22:32.695Z
 
 ### Response Content:
 ```markdown
-Based on the provided code, I can explain the functioning of the `app.js` and `aiLangchainAdapter.js` files as follows:
+Based on the provided code context, I can see the following differences between the `app.js` and `aiService.js` files:
 
-1. **app.js** (not provided in the context):
-   I don't see the `app.js` file in the provided code context, so I cannot describe its functioning.
+1. `app.js` is the main entry point of the application. It sets up the Fastify server, registers various plugins (e.g., Redis, WebSocket, logging, DI, CORS, JWT, OAuth2), and configures the application's environment.
 
-2. **aiLangchainAdapter.js**:
-   This file contains the implementation of the `AILangchainAdapter` class, which extends the `IAIPort` interface. The key points about this class are:
+2. The `aiService.js` file is not present in the provided code context. I don't see that specific file or implementation in the code you have provided.
 
-   - The constructor initializes the `aiProvider` property based on the provided options or a default value of `'openai'`.
-   - It attempts to access the `eventBus` from the `eventDispatcher` module, which is used for emitting status updates.
-   - The `emitStatus` method is responsible for emitting status updates to the event bus, if available. It creates a payload object with information about the component, phase, metrics, and timestamp, and then tries to emit it to the instance event bus or the imported event bus.
-   - There is a commented-out method called `manuallyTriggerSystemDocumentationProcessing`, which is not implemented in the provided code.
-
-Overall, the `aiLangchainAdapter.js` file appears to be responsible for managing the integration with an AI provider (likely OpenAI) and emitting status updates to an event bus.
+To summarize, the `app.js` file is the main application bootstrap, while the `aiService.js` file is not included in the current code context, so I cannot comment on its purpose or functionality.
 ```
 
 ### Response Quality Assessment:
 - **Relevance to Query**: HIGH - Directly addresses query terms
-- **Use of Context**: MEDIUM - Implicit context usage
+- **Use of Context**: GOOD - Some reference to retrieved context
 - **Response Completeness**: GOOD - Structured with adequate detail
 
 ### Key Response Elements:
 - **Structured Lists**: 2 numbered points
-- **Bullet Points**: 4 bullet items
 - **File References**: 6 specific files mentioned
-- **Technical Terms**: 7 technical concepts used
 
 ---
 
@@ -369,15 +716,15 @@ Overall, the `aiLangchainAdapter.js` file appears to be responsible for managing
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 4736ms
+- **Query Processing Time**: 3144ms
 - **Documents Retrieved**: 3
-- **Unique Sources**: 1
-- **Average Chunk Size**: 1721 characters
+- **Unique Sources**: 3
+- **Average Chunk Size**: 6711 characters
 
 ### Context Quality:
 - **Relevance Score**: HIGH (3 relevant chunks found)
-- **Diversity Score**: LOW (1 unique sources)
-- **Completeness Score**: HIGH (5,163 total characters)
+- **Diversity Score**: GOOD (3 unique sources)
+- **Completeness Score**: HIGH (20,134 total characters)
 
 ### LangSmith Integration:
 - **Tracing Status**: ✅ Active
@@ -387,21 +734,24 @@ Overall, the `aiLangchainAdapter.js` file appears to be responsible for managing
 ## 🔍 Source Analysis
 
 ### Most Frequent Sources:
-- **anatolyZader/vc-3**: 3 chunks
+- **backend/package.json**: 1 chunks
+- **backend/app.js**: 1 chunks
+- **backend/aop_modules/auth/index.js**: 1 chunks
 
 ### Repository Coverage:
-- anatolyZader/vc-3
+- No repository sources detected
 
 ## 🎯 Query Classification & Analysis
 
 - **Query Type**: General/Conversational
-- **Domain Focus**: General Application
+- **Domain Focus**: Cross-cutting Concerns
 - **Technical Complexity**: High
 - **Expected Response Type**: Explanatory
 
 ## 🚀 Recommendations
 
-- **Increase Source Diversity**: All chunks from same source, consider broader indexing
+- **Excellent Performance**: RAG pipeline is performing optimally
+- **Continue Monitoring**: Maintain current configuration and observe trends
 
 ## ✨ Conclusion
 
@@ -414,7 +764,7 @@ This comprehensive LangSmith trace demonstrates good RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-10-27T15:34:11.769Z  
+**Generated**: 2025-10-27T17:22:32.696Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true

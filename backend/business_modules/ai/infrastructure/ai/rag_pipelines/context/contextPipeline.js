@@ -677,7 +677,11 @@ class ContextPipeline {
       }
       
       // Process using worker manager with embeddingManager for storage
-      const result = await this.workerManager.processLargeRepository(repositoryJob, this.embeddingManager);
+      const result = await this.workerManager.processLargeRepository(
+        repositoryJob, 
+        this.embeddingManager,
+        this.textSearchService  // Pass text search service for PostgreSQL storage
+      );
       
       if (result.success) {
         logConfig.logProcessing(`[${new Date().toISOString()}] ✅ Worker processing successful, storing tracking info...`);
@@ -798,6 +802,20 @@ class ContextPipeline {
       // Step 5: Store processed documents using EmbeddingManager
       const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
       await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
+      
+      // Step 5.5: Store chunks to PostgreSQL for full-text search (if available)
+      if (this.textSearchService) {
+        try {
+          console.log(`[${new Date().toISOString()}] 💾 Storing ${splitDocuments.length} chunks to PostgreSQL for full-text search...`);
+          const storeResult = await this.textSearchService.storeChunks(splitDocuments, userId, repoId);
+          console.log(`[${new Date().toISOString()}] ✅ PostgreSQL storage: ${storeResult.stored} chunks stored, ${storeResult.skipped} skipped`);
+        } catch (pgError) {
+          console.error(`[${new Date().toISOString()}] ⚠️  PostgreSQL storage failed (non-fatal):`, pgError.message);
+          // Don't fail the whole process if PostgreSQL storage fails
+        }
+      } else {
+        console.log(`[${new Date().toISOString()}] ⏭️  Text search service not available, skipping PostgreSQL storage`);
+      }
       
       // Step 6: Store repository tracking info for future duplicate detection  
       if (commitHash) {
