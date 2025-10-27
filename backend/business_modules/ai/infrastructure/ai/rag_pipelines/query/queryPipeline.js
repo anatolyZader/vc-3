@@ -418,7 +418,7 @@ class QueryPipeline {
       
       if (searchStrategy.explicitFiles && searchStrategy.explicitFiles.length > 0) {
         console.log(`[${new Date().toISOString()}] 📁 FILE-SPECIFIC SEARCH: Looking for ${searchStrategy.explicitFiles.join(', ')}`);
-        console.log(`[${new Date().toISOString()}] 🔍 Using enhanced semantic search (threshold=${threshold}, topK=${topK})`);
+        console.log(`[${new Date().toISOString()}] 🔍 Using hybrid approach: semantic search + full-text search for filenames`);
       }
       
       searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
@@ -428,6 +428,53 @@ class QueryPipeline {
         includeMetadata: true,
         filter: combinedFilter
       });
+      
+      // If this is a file-specific query, also perform full-text search for filename matching
+      if (searchStrategy.explicitFiles && searchStrategy.explicitFiles.length > 0 && this.textSearchService) {
+        console.log(`[${new Date().toISOString()}] 📄 Adding full-text search for explicit file matching`);
+        
+        // Search for each mentioned file using full-text search
+        const textSearchResults = [];
+        for (const filename of searchStrategy.explicitFiles) {
+          try {
+            console.log(`[${new Date().toISOString()}] 🔍 Full-text search for: ${filename}`);
+            const fileResults = await this.textSearchService.searchDocuments(filename, {
+              userId,
+              limit: 10  // Get up to 10 chunks per file
+            });
+            
+            if (fileResults.length > 0) {
+              console.log(`[${new Date().toISOString()}] ✅ Found ${fileResults.length} chunks via full-text search for ${filename}`);
+              textSearchResults.push(...fileResults);
+            } else {
+              console.log(`[${new Date().toISOString()}] ⚠️ No results from full-text search for ${filename}`);
+            }
+          } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Full-text search error for ${filename}:`, error.message);
+          }
+        }
+        
+        // Convert text search results to compatible format and merge with vector search
+        if (textSearchResults.length > 0) {
+          const formattedTextResults = textSearchResults.map(result => ({
+            id: `text_${result.id}`,
+            score: result.rank * 0.5,  // Scale rank to match vector scores (0-1 range)
+            metadata: {
+              text: result.content,
+              content: result.content,
+              source: result.filePath,
+              type: 'github-code',
+              isTextSearchResult: true,
+              snippet: result.snippet
+            }
+          }));
+          
+          console.log(`[${new Date().toISOString()}] 🔀 Merging ${searchResults.matches?.length || 0} vector results + ${formattedTextResults.length} text results`);
+          
+          // Merge results, prioritizing text search results for file-specific queries
+          searchResults.matches = [...formattedTextResults, ...(searchResults.matches || [])];
+        }
+      }
     }
     
     // Convert to legacy format with deduplication and per-source caps

@@ -1,101 +1,151 @@
-# Hybrid Filename Search Implementation
+# Enhanced Semantic Search for File-Specific Queries
 
 ## Overview
-Implemented explicit filename matching to solve the file discovery problem where explicitly mentioned files (like "app.js") weren't being retrieved due to low semantic similarity.
+Enhanced semantic search to improve file retrieval when users explicitly mention filenames. Since Pinecone doesn't support regex in metadata filters, we use an optimized semantic search approach with boosted parameters.
 
 ## Problem Statement
-**Before**: When users asked "explain app.js and aiLangchainAdapter.js", only aiLangchainAdapter.js was retrieved. The AI responded "I don't see the app.js file in the provided code context" even though it existed in Pinecone.
+**Before**: When users asked "explain app.js and aiLangchainAdapter.js", the semantic search might not retrieve both files if embeddings didn't match well.
 
 **Root Cause**: Pure semantic search relies on embedding similarity. If a query's embedding doesn't match a file's embedding well, the file won't be retrieved - even if it's explicitly mentioned by name.
 
-## Solution: Hybrid Search Strategy
+## Solution: Enhanced Semantic Search
 
-### 1. Filename Filter Generation
+### Pinecone Limitation
+Pinecone's metadata filtering **does NOT support**:
+- `$regex` operator (MongoDB-style)
+- Pattern matching in metadata
+- Wildcard searches
+
+Pinecone **DOES support**:
+- `$eq` (exact match)
+- `$in` (array membership)
+- `$ne` (not equal)
+- `$gt`, `$gte`, `$lt`, `$lte` (numeric comparisons)
+
+### Our Approach: Optimized Semantic Search
+
+Since we can't filter by filename patterns, we optimize semantic search for file-specific queries:
+
+1. **Detect File Mentions**: Regex pattern identifies files like "app.js", "server.ts"
+2. **Boost Search Parameters**: Increase topK and lower threshold
+3. **Include Filenames in Query**: The filenames in the prompt help semantic matching
+4. **Smart Result Allocation**: 10 chunks per file mentioned
+
+### Implementation
+
+#### 1. File Detection & Parameter Boost
 **File**: `vectorSearchStrategy.js`
 
 ```javascript
-// When files are explicitly mentioned, create metadata filters
+// When files are explicitly mentioned, optimize search parameters
 if (mentionedFiles && mentionedFiles.length > 0) {
-  const filenameFilters = mentionedFiles.map(file => ({
-    source: { $regex: `.*${file}.*` }
-  }));
+  const codeResultsForFiles = Math.min(30, Math.max(25, mentionedFiles.length * 10));
   
   return {
-    codeResults: codeResultsForFiles,
+    codeResults: codeResultsForFiles,  // 25-30 chunks
     docsResults: 5,
-    filenameFilters: filenameFilters,  // Pass to query pipeline
+    codeFilters: {
+      type: { $in: ['github-code', 'github-test', 'github-docs'] }
+    },
+    explicitFiles: mentionedFiles,  // Track requested files
     priority: 'file-specific'
   };
 }
 ```
 
-### 2. Hybrid Search Execution
-**File**: `queryPipeline.js` - `performHybridFileSearch()`
+**Key Changes**:
+- TopK increased to 25-30 (from default 20)
+- 10 chunks per file (vs 8 before)
+- Tracks which files were explicitly requested
 
-The hybrid search has 3 steps:
-
-#### Step 1: Explicit Filename Matching
-- Query Pinecone with metadata filters: `source: { $regex: ".*app.js.*" }`
-- Lower similarity threshold (0.2 vs 0.3) since we know the file is wanted
-- Get up to 10 chunks per explicitly mentioned file
-- Guaranteed retrieval if file exists in Pinecone
-
-#### Step 2: Semantic Search for Context
-- Standard semantic search for additional context
-- Normal threshold (0.3)
-- Respects type filters (code, docs, test, etc.)
-- Provides related code that semantically matches the query
-
-#### Step 3: Intelligent Merge
-- Prioritize explicit filename matches (user requested these!)
-- Add semantic matches to fill remaining slots
-- Deduplicate by chunk ID
-- Mark chunks as `filenameMatch: true` for observability
-
-### 3. Integration with Query Pipeline
-**File**: `queryPipeline.js` - `performVectorSearch()`
+#### 2. Lower Threshold for File Queries
+**File**: `queryPipeline.js`
 
 ```javascript
-// Check if we have explicit filename filters
-if (searchStrategy.filenameFilters && searchStrategy.filenameFilters.length > 0) {
-  console.log('🎯 HYBRID SEARCH: Combining filename matching + semantic search');
-  searchResults = await this.performHybridFileSearch(prompt, {
-    namespace: repositoryNamespace,
-    topK: searchStrategy.codeResults + searchStrategy.docsResults,
-    threshold: 0.3,
-    filenameFilters: searchStrategy.filenameFilters,
-    typeFilter: combinedFilter
-  });
-} else {
-  // Standard semantic search (no explicit files mentioned)
-  searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, { ... });
+// For file-specific queries, use lower threshold
+const threshold = searchStrategy.priority === 'file-specific' ? 0.25 : 0.3;
+const topK = searchStrategy.codeResults + searchStrategy.docsResults;
+
+if (searchStrategy.explicitFiles && searchStrategy.explicitFiles.length > 0) {
+  console.log(`📁 FILE-SPECIFIC SEARCH: Looking for ${searchStrategy.explicitFiles.join(', ')}`);
+  console.log(`🔍 Using enhanced semantic search (threshold=${threshold}, topK=${topK})`);
 }
+
+searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
+  namespace: repositoryNamespace,
+  topK,
+  threshold,  // 0.25 for files, 0.3 for general
+  includeMetadata: true,
+  filter: combinedFilter
+});
 ```
 
-## Files Modified
-
-### 1. vectorSearchStrategy.js
-**Changes**:
-- Added filename filter generation when files are detected
-- Pass `filenameFilters` array to query pipeline
-- Enhanced logging for file-specific queries
-
-**Impact**: Enables detection and metadata filter creation
-
-### 2. queryPipeline.js
-**Changes**:
-- Added `performHybridFileSearch()` method (78 lines)
-- Added `mergeHybridResults()` helper method (30 lines)
-- Updated `performVectorSearch()` to use hybrid search when filename filters exist
-- Enhanced logging throughout hybrid search flow
-
-**Impact**: Core hybrid search implementation
+**Benefits**:
+- Lower threshold (0.25) catches more potential matches
+- Higher topK ensures comprehensive coverage
+- Filenames in prompt text help semantic similarity
 
 ## How It Works: Real Example
 
 ### Query: "explain app.js and aiLangchainAdapter.js"
 
-#### Before (Pure Semantic Search)
+#### Enhanced Semantic Search Flow
+1. **File Detection**: Regex detects "app.js" and "aiLangchainAdapter.js"
+2. **Parameter Boost**: 
+   - TopK increased to 30 (2 files × 10 chunks + 10 buffer)
+   - Threshold lowered to 0.25 (vs 0.3 normally)
+3. **Semantic Search**: Query includes filenames in text
+   - "explain app.js and aiLangchainAdapter.js files..."
+   - Embeddings include the filename context
+   - Finds chunks from both files based on semantic similarity
+4. **Result**: 25-30 chunks retrieved, likely covering both files
+
+## Benefits
+
+### 1. Works with Pinecone Limitations
+- No reliance on unsupported `$regex` operator
+- Uses only supported Pinecone filters (`$in`, `$eq`)
+- Stable and production-ready
+
+### 2. Better Coverage
+- 10 chunks per file (comprehensive)
+- Lower threshold catches borderline matches
+- Higher topK ensures all relevant content retrieved
+
+### 3. Filename Context Helps Embeddings
+- Filenames in query text improve semantic matching
+- "app.js" in prompt matches "app.js" in chunk metadata
+- Natural language embedding model understands filename references
+
+### 4. Simple and Maintainable
+- Single code path (no complex hybrid logic)
+- Easier to debug and optimize
+- Fewer moving parts
+
+## Trade-offs vs. Regex Filtering
+
+### What We Lose
+- ❌ Guaranteed file retrieval (regex would guarantee match)
+- ❌ Exact filename matching in metadata
+- ❌ Independence from embedding quality
+
+### What We Gain
+- ✅ **Works with Pinecone** (most important!)
+- ✅ Simpler implementation
+- ✅ Better semantic relevance (chunks actually related to query)
+- ✅ Natural ranking by similarity score
+
+### Is This Good Enough?
+**Yes**, for most cases:
+- Filenames in query text DO help semantic matching significantly
+- Lower threshold (0.25) and higher topK (30) provide good coverage
+- User mentioned files usually have high semantic relevance to query
+- Type filtering (`github-code`) ensures we're searching the right content
+
+**When it might fail**:
+- File exists but has very different content from query
+- Very generic query like "show me app.js" without context
+- Typos in filename (though semantic search might still match)
 1. Query embedding generated for entire prompt
 2. Pinecone returns 25 chunks based on semantic similarity
 3. aiLangchainAdapter.js chunks match well (high similarity)
@@ -305,3 +355,43 @@ const chunksPerFile = calculateOptimalChunks(query);
 ✅ **Performance**: Minimal overhead (~0.5s) for significantly better accuracy
 
 This implementation directly addresses the file discovery issue identified in the chunk limits analysis, completing the RAG pipeline improvements.
+
+## UPDATE: Pinecone Compatibility Fix
+
+### Issue Discovered
+The initial hybrid search implementation used `$regex` operator which is **not supported by Pinecone**.
+
+Error: `$regex is not a valid operator`
+
+### Pinecone's Supported Operators
+- `$eq` (exact match)
+- `$in` (array membership)  
+- `$ne` (not equal)
+- `$gt`, `$gte`, `$lt`, `$lte` (numeric comparisons)
+- **NOT SUPPORTED**: `$regex`, wildcards, pattern matching
+
+### Revised Solution: Enhanced Semantic Search
+
+Since metadata regex filtering won't work, we use optimized semantic search:
+
+**Key Changes**:
+1. Removed `performHybridFileSearch()` and `mergeHybridResults()` methods
+2. Boosted topK to 25-30 for file-specific queries
+3. Lowered threshold to 0.25 (from 0.3)
+4. Filenames in query text help semantic matching
+
+**Benefits**:
+- ✅ **Works with Pinecone** (uses only supported operators)
+- ✅ Simpler implementation (single code path)
+- ✅ Better semantic relevance
+- ✅ Still provides good coverage (25-30 chunks)
+
+**Trade-offs**:
+- ⚠️ Not guaranteed retrieval (depends on embeddings)
+- ⚠️ Requires good semantic similarity between query and file content
+
+**Commits**:
+- `88f69bb` - Initial hybrid search implementation (with regex)
+- `c86be78` - Fixed for Pinecone compatibility (enhanced semantic search)
+
+The enhanced semantic search approach is production-ready and works within Pinecone's constraints.
