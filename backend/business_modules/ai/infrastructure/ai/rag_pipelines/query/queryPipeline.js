@@ -412,26 +412,22 @@ class QueryPipeline {
       // Apply filters to prevent API spec dominance
       const combinedFilter = this.combineFilters(searchStrategy.codeFilters, searchStrategy.docsFilters);
       
-      // Check if we have explicit filename filters (for file-specific queries)
-      if (searchStrategy.filenameFilters && searchStrategy.filenameFilters.length > 0) {
-        console.log(`[${new Date().toISOString()}] 🎯 HYBRID SEARCH: Combining filename matching + semantic search`);
-        searchResults = await this.performHybridFileSearch(prompt, {
-          namespace: repositoryNamespace,
-          topK: searchStrategy.codeResults + searchStrategy.docsResults,
-          threshold: 0.3,
-          filenameFilters: searchStrategy.filenameFilters,
-          typeFilter: combinedFilter
-        });
-      } else {
-        // Standard semantic search
-        searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
-          namespace: repositoryNamespace,
-          topK: searchStrategy.codeResults + searchStrategy.docsResults,
-          threshold: 0.3,
-          includeMetadata: true,
-          filter: combinedFilter
-        });
+      // For file-specific queries, use enhanced semantic search with lower threshold and higher topK
+      const threshold = searchStrategy.priority === 'file-specific' ? 0.25 : 0.3;
+      const topK = searchStrategy.codeResults + searchStrategy.docsResults;
+      
+      if (searchStrategy.explicitFiles && searchStrategy.explicitFiles.length > 0) {
+        console.log(`[${new Date().toISOString()}] 📁 FILE-SPECIFIC SEARCH: Looking for ${searchStrategy.explicitFiles.join(', ')}`);
+        console.log(`[${new Date().toISOString()}] 🔍 Using enhanced semantic search (threshold=${threshold}, topK=${topK})`);
       }
+      
+      searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
+        namespace: repositoryNamespace,
+        topK,
+        threshold,
+        includeMetadata: true,
+        filter: combinedFilter
+      });
     }
     
     // Convert to legacy format with deduplication and per-source caps
@@ -496,116 +492,6 @@ class QueryPipeline {
     }
     
     return results;
-  }
-
-  /**
-   * Perform hybrid search combining filename matching + semantic search
-   * Ensures explicitly mentioned files are found even with low semantic similarity
-   * @param {string} prompt - The search query
-   * @param {object} options - Search options
-   * @returns {object} Combined search results
-   */
-  async performHybridFileSearch(prompt, options) {
-    const { namespace, topK, threshold, filenameFilters, typeFilter } = options;
-    
-    console.log(`[${new Date().toISOString()}] 🔍 HYBRID SEARCH Step 1: Explicit filename matching`);
-    
-    // Step 1: Search for explicitly mentioned files using metadata filters
-    const filenameResults = [];
-    for (const filenameFilter of filenameFilters) {
-      // Combine filename filter with type filter
-      const combinedFilter = typeFilter 
-        ? { $and: [filenameFilter, typeFilter] }
-        : filenameFilter;
-      
-      try {
-        const fileSearch = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
-          namespace,
-          topK: 10,  // Get up to 10 chunks per file
-          threshold: 0.2,  // Lower threshold for explicit file requests
-          includeMetadata: true,
-          filter: combinedFilter
-        });
-        
-        if (fileSearch.matches && fileSearch.matches.length > 0) {
-          console.log(`[${new Date().toISOString()}] ✅ Found ${fileSearch.matches.length} chunks for filename filter`);
-          filenameResults.push(...fileSearch.matches);
-        } else {
-          console.log(`[${new Date().toISOString()}] ⚠️  No chunks found for filename filter`);
-        }
-      } catch (error) {
-        console.error(`[${new Date().toISOString()}] ❌ Error in filename search:`, error.message);
-      }
-    }
-    
-    console.log(`[${new Date().toISOString()}] 🔍 HYBRID SEARCH Step 2: Semantic search for context`);
-    
-    // Step 2: Standard semantic search for additional context
-    const semanticResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
-      namespace,
-      topK,
-      threshold,
-      includeMetadata: true,
-      filter: typeFilter
-    });
-    
-    console.log(`[${new Date().toISOString()}] 🔀 HYBRID SEARCH: Merging results`);
-    console.log(`[${new Date().toISOString()}]   - Filename matches: ${filenameResults.length} chunks`);
-    console.log(`[${new Date().toISOString()}]   - Semantic matches: ${semanticResults.matches?.length || 0} chunks`);
-    
-    // Step 3: Merge results, prioritizing filename matches
-    const mergedMatches = this.mergeHybridResults(filenameResults, semanticResults.matches || [], topK);
-    
-    console.log(`[${new Date().toISOString()}] ✅ HYBRID SEARCH: Combined ${mergedMatches.length} total chunks`);
-    
-    return {
-      matches: mergedMatches,
-      query: prompt,
-      namespace,
-      totalFound: mergedMatches.length,
-      filteredCount: mergedMatches.length,
-      searchTime: Date.now(),
-      hybridSearch: true
-    };
-  }
-
-  /**
-   * Merge filename-based and semantic search results
-   * Prioritizes filename matches and deduplicates by ID
-   * @param {Array} filenameMatches - Results from filename filtering
-   * @param {Array} semanticMatches - Results from semantic search
-   * @param {number} maxResults - Maximum results to return
-   * @returns {Array} Merged and deduplicated results
-   */
-  mergeHybridResults(filenameMatches, semanticMatches, maxResults) {
-    const seen = new Set();
-    const merged = [];
-    
-    // Step 1: Add all filename matches first (they're explicitly requested)
-    for (const match of filenameMatches) {
-      if (!seen.has(match.id)) {
-        seen.add(match.id);
-        merged.push({
-          ...match,
-          filenameMatch: true  // Mark as explicitly requested
-        });
-      }
-    }
-    
-    // Step 2: Fill remaining slots with semantic matches
-    for (const match of semanticMatches) {
-      if (!seen.has(match.id) && merged.length < maxResults) {
-        seen.add(match.id);
-        merged.push({
-          ...match,
-          filenameMatch: false
-        });
-      }
-    }
-    
-    console.log(`[${new Date().toISOString()}] 🎯 Hybrid merge: ${filenameMatches.length} explicit + ${merged.length - filenameMatches.length} semantic = ${merged.length} total`);
-    
-    return merged;
   }
 
   /**
