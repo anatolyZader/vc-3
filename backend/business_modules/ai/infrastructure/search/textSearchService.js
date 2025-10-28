@@ -37,15 +37,36 @@ class TextSearchService {
       const client = await pool.connect();
 
       try {
-        // Extract potential filenames from query (e.g., "aiService.js", "app.js")
-        const filenamePattern = /\b[\w-]+\.(js|ts|jsx|tsx|py|java|go|rs|md|json|yml|yaml|sql)\b/gi;
-        const potentialFilenames = searchQuery.match(filenamePattern) || [];
+        // Extract potential filenames from query
+        // Pattern 1: Full filenames with extensions (e.g., "aiService.js", "app.js")
+        const filenameWithExtPattern = /\b[\w-]+\.(js|ts|jsx|tsx|py|java|go|rs|md|json|yml|yaml|sql|css|html)\b/gi;
+        const filenamesWithExt = searchQuery.match(filenameWithExtPattern) || [];
+        
+        // Pattern 2: Potential filenames without extensions (e.g., "aiService", "app")
+        // Only consider words that look like filenames (camelCase, kebab-case, snake_case)
+        const filenameNoExtPattern = /\b([a-z][a-zA-Z0-9_-]*(?:[A-Z][a-zA-Z0-9_-]*)*)\b/g;
+        const potentialNames = searchQuery.match(filenameNoExtPattern) || [];
+        
+        // Filter out common words that are unlikely to be filenames
+        const commonWords = new Set(['the', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'from', 'by', 'as', 'is', 'was', 'are', 'been', 'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 'can', 'between', 'difference', 'explain', 'what', 'how', 'why', 'when', 'where', 'file', 'files']);
+        const likelyFilenames = potentialNames.filter(name => 
+          !commonWords.has(name.toLowerCase()) && 
+          name.length > 2 && 
+          (name.includes('_') || name.includes('-') || /[a-z][A-Z]/.test(name)) // Has separators or camelCase
+        );
+        
+        const allPotentialFiles = [...filenamesWithExt, ...likelyFilenames];
         
         // If query contains filenames, prioritize file path search
-        if (potentialFilenames.length > 0) {
-          this.logger.info(`🔍 Detected filenames in query: ${potentialFilenames.join(', ')}`);
+        if (allPotentialFiles.length > 0) {
+          this.logger.info(`🔍 Detected potential filenames: ${allPotentialFiles.join(', ')}`);
           
-          // Search by file path using LIKE for exact filename matches
+          // Build dynamic LIKE conditions for all potential filenames
+          const likeConditions = allPotentialFiles.map((_, i) => {
+            return `(file_path ILIKE $${i + 1} OR file_path ILIKE $${allPotentialFiles.length + i + 1})`;
+          });
+          
+          // Search by file path using case-insensitive LIKE
           let query = `
             SELECT 
               id,
@@ -54,14 +75,23 @@ class TextSearchService {
               file_path,
               file_extension,
               content,
-              1.0 AS rank,
+              CASE 
+                -- Exact filename match gets highest priority
+                ${allPotentialFiles.map((fn, i) => `WHEN file_path ILIKE '%/${fn}' THEN ${1.0 - i * 0.1}`).join('\n                ')}
+                -- Filename anywhere in path gets medium priority
+                ${allPotentialFiles.map((fn, i) => `WHEN file_path ILIKE '%${fn}%' THEN ${0.5 - i * 0.05}`).join('\n                ')}
+                ELSE 0.1
+              END AS rank,
               substring(content, 1, 200) AS snippet
             FROM repo_data
-            WHERE (${potentialFilenames.map((_, i) => `file_path LIKE $${i + 1}`).join(' OR ')})
+            WHERE (${likeConditions.join(' OR ')})
           `;
           
-          const queryParams = potentialFilenames.map(fn => `%${fn}%`);
-          let paramIndex = potentialFilenames.length;
+          const queryParams = [
+            ...allPotentialFiles.map(fn => `%/${fn}`),  // Exact filename at end of path
+            ...allPotentialFiles.map(fn => `%${fn}%`)    // Filename anywhere in path
+          ];
+          let paramIndex = queryParams.length;
           
           // Add filters
           if (userId) {
@@ -77,7 +107,7 @@ class TextSearchService {
           }
 
           // Add ordering and pagination
-          query += ` ORDER BY rank DESC, id DESC`;
+          query += ` ORDER BY rank DESC, file_path ASC`;
           
           paramIndex++;
           query += ` LIMIT $${paramIndex}`;
@@ -89,7 +119,12 @@ class TextSearchService {
 
           const result = await client.query(query, queryParams);
           
-          this.logger.info(`📄 File path search found ${result.rows.length} results`);
+          this.logger.info(`📄 Filename-based search found ${result.rows.length} results`);
+          if (result.rows.length > 0) {
+            result.rows.forEach((row, i) => {
+              this.logger.info(`   ${i + 1}. ${row.file_path} (rank: ${row.rank})`);
+            });
+          }
           
           // Format results
           return result.rows.map(row => ({
@@ -107,6 +142,7 @@ class TextSearchService {
         }
         
         // Otherwise, fall back to full-text search on content
+        this.logger.info(`📝 No filenames detected, using content-based full-text search`);
         let query = `
           SELECT 
             id,
