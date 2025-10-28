@@ -40,9 +40,9 @@ class QueryPipeline {
         apiKey: process.env.PINECONE_API_KEY,
         indexName: process.env.PINECONE_INDEX_NAME,
         region: process.env.PINECONE_REGION,
-        defaultTopK: 30,        // Increased from 10 to 30
+        defaultTopK: 60,        // DOUBLED: Increased from 30 to 60 for more chunks
         defaultThreshold: 0.25, // Lowered from 0.3 to 0.25 for even more matches
-        maxResults: 100         // Increased from 50 to 100
+        maxResults: 200         // DOUBLED: Increased from 100 to 200
       });
       console.log(`[${new Date().toISOString()}] QueryPipeline created its own VectorSearchOrchestrator`);
     }
@@ -471,7 +471,7 @@ class QueryPipeline {
             console.log(`[${new Date().toISOString()}] 🔍 Full-text search for: ${filename}`);
             const fileResults = await this.textSearchService.searchDocuments(filename, {
               userId,
-              limit: 10  // Get up to 10 chunks per file
+              limit: 20  // DOUBLED: Get up to 20 chunks per file (was 10)
             });
             
             if (fileResults.length > 0) {
@@ -635,22 +635,22 @@ class QueryPipeline {
     // Step 2: Apply per-source caps to prevent dominance
     // Note: Caps can be adjusted based on search strategy priority
     const baseSourceTypeCaps = {
-      'apiSpec': 5,                      // Max 5 API spec chunks
-      'apiSpecFull': 2,                  // Max 2 full API spec
-      'module_documentation': 8,         // Max 8 module docs
-      'architecture_documentation': 5,   // Max 5 architecture docs
+      'apiSpec': 10,                     // DOUBLED: Max 10 API spec chunks (was 5)
+      'apiSpecFull': 4,                  // DOUBLED: Max 4 full API spec (was 2)
+      'module_documentation': 16,        // DOUBLED: Max 16 module docs (was 8)
+      'architecture_documentation': 10,  // DOUBLED: Max 10 architecture docs (was 5)
       
       // Specific GitHub file types (new)
-      'github-code': 20,                 // Increased from 15 to 20 for better multi-file coverage
-      'github-docs': 8,                  // Documentation files
-      'github-test': 5,                  // Test files (less priority)
-      'github-config': 3,                // Configuration files (minimal)
+      'github-code': 40,                 // DOUBLED: Increased to 40 for better multi-file coverage (was 20)
+      'github-docs': 16,                 // DOUBLED: Documentation files (was 8)
+      'github-test': 10,                 // DOUBLED: Test files (was 5)
+      'github-config': 6,                // DOUBLED: Configuration files (was 3)
       'github-catalog': 0,               // Exclude catalogs by default
       
       // Legacy support
-      'github-file': 10,                 // Fallback for uncategorized GitHub files
-      'github-file-code': 12,            // Legacy code type
-      'github-file-json': 3              // Legacy JSON type
+      'github-file': 20,                 // DOUBLED: Fallback for uncategorized (was 10)
+      'github-file-code': 24,            // DOUBLED: Legacy code type (was 12)
+      'github-file-json': 6              // DOUBLED: Legacy JSON type (was 3)
     };
     
     // Apply dynamic adjustments based on search strategy
@@ -658,8 +658,8 @@ class QueryPipeline {
     
     // Boost code cap for file-specific queries (explicit file mentions)
     if (searchStrategy && searchStrategy.priority === 'file-specific') {
-      sourceTypeCaps['github-code'] = 25;  // Higher limit for explicit file requests
-      console.log(`[${new Date().toISOString()}] 🎯 FILE-SPECIFIC QUERY: Boosted github-code cap to 25`);
+      sourceTypeCaps['github-code'] = 50;  // DOUBLED: Higher limit for explicit file requests (was 25)
+      console.log(`[${new Date().toISOString()}] 🎯 FILE-SPECIFIC QUERY: Boosted github-code cap to 50`);
     }
     
     const sourceTypeCounts = {};
@@ -717,7 +717,7 @@ class QueryPipeline {
       console.log(`[${new Date().toISOString()}] 🔍 Performing complementary text search: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
       
       const searchOptions = {
-        limit: 5, // Limit text search results to complement vector search
+        limit: 10, // DOUBLED: Increased from 5 to 10 to complement vector search
         offset: 0
       };
 
