@@ -142,9 +142,10 @@ class QueryPipeline {
 
       // Perform complementary text search if available
       let finalSearchResults = searchResults;
+      let textResults = [];
       if (this.textSearchService) {
         try {
-          const textResults = await this.performTextSearch(prompt, traceData, userId, null);
+          textResults = await this.performTextSearch(prompt, traceData, userId, null);
           traceData.steps.push({ 
             step: 'text_search', 
             timestamp: new Date().toISOString(), 
@@ -162,6 +163,14 @@ class QueryPipeline {
             vectorDocuments: searchResults.length,
             textDocuments: textResults.length
           });
+          
+          // Write all chunks to markdown file for debugging
+          try {
+            const logPath = await this.writeChunksToMarkdown(searchResults, textResults, prompt);
+            console.log(`[${new Date().toISOString()}] ✅ Chunk details saved to: ${logPath}`);
+          } catch (logError) {
+            console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
+          }
         } catch (textError) {
           console.warn(`[${new Date().toISOString()}] ⚠️ Text search failed, continuing with vector results only:`, textError.message);
           traceData.steps.push({ 
@@ -170,6 +179,14 @@ class QueryPipeline {
             status: 'failed', 
             error: textError.message 
           });
+          
+          // Still log vector results even if text search fails
+          try {
+            const logPath = await this.writeChunksToMarkdown(searchResults, [], prompt);
+            console.log(`[${new Date().toISOString()}] ✅ Vector chunks saved to: ${logPath}`);
+          } catch (logError) {
+            console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
+          }
         }
       } else {
         console.log(`[${new Date().toISOString()}] 📋 Text search not available, using vector search results only`);
@@ -179,6 +196,14 @@ class QueryPipeline {
           status: 'skipped', 
           reason: 'service_not_available' 
         });
+        
+        // Log vector-only results to markdown
+        try {
+          const logPath = await this.writeChunksToMarkdown(searchResults, [], prompt);
+          console.log(`[${new Date().toISOString()}] ✅ Vector-only chunks saved to: ${logPath}`);
+        } catch (logError) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
+        }
       }
 
       const contextData = ContextBuilder.formatContext(finalSearchResults);
@@ -721,7 +746,9 @@ class QueryPipeline {
       if (process.env.RAG_ENABLE_CHUNK_LOGGING === 'true' && formattedResults.length > 0) {
         console.log(`[${new Date().toISOString()}] 📋 TEXT SEARCH CHUNKS: Retrieved ${formattedResults.length} text-based chunks`);
         formattedResults.forEach((result, index) => {
-          console.log(`[${new Date().toISOString()}] 📄 Text Chunk ${index + 1}: rank=${result.metadata.rank}, content="${result.pageContent.substring(0, 150)}..."`);
+          console.log(`[${new Date().toISOString()}] 📄 Text Chunk ${index + 1}:`);
+          console.log(`   🏷️  All Tags/Metadata:`, JSON.stringify(result.metadata, null, 2));
+          console.log(`   📝 Content Preview: "${result.pageContent.substring(0, 150)}..."`);
         });
       }
 
@@ -1179,9 +1206,74 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
       console.log(`[${new Date().toISOString()}] 🏷️  Source: ${doc.metadata.source || 'Unknown'}`);
       console.log(`[${new Date().toISOString()}] 🏷️  Type: ${doc.metadata.type || 'Unknown'}`);
       console.log(`[${new Date().toISOString()}] 🏷️  Score: ${doc.metadata.score || 'N/A'}`);
+      
+      // Log ALL metadata tags for debugging
+      console.log(`[${new Date().toISOString()}] 🔖 All Metadata Tags:`);
+      console.log(JSON.stringify(doc.metadata, null, 2));
+      
       console.log(`[${new Date().toISOString()}] 📝 Content: ${doc.pageContent}`);
       console.log(`[${new Date().toISOString()}] ──────────────────────────────────────────────────────────────────────────────────`);
     });
+  }
+
+  /**
+   * Write all chunks with their metadata to a markdown file for debugging
+   * @param {Array} vectorResults - Results from vector search
+   * @param {Array} textResults - Results from text search
+   * @param {string} query - The original query
+   */
+  async writeChunksToMarkdown(vectorResults, textResults, query) {
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+    const filename = `chunk_log_${timestamp}.md`;
+    const logDir = path.join(process.cwd(), 'logs', 'chunks');
+    
+    // Ensure directory exists
+    await fs.mkdir(logDir, { recursive: true });
+    
+    const filePath = path.join(logDir, filename);
+    
+    let content = `# RAG Chunk Retrieval Log\n\n`;
+    content += `**Query:** ${query}\n\n`;
+    content += `**Timestamp:** ${new Date().toISOString()}\n\n`;
+    content += `**Vector Results:** ${vectorResults.length} chunks\n\n`;
+    content += `**Text Search Results:** ${textResults.length} chunks\n\n`;
+    content += `---\n\n`;
+    
+    // Log vector search results
+    if (vectorResults.length > 0) {
+      content += `## 🔍 Vector Search Results (${vectorResults.length} chunks)\n\n`;
+      
+      vectorResults.forEach((doc, index) => {
+        content += `### Chunk ${index + 1}/${vectorResults.length}\n\n`;
+        content += `#### 🏷️ Metadata Tags\n\n`;
+        content += `\`\`\`json\n${JSON.stringify(doc.metadata, null, 2)}\n\`\`\`\n\n`;
+        content += `#### 📝 Content\n\n`;
+        content += `\`\`\`\n${doc.pageContent}\n\`\`\`\n\n`;
+        content += `---\n\n`;
+      });
+    }
+    
+    // Log text search results
+    if (textResults.length > 0) {
+      content += `## 📄 Text Search Results (${textResults.length} chunks)\n\n`;
+      
+      textResults.forEach((doc, index) => {
+        content += `### Chunk ${index + 1}/${textResults.length}\n\n`;
+        content += `#### 🏷️ Metadata Tags\n\n`;
+        content += `\`\`\`json\n${JSON.stringify(doc.metadata, null, 2)}\n\`\`\`\n\n`;
+        content += `#### 📝 Content\n\n`;
+        content += `\`\`\`\n${doc.pageContent}\n\`\`\`\n\n`;
+        content += `---\n\n`;
+      });
+    }
+    
+    await fs.writeFile(filePath, content, 'utf8');
+    console.log(`[${new Date().toISOString()}] 📝 Chunk log written to: ${filePath}`);
+    
+    return filePath;
   }
 
   /**
