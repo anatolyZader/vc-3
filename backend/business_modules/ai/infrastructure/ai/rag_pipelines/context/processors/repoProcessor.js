@@ -3,6 +3,7 @@
 
 const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
 const FileFilteringUtils = require('../embedding/FileFilteringUtils');
+const FileTypeClassifier = require('../utils/fileTypeClassifier');
 
 /**
  * Repository Processor - Pure document processing operations
@@ -125,26 +126,32 @@ class RepoProcessor {
     }
     
     // Enrich with commit information - safely handle null commitInfo
-    const enrichedDocuments = allDocuments.map(doc => ({
-      ...doc,
-      metadata: {
-        ...doc.metadata,
-        githubOwner,
-        repoName,
-        branch,
-        ...(commitInfo && {
-          commitHash: commitInfo?.hash ?? null,
-          commitTimestamp: commitInfo?.timestamp ?? null,
-          commitAuthor: commitInfo?.author ?? null,
-          commitSubject: commitInfo?.subject ?? null,
-          commitDate: commitInfo?.date ?? null,
-        }),
-        file_type: this.getFileType(doc.metadata.source || ''),
-        repository_url: repoUrl,
-        loaded_at: new Date().toISOString(),
-        loading_method: 'batched_github_loader'
-      }
-    }));
+    const enrichedDocuments = allDocuments.map(doc => {
+      const filePath = doc.metadata.source || '';
+      const content = doc.pageContent || '';
+      
+      return {
+        ...doc,
+        metadata: {
+          ...doc.metadata,
+          githubOwner,
+          repoName,
+          branch,
+          ...(commitInfo && {
+            commitHash: commitInfo?.hash ?? null,
+            commitTimestamp: commitInfo?.timestamp ?? null,
+            commitAuthor: commitInfo?.author ?? null,
+            commitSubject: commitInfo?.subject ?? null,
+            commitDate: commitInfo?.date ?? null,
+          }),
+          type: FileTypeClassifier.determineGitHubFileType(filePath, content),
+          file_type: this.getFileType(filePath),
+          repository_url: repoUrl,
+          loaded_at: new Date().toISOString(),
+          loading_method: 'batched_github_loader'
+        }
+      };
+    });
 
     console.log(`[${new Date().toISOString()}] ✅ BATCHED LOADER: Enriched ${enrichedDocuments.length} documents with commit metadata`);
     return enrichedDocuments;
