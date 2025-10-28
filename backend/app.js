@@ -51,23 +51,29 @@ module.exports = async function (fastify, opts) {
   
   // Sets security-related HTTP headers automatically
   await fastify.register(helmet, {
-    global: true,
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'], // Allows resources by default from the same origin ('self') and Google Identity Services.
-        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'], // Allows scripts to load only from your own site and from Google's GSI client.
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'], // Allows styles from your own site, inline styles ('unsafe-inline'), and Google's GSI style endpoint.
-        frameSrc: ["'self'", 'https://accounts.google.com/gsi/'], // Allows iframes only from your own site and Google Identity Services.
-        connectSrc: [  
-          "'self'", 
-          'https://accounts.google.com/gsi/',
-          // Add http for local development
-          ...(process.env.NODE_ENV !== 'staging' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
-        ], // Allows network connections to your own site, Google Identity Services, and (for non-staging environments) local development servers on ports 3000 and 5173.
-      },
-    },
-  });
+  global: true,
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://accounts.google.com/gsi/client"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // keep inline for Swagger and GSI
+      imgSrc: ["'self'", "https:", "data:", "blob:"],
+      frameSrc: ["'self'", "https://accounts.google.com/gsi/"],
+      connectSrc: [
+        "'self'",
+        "https://accounts.google.com/gsi/",
+        ...(process.env.NODE_ENV !== 'production'
+          ? ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "ws://localhost:*"]
+          : ["https:", "wss:"])
+      ],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'self'"],
+      upgradeInsecureRequests: []
+    }
+  }
+});
 
   await fastify.register(corsPlugin);
   await fastify.register(require('./swaggerPlugin'));

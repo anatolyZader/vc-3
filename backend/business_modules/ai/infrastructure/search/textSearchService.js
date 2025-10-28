@@ -37,7 +37,76 @@ class TextSearchService {
       const client = await pool.connect();
 
       try {
-        // Build the search query using repo_data table with content_vector
+        // Extract potential filenames from query (e.g., "aiService.js", "app.js")
+        const filenamePattern = /\b[\w-]+\.(js|ts|jsx|tsx|py|java|go|rs|md|json|yml|yaml|sql)\b/gi;
+        const potentialFilenames = searchQuery.match(filenamePattern) || [];
+        
+        // If query contains filenames, prioritize file path search
+        if (potentialFilenames.length > 0) {
+          this.logger.info(`🔍 Detected filenames in query: ${potentialFilenames.join(', ')}`);
+          
+          // Search by file path using LIKE for exact filename matches
+          let query = `
+            SELECT 
+              id,
+              user_id,
+              repo_id,
+              file_path,
+              file_extension,
+              content,
+              1.0 AS rank,
+              substring(content, 1, 200) AS snippet
+            FROM repo_data
+            WHERE (${potentialFilenames.map((_, i) => `file_path LIKE $${i + 1}`).join(' OR ')})
+          `;
+          
+          const queryParams = potentialFilenames.map(fn => `%${fn}%`);
+          let paramIndex = potentialFilenames.length;
+          
+          // Add filters
+          if (userId) {
+            paramIndex++;
+            query += ` AND user_id = $${paramIndex}`;
+            queryParams.push(userId);
+          }
+
+          if (repoId) {
+            paramIndex++;
+            query += ` AND repo_id = $${paramIndex}`;
+            queryParams.push(repoId);
+          }
+
+          // Add ordering and pagination
+          query += ` ORDER BY rank DESC, id DESC`;
+          
+          paramIndex++;
+          query += ` LIMIT $${paramIndex}`;
+          queryParams.push(limit);
+
+          paramIndex++;
+          query += ` OFFSET $${paramIndex}`;
+          queryParams.push(offset);
+
+          const result = await client.query(query, queryParams);
+          
+          this.logger.info(`📄 File path search found ${result.rows.length} results`);
+          
+          // Format results
+          return result.rows.map(row => ({
+            id: row.id,
+            userId: row.user_id,
+            repoId: row.repo_id,
+            filePath: row.file_path,
+            fileExtension: row.file_extension,
+            content: row.content,
+            rank: parseFloat(row.rank),
+            snippet: row.snippet,
+            searchType: 'filename_match',
+            source: 'postgres'
+          }));
+        }
+        
+        // Otherwise, fall back to full-text search on content
         let query = `
           SELECT 
             id,
