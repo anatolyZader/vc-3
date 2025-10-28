@@ -515,10 +515,13 @@ class QueryPipeline {
                          match.metadata?.pageContent || 
                          '';
       
+      // Clean metadata: remove duplicate content fields, keep only relevant metadata
+      const { text, content, pageContent: metaPageContent, ...cleanMetadata } = match.metadata || {};
+      
       return {
         pageContent,
         metadata: {
-          ...match.metadata,
+          ...cleanMetadata,
           score: match.score,
           id: match.id
         }

@@ -1,12 +1,12 @@
-# LangSmith RAG Trace Analysis - 10/28/2025, 4:43:04 PM
+# LangSmith RAG Trace Analysis - 10/28/2025, 4:49:00 PM
 
 ## 🔍 Query Details
-- **Query**: "how could i improve the backend app.js file?"
+- **Query**: "do you see any software dev patterns employed in this file?"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
 - **Conversation ID**: ef5ec50c-2ccd-43f0-b58c-10560bf1ec19
-- **Started**: 2025-10-28T16:43:04.557Z
-- **Completed**: 2025-10-28T16:43:12.205Z
-- **Total Duration**: 7648ms
+- **Started**: 2025-10-28T16:49:00.441Z
+- **Completed**: 2025-10-28T16:49:04.146Z
+- **Total Duration**: 3705ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,573 +16,590 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-10-28T16:43:04.557Z) - success
-2. **vector_store_check** (2025-10-28T16:43:04.557Z) - success
-3. **vector_search** (2025-10-28T16:43:06.002Z) - success - Found 2 documents
-4. **text_search** (2025-10-28T16:43:06.006Z) - success - Found 2 documents
-5. **hybrid_search_combination** (2025-10-28T16:43:06.006Z) - success
-6. **context_building** (2025-10-28T16:43:06.007Z) - success - Context: 2764 chars
-7. **response_generation** (2025-10-28T16:43:12.205Z) - success - Response: 2191 chars
+1. **initialization** (2025-10-28T16:49:00.441Z) - success
+2. **vector_store_check** (2025-10-28T16:49:00.441Z) - success
+3. **vector_search** (2025-10-28T16:49:01.681Z) - success - Found 4 documents
+4. **text_search** (2025-10-28T16:49:01.688Z) - success
+5. **hybrid_search_combination** (2025-10-28T16:49:01.688Z) - success
+6. **context_building** (2025-10-28T16:49:01.689Z) - success - Context: 5346 chars
+7. **response_generation** (2025-10-28T16:49:04.146Z) - success - Response: 926 chars
 
 ## 📊 Vector Search Analysis
 
 ### Search Configuration:
 - **Vector Store**: primary
 - **Search Strategy**: intelligent_strategy_with_filters
-- **Documents Retrieved**: 2
-- **Total Context**: 17,171 characters
+- **Documents Retrieved**: 4
+- **Total Context**: 12,441 characters
 
 ### Source Type Distribution:
-- **GitHub Repository Code**: 0 chunks (0%)
+- **GitHub Repository Code**: 4 chunks (100%)
 - **Module Documentation**: 0 chunks (0%)  
 - **Architecture Documentation**: 0 chunks (0%)
 - **API Specification**: 0 chunks (0%)
-- **Other Sources**: 2 chunks (100%)
+- **Other Sources**: 0 chunks (0%)
 
 ## 📋 Complete Chunk Analysis
 
 
-### Chunk 1/2
-- **Source**: backend/app.js
-- **Type**: github-code
-- **Size**: 15900 characters
-- **Score**: 0.5
-- **Repository**: N/A
-- **Branch**: N/A
+### Chunk 1/4
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 662 characters
+- **Score**: 0.390087128
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
 - **File Type**: N/A
-- **Processed At**: N/A
+- **Processed At**: 2025-10-25T12:09:59.365Z
 
 **Full Content**:
 ```
-// app.js
-'use strict';
-/* eslint-disable no-unused-vars */
+k Result
 
-const path              = require('node:path');
-const fs                = require('fs');
-const AutoLoad          = require('@fastify/autoload');
-const fastifySensible   = require('@fastify/sensible');
+The file was processed as a single semantic unit, likely due to:
+- Large cohesive class structure
+- Interconnected methods and dependencies
+- Semantic coherence favoring unified processing
 
-const fastifyCookie     = require('@fastify/cookie');
-const fastifySession    = require('@fastify/session');
-const { Store }         = fastifySession;
+### 🚀 RAG Optimization
 
-const redisPlugin       = require('./redisPlugin');
-const websocketPlugin   = require('./websocketPlugin');
+The processed chunks are now ready for:
+- **Vector Embedding** - Clean, contextual code for accurate embeddings
+- **Semantic Search** - Enhanced metadata for precise retrieval
+- **Context Generation** - Optimal chunk sizes for LLM context windows
+- **Domain Understanding** - Ubiquitous language context for business relevance
 
-const loggingPlugin     = require('./aop_modules/log/plugins/logPlugin');
-const schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');
-const envPlugin         = require('./envPlugin');
-const diPlugin          = require('./diPlugin');
-const corsPlugin        = require('./corsPlugin');
-const helmet            = require('@fastify/helmet');
-const fastifyJwt        = require('@fastify/jwt');
-const fastifyOAuth2     = require('@fastify/oauth2');
-const { OAuth2Client }  = require('google-auth-library');
-const { v4: uuidv4 }    = require('uuid');
-const authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');
-// const swaggerPlugin     = require('./swaggerPlugin');
-// const swaggerUIPlugin   = require('./swaggerUIPlugin');
-const fastifySwagger    = require('@fastify/swagger');
-const fastifySwaggerUI  = require('@fastify/swagger-ui');
-
-require('dotenv').config();
-
-module.exports = async function (fastify, opts) {
-
-  fastify.addHook('onRoute', (routeOptions) => {
-    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');
-  });
-
-  await fastify.register(loggingPlugin);
-  await fastify.register(schemaLoaderPlugin);
-  await fastify.register(envPlugin);
-  await fastify.register(diPlugin);
-
-  await fastify.register(websocketPlugin);
-  await fastify.register(fastifySensible);
-  await fastify.register(fastifySwagger, {
-    openapi: {
-      openapi: '3.0.0',
-      info: {
-        title: 'EventStorm.me API',
-        description:
-          'EventStorm API – Git analysis, AI insights, wiki, chat and more',
-        version: '1.0.0',
-        contact: {
-          name: 'EventStorm Support',
-          email: 'support@eventstorm.me',
-          url: 'https://eventstorm.me/support'
-        },
-        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },
-        termsOfService: 'https://eventstorm.me/terms'
-      },
-      servers: [
-        {
-          url: process.env.NODE_ENV === 'production'
-            ? 'https://eventstorm.me'
-            : 'http://localhost:3000',
-          description: process.env.NODE_ENV === 'production'
-            ? 'Production server'
-            : 'Development server'
-        }
-      ],
-      tags: [
-        { name: 'auth', description: 'Authentication endpoints' },
-        { name: 'git', description: 'Git-analysis endpoints' },
-        { name: 'ai', description: 'AI-powered endpoints' },
-        { name: 'chat', description: 'Chat endpoints' },
-        { name: 'wiki', description: 'Wiki endpoints' },
-        { name: 'api', description: 'Utility endpoints' }
-      ],
-      components: {
-        securitySchemes: {
-          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' }
-        },
-        responses: {
-          UnauthorizedError: {
-            description: 'Authentication information is missing or invalid',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    error: { type: 'string' },
-                    message: { type: 'string' },
-                    statusCode: { type: 'number' }
-                  }
-                }
-              }
-            }
-          },
-          ServerError: {
-            description: 'Internal server error',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    error: { type: 'string' },
-                    message: { type: 'string' },
-                    statusCode: { type: 'number' }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      security: [{ bearerAuth: [] }, { cookieAuth: [] }]
-    },
-    exposeRoute: true // This is crucial for exposing the /openapi.json and /openapi.yaml routes
-  });
-
-  await fastify.register(helmet, {
-    global: true,
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'", 'https://accounts.google.com/gsi/'],
-        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'],  
-        frameSrc: ["'self'", 'https://accounts.google.com/gsi/'],
-        connectSrc: [  
-          "'self'", 
-          'https://accounts.google.com/gsi/',
-          // Add http for local development
-          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:5173'] : [])
-        ],
-      },
-    },
-  });
-
-
-  await fastify.register(corsPlugin);
-
-  fastify.log.info('🔌 Registering Redis client plugin');
-  await fastify.register(redisPlugin);
-  fastify.log.info('✅ Redis client plugin registered');
-
-  fastify.redis.on('error', (err) => {
-    fastify.log.error({ err }, 'Redis client error');
-  });
-
-  fastify.log.info('⏳ Testing Redis connection with PING…');
-  try {
-    const pong = await fastify.redis.ping();
-    fastify.log.info(`✅ Redis PING response: ${pong}`);
-  } catch (err) {
-    fastify.log.error({ err }, '❌ Redis PING failed');
-  }
-
-  // ────────────────────────────────────────────────────────────────
-  // 4️⃣  COOKIE / SESSION
-  // ────────────────────────────────────────────────────────────────
-  await fastify.register(
-    fastifyCookie,
-    {
-      secret: fastify.secrets.COOKIE_SECRET,
-      parseOptions: { secure: true, httpOnly: true, sameSite: 'None' },
-    },
-    { encapsulate: false }
-  );
-
-  class RedisStore extends Store {
-    constructor(sendCommand) {
-      super();
-      this.send = sendCommand;
-    }
-    get(sid, cb) {
-      this.send(['GET', sid])
-        .then((data) => cb(null, data ? JSON.parse(data) : null))
-        .catch(cb);
-    }
-    set(sid, sess, ttlMs, cb) {
-      const data = JSON.stringify(sess);
-      const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;
-      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];
-      this.send(cmd).then(() => cb(null)).catch(cb);
-    }
-    destroy(sid, cb) {
-      this.send(['DEL', sid]).then(() => cb(null)).catch(cb);
-    }
-  }
-
-  await fastify.register(fastifySession, {
-    secret: fastify.secrets.SESSION_SECRET,
-    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
-    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),
-    saveUninitialized: false,
-  });
-
-  // ────────────────────────────────────────────────────────────────
-  // 5️⃣  HEALTH ROUTE
-  // ────────────────────────────────────────────────────────────────
-  fastify.get('/', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
-
-  // ────────────────────────────────────────────────────────────────
-  // 6️⃣  GOOGLE OAUTH + JWT (UNCHANGED FROM ORIGINAL)
-  // ────────────────────────────────────────────────────────────────
-  let credentialsJsonString, clientId, clientSecret;
-
-  if (
-    process.env.USER_OAUTH2_CREDENTIALS &&
-    process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')
-  ) {
-    credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);
-  } else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {
-    const credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;
-    credentialsJsonString = JSON.parse(
-      await fs.promises.readFile(credentialsPath, { encoding: 'utf8' })
-    );
-  } else {
-    clientId = process.env.FALLBACK_CLIENT_ID;
-    clientSecret = process.env.FALLBACK_CLIENT_SECRET;
-  }
-
-  if (credentialsJsonString) {
-    clientId = credentialsJsonString.web.client_id;
-    clientSecret = credentialsJsonString.web.client_secret;
-  }
-
-  const revokedTokens = new Map();
-
-  fastify.register(fastifyJwt, {
-    secret: fastify.secrets.JWT_SECRET,
-    sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },
-    verify: { requestProperty: 'user' },
-    trusted(request, decoded) {
-      return !revokedTokens.has(decoded.jti);
-    },
-  });
-
-  fastify.decorate('verifyToken', async function (request) {
-    let token = request.cookies?.authToken;
-    if (!token && request.headers.authorization) {
-      const [scheme, value] = request.headers.authorization.split(' ');
-      if (scheme === 'Bearer') token = value;
-    }
-    if (!token) throw fastify.httpErrors.unauthorized('Missing token');
-    request.user = await fastify.jwt.verify(token);
-  });
-
-  fastify.decorateRequest('revokeToken', function () {
-    if (!this.user?.jti) throw this.httpErrors.unauthorized('Missing jti');
-    revokedTokens.set(this.user.jti, true);
-  });
-
-  fastify.decorateRequest('generateToken', async function () {
-    return fastify.jwt.sign(
-      { id: String(this.user.id), username: this.user.username },
-      { jwtid: uuidv4(), expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-    );
-  });
-
-  const cookieSecure   = process.env.NODE_ENV === 'production';
-  const cookieSameSite = cookieSecure ? 'None' : 'Lax';
-  const googleCallbackUri =
-    cookieSecure
-      ? 'https://eventstorm.me/api/auth/google/callback'
-      : 'http://localhost:3000/api/auth/google/callback';
-
-  await fastify.register(
-    fastifyOAuth2,
-    {
-      name: 'googleOAuth2',
-      scope: ['profile', 'email', 'openid'],
-      cookie: { secure: cookieSecure, sameSite: cookieSameSite, httpOnly: true },
-      credentials: {
-        client: { id: clientId, secret: clientSecret },
-        auth: fastifyOAuth2.GOOGLE_CONFIGURATION,
-      },
-      startRedirectPath: '/api/auth/google',
-      callbackUri: googleCallbackUri,
-    },
-    { encapsulate: false }
-  );
-
-  const googleClient = new OAuth2Client(clientId);
-  fastify.decorate('verifyGoogleIdToken', async (idToken) => {
-    const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });
-    return ticket.getPayload();
-  });
-
-  await fastify.register(authSchemasPlugin);
-
-  fastify.get('/api/auth/google/callback', async (req, reply) => {
-    const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
-    const googleAccessToken = token.token.access_token;
-
-    const userService = await req.diScope.resolve('userService');
-    const googleUser  = await userService.loginWithGoogle(googleAccessToken);
-    if (!googleUser) return reply.unauthorized('Google profile invalid');
-
-    const jti  = uuidv4();
-    const jwt  = fastify.jwt.sign(
-      { id: googleUser.id, username: googleUser.username, jti },
-      { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-    );
-
-    reply.setCookie('authToken', jwt, {
-      path: '/',
-      httpOnly: true,
-      secure: cookieSecure,
-      sameSite: cookieSameSite,
-    });
-
-    reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');
-  });
-
-  // ────────────────────────────────────────────────────────────────
-  // 7️⃣  AUTOLOAD MODULES
-  // ────────────────────────────────────────────────────────────────
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'aop_modules'),
-    encapsulate: false,
-    maxDepth: 1,
-    dirNameRoutePrefix: false,
-    prefix: '/api',
-    options: Object.assign({}, opts),
-  });
-
-  await fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'business_modules'),
-    encapsulate: true,
-    maxDepth: 1,
-    dirNameRoutePrefix: false,
-    prefix: '/api',
-    options: Object.assign({}, opts),
-  });
-
-  // Debug route
-  fastify.get('/debug/clear-state-cookie', (req, reply) => {
-    reply.clearCookie('oauth2-redirect-state', { path: '/' });
-    reply.send({ message: 'cleared' });
-  });
-
-  await fastify.register(fastifySwaggerUI, {
-    routePrefix: '/api/doc',
-    staticCSP: true, // Enable static CSP headers for the UI
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: true,
-      defaultModelsExpandDepth: 2,
-      defaultModelExpandDepth: 2,
-      defaultModelRendering: 'example',
-      displayRequestDuration: true,
-      filter: true,
-      tryItOutEnabled: true,
-      persistAuthorization: true,
-      layout: 'StandaloneLayout',
-      // Custom CSS for better aesthetics
-      customCss: `
-        .swagger-ui .topbar{display:none;}
-        .swagger-ui .info .title{color:#1f2937;}
-        .swagger-ui .scheme-container{background:#f8f9fa;padding:10px;border-radius:4px;}
-        .swagger-ui .info .description {font-size: 14px; line-height: 1.6;}
-        .swagger-ui .btn.authorize {background-color: #4f46e5; border-color: #4f46e5;}
-        .swagger-ui .btn.authorize:hover {background-color: #4338ca;}
-      `,
-      customSiteTitle: 'EventStorm.me API Docs',
-      customfavIcon: '/favicon.ico',
-      // Optional: Add request/response interceptors for debugging Swagger UI calls
-      requestInterceptor: req => {
-        console.log('🌐 Swagger UI Request:', {
-          url: req.url, method: req.method, headers: req.headers
-        });
-        return req;
-      },
-      responseInterceptor: res => {
-        console.log('📡 Swagger UI Response:', {
-          url: res.url, status: res.status, statusText: res.statusText
-        });
-        return res;
-      }
-    },
-    // Transform CSP headers for Swagger UI to allow necessary external resources and inline styles/scripts
-    transformStaticCSP: (hdr) => {
-      let newHdr = hdr.replace(
-        /default-src 'self'/g,
-        "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:"
-      );
-      // Add connect-src directives based on environment for local development
-      if (process.env.NODE_ENV !== 'production') {
-        newHdr += "; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:";
-      } else {
-        newHdr += "; connect-src 'self' https: wss: data: blob:";
-      }
-      newHdr += "; style-src 'self' 'unsafe-inline' https:"; // Allow inline styles and HTTPS sources
-      newHdr += "; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:"; // Allow inline scripts, eval, and HTTPS sources
-      return newHdr;
-    },
-    transformSpecificationClone: true, // Clone the spec before transforming
-    // Transform the OpenAPI specification
-    transformSpecification(spec) {
-      spec.info['x-build-time'] = new Date().toISOString();
-      spec.info['x-builder'] = 'anatolyZader';
-      spec.info['x-environment'] = process.env.NODE_ENV || 'development';
-      spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info
-
-      // Adjust server URLs for development environment
-      if (process.env.NODE_ENV !== 'production') {
-        spec.servers = [
-          { url: 'http://localhost:3000', description: 'Development server' },
-          { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }
-        ];
-      }
-
-      spec.info['x-security-note'] = 'This API uses JWT Bearer tokens or cookie-based authentication';
-      return spec;
-    }
-  });
-
-  // fastify.after(async () => {
-  //   await fastify.register(swaggerUIPlugin);
-  // });
-
-  // ────────────────────────────────────────────────────────────────
-  // 9️⃣  READY HOOK – print summary
-  // ────────────────────────────────────────────────────────────────
-
-  fastify.addHook('onReady', async () => {
-    fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
-  });
-};
-
+---
+*Analysis completed on 2025-10-11T12:54:34.271Z*
+*Generated by EventStorm RAG Pipeline Processing System*
 ```
 
 **Metadata**:
 ```json
 {
-  "text": "// app.js\n'use strict';\n/* eslint-disable no-unused-vars */\n\nconst path              = require('node:path');\nconst fs                = require('fs');\nconst AutoLoad          = require('@fastify/autoload');\nconst fastifySensible   = require('@fastify/sensible');\n\nconst fastifyCookie     = require('@fastify/cookie');\nconst fastifySession    = require('@fastify/session');\nconst { Store }         = fastifySession;\n\nconst redisPlugin       = require('./redisPlugin');\nconst websocketPlugin   = require('./websocketPlugin');\n\nconst loggingPlugin     = require('./aop_modules/log/plugins/logPlugin');\nconst schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');\nconst envPlugin         = require('./envPlugin');\nconst diPlugin          = require('./diPlugin');\nconst corsPlugin        = require('./corsPlugin');\nconst helmet            = require('@fastify/helmet');\nconst fastifyJwt        = require('@fastify/jwt');\nconst fastifyOAuth2     = require('@fastify/oauth2');\nconst { OAuth2Client }  = require('google-auth-library');\nconst { v4: uuidv4 }    = require('uuid');\nconst authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');\n// const swaggerPlugin     = require('./swaggerPlugin');\n// const swaggerUIPlugin   = require('./swaggerUIPlugin');\nconst fastifySwagger    = require('@fastify/swagger');\nconst fastifySwaggerUI  = require('@fastify/swagger-ui');\n\nrequire('dotenv').config();\n\nmodule.exports = async function (fastify, opts) {\n\n  fastify.addHook('onRoute', (routeOptions) => {\n    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');\n  });\n\n  await fastify.register(loggingPlugin);\n  await fastify.register(schemaLoaderPlugin);\n  await fastify.register(envPlugin);\n  await fastify.register(diPlugin);\n\n  await fastify.register(websocketPlugin);\n  await fastify.register(fastifySensible);\n  await fastify.register(fastifySwagger, {\n    openapi: {\n      openapi: '3.0.0',\n      info: {\n        title: 'EventStorm.me API',\n        description:\n          'EventStorm API – Git analysis, AI insights, wiki, chat and more',\n        version: '1.0.0',\n        contact: {\n          name: 'EventStorm Support',\n          email: 'support@eventstorm.me',\n          url: 'https://eventstorm.me/support'\n        },\n        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },\n        termsOfService: 'https://eventstorm.me/terms'\n      },\n      servers: [\n        {\n          url: process.env.NODE_ENV === 'production'\n            ? 'https://eventstorm.me'\n            : 'http://localhost:3000',\n          description: process.env.NODE_ENV === 'production'\n            ? 'Production server'\n            : 'Development server'\n        }\n      ],\n      tags: [\n        { name: 'auth', description: 'Authentication endpoints' },\n        { name: 'git', description: 'Git-analysis endpoints' },\n        { name: 'ai', description: 'AI-powered endpoints' },\n        { name: 'chat', description: 'Chat endpoints' },\n        { name: 'wiki', description: 'Wiki endpoints' },\n        { name: 'api', description: 'Utility endpoints' }\n      ],\n      components: {\n        securitySchemes: {\n          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },\n          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' }\n        },\n        responses: {\n          UnauthorizedError: {\n            description: 'Authentication information is missing or invalid',\n            content: {\n              'application/json': {\n                schema: {\n                  type: 'object',\n                  properties: {\n                    error: { type: 'string' },\n                    message: { type: 'string' },\n                    statusCode: { type: 'number' }\n                  }\n                }\n              }\n            }\n          },\n          ServerError: {\n            description: 'Internal server error',\n            content: {\n              'application/json': {\n                schema: {\n                  type: 'object',\n                  properties: {\n                    error: { type: 'string' },\n                    message: { type: 'string' },\n                    statusCode: { type: 'number' }\n                  }\n                }\n              }\n            }\n          }\n        }\n      },\n      security: [{ bearerAuth: [] }, { cookieAuth: [] }]\n    },\n    exposeRoute: true // This is crucial for exposing the /openapi.json and /openapi.yaml routes\n  });\n\n  await fastify.register(helmet, {\n    global: true,\n    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },\n    contentSecurityPolicy: {\n      directives: {\n        defaultSrc: [\"'self'\", 'https://accounts.google.com/gsi/'],\n        scriptSrc: [\"'self'\", 'https://accounts.google.com/gsi/client'],\n        styleSrc: [\"'self'\", \"'unsafe-inline'\", 'https://accounts.google.com/gsi/style'],  \n        frameSrc: [\"'self'\", 'https://accounts.google.com/gsi/'],\n        connectSrc: [  \n          \"'self'\", \n          'https://accounts.google.com/gsi/',\n          // Add http for local development\n          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:5173'] : [])\n        ],\n      },\n    },\n  });\n\n\n  await fastify.register(corsPlugin);\n\n  fastify.log.info('🔌 Registering Redis client plugin');\n  await fastify.register(redisPlugin);\n  fastify.log.info('✅ Redis client plugin registered');\n\n  fastify.redis.on('error', (err) => {\n    fastify.log.error({ err }, 'Redis client error');\n  });\n\n  fastify.log.info('⏳ Testing Redis connection with PING…');\n  try {\n    const pong = await fastify.redis.ping();\n    fastify.log.info(`✅ Redis PING response: ${pong}`);\n  } catch (err) {\n    fastify.log.error({ err }, '❌ Redis PING failed');\n  }\n\n  // ────────────────────────────────────────────────────────────────\n  // 4️⃣  COOKIE / SESSION\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(\n    fastifyCookie,\n    {\n      secret: fastify.secrets.COOKIE_SECRET,\n      parseOptions: { secure: true, httpOnly: true, sameSite: 'None' },\n    },\n    { encapsulate: false }\n  );\n\n  class RedisStore extends Store {\n    constructor(sendCommand) {\n      super();\n      this.send = sendCommand;\n    }\n    get(sid, cb) {\n      this.send(['GET', sid])\n        .then((data) => cb(null, data ? JSON.parse(data) : null))\n        .catch(cb);\n    }\n    set(sid, sess, ttlMs, cb) {\n      const data = JSON.stringify(sess);\n      const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;\n      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];\n      this.send(cmd).then(() => cb(null)).catch(cb);\n    }\n    destroy(sid, cb) {\n      this.send(['DEL', sid]).then(() => cb(null)).catch(cb);\n    }\n  }\n\n  await fastify.register(fastifySession, {\n    secret: fastify.secrets.SESSION_SECRET,\n    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },\n    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),\n    saveUninitialized: false,\n  });\n\n  // ────────────────────────────────────────────────────────────────\n  // 5️⃣  HEALTH ROUTE\n  // ────────────────────────────────────────────────────────────────\n  fastify.get('/', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));\n\n  // ────────────────────────────────────────────────────────────────\n  // 6️⃣  GOOGLE OAUTH + JWT (UNCHANGED FROM ORIGINAL)\n  // ────────────────────────────────────────────────────────────────\n  let credentialsJsonString, clientId, clientSecret;\n\n  if (\n    process.env.USER_OAUTH2_CREDENTIALS &&\n    process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')\n  ) {\n    credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);\n  } else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {\n    const credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;\n    credentialsJsonString = JSON.parse(\n      await fs.promises.readFile(credentialsPath, { encoding: 'utf8' })\n    );\n  } else {\n    clientId = process.env.FALLBACK_CLIENT_ID;\n    clientSecret = process.env.FALLBACK_CLIENT_SECRET;\n  }\n\n  if (credentialsJsonString) {\n    clientId = credentialsJsonString.web.client_id;\n    clientSecret = credentialsJsonString.web.client_secret;\n  }\n\n  const revokedTokens = new Map();\n\n  fastify.register(fastifyJwt, {\n    secret: fastify.secrets.JWT_SECRET,\n    sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },\n    verify: { requestProperty: 'user' },\n    trusted(request, decoded) {\n      return !revokedTokens.has(decoded.jti);\n    },\n  });\n\n  fastify.decorate('verifyToken', async function (request) {\n    let token = request.cookies?.authToken;\n    if (!token && request.headers.authorization) {\n      const [scheme, value] = request.headers.authorization.split(' ');\n      if (scheme === 'Bearer') token = value;\n    }\n    if (!token) throw fastify.httpErrors.unauthorized('Missing token');\n    request.user = await fastify.jwt.verify(token);\n  });\n\n  fastify.decorateRequest('revokeToken', function () {\n    if (!this.user?.jti) throw this.httpErrors.unauthorized('Missing jti');\n    revokedTokens.set(this.user.jti, true);\n  });\n\n  fastify.decorateRequest('generateToken', async function () {\n    return fastify.jwt.sign(\n      { id: String(this.user.id), username: this.user.username },\n      { jwtid: uuidv4(), expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }\n    );\n  });\n\n  const cookieSecure   = process.env.NODE_ENV === 'production';\n  const cookieSameSite = cookieSecure ? 'None' : 'Lax';\n  const googleCallbackUri =\n    cookieSecure\n      ? 'https://eventstorm.me/api/auth/google/callback'\n      : 'http://localhost:3000/api/auth/google/callback';\n\n  await fastify.register(\n    fastifyOAuth2,\n    {\n      name: 'googleOAuth2',\n      scope: ['profile', 'email', 'openid'],\n      cookie: { secure: cookieSecure, sameSite: cookieSameSite, httpOnly: true },\n      credentials: {\n        client: { id: clientId, secret: clientSecret },\n        auth: fastifyOAuth2.GOOGLE_CONFIGURATION,\n      },\n      startRedirectPath: '/api/auth/google',\n      callbackUri: googleCallbackUri,\n    },\n    { encapsulate: false }\n  );\n\n  const googleClient = new OAuth2Client(clientId);\n  fastify.decorate('verifyGoogleIdToken', async (idToken) => {\n    const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });\n    return ticket.getPayload();\n  });\n\n  await fastify.register(authSchemasPlugin);\n\n  fastify.get('/api/auth/google/callback', async (req, reply) => {\n    const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);\n    const googleAccessToken = token.token.access_token;\n\n    const userService = await req.diScope.resolve('userService');\n    const googleUser  = await userService.loginWithGoogle(googleAccessToken);\n    if (!googleUser) return reply.unauthorized('Google profile invalid');\n\n    const jti  = uuidv4();\n    const jwt  = fastify.jwt.sign(\n      { id: googleUser.id, username: googleUser.username, jti },\n      { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }\n    );\n\n    reply.setCookie('authToken', jwt, {\n      path: '/',\n      httpOnly: true,\n      secure: cookieSecure,\n      sameSite: cookieSameSite,\n    });\n\n    reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');\n  });\n\n  // ────────────────────────────────────────────────────────────────\n  // 7️⃣  AUTOLOAD MODULES\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'aop_modules'),\n    encapsulate: false,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: Object.assign({}, opts),\n  });\n\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'business_modules'),\n    encapsulate: true,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: Object.assign({}, opts),\n  });\n\n  // Debug route\n  fastify.get('/debug/clear-state-cookie', (req, reply) => {\n    reply.clearCookie('oauth2-redirect-state', { path: '/' });\n    reply.send({ message: 'cleared' });\n  });\n\n  await fastify.register(fastifySwaggerUI, {\n    routePrefix: '/api/doc',\n    staticCSP: true, // Enable static CSP headers for the UI\n    uiConfig: {\n      docExpansion: 'list',\n      deepLinking: true,\n      defaultModelsExpandDepth: 2,\n      defaultModelExpandDepth: 2,\n      defaultModelRendering: 'example',\n      displayRequestDuration: true,\n      filter: true,\n      tryItOutEnabled: true,\n      persistAuthorization: true,\n      layout: 'StandaloneLayout',\n      // Custom CSS for better aesthetics\n      customCss: `\n        .swagger-ui .topbar{display:none;}\n        .swagger-ui .info .title{color:#1f2937;}\n        .swagger-ui .scheme-container{background:#f8f9fa;padding:10px;border-radius:4px;}\n        .swagger-ui .info .description {font-size: 14px; line-height: 1.6;}\n        .swagger-ui .btn.authorize {background-color: #4f46e5; border-color: #4f46e5;}\n        .swagger-ui .btn.authorize:hover {background-color: #4338ca;}\n      `,\n      customSiteTitle: 'EventStorm.me API Docs',\n      customfavIcon: '/favicon.ico',\n      // Optional: Add request/response interceptors for debugging Swagger UI calls\n      requestInterceptor: req => {\n        console.log('🌐 Swagger UI Request:', {\n          url: req.url, method: req.method, headers: req.headers\n        });\n        return req;\n      },\n      responseInterceptor: res => {\n        console.log('📡 Swagger UI Response:', {\n          url: res.url, status: res.status, statusText: res.statusText\n        });\n        return res;\n      }\n    },\n    // Transform CSP headers for Swagger UI to allow necessary external resources and inline styles/scripts\n    transformStaticCSP: (hdr) => {\n      let newHdr = hdr.replace(\n        /default-src 'self'/g,\n        \"default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:\"\n      );\n      // Add connect-src directives based on environment for local development\n      if (process.env.NODE_ENV !== 'production') {\n        newHdr += \"; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:\";\n      } else {\n        newHdr += \"; connect-src 'self' https: wss: data: blob:\";\n      }\n      newHdr += \"; style-src 'self' 'unsafe-inline' https:\"; // Allow inline styles and HTTPS sources\n      newHdr += \"; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\"; // Allow inline scripts, eval, and HTTPS sources\n      return newHdr;\n    },\n    transformSpecificationClone: true, // Clone the spec before transforming\n    // Transform the OpenAPI specification\n    transformSpecification(spec) {\n      spec.info['x-build-time'] = new Date().toISOString();\n      spec.info['x-builder'] = 'anatolyZader';\n      spec.info['x-environment'] = process.env.NODE_ENV || 'development';\n      spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info\n\n      // Adjust server URLs for development environment\n      if (process.env.NODE_ENV !== 'production') {\n        spec.servers = [\n          { url: 'http://localhost:3000', description: 'Development server' },\n          { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }\n        ];\n      }\n\n      spec.info['x-security-note'] = 'This API uses JWT Bearer tokens or cookie-based authentication';\n      return spec;\n    }\n  });\n\n  // fastify.after(async () => {\n  //   await fastify.register(swaggerUIPlugin);\n  // });\n\n  // ────────────────────────────────────────────────────────────────\n  // 9️⃣  READY HOOK – print summary\n  // ────────────────────────────────────────────────────────────────\n\n  fastify.addHook('onReady', async () => {\n    fastify.log.info('▶ Registered routes:\\n' + fastify.printRoutes());\n  });\n};\n",
-  "content": "// app.js\n'use strict';\n/* eslint-disable no-unused-vars */\n\nconst path              = require('node:path');\nconst fs                = require('fs');\nconst AutoLoad          = require('@fastify/autoload');\nconst fastifySensible   = require('@fastify/sensible');\n\nconst fastifyCookie     = require('@fastify/cookie');\nconst fastifySession    = require('@fastify/session');\nconst { Store }         = fastifySession;\n\nconst redisPlugin       = require('./redisPlugin');\nconst websocketPlugin   = require('./websocketPlugin');\n\nconst loggingPlugin     = require('./aop_modules/log/plugins/logPlugin');\nconst schemaLoaderPlugin = require('./env_schemas/schemaLoaderPlugin');\nconst envPlugin         = require('./envPlugin');\nconst diPlugin          = require('./diPlugin');\nconst corsPlugin        = require('./corsPlugin');\nconst helmet            = require('@fastify/helmet');\nconst fastifyJwt        = require('@fastify/jwt');\nconst fastifyOAuth2     = require('@fastify/oauth2');\nconst { OAuth2Client }  = require('google-auth-library');\nconst { v4: uuidv4 }    = require('uuid');\nconst authSchemasPlugin = require('./aop_modules/auth/plugins/authSchemasPlugin');\n// const swaggerPlugin     = require('./swaggerPlugin');\n// const swaggerUIPlugin   = require('./swaggerUIPlugin');\nconst fastifySwagger    = require('@fastify/swagger');\nconst fastifySwaggerUI  = require('@fastify/swagger-ui');\n\nrequire('dotenv').config();\n\nmodule.exports = async function (fastify, opts) {\n\n  fastify.addHook('onRoute', (routeOptions) => {\n    fastify.log.info({ method: routeOptions.method, url: routeOptions.url }, 'route registered');\n  });\n\n  await fastify.register(loggingPlugin);\n  await fastify.register(schemaLoaderPlugin);\n  await fastify.register(envPlugin);\n  await fastify.register(diPlugin);\n\n  await fastify.register(websocketPlugin);\n  await fastify.register(fastifySensible);\n  await fastify.register(fastifySwagger, {\n    openapi: {\n      openapi: '3.0.0',\n      info: {\n        title: 'EventStorm.me API',\n        description:\n          'EventStorm API – Git analysis, AI insights, wiki, chat and more',\n        version: '1.0.0',\n        contact: {\n          name: 'EventStorm Support',\n          email: 'support@eventstorm.me',\n          url: 'https://eventstorm.me/support'\n        },\n        license: { name: 'MIT', url: 'https://opensource.org/licenses/MIT' },\n        termsOfService: 'https://eventstorm.me/terms'\n      },\n      servers: [\n        {\n          url: process.env.NODE_ENV === 'production'\n            ? 'https://eventstorm.me'\n            : 'http://localhost:3000',\n          description: process.env.NODE_ENV === 'production'\n            ? 'Production server'\n            : 'Development server'\n        }\n      ],\n      tags: [\n        { name: 'auth', description: 'Authentication endpoints' },\n        { name: 'git', description: 'Git-analysis endpoints' },\n        { name: 'ai', description: 'AI-powered endpoints' },\n        { name: 'chat', description: 'Chat endpoints' },\n        { name: 'wiki', description: 'Wiki endpoints' },\n        { name: 'api', description: 'Utility endpoints' }\n      ],\n      components: {\n        securitySchemes: {\n          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },\n          cookieAuth: { type: 'apiKey', in: 'cookie', name: 'authToken' }\n        },\n        responses: {\n          UnauthorizedError: {\n            description: 'Authentication information is missing or invalid',\n            content: {\n              'application/json': {\n                schema: {\n                  type: 'object',\n                  properties: {\n                    error: { type: 'string' },\n                    message: { type: 'string' },\n                    statusCode: { type: 'number' }\n                  }\n                }\n              }\n            }\n          },\n          ServerError: {\n            description: 'Internal server error',\n            content: {\n              'application/json': {\n                schema: {\n                  type: 'object',\n                  properties: {\n                    error: { type: 'string' },\n                    message: { type: 'string' },\n                    statusCode: { type: 'number' }\n                  }\n                }\n              }\n            }\n          }\n        }\n      },\n      security: [{ bearerAuth: [] }, { cookieAuth: [] }]\n    },\n    exposeRoute: true // This is crucial for exposing the /openapi.json and /openapi.yaml routes\n  });\n\n  await fastify.register(helmet, {\n    global: true,\n    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },\n    contentSecurityPolicy: {\n      directives: {\n        defaultSrc: [\"'self'\", 'https://accounts.google.com/gsi/'],\n        scriptSrc: [\"'self'\", 'https://accounts.google.com/gsi/client'],\n        styleSrc: [\"'self'\", \"'unsafe-inline'\", 'https://accounts.google.com/gsi/style'],  \n        frameSrc: [\"'self'\", 'https://accounts.google.com/gsi/'],\n        connectSrc: [  \n          \"'self'\", \n          'https://accounts.google.com/gsi/',\n          // Add http for local development\n          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:3000', 'http://localhost:5173'] : [])\n        ],\n      },\n    },\n  });\n\n\n  await fastify.register(corsPlugin);\n\n  fastify.log.info('🔌 Registering Redis client plugin');\n  await fastify.register(redisPlugin);\n  fastify.log.info('✅ Redis client plugin registered');\n\n  fastify.redis.on('error', (err) => {\n    fastify.log.error({ err }, 'Redis client error');\n  });\n\n  fastify.log.info('⏳ Testing Redis connection with PING…');\n  try {\n    const pong = await fastify.redis.ping();\n    fastify.log.info(`✅ Redis PING response: ${pong}`);\n  } catch (err) {\n    fastify.log.error({ err }, '❌ Redis PING failed');\n  }\n\n  // ────────────────────────────────────────────────────────────────\n  // 4️⃣  COOKIE / SESSION\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(\n    fastifyCookie,\n    {\n      secret: fastify.secrets.COOKIE_SECRET,\n      parseOptions: { secure: true, httpOnly: true, sameSite: 'None' },\n    },\n    { encapsulate: false }\n  );\n\n  class RedisStore extends Store {\n    constructor(sendCommand) {\n      super();\n      this.send = sendCommand;\n    }\n    get(sid, cb) {\n      this.send(['GET', sid])\n        .then((data) => cb(null, data ? JSON.parse(data) : null))\n        .catch(cb);\n    }\n    set(sid, sess, ttlMs, cb) {\n      const data = JSON.stringify(sess);\n      const ttl  = typeof ttlMs === 'number' ? Math.ceil(ttlMs / 1000) : undefined;\n      const cmd  = ttl ? ['SETEX', sid, ttl, data] : ['SET', sid, data];\n      this.send(cmd).then(() => cb(null)).catch(cb);\n    }\n    destroy(sid, cb) {\n      this.send(['DEL', sid]).then(() => cb(null)).catch(cb);\n    }\n  }\n\n  await fastify.register(fastifySession, {\n    secret: fastify.secrets.SESSION_SECRET,\n    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },\n    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)),\n    saveUninitialized: false,\n  });\n\n  // ────────────────────────────────────────────────────────────────\n  // 5️⃣  HEALTH ROUTE\n  // ────────────────────────────────────────────────────────────────\n  fastify.get('/', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));\n\n  // ────────────────────────────────────────────────────────────────\n  // 6️⃣  GOOGLE OAUTH + JWT (UNCHANGED FROM ORIGINAL)\n  // ────────────────────────────────────────────────────────────────\n  let credentialsJsonString, clientId, clientSecret;\n\n  if (\n    process.env.USER_OAUTH2_CREDENTIALS &&\n    process.env.USER_OAUTH2_CREDENTIALS.startsWith('{')\n  ) {\n    credentialsJsonString = JSON.parse(process.env.USER_OAUTH2_CREDENTIALS);\n  } else if (fastify.secrets && typeof fastify.secrets.USER_OAUTH2_CREDENTIALS === 'string') {\n    const credentialsPath = fastify.secrets.USER_OAUTH2_CREDENTIALS;\n    credentialsJsonString = JSON.parse(\n      await fs.promises.readFile(credentialsPath, { encoding: 'utf8' })\n    );\n  } else {\n    clientId = process.env.FALLBACK_CLIENT_ID;\n    clientSecret = process.env.FALLBACK_CLIENT_SECRET;\n  }\n\n  if (credentialsJsonString) {\n    clientId = credentialsJsonString.web.client_id;\n    clientSecret = credentialsJsonString.web.client_secret;\n  }\n\n  const revokedTokens = new Map();\n\n  fastify.register(fastifyJwt, {\n    secret: fastify.secrets.JWT_SECRET,\n    sign: { expiresIn: fastify.secrets.JWT_EXPIRE_IN },\n    verify: { requestProperty: 'user' },\n    trusted(request, decoded) {\n      return !revokedTokens.has(decoded.jti);\n    },\n  });\n\n  fastify.decorate('verifyToken', async function (request) {\n    let token = request.cookies?.authToken;\n    if (!token && request.headers.authorization) {\n      const [scheme, value] = request.headers.authorization.split(' ');\n      if (scheme === 'Bearer') token = value;\n    }\n    if (!token) throw fastify.httpErrors.unauthorized('Missing token');\n    request.user = await fastify.jwt.verify(token);\n  });\n\n  fastify.decorateRequest('revokeToken', function () {\n    if (!this.user?.jti) throw this.httpErrors.unauthorized('Missing jti');\n    revokedTokens.set(this.user.jti, true);\n  });\n\n  fastify.decorateRequest('generateToken', async function () {\n    return fastify.jwt.sign(\n      { id: String(this.user.id), username: this.user.username },\n      { jwtid: uuidv4(), expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }\n    );\n  });\n\n  const cookieSecure   = process.env.NODE_ENV === 'production';\n  const cookieSameSite = cookieSecure ? 'None' : 'Lax';\n  const googleCallbackUri =\n    cookieSecure\n      ? 'https://eventstorm.me/api/auth/google/callback'\n      : 'http://localhost:3000/api/auth/google/callback';\n\n  await fastify.register(\n    fastifyOAuth2,\n    {\n      name: 'googleOAuth2',\n      scope: ['profile', 'email', 'openid'],\n      cookie: { secure: cookieSecure, sameSite: cookieSameSite, httpOnly: true },\n      credentials: {\n        client: { id: clientId, secret: clientSecret },\n        auth: fastifyOAuth2.GOOGLE_CONFIGURATION,\n      },\n      startRedirectPath: '/api/auth/google',\n      callbackUri: googleCallbackUri,\n    },\n    { encapsulate: false }\n  );\n\n  const googleClient = new OAuth2Client(clientId);\n  fastify.decorate('verifyGoogleIdToken', async (idToken) => {\n    const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });\n    return ticket.getPayload();\n  });\n\n  await fastify.register(authSchemasPlugin);\n\n  fastify.get('/api/auth/google/callback', async (req, reply) => {\n    const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);\n    const googleAccessToken = token.token.access_token;\n\n    const userService = await req.diScope.resolve('userService');\n    const googleUser  = await userService.loginWithGoogle(googleAccessToken);\n    if (!googleUser) return reply.unauthorized('Google profile invalid');\n\n    const jti  = uuidv4();\n    const jwt  = fastify.jwt.sign(\n      { id: googleUser.id, username: googleUser.username, jti },\n      { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }\n    );\n\n    reply.setCookie('authToken', jwt, {\n      path: '/',\n      httpOnly: true,\n      secure: cookieSecure,\n      sameSite: cookieSameSite,\n    });\n\n    reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');\n  });\n\n  // ────────────────────────────────────────────────────────────────\n  // 7️⃣  AUTOLOAD MODULES\n  // ────────────────────────────────────────────────────────────────\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'aop_modules'),\n    encapsulate: false,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: Object.assign({}, opts),\n  });\n\n  await fastify.register(AutoLoad, {\n    dir: path.join(__dirname, 'business_modules'),\n    encapsulate: true,\n    maxDepth: 1,\n    dirNameRoutePrefix: false,\n    prefix: '/api',\n    options: Object.assign({}, opts),\n  });\n\n  // Debug route\n  fastify.get('/debug/clear-state-cookie', (req, reply) => {\n    reply.clearCookie('oauth2-redirect-state', { path: '/' });\n    reply.send({ message: 'cleared' });\n  });\n\n  await fastify.register(fastifySwaggerUI, {\n    routePrefix: '/api/doc',\n    staticCSP: true, // Enable static CSP headers for the UI\n    uiConfig: {\n      docExpansion: 'list',\n      deepLinking: true,\n      defaultModelsExpandDepth: 2,\n      defaultModelExpandDepth: 2,\n      defaultModelRendering: 'example',\n      displayRequestDuration: true,\n      filter: true,\n      tryItOutEnabled: true,\n      persistAuthorization: true,\n      layout: 'StandaloneLayout',\n      // Custom CSS for better aesthetics\n      customCss: `\n        .swagger-ui .topbar{display:none;}\n        .swagger-ui .info .title{color:#1f2937;}\n        .swagger-ui .scheme-container{background:#f8f9fa;padding:10px;border-radius:4px;}\n        .swagger-ui .info .description {font-size: 14px; line-height: 1.6;}\n        .swagger-ui .btn.authorize {background-color: #4f46e5; border-color: #4f46e5;}\n        .swagger-ui .btn.authorize:hover {background-color: #4338ca;}\n      `,\n      customSiteTitle: 'EventStorm.me API Docs',\n      customfavIcon: '/favicon.ico',\n      // Optional: Add request/response interceptors for debugging Swagger UI calls\n      requestInterceptor: req => {\n        console.log('🌐 Swagger UI Request:', {\n          url: req.url, method: req.method, headers: req.headers\n        });\n        return req;\n      },\n      responseInterceptor: res => {\n        console.log('📡 Swagger UI Response:', {\n          url: res.url, status: res.status, statusText: res.statusText\n        });\n        return res;\n      }\n    },\n    // Transform CSP headers for Swagger UI to allow necessary external resources and inline styles/scripts\n    transformStaticCSP: (hdr) => {\n      let newHdr = hdr.replace(\n        /default-src 'self'/g,\n        \"default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:\"\n      );\n      // Add connect-src directives based on environment for local development\n      if (process.env.NODE_ENV !== 'production') {\n        newHdr += \"; connect-src 'self' http://localhost:3000 http://localhost:5173 http://127.0.0.1:3000 ws://localhost:* wss://localhost:* https: data: blob:\";\n      } else {\n        newHdr += \"; connect-src 'self' https: wss: data: blob:\";\n      }\n      newHdr += \"; style-src 'self' 'unsafe-inline' https:\"; // Allow inline styles and HTTPS sources\n      newHdr += \"; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\"; // Allow inline scripts, eval, and HTTPS sources\n      return newHdr;\n    },\n    transformSpecificationClone: true, // Clone the spec before transforming\n    // Transform the OpenAPI specification\n    transformSpecification(spec) {\n      spec.info['x-build-time'] = new Date().toISOString();\n      spec.info['x-builder'] = 'anatolyZader';\n      spec.info['x-environment'] = process.env.NODE_ENV || 'development';\n      spec.info['x-node-version'] = process.version; // Add Node.js version to the spec info\n\n      // Adjust server URLs for development environment\n      if (process.env.NODE_ENV !== 'production') {\n        spec.servers = [\n          { url: 'http://localhost:3000', description: 'Development server' },\n          { url: 'http://127.0.0.1:3000', description: 'Development server (alternative)' }\n        ];\n      }\n\n      spec.info['x-security-note'] = 'This API uses JWT Bearer tokens or cookie-based authentication';\n      return spec;\n    }\n  });\n\n  // fastify.after(async () => {\n  //   await fastify.register(swaggerUIPlugin);\n  // });\n\n  // ────────────────────────────────────────────────────────────────\n  // 9️⃣  READY HOOK – print summary\n  // ────────────────────────────────────────────────────────────────\n\n  fastify.addHook('onReady', async () => {\n    fastify.log.info('▶ Registered routes:\\n' + fastify.printRoutes());\n  });\n};\n",
-  "source": "backend/app.js",
-  "type": "github-code",
-  "isTextSearchResult": true,
-  "snippet": "// app.js\n'use strict';\n/* eslint-disable no-unused-vars */\n\nconst path              = require('node:path');\nconst fs                = require('fs');\nconst AutoLoad          = require('@fastify/autolo",
-  "score": 0.5,
-  "id": "text_59"
+  "branch": "main",
+  "chunkIndex": 33,
+  "chunkTokens": 166,
+  "filePath": "backend/contextPipeline_method_level_analysis.md",
+  "fileSize": 125660,
+  "loaded_at": "2025-10-25T12:09:59.365Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26649,
+  "priority": 50,
+  "processedAt": "2025-10-25T12:09:59.365Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
+  "size": 125660,
+  "source": "anatolyZader/vc-3",
+  "text": "k Result\n\nThe file was processed as a single semantic unit, likely due to:\n- Large cohesive class structure\n- Interconnected methods and dependencies\n- Semantic coherence favoring unified processing\n\n### 🚀 RAG Optimization\n\nThe processed chunks are now ready for:\n- **Vector Embedding** - Clean, contextual code for accurate embeddings\n- **Semantic Search** - Enhanced metadata for precise retrieval\n- **Context Generation** - Optimal chunk sizes for LLM context windows\n- **Domain Understanding** - Ubiquitous language context for business relevance\n\n---\n*Analysis completed on 2025-10-11T12:54:34.271Z*\n*Generated by EventStorm RAG Pipeline Processing System*",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 2,
+  "score": 0.390087128,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_264_1761394259086"
 }
 ```
 
 ---
 
-### Chunk 2/2
-- **Source**: client/src/App.jsx
-- **Type**: github-code
-- **Size**: 1271 characters
-- **Score**: 0.25
-- **Repository**: N/A
-- **Branch**: N/A
+### Chunk 2/4
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 3983 characters
+- **Score**: 0.34472847
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
 - **File Type**: N/A
-- **Processed At**: N/A
+- **Processed At**: 2025-10-18T13:06:53.499Z
 
 **Full Content**:
 ```
-// App.jsx
-
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { useContext } from 'react';
-import LoginPage from './components/auth_components/LoginPage';
-import Chat from './components/chat_components/Chat';
-
-import NotFound from './components/NotFound';
-import { AuthProvider, AuthContext } from './components/auth_components/AuthContext';
-import { ChatProvider } from './components/chat_components/ChatContext';
-import './app.css';
-
-function AppContent() {
-  const { isAuthenticated, authLoading } = useContext(AuthContext);
-
-  if (authLoading) return null; // or spinner
-
-  // Show the LoginPage if the user is not authenticated
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
-  // Show the main layout after successful login
-  return (
-    <div className="app-grid">
-      <div className="main-section">
-        <Routes>
-          <Route path="/" element={<Chat />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </div>
-    </div>
-  );
-}
-
-function App() {
-  return (
-    <AuthProvider>
-      <ChatProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </ChatProvider>
-    </AuthProvider>
-  );
-}
-
-export default App;
-
+"examples": ["questionAdded", "repoFetched", "apiSaved"],
+        "pattern": "Primary Adapter",
+        "purpose": "Asynchronous event processing"
+      },
+      {
+        "name": "WebSocket Connections",
+        "description": "Real-time bidirectional communication",
+        "usage": "Live chat responses, real-time updates",
+        "pattern": "Primary Adapter",
+        "purpose": "Real-time interaction"
+      }
+    ],
+    "outbound": [
+      {
+        "name": "Database Adapters",
+        "description": "Persistence layer interfaces",
+        "examples": ["IChatPersistPort", "IApiPersistPort", "IAuthPersistPort"],
+        "pattern": "Secondary Adapter",
+        "purpose": "Data persistence"
+      },
+      {
+        "name": "External API Adapters",
+        "description": "Third-party service integrations",
+        "examples": ["GitHub API", "OpenAI API", "Jira API"],
+        "pattern": "Secondary Adapter", 
+        "purpose": "External service integration"
+      },
+      {
+        "name": "Messaging Adapters", 
+        "description": "Event publishing interfaces",
+        "examples": ["EventDispatcher", "PubSub Publishers"],
+        "pattern": "Secondary Adapter",
+        "purpose": "Event distribution"
+      },
+      {
+        "name": "AI Service Adapters",
+        "description": "AI and ML service interfaces",
+        "examples": ["LangChain Adapter", "Vector Store Adapter"],
+        "pattern": "Secondary Adapter",
+        "purpose": "AI/ML service integration"
+      }
+    ]
+  },
+  "designPatterns": {
+    "aggregate": {
+      "name": "Aggregate Pattern",
+      "description": "DDD pattern for maintaining consistency boundaries",
+      "examples": ["Conversation", "GitProject", "Account"],
+      "rules": ["Single entry point", "Consistency boundary", "Transaction boundary"]
+    },
+    "repository": {
+      "name": "Repository Pattern", 
+      "description": "Abstraction for data access logic",
+      "examples": ["ChatPersistAdapter", "GitPersistAdapter"],
+      "benefits": ["Data access abstraction", "Testability", "Technology independence"]
+    },
+    "adapter": {
+      "name": "Adapter Pattern",
+      "description": "Interface between application and external systems",
+      "examples": ["GitHub Adapter", "OpenAI Adapter", "Database Adapters"],
+      "purpose": "External system integration"
+    },
+    "event_sourcing": {
+      "name": "Event Sourcing",
+      "description": "Storing state changes as sequence of events",
+      "usage": "Domain events for audit trail and system state",
+      "benefits": ["Complete audit trail", "Temporal queries", "Event replay"]
+    },
+    "cqrs": {
+      "name": "Command Query Responsibility Segregation",
+      "description": "Separate read and write operations",
+      "benefits": ["Optimized queries", "Scalable reads", "Clear separation"],
+      "usage": "Complex read/write scenarios"
+    }
+  },
+  "principles": {
+    "solid": {
+      "name": "SOLID Principles",
+      "principles": [
+        {
+          "name": "Single Responsibility Principle",
+          "description": "A class should have one reason to change"
+        },
+        {
+          "name": "Open/Closed Principle", 
+          "description": "Open for extension, closed for modification"
+        },
+        {
+          "name": "Liskov Substitution Principle",
+          "description": "Objects should be replaceable with instances of their subtypes"
+        },
+        {
+          "name": "Interface Segregation Principle",
+          "description": "Many client-specific interfaces are better than one general-purpose interface"
+        },
+        {
+          "name": "Dependency Inversion Principle",
+          "description": "Depend on abstractions, not concretions"
+        }
+      ]
+    },
+    "ddd": {
+      "name": "Domain-Driven Design Principles",
+      "principles": [
+        {
+          "name": "Ubiquitous Language",
+          "description": "Shared vocabulary between domain experts and developers"
+        },
+        {
 ```
 
 **Metadata**:
 ```json
 {
-  "text": "// App.jsx\n\nimport { BrowserRouter, Route, Routes } from 'react-router-dom';\nimport { useContext } from 'react';\nimport LoginPage from './components/auth_components/LoginPage';\nimport Chat from './components/chat_components/Chat';\n\nimport NotFound from './components/NotFound';\nimport { AuthProvider, AuthContext } from './components/auth_components/AuthContext';\nimport { ChatProvider } from './components/chat_components/ChatContext';\nimport './app.css';\n\nfunction AppContent() {\n  const { isAuthenticated, authLoading } = useContext(AuthContext);\n\n  if (authLoading) return null; // or spinner\n\n  // Show the LoginPage if the user is not authenticated\n  if (!isAuthenticated) {\n    return <LoginPage />;\n  }\n\n  // Show the main layout after successful login\n  return (\n    <div className=\"app-grid\">\n      <div className=\"main-section\">\n        <Routes>\n          <Route path=\"/\" element={<Chat />} />\n          <Route path=\"/chat\" element={<Chat />} />\n          <Route path=\"*\" element={<NotFound />} />\n        </Routes>\n      </div>\n    </div>\n  );\n}\n\nfunction App() {\n  return (\n    <AuthProvider>\n      <ChatProvider>\n        <BrowserRouter>\n          <AppContent />\n        </BrowserRouter>\n      </ChatProvider>\n    </AuthProvider>\n  );\n}\n\nexport default App;\n",
-  "content": "// App.jsx\n\nimport { BrowserRouter, Route, Routes } from 'react-router-dom';\nimport { useContext } from 'react';\nimport LoginPage from './components/auth_components/LoginPage';\nimport Chat from './components/chat_components/Chat';\n\nimport NotFound from './components/NotFound';\nimport { AuthProvider, AuthContext } from './components/auth_components/AuthContext';\nimport { ChatProvider } from './components/chat_components/ChatContext';\nimport './app.css';\n\nfunction AppContent() {\n  const { isAuthenticated, authLoading } = useContext(AuthContext);\n\n  if (authLoading) return null; // or spinner\n\n  // Show the LoginPage if the user is not authenticated\n  if (!isAuthenticated) {\n    return <LoginPage />;\n  }\n\n  // Show the main layout after successful login\n  return (\n    <div className=\"app-grid\">\n      <div className=\"main-section\">\n        <Routes>\n          <Route path=\"/\" element={<Chat />} />\n          <Route path=\"/chat\" element={<Chat />} />\n          <Route path=\"*\" element={<NotFound />} />\n        </Routes>\n      </div>\n    </div>\n  );\n}\n\nfunction App() {\n  return (\n    <AuthProvider>\n      <ChatProvider>\n        <BrowserRouter>\n          <AppContent />\n        </BrowserRouter>\n      </ChatProvider>\n    </AuthProvider>\n  );\n}\n\nexport default App;\n",
-  "source": "client/src/App.jsx",
-  "type": "github-code",
-  "isTextSearchResult": true,
-  "snippet": "// App.jsx\n\nimport { BrowserRouter, Route, Routes } from 'react-router-dom';\nimport { useContext } from 'react';\nimport LoginPage from './components/auth_components/LoginPage';\nimport Chat from './com",
-  "score": 0.25,
-  "id": "text_186"
+  "branch": "main",
+  "chunkIndex": 1,
+  "chunkTokens": 996,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/arch-catalog.json",
+  "fileSize": 9163,
+  "loaded_at": "2025-10-18T13:06:53.499Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 2005,
+  "priority": 50,
+  "processedAt": "2025-10-18T13:06:53.499Z",
+  "rechunked": true,
+  "repoId": "vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "986c7b4e57e1cbcd3107b180f787ce3574523de7",
+  "size": 9163,
+  "source": "anatolyZader/vc-3",
+  "text": "\"examples\": [\"questionAdded\", \"repoFetched\", \"apiSaved\"],\n        \"pattern\": \"Primary Adapter\",\n        \"purpose\": \"Asynchronous event processing\"\n      },\n      {\n        \"name\": \"WebSocket Connections\",\n        \"description\": \"Real-time bidirectional communication\",\n        \"usage\": \"Live chat responses, real-time updates\",\n        \"pattern\": \"Primary Adapter\",\n        \"purpose\": \"Real-time interaction\"\n      }\n    ],\n    \"outbound\": [\n      {\n        \"name\": \"Database Adapters\",\n        \"description\": \"Persistence layer interfaces\",\n        \"examples\": [\"IChatPersistPort\", \"IApiPersistPort\", \"IAuthPersistPort\"],\n        \"pattern\": \"Secondary Adapter\",\n        \"purpose\": \"Data persistence\"\n      },\n      {\n        \"name\": \"External API Adapters\",\n        \"description\": \"Third-party service integrations\",\n        \"examples\": [\"GitHub API\", \"OpenAI API\", \"Jira API\"],\n        \"pattern\": \"Secondary Adapter\", \n        \"purpose\": \"External service integration\"\n      },\n      {\n        \"name\": \"Messaging Adapters\", \n        \"description\": \"Event publishing interfaces\",\n        \"examples\": [\"EventDispatcher\", \"PubSub Publishers\"],\n        \"pattern\": \"Secondary Adapter\",\n        \"purpose\": \"Event distribution\"\n      },\n      {\n        \"name\": \"AI Service Adapters\",\n        \"description\": \"AI and ML service interfaces\",\n        \"examples\": [\"LangChain Adapter\", \"Vector Store Adapter\"],\n        \"pattern\": \"Secondary Adapter\",\n        \"purpose\": \"AI/ML service integration\"\n      }\n    ]\n  },\n  \"designPatterns\": {\n    \"aggregate\": {\n      \"name\": \"Aggregate Pattern\",\n      \"description\": \"DDD pattern for maintaining consistency boundaries\",\n      \"examples\": [\"Conversation\", \"GitProject\", \"Account\"],\n      \"rules\": [\"Single entry point\", \"Consistency boundary\", \"Transaction boundary\"]\n    },\n    \"repository\": {\n      \"name\": \"Repository Pattern\", \n      \"description\": \"Abstraction for data access logic\",\n      \"examples\": [\"ChatPersistAdapter\", \"GitPersistAdapter\"],\n      \"benefits\": [\"Data access abstraction\", \"Testability\", \"Technology independence\"]\n    },\n    \"adapter\": {\n      \"name\": \"Adapter Pattern\",\n      \"description\": \"Interface between application and external systems\",\n      \"examples\": [\"GitHub Adapter\", \"OpenAI Adapter\", \"Database Adapters\"],\n      \"purpose\": \"External system integration\"\n    },\n    \"event_sourcing\": {\n      \"name\": \"Event Sourcing\",\n      \"description\": \"Storing state changes as sequence of events\",\n      \"usage\": \"Domain events for audit trail and system state\",\n      \"benefits\": [\"Complete audit trail\", \"Temporal queries\", \"Event replay\"]\n    },\n    \"cqrs\": {\n      \"name\": \"Command Query Responsibility Segregation\",\n      \"description\": \"Separate read and write operations\",\n      \"benefits\": [\"Optimized queries\", \"Scalable reads\", \"Clear separation\"],\n      \"usage\": \"Complex read/write scenarios\"\n    }\n  },\n  \"principles\": {\n    \"solid\": {\n      \"name\": \"SOLID Principles\",\n      \"principles\": [\n        {\n          \"name\": \"Single Responsibility Principle\",\n          \"description\": \"A class should have one reason to change\"\n        },\n        {\n          \"name\": \"Open/Closed Principle\", \n          \"description\": \"Open for extension, closed for modification\"\n        },\n        {\n          \"name\": \"Liskov Substitution Principle\",\n          \"description\": \"Objects should be replaceable with instances of their subtypes\"\n        },\n        {\n          \"name\": \"Interface Segregation Principle\",\n          \"description\": \"Many client-specific interfaces are better than one general-purpose interface\"\n        },\n        {\n          \"name\": \"Dependency Inversion Principle\",\n          \"description\": \"Depend on abstractions, not concretions\"\n        }\n      ]\n    },\n    \"ddd\": {\n      \"name\": \"Domain-Driven Design Principles\",\n      \"principles\": [\n        {\n          \"name\": \"Ubiquitous Language\",\n          \"description\": \"Shared vocabulary between domain experts and developers\"\n        },\n        {",
+  "type": "github-file",
+  "userId": "anatolyzader",
+  "workerId": 0,
+  "score": 0.34472847,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1560_1760792870759"
+}
+```
+
+---
+
+### Chunk 3/4
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 6338 characters
+- **Score**: 0.334318161
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-25T12:09:33.132Z
+
+**Full Content**:
+```
+! this file is to be updated manually only !
+
+Eventstorm.me Architecture
+
+(In this document, file names are taken from the ai module for exemplary purposes.)
+
+General Overview
+
+Eventstorm.me is a full-stack React – Fastify application.
+
+Client Side
+
+to be added…
+
+Backend Side
+
+Modular Monolith
+
+Eventstorm.me backend is a modular monolith with two kinds of modules:
+
+AOP modules – for cross-cutting concerns
+
+Business modules – for main business concerns, 
+Each business module represents a bounded context in Domain-Driven Design.
+
+The Business modules represent the core business capabilities with strict boundaries and event-driven communication, while AOP modules provide shared technical services that cross module boundaries. This creates a clean separation between business concerns (what the system does) and technical concerns (how the system works), following both Domain-Driven Design and Aspect-Oriented Programming principles. 
+
+This architecture allows Eventstorm.me to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.
+
+Difference in communication:
+
+Business → Business: async only via Pub/Sub (domain or integration events). No direct calls. Contracts = event schemas.
+
+Business → AOP: direct method calls (e.g., permissions.check(), auth.verify(), log.info()) through well-defined interfaces.
+
+AOP → Business: never call back into business logic (prevents cycles). AOP modules are dependency sinks.
+
+AOP modules are globally accessible via Fastify decorators
+
+DDD + Hexagonal Architecture:
+
+Each module (AOP or business) is built according to DDD and Hexagonal (Ports and Adapters) multilayered architecture, with a rich domain layer and strict isolation between layers.
+
+Layers in Each Module:
+1. Input
+
+Incoming requests are accepted here.
+
+The Input folder in the module directory usually includes:
+
+aiRouter.js
+
+HTTP route endpoints
+
+Fastify schema for each endpoint
+
+Pre-validation of request
+
+Handler set (Fastify decorator function)
+
+This function is defined in the controller file from the same module
+
+aiPubsubListener.js
+
+Listener for a given pubsub topic
+
+Messages are received
+
+Payload is extracted and transferred to the controller file method as a mocked Request object (to behave like an HTTP request)
+
+Example:
+
+subscription.on('message', async (message) => {
+  fastify.log.info(`Received docs message ${message.id} on subscription ${subscriptionName}`);
+
+  try {
+    const data = JSON.parse(message.data.toString());
+
+    if (data.event === 'fetchDocsRequest') {
+      const { userId, repoId, correlationId } = data.payload;
+
+      const mockRequest = {
+        params: { repoId },
+        user: { id: userId },
+        userId
+      };
+      const mockReply = {};
+
+      await fastify.fetchDocs(mockRequest, mockReply);
+    }
+  } catch (err) {
+    fastify.log.error(err);
+  }
+});
+
+2. Controller
+
+Each module includes a thin controller.
+
+Purpose: accept a request object (or its mock), extract required data, call the module’s service file (aiService.js).
+
+Each controller method is set up as a Fastify decorator.
+
+Accessible to the module-specific child Fastify instance (isolated from the root instance by Fastify encapsulation).
+
+3. Service
+
+Contains the main business logic of the app.
+
+Calls methods of domain entities/aggregates.
+
+Replaces domain ports with specific adapters (ports and adapters / hexagonal).
+
+Deals with persistence, messaging, etc.
+
+Note: Controller + Service = Application Layer.
+
+4. Domain
+
+The domain layer includes a rich model with DDD tactical patterns:
+
+Aggregates
+
+Entities
+
+Ports (persistence, messaging, AI, etc.)
+
+Value objects
+
+Domain events
+
+The DDD ubiquitous language dictionary has been split into focused catalogs:
+- `ubiq-language.json` - Pure business terminology and domain concepts
+- `arch-catalog.json` - Architectural patterns, layers, and design principles  
+- `infra-catalog.json` - Infrastructure configuration and technical dependencies
+- `workflows.json` - High-level business processes and integration patterns
+
+5. Infrastructure
+
+The infrastructure layer includes specific adapters implementing ports from the domain layer to interact with external systems.
+
+More than one adapter can exist for a port.
+
+Example: aiPostgresAdapter.js and aiMySQLAdapter.js both implement IAIPersistPort.js.
+
+Active adapter set in infraConfig.json.
+
+Example:
+
+{
+  "aop_modules": {
+    "auth": {
+      "authPersistAdapter": "authPostgresAdapter"
+    }
+  },
+  "business_modules": {
+    "chat": {
+      "chatPersistAdapter": "chatPostgresAdapter",
+      "chatAiAdapter": "chatAiAdapter",
+      "chatMessagingAdapter": "chatPubsubAdapter",
+      "chatVoiceAdapter": "chatGCPVoiceAdapter"
+    },
+    "git": {
+      "gitAdapter": "gitGithubAdapter",
+      "gitMessagingAdapter": "gitPubsubAdapter",
+      "gitPersistAdapter": "gitPostgresAdapter"
+    },
+    "docs": {
+      "docsMessagingAdapter": "docsPubsubAdapter",
+      "docsPersistAdapter": "docsPostgresAdapter",
+      "docsAiAdapter": "docsLangchainAdapter",
+      "docsGitAdapter": "docsGithubAdapter"
+    },
+    "ai": {
+      "aiPersistAdapter": "aiPostgresAdapter",
+      "aiAdapter": "aiLangchainAdapter",
+      "aiProvider": "anthropic",
+      "aiMessagingAdapter": "aiPubsubAdapter",
+      "aiGitAdapter": "aiGithubAdapter",
+      "aiDocsAdapter": "aiGithubDocsAdapter"
+    },
+    "messaging": {
+      "messagingPersistAdapter": "messagingPostgresAdapter",
+      "messagingAIAdapter": "messagingLangchainAdapter",
+      "messagingMessagingAdapter": "messagingPubsubAdapter"
+    },
+    "api": {
+      "apiPersistAdapter": "apiPostgresAdapter",
+      "apiMessagingAdapter": "apiPubsubAdapter",
+      "apiAdapter": "apiSwaggerAdapter"
+    }
+  }
+}
+
+Important Notes:
+
+- Fastify code is limited to Input and Application layers.
+
+- Domain and Infrastructure layers are isolated from Fastify, built on regular JS files (not Fastify plugins).
+
+Additional Topics:
+
+Dependency Injection
+
+- Used in each module
+
+- Keeps data flow inside-out (domain → adapters)
+
+- Implements hexagonal design effectively
+
+Environmental Variables
+
+- Set in .env file at root app directory
+
+Backend For Frontend (BFF)
+
+- Implemented partially
+
+- Example: Chat module (handles user interaction via Chat UI)
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/ARCHITECTURE.md",
+  "fileSize": 6356,
+  "loaded_at": "2025-10-25T12:09:33.132Z",
+  "loading_method": "cloud_native_api",
+  "priority": 50,
+  "processedAt": "2025-10-25T12:09:33.132Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "db4ad51498c1e9eeb54237f67c32d6fd0d60de24",
+  "size": 6356,
+  "source": "anatolyZader/vc-3",
+  "text": "! this file is to be updated manually only !\n\nEventstorm.me Architecture\n\n(In this document, file names are taken from the ai module for exemplary purposes.)\n\nGeneral Overview\n\nEventstorm.me is a full-stack React – Fastify application.\n\nClient Side\n\nto be added…\n\nBackend Side\n\nModular Monolith\n\nEventstorm.me backend is a modular monolith with two kinds of modules:\n\nAOP modules – for cross-cutting concerns\n\nBusiness modules – for main business concerns, \nEach business module represents a bounded context in Domain-Driven Design.\n\nThe Business modules represent the core business capabilities with strict boundaries and event-driven communication, while AOP modules provide shared technical services that cross module boundaries. This creates a clean separation between business concerns (what the system does) and technical concerns (how the system works), following both Domain-Driven Design and Aspect-Oriented Programming principles. \n\nThis architecture allows Eventstorm.me to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.\n\nDifference in communication:\n\nBusiness → Business: async only via Pub/Sub (domain or integration events). No direct calls. Contracts = event schemas.\n\nBusiness → AOP: direct method calls (e.g., permissions.check(), auth.verify(), log.info()) through well-defined interfaces.\n\nAOP → Business: never call back into business logic (prevents cycles). AOP modules are dependency sinks.\n\nAOP modules are globally accessible via Fastify decorators\n\nDDD + Hexagonal Architecture:\n\nEach module (AOP or business) is built according to DDD and Hexagonal (Ports and Adapters) multilayered architecture, with a rich domain layer and strict isolation between layers.\n\nLayers in Each Module:\n1. Input\n\nIncoming requests are accepted here.\n\nThe Input folder in the module directory usually includes:\n\naiRouter.js\n\nHTTP route endpoints\n\nFastify schema for each endpoint\n\nPre-validation of request\n\nHandler set (Fastify decorator function)\n\nThis function is defined in the controller file from the same module\n\naiPubsubListener.js\n\nListener for a given pubsub topic\n\nMessages are received\n\nPayload is extracted and transferred to the controller file method as a mocked Request object (to behave like an HTTP request)\n\nExample:\n\nsubscription.on('message', async (message) => {\n  fastify.log.info(`Received docs message ${message.id} on subscription ${subscriptionName}`);\n\n  try {\n    const data = JSON.parse(message.data.toString());\n\n    if (data.event === 'fetchDocsRequest') {\n      const { userId, repoId, correlationId } = data.payload;\n\n      const mockRequest = {\n        params: { repoId },\n        user: { id: userId },\n        userId\n      };\n      const mockReply = {};\n\n      await fastify.fetchDocs(mockRequest, mockReply);\n    }\n  } catch (err) {\n    fastify.log.error(err);\n  }\n});\n\n2. Controller\n\nEach module includes a thin controller.\n\nPurpose: accept a request object (or its mock), extract required data, call the module’s service file (aiService.js).\n\nEach controller method is set up as a Fastify decorator.\n\nAccessible to the module-specific child Fastify instance (isolated from the root instance by Fastify encapsulation).\n\n3. Service\n\nContains the main business logic of the app.\n\nCalls methods of domain entities/aggregates.\n\nReplaces domain ports with specific adapters (ports and adapters / hexagonal).\n\nDeals with persistence, messaging, etc.\n\nNote: Controller + Service = Application Layer.\n\n4. Domain\n\nThe domain layer includes a rich model with DDD tactical patterns:\n\nAggregates\n\nEntities\n\nPorts (persistence, messaging, AI, etc.)\n\nValue objects\n\nDomain events\n\nThe DDD ubiquitous language dictionary has been split into focused catalogs:\n- `ubiq-language.json` - Pure business terminology and domain concepts\n- `arch-catalog.json` - Architectural patterns, layers, and design principles  \n- `infra-catalog.json` - Infrastructure configuration and technical dependencies\n- `workflows.json` - High-level business processes and integration patterns\n\n5. Infrastructure\n\nThe infrastructure layer includes specific adapters implementing ports from the domain layer to interact with external systems.\n\nMore than one adapter can exist for a port.\n\nExample: aiPostgresAdapter.js and aiMySQLAdapter.js both implement IAIPersistPort.js.\n\nActive adapter set in infraConfig.json.\n\nExample:\n\n{\n  \"aop_modules\": {\n    \"auth\": {\n      \"authPersistAdapter\": \"authPostgresAdapter\"\n    }\n  },\n  \"business_modules\": {\n    \"chat\": {\n      \"chatPersistAdapter\": \"chatPostgresAdapter\",\n      \"chatAiAdapter\": \"chatAiAdapter\",\n      \"chatMessagingAdapter\": \"chatPubsubAdapter\",\n      \"chatVoiceAdapter\": \"chatGCPVoiceAdapter\"\n    },\n    \"git\": {\n      \"gitAdapter\": \"gitGithubAdapter\",\n      \"gitMessagingAdapter\": \"gitPubsubAdapter\",\n      \"gitPersistAdapter\": \"gitPostgresAdapter\"\n    },\n    \"docs\": {\n      \"docsMessagingAdapter\": \"docsPubsubAdapter\",\n      \"docsPersistAdapter\": \"docsPostgresAdapter\",\n      \"docsAiAdapter\": \"docsLangchainAdapter\",\n      \"docsGitAdapter\": \"docsGithubAdapter\"\n    },\n    \"ai\": {\n      \"aiPersistAdapter\": \"aiPostgresAdapter\",\n      \"aiAdapter\": \"aiLangchainAdapter\",\n      \"aiProvider\": \"anthropic\",\n      \"aiMessagingAdapter\": \"aiPubsubAdapter\",\n      \"aiGitAdapter\": \"aiGithubAdapter\",\n      \"aiDocsAdapter\": \"aiGithubDocsAdapter\"\n    },\n    \"messaging\": {\n      \"messagingPersistAdapter\": \"messagingPostgresAdapter\",\n      \"messagingAIAdapter\": \"messagingLangchainAdapter\",\n      \"messagingMessagingAdapter\": \"messagingPubsubAdapter\"\n    },\n    \"api\": {\n      \"apiPersistAdapter\": \"apiPostgresAdapter\",\n      \"apiMessagingAdapter\": \"apiPubsubAdapter\",\n      \"apiAdapter\": \"apiSwaggerAdapter\"\n    }\n  }\n}\n\nImportant Notes:\n\n- Fastify code is limited to Input and Application layers.\n\n- Domain and Infrastructure layers are isolated from Fastify, built on regular JS files (not Fastify plugins).\n\nAdditional Topics:\n\nDependency Injection\n\n- Used in each module\n\n- Keeps data flow inside-out (domain → adapters)\n\n- Implements hexagonal design effectively\n\nEnvironmental Variables\n\n- Set in .env file at root app directory\n\nBackend For Frontend (BFF)\n\n- Implemented partially\n\n- Example: Chat module (handles user interaction via Chat UI)",
+  "type": "github-file",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 0,
+  "score": 0.334318161,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1914_1761394259087"
+}
+```
+
+---
+
+### Chunk 4/4
+- **Source**: anatolyZader/vc-3
+- **Type**: github-file
+- **Size**: 1458 characters
+- **Score**: 0.391023636
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-18T13:06:59.264Z
+
+**Full Content**:
+```
+"steps": [
+        "User sends question",
+        "Chat module publishes QuestionAddedEvent", 
+        "AI module receives event",
+        "AI performs RAG search",
+        "AI generates response",
+        "Response published as AnswerAddedEvent",
+        "Chat module delivers to user"
+      ]
+    },
+    "repo_analysis_flow": {
+      "name": "Repository Analysis Workflow", 
+      "steps": [
+        "User connects repository",
+        "Git module fetches repo data",
+        "RepoFetchedEvent published",
+        "AI module processes code",
+        "Documents embedded in vector store",
+        "Knowledge available for RAG queries"
+      ]
+    }
+  },
+  "patterns": {
+    "aggregate": {
+      "name": "Aggregate Pattern",
+      "description": "DDD pattern for maintaining consistency boundaries",
+      "examples": ["Conversation", "GitProject", "Account"]
+    },
+    "repository": {
+      "name": "Repository Pattern", 
+      "description": "Abstraction for data access logic",
+      "examples": ["ChatPersistAdapter", "GitPersistAdapter"]
+    },
+    "adapter": {
+      "name": "Adapter Pattern",
+      "description": "Interface between application and external systems",
+      "examples": ["GitHub Adapter", "OpenAI Adapter", "Database Adapters"]
+    },
+    "event_sourcing": {
+      "name": "Event Sourcing",
+      "description": "Storing state changes as sequence of events",
+      "usage": "Domain events for audit trail and system state"
+    }
+  }
+}
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 5,
+  "chunkTokens": 365,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/ubiqLangDict.json",
+  "fileSize": 20482,
+  "loaded_at": "2025-10-18T13:06:59.264Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 4553,
+  "priority": 50,
+  "processedAt": "2025-10-18T13:06:59.264Z",
+  "rechunked": true,
+  "repoId": "vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "f94eba6614d1f43761c949fdf82db5a6d5481f44",
+  "size": 20482,
+  "source": "anatolyZader/vc-3",
+  "text": "\"steps\": [\n        \"User sends question\",\n        \"Chat module publishes QuestionAddedEvent\", \n        \"AI module receives event\",\n        \"AI performs RAG search\",\n        \"AI generates response\",\n        \"Response published as AnswerAddedEvent\",\n        \"Chat module delivers to user\"\n      ]\n    },\n    \"repo_analysis_flow\": {\n      \"name\": \"Repository Analysis Workflow\", \n      \"steps\": [\n        \"User connects repository\",\n        \"Git module fetches repo data\",\n        \"RepoFetchedEvent published\",\n        \"AI module processes code\",\n        \"Documents embedded in vector store\",\n        \"Knowledge available for RAG queries\"\n      ]\n    }\n  },\n  \"patterns\": {\n    \"aggregate\": {\n      \"name\": \"Aggregate Pattern\",\n      \"description\": \"DDD pattern for maintaining consistency boundaries\",\n      \"examples\": [\"Conversation\", \"GitProject\", \"Account\"]\n    },\n    \"repository\": {\n      \"name\": \"Repository Pattern\", \n      \"description\": \"Abstraction for data access logic\",\n      \"examples\": [\"ChatPersistAdapter\", \"GitPersistAdapter\"]\n    },\n    \"adapter\": {\n      \"name\": \"Adapter Pattern\",\n      \"description\": \"Interface between application and external systems\",\n      \"examples\": [\"GitHub Adapter\", \"OpenAI Adapter\", \"Database Adapters\"]\n    },\n    \"event_sourcing\": {\n      \"name\": \"Event Sourcing\",\n      \"description\": \"Storing state changes as sequence of events\",\n      \"usage\": \"Domain events for audit trail and system state\"\n    }\n  }\n}",
+  "type": "github-file",
+  "userId": "anatolyzader",
+  "workerId": 0,
+  "score": 0.391023636,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1768_1760792870759"
 }
 ```
 
@@ -593,37 +610,25 @@ export default App;
 
 ### Generated Response:
 **Status**: ✅ Generated Successfully
-**Response Length**: 2191 characters
-**Generated At**: 2025-10-28T16:43:12.207Z
+**Response Length**: 926 characters
+**Generated At**: 2025-10-28T16:49:04.149Z
 
 ### Response Content:
 ```markdown
-Based on the `backend/app.js` file provided, here are some ways the backend `app.js` file could potentially be improved:
+Based on the provided `backend/app.js` file, I don't see any explicit software design patterns being used in this file. The `app.js` file appears to be the main entry point for the backend application, responsible for setting up the Fastify server, loading plugins, and configuring middleware.
 
-1. **Separate Concerns**: The `app.js` file currently handles a lot of different responsibilities, such as loading plugins, setting up middleware, and configuring the application. Consider separating these concerns into more modular and reusable components or files. For example, you could move the plugin loading and configuration into a separate module.
+The file does not contain any specific application logic or routing. Instead, it seems to be loading and configuring various plugins and custom modules, such as `redisPlugin`, `websocketPlugin`, `loggingPlugin`, `schemaLoaderPlugin`, `envPlugin`, `diPlugin`, `corsPlugin`, and `authSchemasPlugin`.
 
-2. **Improve Error Handling**: The current `app.js` file doesn't seem to have any explicit error handling or logging. You could add more robust error handling and logging to better understand and debug issues that may arise during application startup or runtime.
-
-3. **Enhance Configuration Management**: The `app.js` file currently loads environment variables using the `envPlugin`. You could consider using a more comprehensive configuration management solution, such as a dedicated configuration file or a configuration service, to make it easier to manage different environments and settings.
-
-4. **Optimize Startup Performance**: Depending on the number of plugins and middleware being loaded, the startup time of the application could potentially be improved. You could explore techniques like lazy-loading or asynchronous plugin initialization to optimize the startup process.
-
-5. **Improve Testability**: The current `app.js` file doesn't seem to have any tests. Adding unit tests for the application setup and plugin loading could help ensure the stability and reliability of the backend application.
-
-6. **Decouple Authentication and Authorization**: The `app.js` file currently sets up authentication-related plugins and middleware. You could consider separating the authentication and authorization concerns into more modular and reusable components to improve maintainability and flexibility.
-
-However, it's important to note that I can only make these suggestions based on the provided `backend/app.js` file. I don't have access to the rest of the codebase or any additional context, so my recommendations may not be fully comprehensive or tailored to the specific requirements of your application.
+While the file doesn't directly showcase any software design patterns, the overall architecture of the application may be employing patterns like Modular Monolith, Adapter, or Repository, as mentioned in the additional context provided. However, I don't see the implementation of those patterns directly in the `app.js` file itself.
 ```
 
 ### Response Quality Assessment:
-- **Relevance to Query**: HIGH - Directly addresses query terms
-- **Use of Context**: GOOD - Some reference to retrieved context
-- **Response Completeness**: GOOD - Structured with adequate detail
+- **Relevance to Query**: MEDIUM - Partially addresses query
+- **Use of Context**: MEDIUM - Implicit context usage
+- **Response Completeness**: MEDIUM - Adequate detail but could be better structured
 
 ### Key Response Elements:
-- **Structured Lists**: 6 numbered points
-- **File References**: 8 specific files mentioned
-- **Technical Terms**: 1 technical concepts used
+- **File References**: 3 specific files mentioned
 
 ---
 
@@ -631,15 +636,15 @@ However, it's important to note that I can only make these suggestions based on 
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 7648ms
-- **Documents Retrieved**: 2
-- **Unique Sources**: 2
-- **Average Chunk Size**: 8586 characters
+- **Query Processing Time**: 3705ms
+- **Documents Retrieved**: 4
+- **Unique Sources**: 1
+- **Average Chunk Size**: 3110 characters
 
 ### Context Quality:
-- **Relevance Score**: HIGH (2 relevant chunks found)
-- **Diversity Score**: GOOD (2 unique sources)
-- **Completeness Score**: HIGH (17,171 total characters)
+- **Relevance Score**: HIGH (4 relevant chunks found)
+- **Diversity Score**: LOW (1 unique sources)
+- **Completeness Score**: HIGH (12,441 total characters)
 
 ### LangSmith Integration:
 - **Tracing Status**: ✅ Active
@@ -649,28 +654,26 @@ However, it's important to note that I can only make these suggestions based on 
 ## 🔍 Source Analysis
 
 ### Most Frequent Sources:
-- **backend/app.js**: 1 chunks
-- **client/src/App.jsx**: 1 chunks
+- **anatolyZader/vc-3**: 4 chunks
 
 ### Repository Coverage:
-- No repository sources detected
+- anatolyZader/vc-3
 
 ## 🎯 Query Classification & Analysis
 
-- **Query Type**: Informational/Explanatory
+- **Query Type**: General/Conversational
 - **Domain Focus**: General Application
-- **Technical Complexity**: Medium
-- **Expected Response Type**: Explanatory
+- **Technical Complexity**: High
+- **Expected Response Type**: General
 
 ## 🚀 Recommendations
 
-- **Optimize Query Performance**: Query took over 5 seconds, consider caching or index optimization
-- **Improve Retrieval**: Low document count, consider adjusting similarity thresholds
+- **Increase Source Diversity**: All chunks from same source, consider broader indexing
 
 ## ✨ Conclusion
 
-This comprehensive LangSmith trace demonstrates adequate RAG performance with:
-- **Retrieval Quality**: Needs Improvement
+This comprehensive LangSmith trace demonstrates good RAG performance with:
+- **Retrieval Quality**: Good
 - **Context Diversity**: Medium
 - **Content Richness**: Very High
 - **Response Quality**: Comprehensive
@@ -678,7 +681,7 @@ This comprehensive LangSmith trace demonstrates adequate RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-10-28T16:43:12.208Z  
+**Generated**: 2025-10-28T16:49:04.150Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true

@@ -803,12 +803,19 @@ class ContextPipeline {
       const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
       await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
       
-      // Step 5.5: Store chunks to PostgreSQL for full-text search (if available)
+      // Step 5.5: SYNCHRONIZED CHUNKING - Store same chunks to PostgreSQL with rich metadata
       if (this.textSearchService) {
         try {
-          console.log(`[${new Date().toISOString()}] 💾 Storing ${splitDocuments.length} chunks to PostgreSQL for full-text search...`);
-          const storeResult = await this.textSearchService.storeChunks(splitDocuments, userId, repoId);
-          console.log(`[${new Date().toISOString()}] ✅ PostgreSQL storage: ${storeResult.stored} chunks stored, ${storeResult.skipped} skipped`);
+          console.log(`[${new Date().toISOString()}] 💾 SYNC: Storing ${splitDocuments.length} chunks to PostgreSQL (mirroring Pinecone)...`);
+          const storeResult = await this.textSearchService.storeChunks(
+            splitDocuments, 
+            userId, 
+            repoId,
+            {
+              includeMetadata: true  // Include all semantic tags and metadata
+            }
+          );
+          console.log(`[${new Date().toISOString()}] ✅ SYNC: PostgreSQL storage complete - ${storeResult.stored} new, ${storeResult.updated || 0} updated, ${storeResult.skipped} skipped`);
         } catch (pgError) {
           console.error(`[${new Date().toISOString()}] ⚠️  PostgreSQL storage failed (non-fatal):`, pgError.message);
           // Don't fail the whole process if PostgreSQL storage fails

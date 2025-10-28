@@ -74,7 +74,10 @@ class TextSearchService {
               repo_id,
               file_path,
               file_extension,
-              content,
+              chunk_index,
+              chunk_content,
+              chunk_tokens,
+              metadata,
               CASE 
                 -- Exact filename match gets highest priority
                 ${allPotentialFiles.map((fn, i) => `WHEN file_path ILIKE '%/${fn}' THEN ${1.0 - i * 0.1}`).join('\n                ')}
@@ -82,7 +85,7 @@ class TextSearchService {
                 ${allPotentialFiles.map((fn, i) => `WHEN file_path ILIKE '%${fn}%' THEN ${0.5 - i * 0.05}`).join('\n                ')}
                 ELSE 0.1
               END AS rank,
-              substring(content, 1, 200) AS snippet
+              substring(chunk_content, 1, 200) AS snippet
             FROM repo_data
             WHERE (${likeConditions.join(' OR ')})
           `;
@@ -107,7 +110,7 @@ class TextSearchService {
           }
 
           // Add ordering and pagination
-          query += ` ORDER BY rank DESC, file_path ASC`;
+          query += ` ORDER BY rank DESC, file_path ASC, chunk_index ASC`;
           
           paramIndex++;
           query += ` LIMIT $${paramIndex}`;
@@ -122,23 +125,36 @@ class TextSearchService {
           this.logger.info(`📄 Filename-based search found ${result.rows.length} results`);
           if (result.rows.length > 0) {
             result.rows.forEach((row, i) => {
-              this.logger.info(`   ${i + 1}. ${row.file_path} (rank: ${row.rank})`);
+              this.logger.info(`   ${i + 1}. ${row.file_path} [chunk ${row.chunk_index || 0}] (rank: ${row.rank})`);
             });
           }
           
-          // Format results
-          return result.rows.map(row => ({
-            id: row.id,
-            userId: row.user_id,
-            repoId: row.repo_id,
-            filePath: row.file_path,
-            fileExtension: row.file_extension,
-            content: row.content,
-            rank: parseFloat(row.rank),
-            snippet: row.snippet,
-            searchType: 'filename_match',
-            source: 'postgres'
-          }));
+          // Format results with rich metadata
+          return result.rows.map(row => {
+            const metadata = row.metadata || {};
+            return {
+              id: row.id,
+              userId: row.user_id,
+              repoId: row.repo_id,
+              filePath: row.file_path,
+              fileExtension: row.file_extension,
+              chunkIndex: row.chunk_index || 0,
+              content: row.chunk_content || row.content,  // Fallback for old data
+              chunkTokens: row.chunk_tokens,
+              rank: parseFloat(row.rank),
+              snippet: row.snippet,
+              searchType: 'filename_match',
+              source: 'postgres',
+              // Include rich semantic metadata
+              semanticTags: metadata.semantic_tags || [],
+              ubiquitousLanguage: metadata.ubiquitous_language || [],
+              domainConcepts: metadata.domain_concepts || [],
+              functionNames: metadata.function_names || [],
+              classNames: metadata.class_names || [],
+              type: metadata.type || 'github-code',
+              branch: metadata.branch || 'main'
+            };
+          });
         }
         
         // Otherwise, fall back to full-text search on content
@@ -150,9 +166,12 @@ class TextSearchService {
             repo_id,
             file_path,
             file_extension,
-            content,
+            chunk_index,
+            chunk_content,
+            chunk_tokens,
+            metadata,
             ts_rank(content_vector, plainto_tsquery('english', $1)) AS rank,
-            ts_headline('english', content, plainto_tsquery('english', $1)) AS snippet
+            ts_headline('english', chunk_content, plainto_tsquery('english', $1), 'MaxWords=30') AS snippet
           FROM repo_data
           WHERE content_vector @@ plainto_tsquery('english', $1)
         `;
@@ -174,7 +193,7 @@ class TextSearchService {
         }
 
         // Add ordering and pagination
-        query += ` ORDER BY rank DESC, id DESC`;
+        query += ` ORDER BY rank DESC, chunk_index ASC`;
         
         paramIndex++;
         query += ` LIMIT $${paramIndex}`;
@@ -190,20 +209,33 @@ class TextSearchService {
         
         this.logger.info(`📄 Text search found ${result.rows.length} results`);
         
-        // Format results
-        return result.rows.map(row => ({
-          id: row.id,
-          userId: row.user_id,
-          repoId: row.repo_id,
-          filePath: row.file_path,
-          fileExtension: row.file_extension,
-          content: row.content,
-          rank: parseFloat(row.rank),
-          snippet: row.snippet,
-          searchType: 'text',
-          source: 'postgres'
-        }));
-
+        // Format results with rich metadata
+        return result.rows.map(row => {
+          const metadata = row.metadata || {};
+          return {
+            id: row.id,
+            userId: row.user_id,
+            repoId: row.repo_id,
+            filePath: row.file_path,
+            fileExtension: row.file_extension,
+            chunkIndex: row.chunk_index || 0,
+            content: row.chunk_content || row.content,  // Fallback for migrated data
+            chunkTokens: row.chunk_tokens,
+            rank: parseFloat(row.rank),
+            snippet: row.snippet,
+            searchType: 'fulltext_content',
+            source: 'postgres',
+            // Include rich semantic metadata
+            semanticTags: metadata.semantic_tags || [],
+            ubiquitousLanguage: metadata.ubiquitous_language || [],
+            domainConcepts: metadata.domain_concepts || [],
+            functionNames: metadata.function_names || [],
+            classNames: metadata.class_names || [],
+            type: metadata.type || 'github-code',
+            branch: metadata.branch || 'main'
+          };
+        });
+      
       } finally {
         client.release();
       }
@@ -409,16 +441,20 @@ class TextSearchService {
 
   /**
    * Store document chunks to repo_data table for full-text search
+   * SYNCHRONIZED CHUNKING: Stores the same chunks as Pinecone with rich metadata
    * @param {Array} chunks - Array of document chunks with pageContent and metadata
    * @param {string} userId - User ID who owns the repository
    * @param {string} repoId - Repository ID
+   * @param {object} options - Storage options
    * @returns {object} Result with counts of stored chunks
    */
-  async storeChunks(chunks, userId, repoId) {
+  async storeChunks(chunks, userId, repoId, options = {}) {
     if (!chunks || chunks.length === 0) {
       this.logger.warn('No chunks provided to store');
       return { success: true, stored: 0, skipped: 0 };
     }
+
+    const { includeMetadata = true } = options;
 
     try {
       const pool = await this.postgresAdapter.getPool();
@@ -429,6 +465,7 @@ class TextSearchService {
 
         let stored = 0;
         let skipped = 0;
+        let updated = 0;
 
         for (const chunk of chunks) {
           try {
@@ -441,46 +478,88 @@ class TextSearchService {
               continue;
             }
 
+            // Extract chunk index (default to 0 for non-chunked files)
+            const chunkIndex = chunk.metadata?.chunkIndex ?? 0;
+            
             // Extract file extension
             const fileExtension = filePath.split('.').pop() || 'unknown';
+            
+            // Estimate token count (rough: 1 token ≈ 4 characters)
+            const chunkTokens = chunk.metadata?.chunkTokens || Math.ceil(content.length / 4);
 
-            // Use simple INSERT (table may not have unique constraint yet)
-            // If it fails due to duplicate, we'll catch and skip it
+            // Build rich metadata object matching Pinecone structure
+            const metadata = includeMetadata ? {
+              semantic_tags: chunk.metadata?.semantic_tags || chunk.metadata?.semanticTags || [],
+              ubiquitous_language: chunk.metadata?.ubiquitous_language || chunk.metadata?.ubiquitousLanguage || [],
+              domain_concepts: chunk.metadata?.domain_concepts || chunk.metadata?.domainConcepts || [],
+              function_names: chunk.metadata?.function_names || chunk.metadata?.functionNames || [],
+              class_names: chunk.metadata?.class_names || chunk.metadata?.classNames || [],
+              type: chunk.metadata?.type || 'github-code',
+              branch: chunk.metadata?.branch || 'main',
+              commit_sha: chunk.metadata?.commit_sha || chunk.metadata?.sha || null,
+              processed_at: chunk.metadata?.processedAt || new Date().toISOString(),
+              repo_url: chunk.metadata?.repoUrl || chunk.metadata?.repository || null,
+              file_type: chunk.metadata?.fileType || fileExtension,
+              // Preserve any additional metadata
+              ...(chunk.metadata?.additionalMetadata || {})
+            } : {};
+
+            // Insert or update chunk with UPSERT
             const query = `
               INSERT INTO repo_data (
                 user_id,
                 repo_id,
                 file_path,
                 file_extension,
-                content,
-                content_vector,
+                chunk_index,
+                chunk_content,
+                chunk_tokens,
+                metadata,
                 language
               )
-              VALUES ($1, $2, $3, $4, $5, to_tsvector('english', $3 || ' ' || $5), 'english')
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              ON CONFLICT (user_id, repo_id, file_path, chunk_index) 
+              DO UPDATE SET
+                chunk_content = EXCLUDED.chunk_content,
+                chunk_tokens = EXCLUDED.chunk_tokens,
+                metadata = EXCLUDED.metadata,
+                file_extension = EXCLUDED.file_extension,
+                updated_at = CURRENT_TIMESTAMP
+              RETURNING (xmax = 0) AS inserted;
             `;
 
-            await client.query(query, [
+            const result = await client.query(query, [
               userId,
               repoId,
               filePath,
               fileExtension,
-              content
+              chunkIndex,
+              content,
+              chunkTokens,
+              JSON.stringify(metadata),
+              'english'
             ]);
 
-            stored++;
+            if (result.rows[0].inserted) {
+              stored++;
+            } else {
+              updated++;
+            }
+
           } catch (chunkError) {
-            this.logger.error(`Error storing chunk for file ${chunk.metadata?.source}:`, chunkError.message);
+            this.logger.error(`Error storing chunk for file ${chunk.metadata?.source} [chunk ${chunk.metadata?.chunkIndex || 0}]:`, chunkError.message);
             skipped++;
           }
         }
 
         await client.query('COMMIT');
         
-        this.logger.info(`✅ Stored ${stored} chunks to repo_data, skipped ${skipped}`);
+        this.logger.info(`✅ PostgreSQL sync: ${stored} new, ${updated} updated, ${skipped} skipped (total: ${chunks.length})`);
         
         return {
           success: true,
           stored,
+          updated,
           skipped,
           total: chunks.length
         };
