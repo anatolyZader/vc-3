@@ -164,13 +164,15 @@ class QueryPipeline {
             textDocuments: textResults.length
           });
           
-          // Write all chunks to markdown file for debugging
-          try {
-            const logPath = await this.writeChunksToMarkdown(searchResults, textResults, prompt);
-            console.log(`[${new Date().toISOString()}] ✅ Chunk details saved to: ${logPath}`);
-          } catch (logError) {
-            console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
-          }
+          // Write all chunks to markdown file for debugging (non-blocking)
+          setImmediate(async () => {
+            try {
+              const logPath = await this.writeChunksToMarkdown(searchResults, textResults, prompt);
+              console.log(`[${new Date().toISOString()}] ✅ Chunk details saved to: ${logPath}`);
+            } catch (logError) {
+              console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
+            }
+          });
         } catch (textError) {
           console.warn(`[${new Date().toISOString()}] ⚠️ Text search failed, continuing with vector results only:`, textError.message);
           traceData.steps.push({ 
@@ -180,13 +182,15 @@ class QueryPipeline {
             error: textError.message 
           });
           
-          // Still log vector results even if text search fails
-          try {
-            const logPath = await this.writeChunksToMarkdown(searchResults, [], prompt);
-            console.log(`[${new Date().toISOString()}] ✅ Vector chunks saved to: ${logPath}`);
-          } catch (logError) {
-            console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
-          }
+          // Still log vector results even if text search fails (non-blocking)
+          setImmediate(async () => {
+            try {
+              const logPath = await this.writeChunksToMarkdown(searchResults, [], prompt);
+              console.log(`[${new Date().toISOString()}] ✅ Vector chunks saved to: ${logPath}`);
+            } catch (logError) {
+              console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
+            }
+          });
         }
       } else {
         console.log(`[${new Date().toISOString()}] 📋 Text search not available, using vector search results only`);
@@ -197,13 +201,15 @@ class QueryPipeline {
           reason: 'service_not_available' 
         });
         
-        // Log vector-only results to markdown
-        try {
-          const logPath = await this.writeChunksToMarkdown(searchResults, [], prompt);
-          console.log(`[${new Date().toISOString()}] ✅ Vector-only chunks saved to: ${logPath}`);
-        } catch (logError) {
-          console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
-        }
+        // Log vector-only results to markdown (non-blocking)
+        setImmediate(async () => {
+          try {
+            const logPath = await this.writeChunksToMarkdown(searchResults, [], prompt);
+            console.log(`[${new Date().toISOString()}] ✅ Vector-only chunks saved to: ${logPath}`);
+          } catch (logError) {
+            console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
+          }
+        });
       }
 
       const contextData = ContextBuilder.formatContext(finalSearchResults);
