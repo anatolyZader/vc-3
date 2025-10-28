@@ -105,10 +105,14 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           
           fastify.log.info(`📋 AI MODULE: Processing repository: ${repoId} for user ${userId}`);
           
-          // Create mock request object for processPushedRepo
+          // Create a proper DI scope for the mock request
+          const diScope = fastify.diContainer.createScope();
+          
+          // Create mock request object for processPushedRepo with proper DI scope
           const mockRequest = {
             body: { repoId, repoData },
-            user: { id: userId }
+            user: { id: userId },
+            diScope: diScope  // CRITICAL: Include DI scope for service resolution
           };
           
           // Create mock reply object
@@ -149,7 +153,11 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           }
         } catch (error) {
           fastify.log.error(`❌ AI MODULE: Error processing repository push event: ${error.message}`);
-          fastify.log.error(error.stack);
+          fastify.log.error(`❌ AI MODULE: Error stack:`, error.stack);
+          fastify.log.error(`❌ AI MODULE: Error name: ${error.name}, code: ${error.code || 'N/A'}`);
+          
+          // Re-throw to trigger message nack and retry
+          throw error;
         }
       });
       
@@ -351,7 +359,9 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
         
         message.ack();
       } catch (error) {
-        fastify.log.error(`[GCP Pub/Sub] Error processing message ${message.id}:`, error);
+        fastify.log.error(`[GCP Pub/Sub] Error processing message ${message.id}: ${error.message}`);
+        fastify.log.error(`[GCP Pub/Sub] Error stack:`, error.stack);
+        fastify.log.error(`[GCP Pub/Sub] Error details:`, JSON.stringify(error, Object.getOwnPropertyNames(error)));
         message.nack();
       }
     });
