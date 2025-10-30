@@ -219,6 +219,143 @@ class AIPostgresAdapter extends IAIPersistPort {
       return [];
     }
   }
+
+  /**
+   * Store document chunks to repo_data table for full-text search
+   * SYNCHRONIZED CHUNKING: Stores the same chunks as Pinecone with rich metadata
+   * @param {Array} chunks - Array of document chunks with pageContent and metadata
+   * @param {string} userId - User ID who owns the repository
+   * @param {string} repoId - Repository ID
+   * @param {object} options - Storage options
+   * @returns {object} Result with counts of stored chunks
+   */
+  async storeRepoChunks(chunks, userId, repoId, options = {}) {
+    if (!chunks || chunks.length === 0) {
+      console.warn('No chunks provided to store');
+      return { success: true, stored: 0, skipped: 0 };
+    }
+
+    const { includeMetadata = true } = options;
+
+    try {
+      const pool = await this.getPool();
+      const client = await pool.connect();
+
+      try {
+        await client.query('BEGIN');
+
+        let stored = 0;
+        let skipped = 0;
+        let updated = 0;
+
+        for (const chunk of chunks) {
+          try {
+            const filePath = chunk.metadata?.source || chunk.metadata?.filePath || 'unknown';
+            const content = chunk.pageContent || '';
+            
+            // Skip empty content
+            if (!content || content.trim().length === 0) {
+              skipped++;
+              continue;
+            }
+
+            // Extract chunk index (default to 0 for non-chunked files)
+            const chunkIndex = chunk.metadata?.chunkIndex ?? 0;
+            
+            // Extract file extension
+            const fileExtension = filePath.split('.').pop() || 'unknown';
+            
+            // Estimate token count (rough: 1 token ≈ 4 characters)
+            const chunkTokens = chunk.metadata?.chunkTokens || Math.ceil(content.length / 4);
+
+            // Build rich metadata object matching Pinecone structure
+            const metadata = includeMetadata ? {
+              semantic_tags: chunk.metadata?.semantic_tags || chunk.metadata?.semanticTags || [],
+              ubiquitous_language: chunk.metadata?.ubiquitous_language || chunk.metadata?.ubiquitousLanguage || [],
+              domain_concepts: chunk.metadata?.domain_concepts || chunk.metadata?.domainConcepts || [],
+              function_names: chunk.metadata?.function_names || chunk.metadata?.functionNames || [],
+              class_names: chunk.metadata?.class_names || chunk.metadata?.classNames || [],
+              type: chunk.metadata?.type || 'github-code',
+              branch: chunk.metadata?.branch || 'main',
+              commit_sha: chunk.metadata?.commit_sha || chunk.metadata?.sha || null,
+              processed_at: chunk.metadata?.processedAt || new Date().toISOString(),
+              repo_url: chunk.metadata?.repoUrl || chunk.metadata?.repository || null,
+              file_type: chunk.metadata?.fileType || fileExtension,
+              // Preserve any additional metadata
+              ...(chunk.metadata?.additionalMetadata || {})
+            } : {};
+
+            // Insert or update chunk with UPSERT
+            const query = `
+              INSERT INTO repo_data (
+                user_id,
+                repo_id,
+                file_path,
+                file_extension,
+                chunk_index,
+                chunk_content,
+                chunk_tokens,
+                metadata,
+                language
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              ON CONFLICT (user_id, repo_id, file_path, chunk_index) 
+              DO UPDATE SET
+                chunk_content = EXCLUDED.chunk_content,
+                chunk_tokens = EXCLUDED.chunk_tokens,
+                metadata = EXCLUDED.metadata,
+                file_extension = EXCLUDED.file_extension,
+                updated_at = CURRENT_TIMESTAMP
+              RETURNING (xmax = 0) AS inserted;
+            `;
+
+            const result = await client.query(query, [
+              userId,
+              repoId,
+              filePath,
+              fileExtension,
+              chunkIndex,
+              content,
+              chunkTokens,
+              JSON.stringify(metadata),
+              'english'
+            ]);
+
+            if (result.rows[0].inserted) {
+              stored++;
+            } else {
+              updated++;
+            }
+
+          } catch (chunkError) {
+            console.error(`Error storing chunk for file ${chunk.metadata?.source} [chunk ${chunk.metadata?.chunkIndex || 0}]:`, chunkError.message);
+            skipped++;
+          }
+        }
+
+        await client.query('COMMIT');
+        
+        console.log(`✅ PostgreSQL sync: ${stored} new, ${updated} updated, ${skipped} skipped (total: ${chunks.length})`);
+        
+        return {
+          success: true,
+          stored,
+          updated,
+          skipped,
+          total: chunks.length
+        };
+
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Error storing chunks to PostgreSQL:', error);
+      throw new Error(`Failed to store chunks: ${error.message}`);
+    }
+  }
 }
 
 module.exports = AIPostgresAdapter;
