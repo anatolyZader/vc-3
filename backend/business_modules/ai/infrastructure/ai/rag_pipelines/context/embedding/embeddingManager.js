@@ -30,8 +30,8 @@ class EmbeddingManager {
 
   /**
    * Store documents to Pinecone vector database
-   * NOTE: Rechunking disabled - AST splitter already produces safe chunks (max 2000 tokens << 8191 embedding limit)
-   * This preserves semantic metadata (semantic_role, unit_name, eventstorm_module)
+   * NOTE: Safety rechunking enabled ONLY for oversized chunks (>8000 tokens)
+   * Preserves semantic metadata by copying it to all sub-chunks
    */
   async storeToPinecone(documents, namespace, githubOwner, repoName) {
     const pineconeService = await this._getPineconeService();
@@ -45,21 +45,64 @@ class EmbeddingManager {
     }
 
     try {
-      // Use documents directly from AST splitter - they're already properly chunked
-      // AST splitter max is 2000 tokens, which is well within the 8191 token embedding limit
-      // This preserves all semantic metadata that would be lost during rechunking
-      console.log(`[${new Date().toISOString()}] 📦 SEMANTIC PRESERVATION: Using ${documents.length} AST-chunked documents with preserved metadata`);
+      // SAFETY VALIDATION: Check for oversized chunks that would fail embedding API
+      // Embedding API limit: 8191 tokens. We use 8000 as safety threshold.
+      const { TokenTextSplitter } = require('langchain/text_splitter');
+      const tokenValidator = new TokenTextSplitter({
+        encodingName: 'cl100k_base',
+        chunkSize: 8000,
+        chunkOverlap: 200
+      });
+
+      const safeDocuments = [];
+      let rechunkedCount = 0;
+      
+      for (const doc of documents) {
+        const tokenCheck = await tokenValidator.splitDocuments([doc]);
+        
+        if (tokenCheck.length > 1) {
+          // This chunk exceeds 8000 tokens - need to split it
+          rechunkedCount++;
+          console.warn(`[${new Date().toISOString()}] ⚠️ SAFETY RECHUNK: Document too large (${doc.pageContent.length} chars), splitting to ${tokenCheck.length} sub-chunks`);
+          console.warn(`[${new Date().toISOString()}]    File: ${doc.metadata.filePath}, preserving semantic metadata`);
+          
+          // Create sub-chunks with preserved metadata
+          for (let subIndex = 0; subIndex < tokenCheck.length; subIndex++) {
+            const subChunk = tokenCheck[subIndex];
+            safeDocuments.push(new Document({
+              pageContent: subChunk.pageContent,
+              metadata: {
+                ...doc.metadata, // Preserve ALL original metadata including semantic tags
+                rechunked: true,
+                originalChunkIndex: doc.metadata.chunkIndex,
+                subChunkIndex: subIndex,
+                subChunkTotal: tokenCheck.length
+              }
+            }));
+          }
+        } else {
+          // Chunk is safe - use as-is with all semantic metadata intact
+          safeDocuments.push(doc);
+        }
+      }
+      
+      if (rechunkedCount > 0) {
+        console.log(`[${new Date().toISOString()}] 📦 SAFETY VALIDATION: ${rechunkedCount} oversized chunks split, ${documents.length - rechunkedCount} chunks used as-is`);
+        console.log(`[${new Date().toISOString()}] 📦 SEMANTIC PRESERVATION: All ${safeDocuments.length} chunks have semantic metadata preserved`);
+      } else {
+        console.log(`[${new Date().toISOString()}] 📦 SEMANTIC PRESERVATION: All ${documents.length} AST-chunked documents are safe (<8000 tokens)`);
+      }
       
       // Import PineconeService class for static methods
       const PineconeService = require('./pineconeService');
       
       // Generate unique document IDs using centralized method
-      const documentIds = PineconeService.generateRepositoryDocumentIds(documents, namespace, {
+      const documentIds = PineconeService.generateRepositoryDocumentIds(safeDocuments, namespace, {
         useTimestamp: true,
         prefix: null
       });
 
-      console.log(`[${new Date().toISOString()}] � STORING TO PINECONE: Processing ${documents.length} semantically-rich documents`);
+      console.log(`[${new Date().toISOString()}] 📝 STORING TO PINECONE: Processing ${safeDocuments.length} semantically-rich documents`);
 
       // CLEANUP: Delete old embeddings for this repository before adding new ones
       console.log(`[${new Date().toISOString()}] 🧹 CLEANUP: Removing old embeddings for namespace: ${namespace}`);
@@ -87,7 +130,7 @@ class EmbeddingManager {
       const storageStartTime = Date.now();
       
       // Add timeout protection for the storage operation
-      const storagePromise = pineconeService.upsertDocuments(documents, this.embeddings, {
+      const storagePromise = pineconeService.upsertDocuments(safeDocuments, this.embeddings, {
         namespace: namespace,
         ids: documentIds,
         githubOwner,
@@ -138,7 +181,7 @@ class EmbeddingManager {
       const documentIds = PineconeService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);
 
       // Use enhanced upsertDocuments method
-      const result = await pineconeService.upsertDocuments(splitDocs, this.embeddings, {
+      await pineconeService.upsertDocuments(splitDocs, this.embeddings, {
         namespace: userId,
         ids: documentIds,
         githubOwner,
