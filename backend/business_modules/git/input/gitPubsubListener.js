@@ -115,6 +115,7 @@ async function gitPubsubListener(fastify, options) {
       } else if (data.event === 'repoPushed') {
         // Forward repoPushed event to the in-memory eventBus for AI module processing
         fastify.log.info(`📤 GIT MODULE: Forwarding repoPushed event to eventBus for AI processing`);
+        fastify.log.info(`📦 GIT MODULE: Event payload structure: ${JSON.stringify(data, null, 2)}`);
         
         try {
           // Get eventBus from DI container or eventDispatcher
@@ -131,6 +132,14 @@ async function gitPubsubListener(fastify, options) {
           
           if (eventBus) {
             // Forward the complete event data to eventBus
+            // Log repoData to verify structure
+            const repoData = data.payload?.repoData;
+            if (repoData) {
+              fastify.log.info(`✅ GIT MODULE: repoData has url=${!!repoData.url} branch=${!!repoData.branch} githubOwner=${!!repoData.githubOwner} repoName=${!!repoData.repoName}`);
+            } else {
+              fastify.log.warn(`⚠️ GIT MODULE: repoData is missing in payload!`);
+            }
+            
             eventBus.emit('repoPushed', data);
             fastify.log.info(`✅ GIT MODULE: repoPushed event forwarded to eventBus successfully`);
           } else {

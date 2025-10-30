@@ -95,6 +95,16 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           
           const { userId, repoId, repoData } = eventData;
           
+          // DEBUG: Log the structure we're receiving
+          fastify.log.info(`🔍 AI MODULE DEBUG: userId=${userId}, repoId=${repoId}`);
+          fastify.log.info(`🔍 AI MODULE DEBUG: repoData structure: ${JSON.stringify(repoData, null, 2)}`);
+          if (repoData) {
+            fastify.log.info(`🔍 AI MODULE DEBUG: repoData.url=${repoData.url}`);
+            fastify.log.info(`🔍 AI MODULE DEBUG: repoData.branch=${repoData.branch}`);
+            fastify.log.info(`🔍 AI MODULE DEBUG: repoData.githubOwner=${repoData.githubOwner}`);
+            fastify.log.info(`🔍 AI MODULE DEBUG: repoData.repoName=${repoData.repoName}`);
+          }
+          
           if (!userId) {
             throw new Error('Missing userId in repoPushed event');
           }
