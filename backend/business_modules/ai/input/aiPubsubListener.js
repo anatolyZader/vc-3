@@ -343,7 +343,9 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
     subscription.on('message', message => {
       fastify.log.info(`[GCP Pub/Sub] Received message from topic "${topicName}": ${message.id}`);
       try {
-        const data = JSON.parse(message.data.toString());
+        const rawData = message.data.toString();
+        fastify.log.info(`[GCP Pub/Sub] Raw message data: "${rawData.substring(0, 200)}${rawData.length > 200 ? '...' : ''}"`);
+        const data = JSON.parse(rawData);
         
         // Check for the event name and emit dynamically
         if (data && data.event) {
@@ -359,10 +361,20 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
         
         message.ack();
       } catch (error) {
-        fastify.log.error(`[GCP Pub/Sub] Error processing message ${message.id}: ${error.message}`);
-        fastify.log.error(`[GCP Pub/Sub] Error stack:`, error.stack);
-        fastify.log.error(`[GCP Pub/Sub] Error details:`, JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        message.nack();
+        // Check if it's a JSON parsing error
+        if (error instanceof SyntaxError && error.message.includes('JSON')) {
+          fastify.log.error(`[GCP Pub/Sub] Malformed JSON in message ${message.id}: ${error.message}`);
+          fastify.log.error(`[GCP Pub/Sub] Raw data: "${message.data.toString()}"`);
+          // ACK malformed messages to remove them from the queue (don't retry forever)
+          message.ack();
+          fastify.log.info(`[GCP Pub/Sub] Malformed message ${message.id} acknowledged and removed from queue`);
+        } else {
+          // For other errors, log details and NACK for retry
+          fastify.log.error(`[GCP Pub/Sub] Error processing message ${message.id}: ${error.message}`);
+          fastify.log.error(`[GCP Pub/Sub] Error stack:`, error.stack);
+          fastify.log.error(`[GCP Pub/Sub] Error details:`, JSON.stringify(error, Object.getOwnPropertyNames(error)));
+          message.nack();
+        }
       }
     });
 
