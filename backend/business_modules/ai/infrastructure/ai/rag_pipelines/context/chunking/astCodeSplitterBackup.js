@@ -8,7 +8,7 @@ const TokenBasedSplitter = require('./tokenBasedSplitter');
 const crypto = require('crypto');
 
 /**
- * AST-Based Code Splitter with Enhanced Semantic Chunking
+ * AST-Based Code Splitterr with Enhanced Semantic Chunking
  * ======================================================
  * 
  * A sophisticated code splitter that uses Abstract Syntax Tree (AST) analysis to intelligently
