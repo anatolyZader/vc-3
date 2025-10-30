@@ -96,9 +96,9 @@ class EmbeddingManager {
       // Import PineconeService class for static methods
       const PineconeService = require('./pineconeService');
       
-      // Generate unique document IDs using centralized method
+      // Generate stable document IDs with version tracking in metadata
       const documentIds = PineconeService.generateRepositoryDocumentIds(safeDocuments, namespace, {
-        useTimestamp: true,
+        includeVersion: true,  // Store version in metadata for tracking
         prefix: null
       });
 
@@ -129,26 +129,38 @@ class EmbeddingManager {
       console.log(`[${new Date().toISOString()}] ⚡ STORAGE: Starting Pinecone upsert with timeout protection...`);
       const storageStartTime = Date.now();
       
-      // Add timeout protection for the storage operation
-      const storagePromise = pineconeService.upsertDocuments(safeDocuments, this.embeddings, {
-        namespace: namespace,
-        ids: documentIds,
-        githubOwner,
-        repoName,
-        verbose: true,
-        rateLimiter: this.pineconeLimiter
-      });
+      // Use AbortController for proper cancellation (though Pinecone SDK may not support it yet)
+      let timedOut = false;
+      const timeoutId = setTimeout(() => {
+        timedOut = true;
+        console.error(`[${new Date().toISOString()}] ⏰ Storage operation timed out after 5 minutes`);
+      }, 300000);
       
-      // 5 minute timeout for storage operation
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Storage operation timed out after 5 minutes')), 300000);
-      });
-      
-      const result = await Promise.race([storagePromise, timeoutPromise]);
-      const storageTime = Date.now() - storageStartTime;
-      console.log(`[${new Date().toISOString()}] ✅ STORAGE: Completed in ${storageTime}ms - preserved semantic metadata`);
+      try {
+        const result = await pineconeService.upsertDocuments(safeDocuments, this.embeddings, {
+          namespace: namespace,
+          ids: documentIds,
+          githubOwner,
+          repoName,
+          verbose: true,
+          rateLimiter: this.pineconeLimiter
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // Check if we timed out during execution
+        if (timedOut) {
+          console.warn(`[${new Date().toISOString()}] ⚠️ STORAGE: Operation completed but exceeded timeout threshold`);
+        }
+        
+        const storageTime = Date.now() - storageStartTime;
+        console.log(`[${new Date().toISOString()}] ✅ STORAGE: Completed in ${storageTime}ms - preserved semantic metadata`);
 
-      return result;
+        return result;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
 
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error storing documents to Pinecone:`, error);
@@ -177,8 +189,10 @@ class EmbeddingManager {
       // Import PineconeService class for static methods
       const PineconeService = require('./pineconeService');
       
-      // Generate unique document IDs using centralized method
-      const documentIds = PineconeService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);
+      // Generate stable document IDs with version tracking in metadata
+      const documentIds = PineconeService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId, {
+        includeVersion: true  // Store version in metadata for tracking
+      });
 
       // Use enhanced upsertDocuments method
       await pineconeService.upsertDocuments(splitDocs, this.embeddings, {

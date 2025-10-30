@@ -301,8 +301,10 @@ class AILangchainAdapter extends IAIPort {
 
   // RAG Data Preparation Phase: Loading, chunking, and embedding (both core docs and repo code)
   async processPushedRepo(userId, repoId, repoData) {
+    const { safeLog, createRepoDataSummary } = require('./rag_pipelines/context/utils/safeLogger');
+    
     console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Processing repo for user ${userId}: ${repoId}`);
-    console.log(`[${new Date().toISOString()}] 📥 RAG REPO: Received repoData structure:`, JSON.stringify(repoData, null, 2)); 
+    safeLog(`[${new Date().toISOString()}] 📥 RAG REPO: Received repoData structure:`, repoData); 
     
     // Emit starting status
     this.emitRagStatus('processing_started', {

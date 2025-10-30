@@ -477,10 +477,12 @@ class PineconeService {
   }
 
   /**
-   * Generate document IDs for repository chunks (compatible with RepoProcessor format)
+   * Generate stable document IDs using content hash + metadata
+   * IDs are deterministic based on content, allowing for reliable deduplication
    */
   static generateRepositoryDocumentIds(documents, namespace, options = {}) {
-    const { useTimestamp = true, prefix = null } = options;
+    const crypto = require('crypto');
+    const { prefix = null, includeVersion = false } = options;
     
     return documents.map((doc, index) => {
       const sourceFile = doc.metadata?.source || 'unknown';
@@ -488,22 +490,52 @@ class PineconeService {
         .replace(/[^a-zA-Z0-9_-]/g, '_')
         .replace(/^(?:_+)|(?:_+)$/g, '');
       
-      const parts = [namespace, sanitizedSource, 'chunk', index];
+      // Create stable content hash for deduplication
+      const contentHash = crypto
+        .createHash('sha256')
+        .update(doc.pageContent || '')
+        .digest('hex')
+        .substring(0, 12); // First 12 chars for brevity
+      
+      const parts = [namespace, sanitizedSource, 'chunk', index, contentHash];
       if (prefix) parts.unshift(prefix);
-      if (useTimestamp) parts.push(Date.now());
+      
+      // Store version in metadata instead of ID
+      if (includeVersion && doc.metadata) {
+        doc.metadata.version = Date.now();
+        doc.metadata.contentHash = contentHash;
+      }
       
       return parts.join('_');
     });
   }
 
   /**
-   * Generate document IDs for user repository chunks 
+   * Generate stable document IDs for user repository chunks 
+   * Uses same pattern as generateRepositoryDocumentIds for consistency
    */
   static generateUserRepositoryDocumentIds(documents, userId, repoId, options = {}) {
+    const crypto = require('crypto');
+    const { includeVersion = false } = options;
+    
     return documents.map((doc, index) => {
       const sourceFile = doc.metadata?.source || 'unknown';
       const sanitizedSource = this.sanitizeId(sourceFile.replace(/\//g, '_'));
-      return `${userId}_${repoId}_${sanitizedSource}_chunk_${index}`;
+      
+      // Create stable content hash
+      const contentHash = crypto
+        .createHash('sha256')
+        .update(doc.pageContent || '')
+        .digest('hex')
+        .substring(0, 12);
+      
+      // Store version in metadata instead of ID
+      if (includeVersion && doc.metadata) {
+        doc.metadata.version = Date.now();
+        doc.metadata.contentHash = contentHash;
+      }
+      
+      return `${userId}_${repoId}_${sanitizedSource}_chunk_${index}_${contentHash}`;
     });
   }
 

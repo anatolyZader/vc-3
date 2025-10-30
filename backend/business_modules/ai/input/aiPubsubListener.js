@@ -95,14 +95,10 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           
           const { userId, repoId, repoData } = eventData;
           
-          // DEBUG: Log the structure we're receiving
-          fastify.log.info(`🔍 AI MODULE DEBUG: userId=${userId}, repoId=${repoId}`);
-          fastify.log.info(`🔍 AI MODULE DEBUG: repoData structure: ${JSON.stringify(repoData, null, 2)}`);
-          if (repoData) {
-            fastify.log.info(`🔍 AI MODULE DEBUG: repoData.url=${repoData.url}`);
-            fastify.log.info(`🔍 AI MODULE DEBUG: repoData.branch=${repoData.branch}`);
-            fastify.log.info(`🔍 AI MODULE DEBUG: repoData.githubOwner=${repoData.githubOwner}`);
-            fastify.log.info(`🔍 AI MODULE DEBUG: repoData.repoName=${repoData.repoName}`);
+          // DEBUG: Log the structure we're receiving (safe logging in development only)
+          if (process.env.NODE_ENV === 'development') {
+            const { createRepoDataSummary } = require('../infrastructure/ai/rag_pipelines/context/utils/safeLogger');
+            fastify.log.info(`🔍 AI MODULE DEBUG: repoData summary:`, createRepoDataSummary(repoData));
           }
           
           if (!userId) {

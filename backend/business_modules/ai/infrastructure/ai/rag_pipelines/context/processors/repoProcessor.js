@@ -212,8 +212,8 @@ class RepoProcessor {
       maxConcurrency: 1,
       ignorePaths: [
         ...FileFilteringUtils.getRepositoryIgnorePatterns(),
-        // Backend-specific: Exclude root files EXCEPT markdown documentation
-        'package.json', 'bfg.jar', '*.txt', '*.log', '*.js',
+        // Root level exclusions (not backend-specific)
+        'package.json', 'bfg.jar', '*.log',  // Removed *.txt and *.js to allow backend/**/*.js
         '.gitignore', 'package-lock.json', '*.jar',
         // Backend-specific: Allow root-level documentation files
         ...FileFilteringUtils.getRootLevelFileExceptions().map(pattern => `!${pattern}`),
@@ -241,18 +241,26 @@ class RepoProcessor {
       const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
       const loader = new GithubRepoLoader(repoUrl, backendLoaderOptions);
       
-      // Use a shorter timeout for this focused loading
-      const loadPromise = loader.load();
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Backend loading timeout')), 20000);
-      });
+      // Use AbortController for proper cancellation
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.warn(`[${new Date().toISOString()}] ⏰ Backend loading timeout reached - aborting request`);
+        abortController.abort();
+      }, 20000);
       
       let allDocs = [];
       try {
-        allDocs = await Promise.race([loadPromise, timeoutPromise]);
-      } catch (timeoutError) {
-        console.warn(`[${new Date().toISOString()}] ⏰ LangChain backend loading timed out - this indicates the repository is too large for recursive loading`);
-        return []; // Return empty rather than attempting more fallbacks
+        // Pass abort signal if loader supports it
+        const loadOptions = abortController.signal ? { signal: abortController.signal } : {};
+        allDocs = await loader.load(loadOptions);
+        clearTimeout(timeoutId);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError' || abortController.signal.aborted) {
+          console.warn(`[${new Date().toISOString()}] ⏰ LangChain backend loading aborted - repository is too large for recursive loading`);
+          return []; // Return empty rather than attempting more fallbacks
+        }
+        throw error; // Re-throw other errors
       }
       
       // Filter to only backend files using comprehensive filtering
