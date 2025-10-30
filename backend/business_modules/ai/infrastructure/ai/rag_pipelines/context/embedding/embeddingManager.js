@@ -30,6 +30,8 @@ class EmbeddingManager {
 
   /**
    * Store documents to Pinecone vector database
+   * NOTE: Rechunking disabled - AST splitter already produces safe chunks (max 2000 tokens << 8191 embedding limit)
+   * This preserves semantic metadata (semantic_role, unit_name, eventstorm_module)
    */
   async storeToPinecone(documents, namespace, githubOwner, repoName) {
     const pineconeService = await this._getPineconeService();
@@ -43,79 +45,21 @@ class EmbeddingManager {
     }
 
     try {
-      // Import TokenBasedSplitter for safety validation with fallback
-      let TokenBasedSplitter;
-      let tokenSplitter;
+      // Use documents directly from AST splitter - they're already properly chunked
+      // AST splitter max is 2000 tokens, which is well within the 8191 token embedding limit
+      // This preserves all semantic metadata that would be lost during rechunking
+      console.log(`[${new Date().toISOString()}] 📦 SEMANTIC PRESERVATION: Using ${documents.length} AST-chunked documents with preserved metadata`);
       
-      try {
-        TokenBasedSplitter = require('../chunking/tokenBasedSplitter');
-        tokenSplitter = new TokenBasedSplitter({
-          maxTokens: 1400, // Safe limit well under 8192
-          minTokens: 100,
-          overlapTokens: 150
-        });
-      } catch (importError) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ TOKEN SAFETY: TokenBasedSplitter not available (${importError.message}), using simple fallback validation`);
-        // Create a simple fallback validator
-        tokenSplitter = {
-          exceedsTokenLimit: (text) => {
-            const estimatedTokens = Math.ceil(text.length / 4); // Rough estimate: 4 chars per token
-            return {
-              exceeds: estimatedTokens > 1400,
-              tokenCount: estimatedTokens
-            };
-          },
-          maxTokens: 1400
-        };
-      }
-
-      // Validate and re-chunk documents that exceed token limits - SIMPLIFIED APPROACH
-      const safeDocuments = [];
-      let rechunkedCount = 0;
-
-      for (let i = 0; i < documents.length; i++) {
-        const doc = documents[i];
-        const tokenCheck = tokenSplitter.exceedsTokenLimit(doc.pageContent);
-        
-        if (tokenCheck.exceeds) {
-          console.log(`[${new Date().toISOString()}] ⚠️ TOKEN SAFETY: Document ${i + 1}/${documents.length} exceeds ${tokenSplitter.maxTokens} tokens (${tokenCheck.tokenCount}), using simple split...`);
-          console.log(`[${new Date().toISOString()}] 🔧 TOKEN SAFETY: Source: ${doc.metadata?.source || 'unknown'} (${doc.pageContent.length} chars)`);
-          
-          // Use simple, fast character-based chunking - no complex token splitting
-          const chunks = this._simpleSplit(doc.pageContent, 4000); // ~1000 tokens per chunk
-          console.log(`[${new Date().toISOString()}] ✅ TOKEN SAFETY: Split into ${chunks.length} chunks using simple method`);
-          
-          chunks.forEach((chunkText, chunkIndex) => {
-            safeDocuments.push(new Document({
-              pageContent: chunkText,
-              metadata: {
-                ...doc.metadata,
-                rechunked: true,
-                originalTokens: tokenCheck.tokenCount,
-                chunkTokens: Math.ceil(chunkText.length / 4), // Rough estimate
-                chunkIndex: chunkIndex
-              }
-            }));
-          });
-          rechunkedCount++;
-        } else {
-          safeDocuments.push(doc);
-        }
-      }
-
-      if (rechunkedCount > 0) {
-        console.log(`[${new Date().toISOString()}] 🔧 TOKEN SAFETY: Re-chunked ${rechunkedCount} oversized documents into ${safeDocuments.length - documents.length + rechunkedCount} safe chunks`);
-      }
       // Import PineconeService class for static methods
       const PineconeService = require('./pineconeService');
       
-      // Generate unique document IDs using centralized method (use safeDocuments)
-      const documentIds = PineconeService.generateRepositoryDocumentIds(safeDocuments, namespace, {
+      // Generate unique document IDs using centralized method
+      const documentIds = PineconeService.generateRepositoryDocumentIds(documents, namespace, {
         useTimestamp: true,
         prefix: null
       });
 
-      console.log(`[${new Date().toISOString()}] 🔒 TOKEN-VALIDATED STORAGE: Processing ${safeDocuments.length} token-safe documents`);
+      console.log(`[${new Date().toISOString()}] � STORING TO PINECONE: Processing ${documents.length} semantically-rich documents`);
 
       // CLEANUP: Delete old embeddings for this repository before adding new ones
       console.log(`[${new Date().toISOString()}] 🧹 CLEANUP: Removing old embeddings for namespace: ${namespace}`);
@@ -143,7 +87,7 @@ class EmbeddingManager {
       const storageStartTime = Date.now();
       
       // Add timeout protection for the storage operation
-      const storagePromise = pineconeService.upsertDocuments(safeDocuments, this.embeddings, {
+      const storagePromise = pineconeService.upsertDocuments(documents, this.embeddings, {
         namespace: namespace,
         ids: documentIds,
         githubOwner,
@@ -159,7 +103,7 @@ class EmbeddingManager {
       
       const result = await Promise.race([storagePromise, timeoutPromise]);
       const storageTime = Date.now() - storageStartTime;
-      console.log(`[${new Date().toISOString()}] ✅ STORAGE: Completed in ${storageTime}ms`);
+      console.log(`[${new Date().toISOString()}] ✅ STORAGE: Completed in ${storageTime}ms - preserved semantic metadata`);
 
       return result;
 
@@ -168,44 +112,6 @@ class EmbeddingManager {
       console.error(`[${new Date().toISOString()}] 💡 This may be due to API limits, network issues, or invalid document format`);
       throw error;
     }
-  }
-
-  /**
-   * Simple, fast character-based splitting - no complex token logic
-   */
-  _simpleSplit(text, maxChars = 4000) {
-    const chunks = [];
-    const overlap = 200; // Small overlap to preserve context
-    let position = 0;
-    
-    while (position < text.length) {
-      let chunkEnd = Math.min(position + maxChars, text.length);
-      let chunkText = text.substring(position, chunkEnd);
-      
-      // If not at end, try to break at sentence or line boundary
-      if (chunkEnd < text.length) {
-        // Look for sentence endings first
-        const sentenceEnd = chunkText.lastIndexOf('. ');
-        const lineEnd = chunkText.lastIndexOf('\n');
-        const breakPoint = Math.max(sentenceEnd, lineEnd);
-        
-        if (breakPoint > maxChars * 0.7) { // Only use if reasonable length
-          chunkText = text.substring(position, position + breakPoint + 1);
-        }
-      }
-      
-      chunks.push(chunkText.trim());
-      
-      // Move position forward, with overlap for context preservation
-      position += chunkText.length - (position === 0 ? 0 : overlap);
-      
-      // Safety break to prevent infinite loops
-      if (position <= 0 || chunks.length > 50) {
-        break;
-      }
-    }
-    
-    return chunks.filter(chunk => chunk.length > 50); // Filter out tiny chunks
   }
 
   /**

@@ -463,19 +463,23 @@ class QueryPipeline {
       // If this is a file-specific query, also perform full-text search for filename matching
       if (searchStrategy.explicitFiles && searchStrategy.explicitFiles.length > 0 && this.textSearchService) {
         console.log(`[${new Date().toISOString()}] 📄 Adding full-text search for explicit file matching`);
+        console.log(`[${new Date().toISOString()}] 🎯 FILE-SPECIFIC MODE: Will retrieve ALL chunks from mentioned files`);
         
         // Search for each mentioned file using full-text search
         const textSearchResults = [];
         for (const filename of searchStrategy.explicitFiles) {
           try {
             console.log(`[${new Date().toISOString()}] 🔍 Full-text search for: ${filename}`);
+            
+            // For explicit filename queries, retrieve ALL chunks (high limit)
+            // This ensures complete file coverage when user asks about specific files
             const fileResults = await this.textSearchService.searchDocuments(filename, {
               userId,
-              limit: 20  // DOUBLED: Get up to 20 chunks per file (was 10)
+              limit: 100  // HIGH LIMIT: Get up to 100 chunks to ensure complete file retrieval
             });
             
             if (fileResults.length > 0) {
-              console.log(`[${new Date().toISOString()}] ✅ Found ${fileResults.length} chunks via full-text search for ${filename}`);
+              console.log(`[${new Date().toISOString()}] ✅ Found ${fileResults.length} chunks via full-text search for ${filename} - ensuring complete file coverage`);
               textSearchResults.push(...fileResults);
             } else {
               console.log(`[${new Date().toISOString()}] ⚠️ No results from full-text search for ${filename}`);
@@ -495,14 +499,17 @@ class QueryPipeline {
               content: result.content,
               source: result.filePath,
               type: 'github-code',
+              chunkIndex: result.chunkIndex,
               isTextSearchResult: true,
               snippet: result.snippet
             }
           }));
           
           console.log(`[${new Date().toISOString()}] 🔀 Merging ${searchResults.matches?.length || 0} vector results + ${formattedTextResults.length} text results`);
+          console.log(`[${new Date().toISOString()}] 📄 Text search provides complete file coverage with all chunks ordered by chunk_index`);
           
           // Merge results, prioritizing text search results for file-specific queries
+          // Text results come first to ensure complete file coverage
           searchResults.matches = [...formattedTextResults, ...(searchResults.matches || [])];
         }
       }
