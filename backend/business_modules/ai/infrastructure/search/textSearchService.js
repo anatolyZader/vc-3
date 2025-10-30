@@ -440,12 +440,115 @@ class TextSearchService {
   }
 
   /**
+   * Get all chunks for a specific file (bypasses FTS ranking)
+   * This is used for file-specific queries to ensure ALL chunks are retrieved
+   * @param {object} params - Query parameters
+   * @param {string} params.userId - User ID
+   * @param {string} params.repoId - Repository ID  
+   * @param {string} params.filePath - Exact file path
+   * @param {number} params.limit - Max chunks to return (default 500)
+   * @returns {Array} All chunks for the file, ordered by chunk_index
+   */
+  async getFileChunks({ userId, repoId, filePath, limit = 500 }) {
+    try {
+      const pool = await this.postgresAdapter.getPool();
+      const client = await pool.connect();
+      
+      try {
+        const query = `
+          SELECT 
+            file_path,
+            chunk_index,
+            chunk_content,
+            chunk_tokens,
+            metadata,
+            file_extension
+          FROM repo_data
+          WHERE user_id = $1 
+            AND repo_id = $2 
+            AND file_path = $3
+          ORDER BY chunk_index ASC
+          LIMIT $4
+        `;
+        
+        const result = await client.query(query, [userId, repoId, filePath, limit]);
+        
+        this.logger.info(`📁 Direct file load: ${result.rows.length} chunks from ${filePath}`);
+        
+        return result.rows.map(row => ({
+          file_path: row.file_path,
+          chunk_index: row.chunk_index,
+          chunk_content: row.chunk_content,
+          chunk_tokens: row.chunk_tokens,
+          metadata: row.metadata,
+          file_extension: row.file_extension,
+          rank: 1.0 // Highest priority for exact file matches
+        }));
+        
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      this.logger.error(`Error loading file chunks for ${filePath}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Find all file paths matching a filename pattern
+   * @param {object} params - Query parameters
+   * @param {string} params.userId - User ID
+   * @param {string} params.repoId - Repository ID
+   * @param {string} params.filename - Filename to search for (e.g., "aiService.js")
+   * @returns {Array} Matching file paths
+   */
+  async findFilePaths({ userId, repoId, filename }) {
+    try {
+      const pool = await this.postgresAdapter.getPool();
+      const client = await pool.connect();
+      
+      try {
+        const query = `
+          SELECT DISTINCT file_path
+          FROM repo_data
+          WHERE user_id = $1 
+            AND repo_id = $2 
+            AND file_path ILIKE $3
+          LIMIT 10
+        `;
+        
+        // Try exact match first, then fallback to pattern
+        const patterns = [
+          `%/${filename}`,  // Exact filename at end of path
+          `%${filename}%`   // Filename anywhere in path
+        ];
+        
+        for (const pattern of patterns) {
+          const result = await client.query(query, [userId, repoId, pattern]);
+          if (result.rows.length > 0) {
+            this.logger.info(`🔍 Found ${result.rows.length} file(s) matching: ${filename}`);
+            return result.rows.map(r => r.file_path);
+          }
+        }
+        
+        return [];
+        
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      this.logger.error(`Error finding file paths for ${filename}:`, error);
+      return [];
+    }
+  }
+
+  /**
    * Store document chunks (delegates to persistence adapter)
    * SYNCHRONIZED CHUNKING: Stores the same chunks as Pinecone with rich metadata
    * @param {Array} chunks - Array of document chunks with pageContent and metadata
-   * @param {string} userId - User ID who owns the repository
-   * @param {string} repoId - Repository ID
-   * @param {object} options - Storage options
+   * @param {string} params.userId - User ID who owns the repository
+   * @param {string} params.repoId - Repository ID
+   * @param {object} params.options - Storage options
    * @returns {object} Result with counts of stored chunks
    */
   async storeChunks(chunks, userId, repoId, options = {}) {

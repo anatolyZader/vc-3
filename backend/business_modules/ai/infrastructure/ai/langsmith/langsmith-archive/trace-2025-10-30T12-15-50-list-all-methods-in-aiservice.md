@@ -1,12 +1,19 @@
-# LangSmith RAG Trace Analysis - 10/30/2025, 2:03:26 PM
+---
+**ARCHIVED TRACE ANALYSIS**
+- Archived on: 2025-10-30T12:15:50.652Z
+- Triggered by query: "list all methods in aiService.js file from eventstorm.me app"
+- Original file: latest-trace-analysis.md
+---
+
+# LangSmith RAG Trace Analysis - 10/30/2025, 11:30:11 AM
 
 ## 🔍 Query Details
 - **Query**: "list all methods in aiService.js file in eventstorm.me app"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
-- **Conversation ID**: bf67ca99-b7a4-4f0b-95e9-a704c6276af9
-- **Started**: 2025-10-30T14:03:26.350Z
-- **Completed**: 2025-10-30T14:03:28.905Z
-- **Total Duration**: 2555ms
+- **Conversation ID**: 3fdbb5fb-696c-41c3-a7fb-512fe3772636
+- **Started**: 2025-10-30T11:30:11.081Z
+- **Completed**: 2025-10-30T11:30:13.940Z
+- **Total Duration**: 2859ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,12 +23,13 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-10-30T14:03:26.350Z) - success
-2. **vector_store_check** (2025-10-30T14:03:26.350Z) - success
-3. **vector_search** (2025-10-30T14:03:27.376Z) - success - Found 5 documents
-4. **text_search** (2025-10-30T14:03:27.376Z) - skipped
-5. **context_building** (2025-10-30T14:03:27.377Z) - success - Context: 6388 chars
-6. **response_generation** (2025-10-30T14:03:28.905Z) - success - Response: 638 chars
+1. **initialization** (2025-10-30T11:30:11.082Z) - success
+2. **vector_store_check** (2025-10-30T11:30:11.082Z) - success
+3. **vector_search** (2025-10-30T11:30:12.147Z) - success - Found 5 documents
+4. **text_search** (2025-10-30T11:30:12.152Z) - success
+5. **hybrid_search_combination** (2025-10-30T11:30:12.152Z) - success
+6. **context_building** (2025-10-30T11:30:12.153Z) - success - Context: 6388 chars
+7. **response_generation** (2025-10-30T11:30:13.940Z) - success - Response: 638 chars
 
 ## 📊 Vector Search Analysis
 
@@ -45,7 +53,7 @@
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 3994 characters
-- **Score**: 0.496873856
+- **Score**: 0.497056961
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
@@ -164,7 +172,7 @@ class AIService extends IAIService {
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 1,
-  "score": 0.496873856,
+  "score": 0.497056961,
   "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1280_1761823425741"
 }
 ```
@@ -175,11 +183,11 @@ class AIService extends IAIService {
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 4198 characters
-- **Score**: 0.48277092
+- **Score**: 0.482667923
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:15.967Z
+- **Processed At**: 2025-10-30T11:22:12.220Z
 
 **Full Content**:
 ```
@@ -294,10 +302,10 @@ module.exports.autoPrefix = '/api/ai';
   "branch": "main",
   "filePath": "backend/business_modules/ai/index.js",
   "fileSize": 4232,
-  "loaded_at": "2025-10-30T12:07:15.967Z",
+  "loaded_at": "2025-10-30T11:22:12.220Z",
   "loading_method": "cloud_native_api",
   "priority": 80,
-  "processedAt": "2025-10-30T12:07:15.967Z",
+  "processedAt": "2025-10-30T11:22:12.220Z",
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
   "sha": "42dee7dd402b0582a77f6cb5e40cf226d687d75b",
@@ -305,9 +313,9 @@ module.exports.autoPrefix = '/api/ai';
   "source": "anatolyZader/vc-3",
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.48277092,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3941_1761826129422"
+  "workerId": 1,
+  "score": 0.482667923,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1333_1761823425741"
 }
 ```
 
@@ -317,11 +325,11 @@ module.exports.autoPrefix = '/api/ai';
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 2348 characters
-- **Score**: 0.468738586
+- **Score**: 0.468580246
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:12.209Z
+- **Processed At**: 2025-10-30T11:22:08.531Z
 
 **Full Content**:
 ```
@@ -384,11 +392,11 @@ module.exports = AIService;
   "chunkTokens": 587,
   "filePath": "backend/business_modules/ai/application/services/aiService.js",
   "fileSize": 10175,
-  "loaded_at": "2025-10-30T12:07:12.209Z",
+  "loaded_at": "2025-10-30T11:22:08.531Z",
   "loading_method": "cloud_native_api",
   "originalTokens": 2140,
   "priority": 85,
-  "processedAt": "2025-10-30T12:07:12.209Z",
+  "processedAt": "2025-10-30T11:22:08.531Z",
   "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
@@ -397,9 +405,9 @@ module.exports = AIService;
   "source": "anatolyZader/vc-3",
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.468738586,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3890_1761826129422"
+  "workerId": 1,
+  "score": 0.468580246,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1282_1761823425741"
 }
 ```
 
@@ -409,7 +417,7 @@ module.exports = AIService;
 - **Source**: anatolyZader/vc-3
 - **Type**: github-docs
 - **Size**: 2317 characters
-- **Score**: 0.471744537
+- **Score**: 0.471885681
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
@@ -469,7 +477,7 @@ Overall, the `ai` module is a crucial component of the application, providing th
   "type": "github-docs",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 1,
-  "score": 0.471744537,
+  "score": 0.471885681,
   "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1707_1761823425741"
 }
 ```
@@ -480,7 +488,7 @@ Overall, the `ai` module is a crucial component of the application, providing th
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 199 characters
-- **Score**: 0.465108901
+- **Score**: 0.465158492
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
@@ -518,7 +526,7 @@ e',  // Will be auto-detected if not provided
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 1,
-  "score": 0.465108901,
+  "score": 0.465158492,
   "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1813_1761823425741"
 }
 ```
@@ -531,7 +539,7 @@ e',  // Will be auto-detected if not provided
 ### Generated Response:
 **Status**: ✅ Generated Successfully
 **Response Length**: 638 characters
-**Generated At**: 2025-10-30T14:03:28.932Z
+**Generated At**: 2025-10-30T11:30:13.965Z
 
 ### Response Content:
 ```markdown
@@ -560,7 +568,7 @@ I don't see any other methods defined in the `AIService.js` file in the provided
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 2555ms
+- **Query Processing Time**: 2859ms
 - **Documents Retrieved**: 5
 - **Unique Sources**: 1
 - **Average Chunk Size**: 2611 characters
@@ -605,7 +613,7 @@ This comprehensive LangSmith trace demonstrates excellent RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-10-30T14:03:28.934Z  
+**Generated**: 2025-10-30T11:30:13.967Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true
