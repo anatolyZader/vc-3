@@ -238,7 +238,7 @@ class RepoProcessor {
     try {
       console.log(`[${new Date().toISOString()}] ⏳ Loading backend files with LangChain (reduced timeout)...`);
       
-      const { GithubRepoLoader } = require('@langchain/community/document_loaders/web/github');
+      // Use top-level import (no duplicate import needed)
       const loader = new GithubRepoLoader(repoUrl, backendLoaderOptions);
       
       // Use AbortController for proper cancellation
@@ -464,7 +464,7 @@ class RepoProcessor {
               file_path: source,
               file_type: this.inferFileType(source),
               language: this.inferLanguage(source),
-              main_entities: this.extractMainEntities(document.pageContent),
+              main_entities: this.extractMainEntities(document.pageContent, source),
               imports_excluded: false
             }
           }
@@ -527,8 +527,14 @@ class RepoProcessor {
     return languageMap[ext] || 'unknown';
   }
   
-  extractMainEntities(content) {
+  extractMainEntities(content, source) {
     if (!content) return [];
+    
+    // Only extract entities from code files (skip JSON, config, etc.)
+    const ext = this.getFileExtension(source).toLowerCase();
+    if (!this.isCodeFile(ext)) {
+      return [];
+    }
     
     const entities = [];
     
