@@ -118,6 +118,27 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
           // Create a proper DI scope for the mock request
           const diScope = fastify.diContainer.createScope();
           
+          // CRITICAL: Initialize text search service before processing repo
+          try {
+            const aiService = await diScope.resolve('aiService');
+            const postgresAdapter = await diScope.resolve('aiPersistAdapter');
+            
+            if (aiService && postgresAdapter && aiService.aiAdapter) {
+              if (!aiService.aiAdapter.textSearchService) {
+                fastify.log.info(`🔍 AI PUBSUB: Initializing text search before repo processing...`);
+                await aiService.aiAdapter.initializeTextSearch(postgresAdapter);
+                fastify.log.info(`✅ AI PUBSUB: Text search initialized successfully`);
+              } else {
+                fastify.log.info(`ℹ️  AI PUBSUB: Text search already initialized`);
+              }
+            } else {
+              fastify.log.warn(`⚠️  AI PUBSUB: Could not initialize text search - missing dependencies`);
+            }
+          } catch (initError) {
+            fastify.log.error(`❌ AI PUBSUB: Text search initialization failed: ${initError.message}`);
+            // Continue anyway - Pinecone storage will still work
+          }
+          
           // Create mock request object for processPushedRepo with proper DI scope
           const mockRequest = {
             body: { repoId, repoData },
