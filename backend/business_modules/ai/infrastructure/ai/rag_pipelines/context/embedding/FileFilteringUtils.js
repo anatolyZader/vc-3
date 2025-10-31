@@ -143,6 +143,97 @@ class FileFilteringUtils {
       'CHANGELOG.md'
     ];
   }
+
+  /**
+   * MARKDOWN FILE FILTERING RULES
+   * Only include specific important documentation files, exclude all analysis/debug/trace .md files
+   * 
+   * Allowed:
+   * - ROOT_DOCUMENTATION.md, README.md (root level)
+   * - backend/ARCHITECTURE.md
+   * - Module documentation: business_modules/*/modulename.md (e.g., ai.md, chat.md, git.md)
+   * 
+   * Excluded:
+   * - All trace analysis files (trace-*.md, *-trace-analysis.md, latest-trace-analysis.md)
+   * - All debug/test files (debug_*.md, test_*.md, processing_report_*.md)
+   * - All copilot_helpers/ markdown files
+   * - All analysis files in copilot_helpers/analysis/
+   * - All other .md files not explicitly allowed
+   */
+  static shouldIncludeMarkdownFile(filePath) {
+    const normalizedPath = filePath.replace(/\\/g, '/').toLowerCase();
+    const fileName = path.basename(filePath).toLowerCase();
+    
+    // EXCLUDE: LangSmith trace and analysis files
+    if (fileName.startsWith('trace-') || 
+        fileName.includes('-trace-analysis') || 
+        fileName === 'latest-trace-analysis.md' ||
+        fileName === 'complete-langsmith-analysis.md' ||
+        fileName === 'system-status.md' ||
+        normalizedPath.includes('/langsmith/') ||
+        normalizedPath.includes('/langsmith-archive/')) {
+      return false;
+    }
+    
+    // EXCLUDE: Debug, test, and processing report files
+    if (fileName.startsWith('debug_') || 
+        fileName.startsWith('test_') ||
+        fileName.startsWith('processing_report_') ||
+        fileName.startsWith('forced_method_analysis_') ||
+        fileName.startsWith('method_level_analysis_') ||
+        fileName.includes('_chunks') ||
+        fileName.includes('_analysis')) {
+      return false;
+    }
+    
+    // EXCLUDE: All copilot_helpers directory
+    if (normalizedPath.includes('copilot_helpers/')) {
+      return false;
+    }
+    
+    // EXCLUDE: Test directories
+    if (normalizedPath.includes('/_tests_/') || 
+        normalizedPath.includes('/tests/') ||
+        normalizedPath.includes('/__tests__/')) {
+      return false;
+    }
+    
+    // INCLUDE: Root level documentation
+    if (fileName === 'readme.md' || 
+        fileName === 'root_documentation.md' ||
+        fileName === 'changelog.md') {
+      // Only if truly at root (no slashes before filename except for backend/)
+      const pathParts = normalizedPath.split('/');
+      const depth = pathParts.length - 1; // Subtract filename
+      if (depth === 0 || (depth === 1 && pathParts[0] === 'backend')) {
+        return true;
+      }
+    }
+    
+    // INCLUDE: backend/ARCHITECTURE.md
+    if (fileName === 'architecture.md' && normalizedPath.includes('backend/')) {
+      // Must be directly in backend/, not nested
+      const archRegex = /backend\/architecture\.md$/i;
+      if (archRegex.test(normalizedPath)) {
+        return true;
+      }
+    }
+    
+    // INCLUDE: Module documentation files (business_modules/*/modulename.md)
+    // Pattern: business_modules/MODULE_NAME/MODULE_NAME.md
+    // Examples: business_modules/ai/ai.md, business_modules/chat/chat.md, business_modules/git/git.md
+    const moduleDocRegex = /business_modules\/([^\/]+)\/\1\.md$/i;
+    const match = normalizedPath.match(moduleDocRegex);
+    if (match) {
+      const moduleName = match[1];
+      console.log(`[FILTER] ✅ MARKDOWN: Including module documentation: ${moduleName}.md`);
+      return true;
+    }
+    
+    // EXCLUDE: All other .md files
+    console.log(`[FILTER] ❌ MARKDOWN: Excluding non-essential documentation: ${filePath}`);
+    return false;
+  }
   
   /**
    * Comprehensive file extension filtering
@@ -305,6 +396,18 @@ class FileFilteringUtils {
     const fileName = path.basename(filePath);
     const extension = path.extname(filePath).slice(1).toLowerCase();
     const filePathLower = filePath.toLowerCase();
+    
+    // MARKDOWN FILE FILTERING - Apply strict rules for .md files FIRST
+    if (extension === 'md') {
+      const shouldInclude = this.shouldIncludeMarkdownFile(filePath);
+      if (!shouldInclude) {
+        console.log(`[FILTER] ❌ MARKDOWN: Excluded by markdown rules: ${filePath}`);
+        return false;
+      }
+      // If we reach here, markdown file passed the whitelist check
+      console.log(`[FILTER] ✅ MARKDOWN: Included essential documentation: ${filePath}`);
+      return true;
+    }
     
     // File filtering - removed per-file logging for performance    
     // COPILOT HELPERS EXCLUSION - Exclude all helper files from root and backend
