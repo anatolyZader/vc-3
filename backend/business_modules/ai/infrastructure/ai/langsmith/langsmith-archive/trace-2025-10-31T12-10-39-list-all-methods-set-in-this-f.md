@@ -1,3 +1,10 @@
+---
+**ARCHIVED TRACE ANALYSIS**
+- Archived on: 2025-10-31T12:10:39.857Z
+- Triggered by query: "list all methods set in this file"
+- Original file: latest-trace-analysis.md
+---
+
 # LangSmith RAG Trace Analysis - 10/31/2025, 12:09:38 PM
 
 ## 🔍 Query Details

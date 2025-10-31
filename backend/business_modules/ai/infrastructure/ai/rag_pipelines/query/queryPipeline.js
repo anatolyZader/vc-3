@@ -220,7 +220,7 @@ class QueryPipeline {
       }
       traceData.steps.push({ step: 'vector_store_check', timestamp: new Date().toISOString(), status: 'success' });
 
-      const searchResults = await this.performVectorSearch(prompt, activeVectorStore, traceData, userId, null, repoDescriptor);
+      const searchResults = await this.performVectorSearch(prompt, activeVectorStore, traceData, userId, null, repoDescriptor, conversationHistory);
       
       if (searchResults.length === 0) {
         traceData.steps.push({ step: 'vector_search', timestamp: new Date().toISOString(), status: 'no_results' });
@@ -498,7 +498,58 @@ class QueryPipeline {
    * @param {object} repoDescriptor - Repository descriptor {owner, name, branch}
    * @returns {Array} Search results
    */
-  async performVectorSearch(prompt, vectorStore, traceData = null, userId = null, repoId = null, repoDescriptor = null) {
+  /**
+   * Extract filenames from conversation history when user uses pronouns
+   * Handles queries like "list methods in this file" where "this file" refers to previous context
+   * 
+   * @param {string} prompt - Current user query
+   * @param {Array} conversationHistory - Previous messages
+   * @returns {string|null} - Extracted filename or null if not found
+   */
+  extractFilenameFromHistory(prompt, conversationHistory = []) {
+    // Check if query contains file reference pronouns
+    const pronounPattern = /\b(this|that|the|its|it)\s+(file|class|module|component)\b/i;
+    if (!pronounPattern.test(prompt)) {
+      return null;
+    }
+    
+    console.log(`[${new Date().toISOString()}] 🔍 CONTEXT RESOLVER: Query contains file pronoun - checking conversation history`);
+    
+    // File extension pattern (more comprehensive)
+    const filePattern = /([a-zA-Z0-9_\-\.\/]+\.(js|ts|jsx|tsx|py|java|go|md|json|yaml|yml|css|html|vue|rb|php|cpp|c|h))\b/gi;
+    
+    // Search through conversation history (recent messages first)
+    for (let i = conversationHistory.length - 1; i >= 0; i--) {
+      const message = conversationHistory[i];
+      const content = message.content || message.prompt || message.text || '';
+      
+      // Look for filenames in previous messages
+      const matches = content.match(filePattern);
+      if (matches && matches.length > 0) {
+        const filename = matches[0];
+        console.log(`[${new Date().toISOString()}] ✅ CONTEXT RESOLVER: Found filename from history: ${filename}`);
+        console.log(`[${new Date().toISOString()}] 📝 CONTEXT RESOLVER: From message ${i + 1}: "${content.substring(0, 100)}..."`);
+        return filename;
+      }
+    }
+    
+    console.log(`[${new Date().toISOString()}] ⚠️ CONTEXT RESOLVER: No filename found in conversation history`);
+    return null;
+  }
+
+  /**
+   * Perform semantic vector search against the knowledge base
+   * 
+   * @param {string} prompt - User query
+   * @param {object} vectorStore - Vector store instance
+   * @param {object} traceData - Tracing data object
+   * @param {string} userId - User identifier
+   * @param {string} repoId - Repository identifier
+   * @param {object} repoDescriptor - Repository descriptor {owner, name, branch}
+   * @param {Array} conversationHistory - Conversation history for context resolution
+   * @returns {Array} Search results
+   */
+  async performVectorSearch(prompt, vectorStore, traceData = null, userId = null, repoId = null, repoDescriptor = null, conversationHistory = []) {
     const VectorSearchStrategy = require('./vectorSearchStrategy');
     
     // Store the provided vectorStore for future use
@@ -511,8 +562,20 @@ class QueryPipeline {
       traceData.searchStrategy = repoId ? 'repository_specific_search' : 'intelligent_strategy_with_filters';
     }
     
-    // Determine search strategy and apply filters
-    const searchStrategy = VectorSearchStrategy.determineSearchStrategy(prompt);
+    // Check if query uses pronouns and extract filename from conversation history
+    let enhancedPrompt = prompt;
+    const contextFilename = this.extractFilenameFromHistory(prompt, conversationHistory);
+    if (contextFilename) {
+      // Enhance the prompt by replacing pronoun with actual filename
+      enhancedPrompt = prompt.replace(
+        /\b(this|that|the)\s+(file|class|module|component)\b/gi,
+        contextFilename
+      );
+      console.log(`[${new Date().toISOString()}] 🔄 CONTEXT RESOLVER: Enhanced query: "${enhancedPrompt}"`);
+    }
+    
+    // Determine search strategy and apply filters (using enhanced prompt)
+    const searchStrategy = VectorSearchStrategy.determineSearchStrategy(enhancedPrompt);
     console.log(`[${new Date().toISOString()}] 🎯 SEARCH STRATEGY: ${searchStrategy.codeResults} code + ${searchStrategy.docsResults} docs results`);
     
     // Use repository-specific search if repoId is provided, otherwise use intelligent search with filters
@@ -1421,9 +1484,94 @@ ${traceData.steps.map((step, index) =>
 - **API Specification**: ${sourceTypes.apiSpec} chunks (${Math.round(sourceTypes.apiSpec/searchResults.length*100)}%)
 - **Other Sources**: ${sourceTypes.other} chunks (${Math.round(sourceTypes.other/searchResults.length*100)}%)
 
+## 🏷️ Ubiquitous Language (UL) Tags Analysis
+
+${(() => {
+  const ulStats = {
+    totalChunks: searchResults.length,
+    chunksWithUL: 0,
+    chunksWithoutUL: 0,
+    boundedContexts: new Set(),
+    businessModules: new Set(),
+    totalTerms: 0,
+    uniqueTerms: new Set(),
+    domainEvents: new Set()
+  };
+  
+  searchResults.forEach(doc => {
+    const hasUL = doc.metadata.ul_version || doc.metadata.ubiq_enhanced;
+    
+    if (hasUL) {
+      ulStats.chunksWithUL++;
+      
+      if (doc.metadata.ul_bounded_context) ulStats.boundedContexts.add(doc.metadata.ul_bounded_context);
+      if (doc.metadata.ubiq_bounded_context) ulStats.boundedContexts.add(doc.metadata.ubiq_bounded_context);
+      if (doc.metadata.ubiq_business_module) ulStats.businessModules.add(doc.metadata.ubiq_business_module);
+      
+      const terms = doc.metadata.ul_terms || doc.metadata.ubiq_terminology || [];
+      ulStats.totalTerms += terms.length;
+      terms.forEach(term => ulStats.uniqueTerms.add(term));
+      
+      const events = doc.metadata.ubiq_domain_events || [];
+      events.forEach(event => ulStats.domainEvents.add(event));
+    } else {
+      ulStats.chunksWithoutUL++;
+    }
+  });
+  
+  const ulCoverage = ulStats.totalChunks > 0 
+    ? Math.round((ulStats.chunksWithUL / ulStats.totalChunks) * 100) 
+    : 0;
+  
+  return `### UL Tag Coverage:
+- **Chunks with UL Tags**: ${ulStats.chunksWithUL}/${ulStats.totalChunks} (${ulCoverage}%)
+- **Chunks without UL Tags**: ${ulStats.chunksWithoutUL}/${ulStats.totalChunks} (${100 - ulCoverage}%)
+- **Coverage Status**: ${ulCoverage >= 80 ? '✅ Excellent' : ulCoverage >= 50 ? '⚠️ Good' : '❌ Poor - Repository may need re-indexing'}
+
+### Domain Coverage:
+- **Bounded Contexts**: ${ulStats.boundedContexts.size} unique contexts
+  ${ulStats.boundedContexts.size > 0 ? `- Contexts: ${Array.from(ulStats.boundedContexts).join(', ')}` : ''}
+- **Business Modules**: ${ulStats.businessModules.size} unique modules
+  ${ulStats.businessModules.size > 0 ? `- Modules: ${Array.from(ulStats.businessModules).join(', ')}` : ''}
+- **Total UL Terms**: ${ulStats.totalTerms} terms found across all chunks
+- **Unique Terms**: ${ulStats.uniqueTerms.size} distinct terms
+  ${ulStats.uniqueTerms.size > 0 ? `- Top Terms: ${Array.from(ulStats.uniqueTerms).slice(0, 15).join(', ')}${ulStats.uniqueTerms.size > 15 ? '...' : ''}` : ''}
+- **Domain Events**: ${ulStats.domainEvents.size} unique events
+  ${ulStats.domainEvents.size > 0 ? `- Events: ${Array.from(ulStats.domainEvents).slice(0, 10).join(', ')}${ulStats.domainEvents.size > 10 ? '...' : ''}` : ''}
+
+${ulStats.chunksWithoutUL > 0 ? `### ⚠️ Missing UL Tags Warning:
+${ulStats.chunksWithoutUL} chunks (${100 - ulCoverage}%) are missing ubiquitous language tags. This may indicate:
+- Files indexed before UL enhancement was implemented (check \`processedAt\` timestamps)
+- Non-code files (markdown analysis files, configs) that bypass UL processing
+- Repository needs re-indexing to apply current UL enhancement pipeline
+- Error during UL enhancement (check logs for warnings)
+
+**Recommendation**: ${ulCoverage < 50 ? '🔴 **CRITICAL**: Re-index repository to apply UL tags to all chunks' : ulCoverage < 80 ? '🟡 Consider re-indexing to improve UL coverage' : '🟢 UL coverage is good'}
+` : '✅ **Excellent**: All chunks have ubiquitous language tags applied!'}
+`;
+})()}
+
 ## 📋 Complete Chunk Analysis
 
-${traceData.chunks ? traceData.chunks.map(chunk => `
+${traceData.chunks ? traceData.chunks.map(chunk => {
+  // Extract UL tags for prominent display
+  const ulTags = {
+    ul_version: chunk.metadata.ul_version || null,
+    ul_bounded_context: chunk.metadata.ul_bounded_context || null,
+    ul_terms: chunk.metadata.ul_terms || [],
+    ul_match_count: chunk.metadata.ul_match_count || 0,
+    ubiq_business_module: chunk.metadata.ubiq_business_module || null,
+    ubiq_bounded_context: chunk.metadata.ubiq_bounded_context || null,
+    ubiq_domain_events: chunk.metadata.ubiq_domain_events || [],
+    ubiq_terminology: chunk.metadata.ubiq_terminology || [],
+    ubiq_enhanced: chunk.metadata.ubiq_enhanced || false,
+    ubiq_enhancement_timestamp: chunk.metadata.ubiq_enhancement_timestamp || null
+  };
+  
+  // Check if UL enhancement was applied
+  const hasULTags = ulTags.ul_version || ulTags.ubiq_enhanced;
+  
+  return `
 ### Chunk ${chunk.index}/${traceData.chunks.length}
 - **Source**: ${chunk.source}
 - **Type**: ${chunk.type}
@@ -1433,6 +1581,24 @@ ${traceData.chunks ? traceData.chunks.map(chunk => `
 - **Branch**: ${chunk.metadata.branch || 'N/A'}
 - **File Type**: ${chunk.metadata.fileType || 'N/A'}
 - **Processed At**: ${chunk.metadata.processedAt || 'N/A'}
+
+**🏷️ Ubiquitous Language Tags**: ${hasULTags ? '✅ Present' : '❌ Missing'}
+${hasULTags ? `
+- **UL Version**: ${ulTags.ul_version || 'N/A'}
+- **Bounded Context**: ${ulTags.ul_bounded_context || ulTags.ubiq_bounded_context || 'Unknown Context'}
+- **Business Module**: ${ulTags.ubiq_business_module || 'Unknown'}
+- **UL Terms Found**: ${ulTags.ul_terms.length || ulTags.ubiq_terminology?.length || 0} terms
+${(ulTags.ul_terms.length > 0 || ulTags.ubiq_terminology?.length > 0) ? `  - Terms: ${(ulTags.ul_terms || ulTags.ubiq_terminology || []).slice(0, 10).join(', ')}${(ulTags.ul_terms?.length || ulTags.ubiq_terminology?.length || 0) > 10 ? '...' : ''}` : ''}
+- **Domain Events**: ${ulTags.ubiq_domain_events?.length || 0} events
+- **Enhanced**: ${ulTags.ubiq_enhanced ? '✅ Yes' : '❌ No'}
+- **Enhancement Timestamp**: ${ulTags.ubiq_enhancement_timestamp || 'N/A'}
+` : `
+⚠️ **Warning**: This chunk is missing ubiquitous language tags. This may indicate:
+  - The file was indexed before UL enhancement was implemented
+  - The file is a non-code file (markdown, config) that bypassed UL processing
+  - There was an error during UL enhancement
+  - Repository needs re-indexing to pick up UL tags
+`}
 
 **Full Content**:
 \`\`\`
@@ -1445,7 +1611,8 @@ ${JSON.stringify(chunk.metadata, null, 2)}
 \`\`\`
 
 ---
-`).join('') : 'Chunk data not captured'}
+`;
+}).join('') : 'Chunk data not captured'}
 
 ${aiResponse ? `## 🤖 AI Response Analysis
 
