@@ -86,7 +86,7 @@ class TextSearchService {
                 ELSE 0.1
               END AS rank,
               substring(chunk_content, 1, 200) AS snippet
-            FROM repo_data
+            FROM ai.repo_data
             WHERE (${likeConditions.join(' OR ')})
           `;
           
@@ -172,7 +172,7 @@ class TextSearchService {
             metadata,
             ts_rank(content_vector, plainto_tsquery('english', $1)) AS rank,
             ts_headline('english', chunk_content, plainto_tsquery('english', $1), 'MaxWords=30') AS snippet
-          FROM repo_data
+          FROM ai.repo_data
           WHERE content_vector @@ plainto_tsquery('english', $1)
         `;
 
@@ -277,7 +277,7 @@ class TextSearchService {
               WHEN content ILIKE '%' || $1 || '%' THEN 0.5
               ELSE 0.1
             END AS rank
-          FROM repo_data
+          FROM ai.repo_data
           WHERE content ILIKE '%' || $1 || '%'
         `;
 
@@ -380,7 +380,7 @@ class TextSearchService {
             COUNT(DISTINCT repo_id) as unique_repos,
             COUNT(DISTINCT file_extension) as unique_file_types,
             AVG(LENGTH(content)) as avg_content_length
-          FROM repo_data
+          FROM ai.repo_data
           WHERE 1=1
         `;
 
@@ -463,7 +463,7 @@ class TextSearchService {
             chunk_tokens,
             metadata,
             file_extension
-          FROM repo_data
+          FROM ai.repo_data
           WHERE user_id = $1 
             AND repo_id = $2 
             AND file_path = $3
@@ -510,7 +510,7 @@ class TextSearchService {
       try {
         const query = `
           SELECT DISTINCT file_path
-          FROM repo_data
+          FROM ai.repo_data
           WHERE user_id = $1 
             AND repo_id = $2 
             AND file_path ILIKE $3

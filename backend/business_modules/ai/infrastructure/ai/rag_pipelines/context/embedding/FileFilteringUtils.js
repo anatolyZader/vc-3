@@ -54,6 +54,10 @@ class FileFilteringUtils {
       '.github/**', 
       '.vscode/**',
       
+      // Helper and documentation files for development
+      'copilot_helpers/**',
+      '**/copilot_helpers/**',
+      
       // Debug and analysis files that cause vector pollution
       'chunking_reports/**', 
       '**/chunking_reports/**',
@@ -302,7 +306,14 @@ class FileFilteringUtils {
     const extension = path.extname(filePath).slice(1).toLowerCase();
     const filePathLower = filePath.toLowerCase();
     
-    // File filtering - removed per-file logging for performance    // CLIENT CODE EXCLUSION - Check for client directories first
+    // File filtering - removed per-file logging for performance    
+    // COPILOT HELPERS EXCLUSION - Exclude all helper files from root and backend
+    if (filePathLower.includes('copilot_helpers/')) {
+      console.log(`[FILTER] ❌ COPILOT HELPERS: Excluded development helper file: ${filePath}`);
+      return false;
+    }
+    
+    // CLIENT CODE EXCLUSION - Check for client directories first
     const clientDirectories = ['client/', 'frontend/', 'web/', 'www/', 'static/', 'public/', 'assets/'];
     for (const clientDir of clientDirectories) {
       if (filePathLower.includes(clientDir)) {

@@ -287,7 +287,7 @@ class AIPostgresAdapter extends IAIPersistPort {
 
             // Insert or update chunk with UPSERT
             const query = `
-              INSERT INTO repo_data (
+              INSERT INTO ai.repo_data (
                 user_id,
                 repo_id,
                 file_path,
