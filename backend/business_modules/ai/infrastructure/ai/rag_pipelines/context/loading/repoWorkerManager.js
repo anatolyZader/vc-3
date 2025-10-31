@@ -667,7 +667,23 @@ class RepoWorkerManager {
       headers['User-Agent'] = 'eventstorm-worker-manager';
     }
     
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`, {
+    // CRITICAL FIX: The git/trees API requires a SHA, not a branch name
+    // First, resolve the branch to its commit SHA
+    console.log(`[${new Date().toISOString()}] 🔍 WORKER MANAGER: Resolving branch '${branch}' to commit SHA for ${owner}/${repo}`);
+    const branchResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branch}`, {
+      headers
+    });
+    
+    if (!branchResponse.ok) {
+      throw new Error(`Failed to resolve branch ${branch}: ${branchResponse.status} ${branchResponse.statusText}`);
+    }
+    
+    const branchData = await branchResponse.json();
+    const commitSha = branchData.commit.sha;
+    console.log(`[${new Date().toISOString()}] ✅ WORKER MANAGER: Branch '${branch}' resolved to SHA: ${commitSha.substring(0, 7)}`);
+    
+    // Now fetch the tree using the commit SHA
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${commitSha}?recursive=1`, {
       headers
     });
     
@@ -676,6 +692,7 @@ class RepoWorkerManager {
     }
     
     const data = await response.json();
+    console.log(`[${new Date().toISOString()}] 📂 WORKER MANAGER: Retrieved ${data.tree.length} files from repository tree`);
     return data.tree;
   }
   

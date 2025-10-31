@@ -31,14 +31,18 @@ class VectorSearchStrategy {
       
       return {
         codeResults: codeResultsForFiles,
-        docsResults: 5,
+        docsResults: 15,  // INCREASED: Always get contextual docs even for file-specific queries
         codeFilters: {
           // Prioritize actual code and docs over configs/catalogs
           type: { $in: ['github-code', 'github-test', 'github-docs'] }
         },
-        docsFilters: {},
+        docsFilters: {
+          // ENSURE docs/specs are retrieved alongside code
+          type: { $in: ['module_documentation', 'architecture_documentation', 'apiSpec', 'github-docs'] }
+        },
         explicitFiles: mentionedFiles,  // Track which files were mentioned
-        priority: 'file-specific'
+        priority: 'file-specific',
+        ensureDocMix: true  // Flag to force doc retrieval even if file chunks dominate
       };
     }
     

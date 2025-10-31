@@ -314,16 +314,36 @@ class QueryPipeline {
           traceData.totalDuration = new Date(traceData.endTime) - new Date(traceData.startTime);
           
           // Attempt to capture LangSmith trace metadata
+          // FIXED: Handle multiple methods of trace capture with better error handling
           try {
+            // Method 1: Try getCurrentRunTree (LangSmith v0.1+)
             const { getCurrentRunTree } = require('langsmith');
             const currentRun = getCurrentRunTree();
+            
             if (currentRun) {
-              traceData.traceId = currentRun.trace_id;
-              traceData.runId = currentRun.id;
-              console.log(`[${new Date().toISOString()}] 🔗 LANGSMITH: Captured trace ID: ${traceData.traceId}`);
+              traceData.traceId = currentRun.trace_id || currentRun.traceId;
+              traceData.runId = currentRun.id || currentRun.runId;
+              traceData.langsmithUrl = currentRun.trace_id ? 
+                `https://smith.langchain.com/o/${process.env.LANGCHAIN_ORG_ID || 'default'}/projects/p/${process.env.LANGCHAIN_PROJECT || 'default'}/r/${currentRun.id}` : 
+                null;
+              console.log(`[${new Date().toISOString()}] 🔗 LANGSMITH: Captured trace - ID: ${traceData.traceId}, Run: ${traceData.runId}`);
+            } else if (process.env.LANGSMITH_TRACING === 'true') {
+              // Tracing enabled but no run context - this is a problem!
+              console.warn(`[${new Date().toISOString()}] ⚠️  LANGSMITH: Tracing enabled but getCurrentRunTree() returned null`);
+              console.warn(`[${new Date().toISOString()}] ⚠️  This usually means:`);
+              console.warn(`[${new Date().toISOString()}]      1. Method not wrapped with traceable()`);
+              console.warn(`[${new Date().toISOString()}]      2. Trace context lost during async operations`);
+              console.warn(`[${new Date().toISOString()}]      3. LangSmith client not initialized properly`);
+              traceData.tracingIssue = 'no_run_context';
             }
           } catch (langsmithError) {
-            console.log(`[${new Date().toISOString()}] 📝 LANGSMITH: Trace capture not available: ${langsmithError.message}`);
+            if (process.env.LANGSMITH_TRACING === 'true') {
+              console.warn(`[${new Date().toISOString()}] ⚠️  LANGSMITH: Failed to capture trace: ${langsmithError.message}`);
+              console.warn(`[${new Date().toISOString()}]      Stack: ${langsmithError.stack?.split('\n')[1]?.trim() || 'N/A'}`);
+              traceData.tracingError = langsmithError.message;
+            } else {
+              console.log(`[${new Date().toISOString()}] 📝 LANGSMITH: Tracing disabled (enable with LANGSMITH_TRACING=true)`);
+            }
           }
           
           // Update trace analysis with comprehensive LangSmith trace data
@@ -331,10 +351,15 @@ class QueryPipeline {
             try {
               const analysisContent = this.generateComprehensiveTraceAnalysis(prompt, searchResults, traceData, response);
               await this.traceArchiver.updateTraceAnalysis(analysisContent);
-              console.log(`[${new Date().toISOString()}] 📊 TRACE-ARCHIVER: Updated trace analysis with LangSmith trace data`);
+              
+              if (traceData.traceId) {
+                console.log(`[${new Date().toISOString()}] 📊 TRACE: Analysis updated with trace ID ${traceData.traceId}`);
+              } else {
+                console.log(`[${new Date().toISOString()}] 📊 TRACE: Analysis updated (no trace ID captured)`);
+              }
               console.log(`[${new Date().toISOString()}] 🔍 Trace details: ${traceData.chunks?.length || 0} chunks, ${traceData.totalDuration}ms total`);
             } catch (error) {
-              console.warn(`[${new Date().toISOString()}] ⚠️ TRACE-ARCHIVER: Failed to update analysis with trace data: ${error.message}`);
+              console.warn(`[${new Date().toISOString()}] ⚠️ TRACE-ARCHIVER: Failed to update analysis: ${error.message}`);
             }
           });
         } catch (error) {
@@ -630,22 +655,56 @@ class QueryPipeline {
         }
       }
       
-      // Perform semantic search for additional context (optional)
+      // CRITICAL FIX: For file-specific queries, ALWAYS fetch contextual docs separately
+      let contextualDocs = [];
+      if (searchStrategy.ensureDocMix && searchStrategy.docsResults > 0) {
+        console.log(`[${new Date().toISOString()}] 📚 CONTEXTUAL DOCS: Fetching ${searchStrategy.docsResults} docs/specs for architectural context`);
+        
+        try {
+          const docSearchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
+            namespace: repositoryNamespace,
+            topK: searchStrategy.docsResults,
+            threshold,
+            includeMetadata: true,
+            filter: searchStrategy.docsFilters  // Only fetch docs/specs/architecture
+          });
+          
+          contextualDocs = docSearchResults.matches || [];
+          console.log(`[${new Date().toISOString()}] ✅ Retrieved ${contextualDocs.length} contextual doc chunks`);
+          
+          // Log doc types for verification
+          const docTypes = contextualDocs.map(d => d.metadata?.type).filter(Boolean);
+          const typeCount = docTypes.reduce((acc, type) => {
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {});
+          console.log(`[${new Date().toISOString()}] � Doc types: ${JSON.stringify(typeCount)}`);
+        } catch (error) {
+          console.error(`[${new Date().toISOString()}] ❌ Error fetching contextual docs:`, error.message);
+        }
+      }
+      
+      // Perform semantic search for additional context (code chunks)
       searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
         namespace: repositoryNamespace,
-        topK,
+        topK: searchStrategy.codeResults,  // Only fetch code results
         threshold,
         includeMetadata: true,
-        filter: combinedFilter
+        filter: searchStrategy.codeFilters  // Only code-related chunks
       });
       
-      // Merge explicit file chunks with semantic search results
-      if (explicitFileChunks.length > 0) {
-        console.log(`[${new Date().toISOString()}] 🔀 Merging ${explicitFileChunks.length} explicit file chunks + ${searchResults.matches?.length || 0} semantic search results`);
-        console.log(`[${new Date().toISOString()}] 📄 Explicit file chunks come first to ensure complete file coverage`);
+      // Merge: explicit file chunks + contextual docs + semantic code results
+      if (explicitFileChunks.length > 0 || contextualDocs.length > 0) {
+        console.log(`[${new Date().toISOString()}] � Merging ${explicitFileChunks.length} file chunks + ${contextualDocs.length} contextual docs + ${searchResults.matches?.length || 0} semantic code chunks`);
         
-        // Explicit file chunks go first (with score 1.0), then semantic search results
-        searchResults.matches = [...explicitFileChunks, ...(searchResults.matches || [])];
+        // Build balanced result set: file chunks → contextual docs → semantic code
+        searchResults.matches = [
+          ...explicitFileChunks,
+          ...contextualDocs,
+          ...(searchResults.matches || [])
+        ];
+        
+        console.log(`[${new Date().toISOString()}] 📄 Total merged: ${searchResults.matches.length} chunks (file content + architectural context)`);
       }
     }
     
@@ -1237,10 +1296,11 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
     return recommendations.join('\n');
   }
 
-  evaluateOverallPerformance(searchResults, totalChars) {
-    if (searchResults.length >= 5 && totalChars > 3000) return 'excellent';
-    if (searchResults.length >= 3 && totalChars > 1500) return 'good';
-    if (searchResults.length >= 1 && totalChars > 500) return 'adequate';
+  evaluateOverallPerformance(searchResults, formattedContextSize) {
+    // Use formatted context size (what LLM actually receives) for accurate performance evaluation
+    if (searchResults.length >= 5 && formattedContextSize > 3000) return 'excellent';
+    if (searchResults.length >= 3 && formattedContextSize > 1500) return 'good';
+    if (searchResults.length >= 1 && formattedContextSize > 500) return 'adequate';
     return 'needs improvement';
   }
 
@@ -1430,7 +1490,10 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
    * Generate comprehensive trace analysis including LangSmith trace data
    */
   generateComprehensiveTraceAnalysis(prompt, searchResults, traceData, aiResponse = null) {
-    const totalChars = searchResults.reduce((sum, doc) => sum + doc.pageContent.length, 0);
+    // Calculate BOTH raw and formatted context sizes for accuracy
+    const totalRawChars = searchResults.reduce((sum, doc) => sum + doc.pageContent.length, 0);
+    const formattedContextSize = traceData.steps.find(step => step.step === 'context_building')?.contextSize || 0;
+    
     const sources = searchResults.map(doc => doc.metadata.source || 'Unknown');
     const uniqueSources = [...new Set(sources)];
     
@@ -1459,10 +1522,26 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
 
 ## 🔗 LangSmith Trace Information
 - **Project**: ${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'}
-- **Tracing Enabled**: ${process.env.LANGSMITH_TRACING === 'true' ? 'Yes' : 'No'}
-- **Trace ID**: ${traceData.traceId || 'Not captured'}
-- **Run ID**: ${traceData.runId || 'Not captured'}
+- **Tracing Enabled**: ${process.env.LANGSMITH_TRACING === 'true' ? '✅ Yes' : '❌ No'}
+- **Trace ID**: ${traceData.traceId || (traceData.tracingIssue ? `⚠️  Not captured (${traceData.tracingIssue})` : (traceData.tracingError ? `❌ Error: ${traceData.tracingError}` : '⚠️  Not captured'))}
+- **Run ID**: ${traceData.runId || '⚠️  Not captured'}
+${traceData.langsmithUrl ? `- **View Trace**: [Open in LangSmith](${traceData.langsmithUrl})` : ''}
 - **Environment**: ${process.env.NODE_ENV || 'development'}
+
+${traceData.tracingIssue === 'no_run_context' ? `
+⚠️  **Tracing Issue Detected**: getCurrentRunTree() returned null despite LANGSMITH_TRACING=true
+   - This means the trace context was lost
+   - Check that all async operations preserve trace context
+   - Verify respondToPrompt() is wrapped with traceable()
+   - See logs for detailed diagnostics
+` : ''}
+
+${traceData.tracingError ? `
+❌ **Tracing Error**: ${traceData.tracingError}
+   - LangSmith tracing is enabled but failed to capture trace metadata
+   - Check LANGCHAIN_API_KEY and LANGCHAIN_PROJECT settings
+   - Verify langsmith package is installed correctly
+` : ''}
 
 ### Pipeline Execution Steps:
 ${traceData.steps.map((step, index) => 
@@ -1475,7 +1554,9 @@ ${traceData.steps.map((step, index) =>
 - **Vector Store**: ${traceData.vectorStore || 'Unknown'}
 - **Search Strategy**: ${traceData.searchStrategy || 'Unknown'}
 - **Documents Retrieved**: ${searchResults.length}
-- **Total Context**: ${totalChars.toLocaleString()} characters
+- **Raw Content Size**: ${totalRawChars.toLocaleString()} characters (original chunks)
+- **Formatted Context Size**: ${formattedContextSize.toLocaleString()} characters (sent to LLM)
+- **Compression Ratio**: ${totalRawChars > 0 ? Math.round((formattedContextSize / totalRawChars) * 100) : 0}% (due to truncation + formatting overhead)
 
 ### Source Type Distribution:
 - **GitHub Repository Code**: ${sourceTypes.githubCode} chunks (${Math.round(sourceTypes.githubCode/searchResults.length*100)}%)
@@ -1643,12 +1724,15 @@ ${this.extractResponseElements(aiResponse)}
 - **Query Processing Time**: ${traceData.totalDuration ? `${traceData.totalDuration}ms` : 'In Progress'}
 - **Documents Retrieved**: ${searchResults.length}
 - **Unique Sources**: ${uniqueSources.length}
-- **Average Chunk Size**: ${Math.round(totalChars / searchResults.length)} characters
+- **Average Raw Chunk Size**: ${Math.round(totalRawChars / searchResults.length)} characters (original)
+- **Average Formatted Chunk Size**: ${Math.round(formattedContextSize / searchResults.length)} characters (sent to LLM)
 
 ### Context Quality:
 - **Relevance Score**: ${searchResults.length > 0 ? 'HIGH' : 'LOW'} (${searchResults.length} relevant chunks found)
 - **Diversity Score**: ${uniqueSources.length > 3 ? 'EXCELLENT' : uniqueSources.length > 1 ? 'GOOD' : 'LOW'} (${uniqueSources.length} unique sources)
-- **Completeness Score**: ${totalChars > 3000 ? 'HIGH' : totalChars > 1000 ? 'MEDIUM' : 'LOW'} (${totalChars.toLocaleString()} total characters)
+- **Raw Content Size**: ${totalRawChars.toLocaleString()} characters (retrieved from vector DB)
+- **Formatted Context Size**: ${formattedContextSize.toLocaleString()} characters (actually sent to LLM)
+- **Context Efficiency**: ${totalRawChars > 0 ? Math.round((formattedContextSize / totalRawChars) * 100) : 0}% (lower = more truncation/formatting overhead)
 
 ### LangSmith Integration:
 - **Tracing Status**: ${process.env.LANGSMITH_TRACING === 'true' ? '✅ Active' : '❌ Disabled'}
@@ -1687,10 +1771,12 @@ ${this.generateComprehensiveRecommendations(searchResults, prompt, traceData, ai
 
 ## ✨ Conclusion
 
-This comprehensive LangSmith trace demonstrates ${this.evaluateOverallPerformance(searchResults, totalChars)} RAG performance with:
+This comprehensive LangSmith trace demonstrates ${this.evaluateOverallPerformance(searchResults, formattedContextSize)} RAG performance with:
 - **Retrieval Quality**: ${searchResults.length > 5 ? 'Excellent' : searchResults.length > 2 ? 'Good' : 'Needs Improvement'}
 - **Context Diversity**: ${uniqueSources.length > 3 ? 'High' : 'Medium'}
-- **Content Richness**: ${totalChars > 5000 ? 'Very High' : totalChars > 2000 ? 'High' : 'Medium'}
+- **Raw Content Retrieved**: ${totalRawChars.toLocaleString()} characters from vector database
+- **Formatted Context Sent**: ${formattedContextSize.toLocaleString()} characters to LLM
+- **Context Efficiency**: ${totalRawChars > 0 ? Math.round((formattedContextSize / totalRawChars) * 100) : 0}% (${totalRawChars > formattedContextSize ? 'truncation applied' : 'minimal formatting overhead'})
 - **Response Quality**: ${aiResponse ? (aiResponse.content?.length > 500 ? 'Comprehensive' : 'Adequate') : 'Not Captured'}
 
 The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well matched'} with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.

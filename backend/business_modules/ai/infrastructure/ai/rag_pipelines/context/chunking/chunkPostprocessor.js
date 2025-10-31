@@ -86,11 +86,13 @@ class ChunkPostprocessor {
       const chunk = chunks[i];
       const enrichedChunk = { ...chunk };
       
+      // CRITICAL: Preserve ALL existing metadata (including UL tags!)
       // Keep pageContent pure - add all context to metadata
       enrichedChunk.metadata = {
-        ...chunk.metadata,
+        ...originalDocument.metadata,  // FIRST: Preserve document-level metadata (includes UL tags!)
+        ...chunk.metadata,              // THEN: Add chunk-specific metadata
         
-        // Add file-level context to metadata
+        // FINALLY: Add file-level context to metadata
         file_header: this.createFileHeader(originalDocument),
         
         // Add surrounding chunks context (for code continuity)

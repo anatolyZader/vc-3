@@ -176,25 +176,27 @@ class FileFilteringUtils {
     }
     
     // EXCLUDE: Debug, test, and processing report files
+    // CRITICAL: These are internal analysis artifacts, NOT documentation
     if (fileName.startsWith('debug_') || 
         fileName.startsWith('test_') ||
         fileName.startsWith('processing_report_') ||
         fileName.startsWith('forced_method_analysis_') ||
         fileName.startsWith('method_level_analysis_') ||
+        fileName.includes('_analysis_') ||  // Catches foo_analysis_bar.md
+        fileName.endsWith('_analysis.md') ||  // Catches foo_analysis.md
         fileName.includes('_chunks') ||
-        fileName.includes('_analysis')) {
+        fileName.includes('_trace') ||  // Catches trace files
+        fileName.includes('_report') ||  // Catches any report files
+        normalizedPath.includes('/_tests_/') ||  // All test directory files
+        normalizedPath.includes('/tests/') ||
+        normalizedPath.includes('/__tests__/')) {
+      console.log(`[FileFilter] EXCLUDED analysis/test file: ${fileName}`);
       return false;
     }
     
     // EXCLUDE: All copilot_helpers directory
     if (normalizedPath.includes('copilot_helpers/')) {
-      return false;
-    }
-    
-    // EXCLUDE: Test directories
-    if (normalizedPath.includes('/_tests_/') || 
-        normalizedPath.includes('/tests/') ||
-        normalizedPath.includes('/__tests__/')) {
+      console.log(`[FileFilter] EXCLUDED copilot_helpers file: ${fileName}`);
       return false;
     }
     

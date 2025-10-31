@@ -583,12 +583,24 @@ class RepoProcessor {
           const processed = await this.semanticPreprocessor.preprocessChunk(document);
           allChunks.push(processed);
         } else {
-          console.log(`[${new Date().toISOString()}] 📝 FALLBACK: No processors available, returning document as-is`);
-          allChunks.push(document);
+          // CRITICAL FIX: NEVER return unchunked documents (creates giant 30K char chunks!)
+          console.warn(`[${new Date().toISOString()}] ⚠️ FALLBACK: No processors available, applying forced text splitting for ${source}`);
+          const basicChunks = await this.forceBasicTextSplitting(document);
+          allChunks.push(...basicChunks);
         }
       } catch (error) {
         console.error(`[${new Date().toISOString()}] ❌ FALLBACK ERROR: ${document.metadata?.source}:`, error.message);
-        allChunks.push(document); // Add document as-is if processing fails
+        console.warn(`[${new Date().toISOString()}] 🔄 Applying forced text splitting due to error`);
+        // CRITICAL FIX: Don't add unchunked document on error - force split it!
+        try {
+          const emergencyChunks = await this.forceBasicTextSplitting(document);
+          allChunks.push(...emergencyChunks);
+        } catch (splitError) {
+          console.error(`[${new Date().toISOString()}] ❌ EMERGENCY SPLIT FAILED: ${document.metadata?.source}:`, splitError.message);
+          // Last resort: add document but log warning
+          console.error(`[${new Date().toISOString()}] ⚠️⚠️⚠️ UNCHUNKED DOCUMENT ADDED - WILL CREATE GIANT CHUNK!`);
+          allChunks.push(document);
+        }
       }
     }
     
@@ -598,6 +610,51 @@ class RepoProcessor {
   /**
    * Helper methods for fallback processing
    */
+  
+  /**
+   * Force basic text splitting when AST/semantic processors fail
+   * CRITICAL: Never index unchunked files - they create giant 30K char chunks!
+   * 
+   * This is the LAST RESORT to ensure all documents are properly chunked.
+   * Used when:
+   * - No processors available
+   * - AST splitter fails
+   * - Semantic preprocessor fails
+   * 
+   * @param {Document} document - Document to split
+   * @returns {Array<Document>} Array of smaller chunks
+   */
+  async forceBasicTextSplitting(document) {
+    const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
+    
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1500,      // Safe chunk size for embeddings
+      chunkOverlap: 200,    // Preserve context between chunks
+      separators: ['\n\n', '\n', '. ', ' ', ''],  // Semantic boundaries
+      lengthFunction: (text) => text.length
+    });
+    
+    const chunks = await splitter.splitDocuments([document]);
+    const source = document.metadata?.source || 'unknown';
+    
+    console.log(`[${new Date().toISOString()}] 🔪 FORCED SPLIT: ${source} → ${chunks.length} chunks (emergency fallback)`);
+    console.warn(`[${new Date().toISOString()}] ⚠️ This file bypassed AST/semantic processing - investigate why!`);
+    
+    // Preserve ALL original metadata and mark as forced split
+    return chunks.map((chunk, idx) => ({
+      pageContent: chunk.pageContent,
+      metadata: {
+        ...document.metadata,      // Preserve original metadata
+        ...chunk.metadata,          // Merge chunk metadata
+        forcedSplit: true,          // Flag for debugging
+        fallbackReason: 'no_processors_available',
+        subChunkIndex: idx,
+        subChunkTotal: chunks.length,
+        originalLength: document.pageContent?.length || 0
+      }
+    }));
+  }
+  
   isCodeFile(extension) {
     const codeExtensions = [
       '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',

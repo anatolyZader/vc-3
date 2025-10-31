@@ -878,16 +878,36 @@ class ContextPipeline {
    * Check if repository already exists and processed for given commit
    * Moved from RepoProcessor as part of orchestration responsibility
    */
+  /**
+   * Check if repository already exists in Pinecone using index stats
+   * FIXED: Use namespace stats instead of zero-vector query (undefined behavior)
+   */
   async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
     try {
       const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
       const pineconeClient = await this.getPineconeClient();
       
-      // Query for any existing documents in this namespace
+      // SAFE APPROACH: Use index stats to check namespace existence
+      const stats = await pineconeClient.describeIndexStats();
+      const namespaceStats = stats.namespaces?.[namespace];
+      
+      if (!namespaceStats || namespaceStats.vectorCount === 0) {
+        console.log(`[${new Date().toISOString()}] 📊 Namespace '${namespace}' not found or empty in index stats`);
+        return { exists: false, namespace };
+      }
+      
+      console.log(`[${new Date().toISOString()}] 📊 Namespace '${namespace}' exists with ${namespaceStats.vectorCount} vectors`);
+      
+      // Namespace exists and has vectors - now check commit hash
+      // Use metadata filter query (NOT zero vector!) to get commit info
       const queryResponse = await pineconeClient.namespace(namespace).query({
-        vector: new Array(1536).fill(0), // Dummy vector for existence check
+        vector: await this.embeddings.embedQuery('repository metadata'),  // Real embedding for metadata query
         topK: 1,
-        includeMetadata: true
+        includeMetadata: true,
+        filter: {
+          repoOwner: { $eq: githubOwner },
+          repoName: { $eq: repoName }
+        }
       });
 
       if (queryResponse.matches && queryResponse.matches.length > 0) {
@@ -897,14 +917,26 @@ class ContextPipeline {
           commitHash: existingCommit,
           needsUpdate: existingCommit !== currentCommitHash,
           namespace,
+          vectorCount: namespaceStats.vectorCount,
           reason: existingCommit === currentCommitHash ? 'same_commit' : 'commit_changed'
         };
       }
 
-      return { exists: false, namespace };
+      // Namespace has vectors but none match this repo (multi-repo index?)
+      return { 
+        exists: false, 
+        namespace,
+        vectorCount: namespaceStats.vectorCount,
+        reason: 'repo_not_found_in_namespace'
+      };
+      
     } catch (error) {
-      console.log(`[${new Date().toISOString()}] ℹ️ Repository check: ${error.message}`);
-      return { exists: false, namespace: 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3' };
+      console.log(`[${new Date().toISOString()}] ℹ️ Repository check error: ${error.message}`);
+      return { 
+        exists: false, 
+        namespace: 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3',
+        error: error.message
+      };
     }
   }
 }
