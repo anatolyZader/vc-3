@@ -151,11 +151,11 @@ class FileFilteringUtils {
    * Allowed:
    * - ROOT_DOCUMENTATION.md, README.md (root level)
    * - backend/ARCHITECTURE.md
-   * - Module documentation: business_modules/*/modulename.md (e.g., ai.md, chat.md, git.md)
+   * - Module documentation: business_modules/MODULE_NAME/MODULE_NAME.md (e.g., ai.md, chat.md, git.md)
    * 
    * Excluded:
-   * - All trace analysis files (trace-*.md, *-trace-analysis.md, latest-trace-analysis.md)
-   * - All debug/test files (debug_*.md, test_*.md, processing_report_*.md)
+   * - All trace analysis files (trace-PATTERN.md, NAME-trace-analysis.md, latest-trace-analysis.md)
+   * - All debug/test files (debug_PATTERN.md, test_PATTERN.md, processing_report_PATTERN.md)
    * - All copilot_helpers/ markdown files
    * - All analysis files in copilot_helpers/analysis/
    * - All other .md files not explicitly allowed
