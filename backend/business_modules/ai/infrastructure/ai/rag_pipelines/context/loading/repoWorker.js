@@ -196,6 +196,9 @@ class RepoWorker {
           });
           
           if (fileContent && fileContent.pageContent) {
+            // Detect if file is an interface or implementation
+            const isInterface = this.detectFileType(file.path, fileContent.pageContent);
+            
             // Process document with enhanced metadata
             const document = {
               pageContent: fileContent.pageContent,
@@ -209,7 +212,11 @@ class RepoWorker {
                 fileSize: file.size,
                 workerId: this.workerId,
                 processedAt: new Date().toISOString(),
-                priority: this.getFilePriority(file.path)
+                priority: this.getFilePriority(file.path),
+                // Add interface/implementation markers for AI context
+                isInterface: isInterface.isInterface,
+                isImplementation: isInterface.isImplementation,
+                codePattern: isInterface.pattern
               }
             };
             
@@ -367,6 +374,51 @@ class RepoWorker {
     if (filePath.includes('Adapter.js')) return 70;
     // Test files are now filtered out by FileFilteringUtils
     return 50;
+  }
+  
+  /**
+   * Detect if file is an interface or implementation
+   * This helps RAG/AI distinguish between abstract contracts and concrete code
+   */
+  detectFileType(filePath, content) {
+    const result = {
+      isInterface: false,
+      isImplementation: false,
+      pattern: 'unknown'
+    };
+    
+    // Check file path patterns
+    const isInInterfaceDir = filePath.includes('/interfaces/') || filePath.includes('/ports/');
+    const fileName = filePath.split('/').pop();
+    const startsWithI = fileName.match(/^I[A-Z]/); // IUserService, IAuthPersistPort, etc.
+    
+    // Check content patterns
+    const hasThrowNotImplemented = /throw new Error\(['"].*not implemented/i.test(content);
+    const hasAbstractClassError = /throw new Error\(['"].*abstract class/i.test(content);
+    const extendsPattern = content.match(/class\s+(\w+)\s+extends\s+(\w+)/);
+    const hasConcreteImplementation = /async\s+\w+\([^)]*\)\s*{[\s\S]*?(?:await|return|const|let|try)/m.test(content);
+    
+    // Detect interface
+    if (isInInterfaceDir || startsWithI || hasThrowNotImplemented || hasAbstractClassError) {
+      result.isInterface = true;
+      result.pattern = 'interface';
+    }
+    
+    // Detect implementation
+    if (extendsPattern && hasConcreteImplementation && !result.isInterface) {
+      result.isImplementation = true;
+      result.pattern = 'implementation';
+      result.implementsInterface = extendsPattern[2]; // Parent class name
+    }
+    
+    // If extends but has throws, it's an interface
+    if (extendsPattern && hasThrowNotImplemented && !hasConcreteImplementation) {
+      result.isInterface = true;
+      result.isImplementation = false;
+      result.pattern = 'interface';
+    }
+    
+    return result;
   }
   
   /**

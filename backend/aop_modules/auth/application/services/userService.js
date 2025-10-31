@@ -4,6 +4,19 @@
 const User = require('../../domain/entities/user');
 const IUserService = require('./interfaces/IUserService');
 
+/**
+ * UserService - CONCRETE IMPLEMENTATION of IUserService interface
+ * 
+ * This class implements all authentication-related business logic.
+ * All methods below are FULLY IMPLEMENTED (not abstract).
+ * 
+ * Implemented Methods:
+ * - loginWithGoogle(accessToken): OAuth2 Google authentication
+ * - readAllUsers(): Retrieves all users from persistence layer
+ * - registerUser(username, email, password): Creates new user account
+ * - removeUser(email): Deletes user by email
+ * - getUserInfo(email): Fetches user details by email
+ */
 class UserService extends IUserService {
   constructor({authPersistAdapter}) {
     super(); 

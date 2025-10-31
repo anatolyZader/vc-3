@@ -1,4 +1,16 @@
 /* eslint-disable no-unused-vars */
+
+/**
+ * IUserService - ABSTRACT INTERFACE (NOT IMPLEMENTED)
+ * 
+ * This is an abstract base class that defines the contract for user services.
+ * DO NOT USE THIS FILE TO CHECK FOR IMPLEMENTATIONS.
+ * 
+ * For actual implementations, see:
+ * - UserService class in: backend/aop_modules/auth/application/services/userService.js
+ * 
+ * All methods below throw errors and are NOT implemented here.
+ */
 class IUserService {
   constructor() {
     if (new.target === IUserService) {

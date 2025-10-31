@@ -1,12 +1,19 @@
-# LangSmith RAG Trace Analysis - 10/31/2025, 10:37:25 AM
+---
+**ARCHIVED TRACE ANALYSIS**
+- Archived on: 2025-10-31T10:36:51.683Z
+- Triggered by query: "and what about readAllUsers() method?"
+- Original file: latest-trace-analysis.md
+---
+
+# LangSmith RAG Trace Analysis - 10/31/2025, 10:35:39 AM
 
 ## 🔍 Query Details
-- **Query**: "it is actually implemented in userService.js file"
+- **Query**: "i mean, userService.js"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
 - **Conversation ID**: 2de843dd-7fba-41a1-b057-09824da9b532
-- **Started**: 2025-10-31T10:37:25.025Z
-- **Completed**: 2025-10-31T10:37:29.800Z
-- **Total Duration**: 4775ms
+- **Started**: 2025-10-31T10:35:39.663Z
+- **Completed**: 2025-10-31T10:35:43.815Z
+- **Total Duration**: 4152ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,24 +23,24 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-10-31T10:37:25.025Z) - success
-2. **vector_store_check** (2025-10-31T10:37:25.025Z) - success
-3. **vector_search** (2025-10-31T10:37:26.800Z) - success - Found 13 documents
-4. **text_search** (2025-10-31T10:37:26.803Z) - success
-5. **hybrid_search_combination** (2025-10-31T10:37:26.803Z) - success
-6. **context_building** (2025-10-31T10:37:26.803Z) - success - Context: 15789 chars
-7. **response_generation** (2025-10-31T10:37:29.800Z) - success - Response: 1120 chars
+1. **initialization** (2025-10-31T10:35:39.663Z) - success
+2. **vector_store_check** (2025-10-31T10:35:39.663Z) - success
+3. **vector_search** (2025-10-31T10:35:41.692Z) - success - Found 12 documents
+4. **text_search** (2025-10-31T10:35:41.695Z) - success
+5. **hybrid_search_combination** (2025-10-31T10:35:41.695Z) - success
+6. **context_building** (2025-10-31T10:35:41.695Z) - success - Context: 14993 chars
+7. **response_generation** (2025-10-31T10:35:43.815Z) - success - Response: 798 chars
 
 ## 📊 Vector Search Analysis
 
 ### Search Configuration:
 - **Vector Store**: primary
 - **Search Strategy**: intelligent_strategy_with_filters
-- **Documents Retrieved**: 13
-- **Total Context**: 21,030 characters
+- **Documents Retrieved**: 12
+- **Total Context**: 20,509 characters
 
 ### Source Type Distribution:
-- **GitHub Repository Code**: 13 chunks (100%)
+- **GitHub Repository Code**: 12 chunks (100%)
 - **Module Documentation**: 0 chunks (0%)  
 - **Architecture Documentation**: 0 chunks (0%)
 - **API Specification**: 0 chunks (0%)
@@ -42,11 +49,11 @@
 ## 📋 Complete Chunk Analysis
 
 
-### Chunk 1/13
+### Chunk 1/12
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 3545 characters
-- **Score**: 0.601215363
+- **Score**: 0.638824463
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
@@ -186,22 +193,22 @@ module.exports = UserService;
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 2,
-  "score": 0.601215363,
+  "score": 0.638824463,
   "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3887_1761826129422"
 }
 ```
 
 ---
 
-### Chunk 2/13
+### Chunk 2/12
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 557 characters
-- **Score**: 0.532602251
+- **Score**: 0.570062637
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:10.740Z
+- **Processed At**: 2025-10-30T11:22:07.077Z
 
 **Full Content**:
 ```
@@ -240,10 +247,10 @@ module.exports = IUserService;
   "branch": "main",
   "filePath": "backend/aop_modules/auth/application/services/interfaces/IUserService.js",
   "fileSize": 557,
-  "loaded_at": "2025-10-30T12:07:10.740Z",
+  "loaded_at": "2025-10-30T11:22:07.077Z",
   "loading_method": "cloud_native_api",
   "priority": 85,
-  "processedAt": "2025-10-30T12:07:10.740Z",
+  "processedAt": "2025-10-30T11:22:07.077Z",
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
   "sha": "d3ef44bddc7fb4cb330d2e464fd9701972b512da",
@@ -251,19 +258,19 @@ module.exports = IUserService;
   "source": "anatolyZader/vc-3",
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.532602251,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3886_1761826129422"
+  "workerId": 1,
+  "score": 0.570062637,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1278_1761823425741"
 }
 ```
 
 ---
 
-### Chunk 3/13
+### Chunk 3/12
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 1418 characters
-- **Score**: 0.48604393
+- **Score**: 0.53459549
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
@@ -350,18 +357,332 @@ module.exports = User;
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 2,
-  "score": 0.48604393,
+  "score": 0.53459549,
   "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_4209_1761826129423"
 }
 ```
 
 ---
 
-### Chunk 4/13
+### Chunk 4/12
+- **Source**: anatolyZader/vc-3
+- **Type**: github-code
+- **Size**: 1571 characters
+- **Score**: 0.450948656
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T11:22:33.083Z
+
+**Full Content**:
+```
+'use strict';
+
+const { v4: uuidv4 } = require('uuid');
+
+class Account {
+  constructor(userId, IAuthPersistPort) {
+    this.accountId = uuidv4();
+    this.userId = userId;
+    this.createdAt = new Date();
+    this.IAuthPersistPort = IAuthPersistPort;
+    this.videos = [];
+    this.accountType = 'standard'; // Default account type
+  }
+
+  async createAccount() {
+    try {
+      await this.IAuthPersistPort.saveAccount(this);
+      console.log('Account created successfully.');
+    } catch (error) {
+      console.error('Error creating account:', error);
+      throw error;
+    }
+  }
+
+  async fetchAccountDetails(accountId) {
+    try {
+      const accountData = await this.IAuthPersistPort.fetchAccountDetails(accountId);
+      Object.assign(this, accountData); // Update instance properties
+      return accountData;
+    } catch (error) {
+      console.error('Error fetching account details:', error);
+      throw error;
+    }
+  }
+
+  async addVideo(videoYoutubeId) {
+    try {
+      await this.IAuthPersistPort.addVideoToAccount(this.accountId, videoYoutubeId);
+      console.log('Video added successfully to account.');
+    } catch (error) {
+      console.error('Error adding video to account:', error);
+      throw error;
+    }
+  }
+
+  async removeVideo(videoYoutubeId) {
+    try {
+      await this.IAuthPersistPort.removeVideo(this.accountId, videoYoutubeId);
+      console.log('Video removed successfully from account.');
+    } catch (error) {
+      console.error('Error removing video from account:', error);
+      throw error;
+    }
+  }
+}
+
+module.exports = Account;
+
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/aop_modules/auth/domain/entities/account.js",
+  "fileSize": 1571,
+  "loaded_at": "2025-10-30T11:22:33.083Z",
+  "loading_method": "cloud_native_api",
+  "priority": 50,
+  "processedAt": "2025-10-30T11:22:33.083Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "9b5563d0bb332bdb1d5f05fdbcccfddb3c69a278",
+  "size": 1571,
+  "source": "anatolyZader/vc-3",
+  "type": "github-code",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 1,
+  "score": 0.450948656,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1599_1761823425741"
+}
+```
+
+---
+
+### Chunk 5/12
+- **Source**: anatolyZader/vc-3
+- **Type**: github-code
+- **Size**: 1083 characters
+- **Score**: 0.44674781
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T11:22:33.824Z
+
+**Full Content**:
+```
+'use strict';
+
+const { v4: uuidv4 } = require('uuid');
+
+class Session {
+  constructor(userId, IAuthInMemStoragePort) {
+    this.sessionId = uuidv4();
+    this.userId = userId;
+    this.createdAt = new Date();
+    this.IAuthInMemStoragePort = IAuthInMemStoragePort;
+  }
+
+  async setSessionInMem() {
+    try {
+      await this.IAuthInMemStoragePort.setSessionInMem(this.sessionId, this);
+      console.log('Session set successfully in-memory!');
+    } catch (error) {
+      console.error('Error setting session in-memory:', error);
+      throw error;
+    }
+  }
+
+  async validateSession() {
+    const sessionData = await this.IAuthInMemStoragePort.getSession(this.sessionId);
+    const oneHour = 3600000;
+    return sessionData && (new Date() - new Date(sessionData.createdAt) < oneHour);
+  }
+
+  async logout() {
+    try {
+      await this.IAuthInMemStoragePort.deleteSession(this.sessionId);
+      console.log('Session successfully terminated.');
+    } catch (error) {
+      console.error('Error logging out session:', error);
+      throw error;
+    }
+  }
+}
+
+module.exports = Session;
+
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/aop_modules/auth/domain/entities/session.js",
+  "fileSize": 1083,
+  "loaded_at": "2025-10-30T11:22:33.824Z",
+  "loading_method": "cloud_native_api",
+  "priority": 50,
+  "processedAt": "2025-10-30T11:22:33.824Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "d9068d752cbf8c5e8b799f5f523d5fa1b5a9dc6e",
+  "size": 1083,
+  "source": "anatolyZader/vc-3",
+  "type": "github-code",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 1,
+  "score": 0.44674781,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1600_1761823425741"
+}
+```
+
+---
+
+### Chunk 6/12
+- **Source**: anatolyZader/vc-3
+- **Type**: github-code
+- **Size**: 1185 characters
+- **Score**: 0.440498292
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:41.084Z
+
+**Full Content**:
+```
+/* eslint-disable no-unused-vars */
+'strict'
+// IAuthPersistPort.js
+class IAuthPersistPort {
+    constructor() {
+      if (new.target === IAuthPersistPort) {
+        throw new Error("Cannot instantiate an abstract class.");
+      }
+    }
+
+    async readAllUsers() {
+      throw new Error("Method 'readAllUsers()' must be implemented.");
+    }
+
+    async getUserInfo(email) {
+      throw new Error("Method 'getUserInfo(userId)' must be implemented.");    
+    } 
+     
+    async registerUser(username, email, password) {
+      throw new Error("Method 'registerUser(username, email, password)' must be implemented.");
+    }
+   
+    async removeUser(email) {
+      throw new Error("Method 'removeUser(username, password)' must be implemented.");
+    }
+  
+    async findUserByUsername(username) {
+      throw new Error("Method 'findUserByUsername(username)' must be implemented.");
+    }
+  
+    async loginUser(email, password) {
+      throw new Error("Method 'loginUser(username, password)' must be implemented.");
+    }
+  
+    async logoutUser(sessionId) {
+      throw new Error("Method 'logoutUser(sessionId)' must be implemented.");
+    }
+  }
+  
+  module.exports = IAuthPersistPort;
+  
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/aop_modules/auth/domain/ports/IAuthPersistPort.js",
+  "fileSize": 1185,
+  "loaded_at": "2025-10-30T12:07:41.084Z",
+  "loading_method": "cloud_native_api",
+  "priority": 50,
+  "processedAt": "2025-10-30T12:07:41.084Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "d04ba6419580c2d93d4d5deb1bf7d7af30abb8e7",
+  "size": 1185,
+  "source": "anatolyZader/vc-3",
+  "type": "github-code",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 2,
+  "score": 0.440498292,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_4211_1761826129423"
+}
+```
+
+---
+
+### Chunk 7/12
+- **Source**: anatolyZader/vc-3
+- **Type**: github-code
+- **Size**: 342 characters
+- **Score**: 0.440036803
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:15.179Z
+
+**Full Content**:
+```
+'use strict';
+/* eslint-disable no-unused-vars */
+
+class IApiService {
+  constructor() {
+    if (new.target === IApiService) {
+      throw new Error('Cannot instantiate an abstract class.');
+    }
+  }
+
+  async fetchHttpApi(userId, repoId) {
+    throw new Error('fetchHttpApi() Method not implemented.');
+  }
+
+}
+
+module.exports = IApiService;
+
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/business_modules/api/application/services/interfaces/IApiService.js",
+  "fileSize": 342,
+  "loaded_at": "2025-10-30T12:07:15.179Z",
+  "loading_method": "cloud_native_api",
+  "priority": 85,
+  "processedAt": "2025-10-30T12:07:15.179Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "8671f0a27accc9afdd831ee2bf7cdff53549d02e",
+  "size": 342,
+  "source": "anatolyZader/vc-3",
+  "type": "github-code",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 1,
+  "score": 0.440036803,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1911_1761826129419"
+}
+```
+
+---
+
+### Chunk 8/12
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 4422 characters
-- **Score**: 0.410785675
+- **Score**: 0.436552048
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
@@ -515,279 +836,165 @@ module.exports = fp(authController);
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 2,
-  "score": 0.410785675,
+  "score": 0.436552048,
   "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3834_1761826129422"
 }
 ```
 
 ---
 
-### Chunk 5/13
+### Chunk 9/12
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
-- **Size**: 1571 characters
-- **Score**: 0.408853471
+- **Size**: 1066 characters
+- **Score**: 0.435035706
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-30T11:22:33.083Z
-
-**Full Content**:
-```
-'use strict';
-
-const { v4: uuidv4 } = require('uuid');
-
-class Account {
-  constructor(userId, IAuthPersistPort) {
-    this.accountId = uuidv4();
-    this.userId = userId;
-    this.createdAt = new Date();
-    this.IAuthPersistPort = IAuthPersistPort;
-    this.videos = [];
-    this.accountType = 'standard'; // Default account type
-  }
-
-  async createAccount() {
-    try {
-      await this.IAuthPersistPort.saveAccount(this);
-      console.log('Account created successfully.');
-    } catch (error) {
-      console.error('Error creating account:', error);
-      throw error;
-    }
-  }
-
-  async fetchAccountDetails(accountId) {
-    try {
-      const accountData = await this.IAuthPersistPort.fetchAccountDetails(accountId);
-      Object.assign(this, accountData); // Update instance properties
-      return accountData;
-    } catch (error) {
-      console.error('Error fetching account details:', error);
-      throw error;
-    }
-  }
-
-  async addVideo(videoYoutubeId) {
-    try {
-      await this.IAuthPersistPort.addVideoToAccount(this.accountId, videoYoutubeId);
-      console.log('Video added successfully to account.');
-    } catch (error) {
-      console.error('Error adding video to account:', error);
-      throw error;
-    }
-  }
-
-  async removeVideo(videoYoutubeId) {
-    try {
-      await this.IAuthPersistPort.removeVideo(this.accountId, videoYoutubeId);
-      console.log('Video removed successfully from account.');
-    } catch (error) {
-      console.error('Error removing video from account:', error);
-      throw error;
-    }
-  }
-}
-
-module.exports = Account;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/domain/entities/account.js",
-  "fileSize": 1571,
-  "loaded_at": "2025-10-30T11:22:33.083Z",
-  "loading_method": "cloud_native_api",
-  "priority": 50,
-  "processedAt": "2025-10-30T11:22:33.083Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "9b5563d0bb332bdb1d5f05fdbcccfddb3c69a278",
-  "size": 1571,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 1,
-  "score": 0.408853471,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1599_1761823425741"
-}
-```
-
----
-
-### Chunk 6/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1185 characters
-- **Score**: 0.40509218
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:41.084Z
+- **Processed At**: 2025-10-30T13:26:38.696Z
 
 **Full Content**:
 ```
 /* eslint-disable no-unused-vars */
-'strict'
-// IAuthPersistPort.js
-class IAuthPersistPort {
-    constructor() {
-      if (new.target === IAuthPersistPort) {
-        throw new Error("Cannot instantiate an abstract class.");
-      }
-    }
+'use strict';
 
-    async readAllUsers() {
-      throw new Error("Method 'readAllUsers()' must be implemented.");
-    }
+class IChatService {
 
-    async getUserInfo(email) {
-      throw new Error("Method 'getUserInfo(userId)' must be implemented.");    
-    } 
-     
-    async registerUser(username, email, password) {
-      throw new Error("Method 'registerUser(username, email, password)' must be implemented.");
-    }
-   
-    async removeUser(email) {
-      throw new Error("Method 'removeUser(username, password)' must be implemented.");
-    }
-  
-    async findUserByUsername(username) {
-      throw new Error("Method 'findUserByUsername(username)' must be implemented.");
-    }
-  
-    async loginUser(email, password) {
-      throw new Error("Method 'loginUser(username, password)' must be implemented.");
-    }
-  
-    async logoutUser(sessionId) {
-      throw new Error("Method 'logoutUser(sessionId)' must be implemented.");
-    }
+  async startConversation(userId) {
+    throw new Error("Method not implemented.");
   }
-  
-  module.exports = IAuthPersistPort;
-  
+
+  async fetchConversationsHistory(userId) {
+    throw new Error("Method not implemented.");
+  }
+
+  async fetchConversation(userId, conversationId) {
+    throw new Error("Method not implemented.");
+  }
+
+  async renameConversation(userId, conversationId, newTitle) {
+    throw new Error("Method not implemented.");
+  }
+
+  async deleteConversation(userId, conversationId) {
+    throw new Error("Method not implemented.");
+  }
+
+  async addQuestion(userId, conversationId, prompt) {
+    throw new Error("Method not implemented.");
+  }
+
+  async addAnswer(userId, conversationId, answer) {
+    throw new Error("Method not implemented.");
+  }
+
+  async nameConversation(userId, conversationId) {
+    throw new Error("Method not implemented.");
+  }
+
+  async addVoiceQuestion(userId, conversationId, audioBuffer, options = {}) {
+    throw new Error("Method not implemented.");
+  }
+}
+
+module.exports = IChatService;
+
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "filePath": "backend/aop_modules/auth/domain/ports/IAuthPersistPort.js",
-  "fileSize": 1185,
-  "loaded_at": "2025-10-30T12:07:41.084Z",
+  "filePath": "backend/business_modules/chat/application/services/interfaces/IChatService.js",
+  "fileSize": 1066,
+  "loaded_at": "2025-10-30T13:26:38.696Z",
   "loading_method": "cloud_native_api",
-  "priority": 50,
-  "processedAt": "2025-10-30T12:07:41.084Z",
+  "priority": 85,
+  "processedAt": "2025-10-30T13:26:38.696Z",
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "d04ba6419580c2d93d4d5deb1bf7d7af30abb8e7",
-  "size": 1185,
+  "sha": "08b1b1ba06a07f89cdf9d2eccb34f0f34e44f606",
+  "size": 1066,
+  "source": "anatolyZader/vc-3",
+  "type": "github-code",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 0,
+  "score": 0.435035706,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_90_1761830893278"
+}
+```
+
+---
+
+### Chunk 10/12
+- **Source**: anatolyZader/vc-3
+- **Type**: github-code
+- **Size**: 434 characters
+- **Score**: 0.431121826
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:14.435Z
+
+**Full Content**:
+```
+/* eslint-disable no-unused-vars */
+'use strict';
+
+class IAIService {
+  constructor() {
+    if (new.target === IAIService) {
+      throw new Error('Cannot instantiate an interface.');
+    }
+  }
+
+  async respondToPrompt(userId, conversationId, prompt) {
+    throw new Error('Method not implemented.');
+  }
+
+  async processPushedRepo(userId, repoId) {
+    throw new Error('Method not implemented.');
+  }
+}
+
+module.exports = IAIService;
+
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/business_modules/ai/application/services/interfaces/IAIService.js",
+  "fileSize": 434,
+  "loaded_at": "2025-10-30T12:07:14.435Z",
+  "loading_method": "cloud_native_api",
+  "priority": 85,
+  "processedAt": "2025-10-30T12:07:14.435Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "c57d61c315166ee56f448f5dca9826888aa9615a",
+  "size": 434,
   "source": "anatolyZader/vc-3",
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 2,
-  "score": 0.40509218,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_4211_1761826129423"
+  "score": 0.431121826,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3939_1761826129422"
 }
 ```
 
 ---
 
-### Chunk 7/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1083 characters
-- **Score**: 0.399158508
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T11:22:33.824Z
-
-**Full Content**:
-```
-'use strict';
-
-const { v4: uuidv4 } = require('uuid');
-
-class Session {
-  constructor(userId, IAuthInMemStoragePort) {
-    this.sessionId = uuidv4();
-    this.userId = userId;
-    this.createdAt = new Date();
-    this.IAuthInMemStoragePort = IAuthInMemStoragePort;
-  }
-
-  async setSessionInMem() {
-    try {
-      await this.IAuthInMemStoragePort.setSessionInMem(this.sessionId, this);
-      console.log('Session set successfully in-memory!');
-    } catch (error) {
-      console.error('Error setting session in-memory:', error);
-      throw error;
-    }
-  }
-
-  async validateSession() {
-    const sessionData = await this.IAuthInMemStoragePort.getSession(this.sessionId);
-    const oneHour = 3600000;
-    return sessionData && (new Date() - new Date(sessionData.createdAt) < oneHour);
-  }
-
-  async logout() {
-    try {
-      await this.IAuthInMemStoragePort.deleteSession(this.sessionId);
-      console.log('Session successfully terminated.');
-    } catch (error) {
-      console.error('Error logging out session:', error);
-      throw error;
-    }
-  }
-}
-
-module.exports = Session;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/domain/entities/session.js",
-  "fileSize": 1083,
-  "loaded_at": "2025-10-30T11:22:33.824Z",
-  "loading_method": "cloud_native_api",
-  "priority": 50,
-  "processedAt": "2025-10-30T11:22:33.824Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "d9068d752cbf8c5e8b799f5f523d5fa1b5a9dc6e",
-  "size": 1083,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 1,
-  "score": 0.399158508,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1600_1761823425741"
-}
-```
-
----
-
-### Chunk 8/13
+### Chunk 11/12
 - **Source**: anatolyZader/vc-3
 - **Type**: github-docs
 - **Size**: 3882 characters
-- **Score**: 0.384473801
+- **Score**: 0.430919647
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-30T11:22:12.402Z
+- **Processed At**: 2025-10-30T12:07:15.909Z
 
 **Full Content**:
 ```
@@ -887,10 +1094,10 @@ module.exports = DocsService;
   "branch": "main",
   "filePath": "backend/business_modules/docs/application/services/docsService.js",
   "fileSize": 3882,
-  "loaded_at": "2025-10-30T11:22:12.402Z",
+  "loaded_at": "2025-10-30T12:07:15.908Z",
   "loading_method": "cloud_native_api",
   "priority": 85,
-  "processedAt": "2025-10-30T11:22:12.402Z",
+  "processedAt": "2025-10-30T12:07:15.909Z",
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
   "sha": "600c0efa5fb457600cca827ea1ddd8f4b626987d",
@@ -898,284 +1105,19 @@ module.exports = DocsService;
   "source": "anatolyZader/vc-3",
   "type": "github-docs",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.384473801,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_4141_1761823425744"
-}
-```
-
----
-
-### Chunk 9/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 342 characters
-- **Score**: 0.382452041
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:15.179Z
-
-**Full Content**:
-```
-'use strict';
-/* eslint-disable no-unused-vars */
-
-class IApiService {
-  constructor() {
-    if (new.target === IApiService) {
-      throw new Error('Cannot instantiate an abstract class.');
-    }
-  }
-
-  async fetchHttpApi(userId, repoId) {
-    throw new Error('fetchHttpApi() Method not implemented.');
-  }
-
-}
-
-module.exports = IApiService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/business_modules/api/application/services/interfaces/IApiService.js",
-  "fileSize": 342,
-  "loaded_at": "2025-10-30T12:07:15.179Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T12:07:15.179Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "8671f0a27accc9afdd831ee2bf7cdff53549d02e",
-  "size": 342,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 1,
-  "score": 0.382452041,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1911_1761826129419"
-}
-```
-
----
-
-### Chunk 10/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1066 characters
-- **Score**: 0.382226944
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T13:26:38.696Z
-
-**Full Content**:
-```
-/* eslint-disable no-unused-vars */
-'use strict';
-
-class IChatService {
-
-  async startConversation(userId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async fetchConversationsHistory(userId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async fetchConversation(userId, conversationId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async renameConversation(userId, conversationId, newTitle) {
-    throw new Error("Method not implemented.");
-  }
-
-  async deleteConversation(userId, conversationId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async addQuestion(userId, conversationId, prompt) {
-    throw new Error("Method not implemented.");
-  }
-
-  async addAnswer(userId, conversationId, answer) {
-    throw new Error("Method not implemented.");
-  }
-
-  async nameConversation(userId, conversationId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async addVoiceQuestion(userId, conversationId, audioBuffer, options = {}) {
-    throw new Error("Method not implemented.");
-  }
-}
-
-module.exports = IChatService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/business_modules/chat/application/services/interfaces/IChatService.js",
-  "fileSize": 1066,
-  "loaded_at": "2025-10-30T13:26:38.696Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T13:26:38.696Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "08b1b1ba06a07f89cdf9d2eccb34f0f34e44f606",
-  "size": 1066,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 0,
-  "score": 0.382226944,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_90_1761830893278"
+  "score": 0.430919647,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_108_1761826129418"
 }
 ```
 
 ---
 
-### Chunk 11/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 434 characters
-- **Score**: 0.375635147
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:14.435Z
-
-**Full Content**:
-```
-/* eslint-disable no-unused-vars */
-'use strict';
-
-class IAIService {
-  constructor() {
-    if (new.target === IAIService) {
-      throw new Error('Cannot instantiate an interface.');
-    }
-  }
-
-  async respondToPrompt(userId, conversationId, prompt) {
-    throw new Error('Method not implemented.');
-  }
-
-  async processPushedRepo(userId, repoId) {
-    throw new Error('Method not implemented.');
-  }
-}
-
-module.exports = IAIService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/business_modules/ai/application/services/interfaces/IAIService.js",
-  "fileSize": 434,
-  "loaded_at": "2025-10-30T12:07:14.435Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T12:07:14.435Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "c57d61c315166ee56f448f5dca9826888aa9615a",
-  "size": 434,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.375635147,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3939_1761826129422"
-}
-```
-
----
-
-### Chunk 12/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 521 characters
-- **Score**: 0.369794875
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:19.636Z
-
-**Full Content**:
-```
-'use strict';
-/* eslint-disable no-unused-vars */
-
-class IGitService {
-  constructor() {
-    if (new.target === IGitService) {
-      throw new Error('Cannot instantiate an abstract class.');
-    }
-  }
-
-  async fetchRepo(userId, repoId) {
-    throw new Error('Method not implemented.');
-  }
-
-  async fetchDocs(userId, repoId) {
-    throw new Error('Method not implemented.');
-  }
-
-  async persistRepo(userId, repoId, branch, options) {
-    throw new Error('Method not implemented.');
-  }
-
-}
-
-module.exports = IGitService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/business_modules/git/application/services/interfaces/IGitService.js",
-  "fileSize": 521,
-  "loaded_at": "2025-10-30T12:07:19.636Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T12:07:19.636Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "b20786a15c883cc69113d1056b847b3e2cfaf125",
-  "size": 521,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 0,
-  "score": 0.369794875,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_161_1761826129418"
-}
-```
-
----
-
-### Chunk 13/13
+### Chunk 12/12
 - **Source**: anatolyZader/vc-3
 - **Type**: github-code
 - **Size**: 1004 characters
-- **Score**: 0.366195679
+- **Score**: 0.430496216
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
@@ -1235,7 +1177,7 @@ module.exports = ApiService;
   "type": "github-code",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 2,
-  "score": 0.366195679,
+  "score": 0.430496216,
   "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_6_1761830893278"
 }
 ```
@@ -1247,8 +1189,8 @@ module.exports = ApiService;
 
 ### Generated Response:
 **Status**: ✅ Generated Successfully
-**Response Length**: 1120 characters
-**Generated At**: 2025-10-31T10:37:29.803Z
+**Response Length**: 798 characters
+**Generated At**: 2025-10-31T10:35:43.819Z
 
 ### Response Content:
 ```markdown
@@ -1262,20 +1204,18 @@ Based on the actual code provided, the `userService.js` file contains the follow
 
 4. `removeUser(email)`: This method is declared in the `IUserService` interface but does not have an implementation in the provided code.
 
-5. `readAllUsers()`: This method is declared in the `IUserService` interface, but it throws an error saying "Method not implemented." There is no actual implementation of this method shown in the provided code.
-
-So in summary, the `readAllUsers()` method is declared in the `IUserService` interface, but I do not see an implementation of it in the `userService.js` file or any other file in the provided code context.
+I do not see any other methods defined in the `userService.js` file based on the code provided.
 ```
 
 ### Response Quality Assessment:
-- **Relevance to Query**: HIGH - Directly addresses query terms
+- **Relevance to Query**: MEDIUM - Partially addresses query
 - **Use of Context**: MEDIUM - Implicit context usage
-- **Response Completeness**: EXCELLENT - Well-structured and comprehensive
+- **Response Completeness**: GOOD - Structured with adequate detail
 
 ### Key Response Elements:
-- **Structured Lists**: 5 numbered points
+- **Structured Lists**: 4 numbered points
 - **File References**: 2 specific files mentioned
-- **Technical Terms**: 8 technical concepts used
+- **Technical Terms**: 4 technical concepts used
 
 ---
 
@@ -1283,15 +1223,15 @@ So in summary, the `readAllUsers()` method is declared in the `IUserService` int
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 4775ms
-- **Documents Retrieved**: 13
+- **Query Processing Time**: 4152ms
+- **Documents Retrieved**: 12
 - **Unique Sources**: 1
-- **Average Chunk Size**: 1618 characters
+- **Average Chunk Size**: 1709 characters
 
 ### Context Quality:
-- **Relevance Score**: HIGH (13 relevant chunks found)
+- **Relevance Score**: HIGH (12 relevant chunks found)
 - **Diversity Score**: LOW (1 unique sources)
-- **Completeness Score**: HIGH (21,030 total characters)
+- **Completeness Score**: HIGH (20,509 total characters)
 
 ### LangSmith Integration:
 - **Tracing Status**: ✅ Active
@@ -1301,14 +1241,14 @@ So in summary, the `readAllUsers()` method is declared in the `IUserService` int
 ## 🔍 Source Analysis
 
 ### Most Frequent Sources:
-- **anatolyZader/vc-3**: 13 chunks
+- **anatolyZader/vc-3**: 12 chunks
 
 ### Repository Coverage:
 - anatolyZader/vc-3
 
 ## 🎯 Query Classification & Analysis
 
-- **Query Type**: Implementation/Development
+- **Query Type**: General/Conversational
 - **Domain Focus**: General Application
 - **Technical Complexity**: Medium
 - **Expected Response Type**: General
@@ -1328,7 +1268,7 @@ This comprehensive LangSmith trace demonstrates excellent RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-10-31T10:37:29.803Z  
+**Generated**: 2025-10-31T10:35:43.819Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true
