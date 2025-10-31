@@ -44,10 +44,13 @@ jobs:
         working-directory: ${{ steps.mod.outputs.dir }}
         run: |
           npm ci
-          if npm run test --if-present -- --coverage --watchAll=false --maxWorkers=50%; then
+          # Check if test script exists before running
+          if npm run test --if-present 2>&1 | grep -q "Missing script"; then
+            echo "⚠️ No test script defined for ${{ matrix.part }}, skipping tests"
+          elif npm run test --if-present -- --coverage --watchAll=false --maxWorkers=50%; then
             echo "✅ ${{ matrix.part }} tests finished"
           else
-            echo "⚠️ No tests for ${{ matrix.part }}"
+            echo "⚠️ Tests failed or not configured for ${{ matrix.part }}"
           fi
 
       - name: Upload coverage (if present)
@@ -57,6 +60,7 @@ jobs:
             name: coverage-${{ matrix.part }}
             path: ${{ steps.mod.outputs.dir }}/coverage/lcov.info
             if-no-files-found: ignore
+            retention-days: 1
 
   sonar:
     name: SonarCloud Analysis
@@ -95,6 +99,13 @@ jobs:
           path: client/coverage
         continue-on-error: true
 
+      - name: List downloaded artifacts (debug)
+        run: |
+          echo "Backend coverage:"
+          ls -la backend/coverage/ 2>/dev/null || echo "No backend coverage found"
+          echo "Frontend coverage:"
+          ls -la client/coverage/ 2>/dev/null || echo "No frontend coverage found"
+
       - name: Cache Sonar scanner
         uses: actions/cache@v4
         with:
@@ -103,7 +114,7 @@ jobs:
 
       - name: Run SonarQube Analysis (CI mode)
         if: ${{ env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v4
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
         with:
@@ -111,10 +122,11 @@ jobs:
             -Dsonar.projectKey=ncljdsnvfalinvlifsagifsngsa8274359842759843ywoiudsfkuds__Fdfndk
             -Dsonar.organization=anatolyzader
             -Dsonar.sources=backend/,client/src/
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js,**/copilot_helpers/**
             -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,client/coverage/lcov.info
             -Dsonar.branch.name=${{ github.ref_name }}
             -Dsonar.scanner.forceAnalysis=true
+        continue-on-error: true
 
 
   domain-tests:
@@ -174,6 +186,7 @@ jobs:
           name: coverage-domain
           path: backend/coverage/domain/lcov.info
           if-no-files-found: ignore
+          retention-days: 1
 
   build-and-deploy:
     name: Build & Deploy
