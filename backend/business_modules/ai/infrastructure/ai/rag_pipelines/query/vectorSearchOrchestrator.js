@@ -465,6 +465,64 @@ class VectorSearchOrchestrator {
   }
 
   /**
+   * Fetch ALL chunks from a specific file
+   * Used when user explicitly asks about a file - retrieves complete file content
+   * 
+   * @param {string} filename - The filename to fetch (e.g., "queryPipeline.js")
+   * @param {string} namespace - The namespace to search in
+   * @param {number} maxChunks - Maximum chunks to retrieve (default: 500)
+   * @returns {Promise<Array>} All chunks from the file, ordered by chunkIndex
+   */
+  async fetchAllChunksFromFile(filename, namespace, maxChunks = 500) {
+    this.logger.info(`📂 Fetching ALL chunks from file: ${filename} (namespace: ${namespace})`);
+    
+    try {
+      // Create a dummy query vector (we're using metadata filter only)
+      // We need a query vector for Pinecone, but we'll rely on metadata filtering
+      const dummyQuery = `contents of ${filename}`;
+      const queryEmbedding = await this.embeddings.embedQuery(dummyQuery);
+      
+      // Query Pinecone with file path filter and high topK to get all chunks
+      const searchResults = await this.pineconeService.querySimilar(queryEmbedding, {
+        namespace,
+        topK: maxChunks, // High limit to ensure we get all chunks
+        filter: {
+          source: { $eq: filename }  // Exact filename match
+        },
+        includeMetadata: true,
+        includeValues: false
+      });
+      
+      // Sort chunks by chunkIndex to maintain file order
+      const allChunks = (searchResults.matches || [])
+        .map(match => ({
+          id: match.id,
+          score: 1.0,  // Set score to 1.0 since user explicitly requested this file
+          metadata: match.metadata
+        }))
+        .sort((a, b) => {
+          const indexA = a.metadata?.chunkIndex ?? 0;
+          const indexB = b.metadata?.chunkIndex ?? 0;
+          return indexA - indexB;
+        });
+      
+      this.logger.info(`✅ Retrieved ${allChunks.length} chunks from ${filename} (ordered by chunkIndex)`);
+      
+      if (allChunks.length > 0) {
+        const firstChunk = allChunks[0].metadata?.chunkIndex ?? 'N/A';
+        const lastChunk = allChunks[allChunks.length - 1].metadata?.chunkIndex ?? 'N/A';
+        this.logger.debug(`Chunk range: ${firstChunk} to ${lastChunk}`);
+      }
+      
+      return allChunks;
+      
+    } catch (error) {
+      this.logger.error(`Error fetching chunks from ${filename}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Get namespace statistics
    */
   async getSearchableContent(namespace) {

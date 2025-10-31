@@ -15,6 +15,95 @@ try {
 
 const TraceArchiver = require('../../langsmith/trace-archiver');
 
+/**
+ * QueryPipeline - Main RAG Query Processing Pipeline
+ * 
+ * This class orchestrates the complete Retrieval-Augmented Generation (RAG) pipeline
+ * for processing user queries and generating AI responses with relevant context.
+ * 
+ * Core Responsibilities:
+ * - Vector search orchestration and hybrid search coordination
+ * - Context building from multiple sources (code, docs, specs)
+ * - Response generation with LLM integration
+ * - Tracing and analytics with LangSmith integration
+ * - Performance monitoring and error handling
+ * 
+ * Complete Method List:
+ * 
+ * INITIALIZATION & SETUP:
+ * - constructor(options) - Initialize pipeline with embeddings, LLM, vector search orchestrator
+ * - getVectorStore() - Get or create vector store for user
+ * 
+ * MAIN PIPELINE METHODS:
+ * - respondToPrompt(userId, conversationId, prompt, history, vectorStore, repoDescriptor) - Main RAG pipeline entry point
+ * - generateStandardResponse(prompt, conversationId, history) - Generate response without RAG context
+ * - performVectorSearch(query, vectorStore, filters) - Execute vector similarity search (traced)
+ * 
+ * VECTOR STORE & AVAILABILITY:
+ * - isVectorStoreAvailable(vectorStore) - Check if vector store is properly initialized
+ * 
+ * SEARCH ORCHESTRATION:
+ * - combineFilters(codeFilters, docsFilters) - Merge code and documentation filters
+ * - deduplicateAndCapResults(results, searchStrategy) - Remove duplicate chunks and apply limits
+ * - createContentHash(content) - Generate hash for deduplication
+ * - combineSearchResults(vectorResults, textResults) - Merge vector and text search results
+ * 
+ * RESPONSE CREATION:
+ * - createStandardResponseIndicator(reason) - Create response metadata
+ * - createSuccessResponse(response, conversationId, contextData, history) - Format successful response
+ * - createErrorResponse(error, conversationId) - Format error response
+ * - createRateLimitResponse(conversationId, error) - Format rate limit error
+ * 
+ * METRICS & MONITORING:
+ * - createSuccessMetrics(searchResults, userId, conversationId) - Generate performance metrics
+ * - emitRagStatus(status, data) - Emit RAG pipeline status events
+ * 
+ * TRACING & ANALYTICS:
+ * - generateTraceAnalysis(prompt, results, timestamp, response) - Generate basic trace analysis
+ * - generateComprehensiveTraceAnalysis(prompt, results, traceData, response) - Generate detailed trace
+ * - captureChunkData(results) - Capture chunk metadata for analysis
+ * - logChunkDetails(results) - Log chunk information for debugging
+ * - writeChunksToMarkdown(vectorResults, textResults, query) - Save chunks to markdown file
+ * 
+ * ANALYSIS & RECOMMENDATIONS:
+ * - extractDomainFocus(searchResults) - Identify query domain from search results
+ * - generateRecommendations(searchResults, prompt) - Generate basic improvement suggestions
+ * - generateComprehensiveRecommendations(results, prompt, traceData, response) - Generate detailed recommendations
+ * 
+ * RESPONSE QUALITY ASSESSMENT:
+ * - assessResponseRelevance(prompt, aiResponse) - Evaluate response relevance to query
+ * - assessContextUsage(searchResults, aiResponse) - Check if context was properly used
+ * - assessResponseCompleteness(aiResponse) - Evaluate response detail level
+ * - extractResponseElements(aiResponse) - Parse response structure elements
+ * 
+ * QUERY ANALYSIS:
+ * - predictResponseType(prompt) - Predict expected response format
+ * - detectQueryType(query) - Classify query type (architecture/code/documentation/general)
+ * - filterContentTypes(results, query) - Filter results by content type based on query
+ * - isActualCode(content, metadata) - Detect if content is actual code vs documentation
+ * 
+ * Dependencies:
+ * - VectorSearchOrchestrator: Handles vector store operations and similarity search
+ * - ContextBuilder: Builds formatted context from search results
+ * - ResponseGenerator: Generates AI responses using LLM
+ * - TraceArchiver: Archives and analyzes LangSmith traces
+ * 
+ * Usage Example:
+ * const pipeline = new QueryPipeline({
+ *   embeddings: openAIEmbeddings,
+ *   llm: openAIModel,
+ *   vectorSearchOrchestrator: vectorOrchestrator,
+ *   userId: 'user-123'
+ * });
+ * 
+ * const response = await pipeline.respondToPrompt(
+ *   userId, 
+ *   conversationId, 
+ *   "How does authentication work?",
+ *   conversationHistory,
+ *   vectorStore
+ * );
+ */
 class QueryPipeline {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
@@ -449,9 +538,36 @@ class QueryPipeline {
       
       if (searchStrategy.explicitFiles && searchStrategy.explicitFiles.length > 0) {
         console.log(`[${new Date().toISOString()}] 📁 FILE-SPECIFIC SEARCH: Looking for ${searchStrategy.explicitFiles.join(', ')}`);
-        console.log(`[${new Date().toISOString()}] 🔍 Using hybrid approach: semantic search + full-text search for filenames`);
+        console.log(`[${new Date().toISOString()}] 🔍 COMPLETE FILE RETRIEVAL: Will fetch ALL chunks from mentioned files (no similarity filtering)`);
       }
       
+      // If user explicitly mentions files, fetch ALL chunks from those files first
+      const explicitFileChunks = [];
+      if (searchStrategy.explicitFiles && searchStrategy.explicitFiles.length > 0) {
+        for (const filename of searchStrategy.explicitFiles) {
+          try {
+            console.log(`[${new Date().toISOString()}] � Fetching ALL chunks from: ${filename}`);
+            
+            // Fetch all chunks from this specific file (ordered by chunkIndex)
+            const fileChunks = await this.vectorSearchOrchestrator.fetchAllChunksFromFile(
+              filename,
+              repositoryNamespace,
+              500  // Max 500 chunks per file (should be enough for any file)
+            );
+            
+            if (fileChunks.length > 0) {
+              console.log(`[${new Date().toISOString()}] ✅ Retrieved ${fileChunks.length} chunks from ${filename} (complete file)`);
+              explicitFileChunks.push(...fileChunks);
+            } else {
+              console.log(`[${new Date().toISOString()}] ⚠️ No chunks found for ${filename} in namespace ${repositoryNamespace}`);
+            }
+          } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Error fetching chunks from ${filename}:`, error.message);
+          }
+        }
+      }
+      
+      // Perform semantic search for additional context (optional)
       searchResults = await this.vectorSearchOrchestrator.searchSimilar(prompt, {
         namespace: repositoryNamespace,
         topK,
@@ -460,58 +576,13 @@ class QueryPipeline {
         filter: combinedFilter
       });
       
-      // If this is a file-specific query, also perform full-text search for filename matching
-      if (searchStrategy.explicitFiles && searchStrategy.explicitFiles.length > 0 && this.textSearchService) {
-        console.log(`[${new Date().toISOString()}] 📄 Adding full-text search for explicit file matching`);
-        console.log(`[${new Date().toISOString()}] 🎯 FILE-SPECIFIC MODE: Will retrieve ALL chunks from mentioned files`);
+      // Merge explicit file chunks with semantic search results
+      if (explicitFileChunks.length > 0) {
+        console.log(`[${new Date().toISOString()}] 🔀 Merging ${explicitFileChunks.length} explicit file chunks + ${searchResults.matches?.length || 0} semantic search results`);
+        console.log(`[${new Date().toISOString()}] 📄 Explicit file chunks come first to ensure complete file coverage`);
         
-        // Search for each mentioned file using full-text search
-        const textSearchResults = [];
-        for (const filename of searchStrategy.explicitFiles) {
-          try {
-            console.log(`[${new Date().toISOString()}] 🔍 Full-text search for: ${filename}`);
-            
-            // For explicit filename queries, retrieve ALL chunks (high limit)
-            // This ensures complete file coverage when user asks about specific files
-            const fileResults = await this.textSearchService.searchDocuments(filename, {
-              userId,
-              limit: 100  // HIGH LIMIT: Get up to 100 chunks to ensure complete file retrieval
-            });
-            
-            if (fileResults.length > 0) {
-              console.log(`[${new Date().toISOString()}] ✅ Found ${fileResults.length} chunks via full-text search for ${filename} - ensuring complete file coverage`);
-              textSearchResults.push(...fileResults);
-            } else {
-              console.log(`[${new Date().toISOString()}] ⚠️ No results from full-text search for ${filename}`);
-            }
-          } catch (error) {
-            console.error(`[${new Date().toISOString()}] ❌ Full-text search error for ${filename}:`, error.message);
-          }
-        }
-        
-        // Convert text search results to compatible format and merge with vector search
-        if (textSearchResults.length > 0) {
-          const formattedTextResults = textSearchResults.map(result => ({
-            id: `text_${result.id}`,
-            score: result.rank * 0.5,  // Scale rank to match vector scores (0-1 range)
-            metadata: {
-              text: result.content,
-              content: result.content,
-              source: result.filePath,
-              type: 'github-code',
-              chunkIndex: result.chunkIndex,
-              isTextSearchResult: true,
-              snippet: result.snippet
-            }
-          }));
-          
-          console.log(`[${new Date().toISOString()}] 🔀 Merging ${searchResults.matches?.length || 0} vector results + ${formattedTextResults.length} text results`);
-          console.log(`[${new Date().toISOString()}] 📄 Text search provides complete file coverage with all chunks ordered by chunk_index`);
-          
-          // Merge results, prioritizing text search results for file-specific queries
-          // Text results come first to ensure complete file coverage
-          searchResults.matches = [...formattedTextResults, ...(searchResults.matches || [])];
-        }
+        // Explicit file chunks go first (with score 1.0), then semantic search results
+        searchResults.matches = [...explicitFileChunks, ...(searchResults.matches || [])];
       }
     }
     
