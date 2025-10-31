@@ -6,7 +6,7 @@ const path = require('path');
 const fastify = require('fastify')({ logger: false });
 
 async function writeSpec() {
-  // Register Fastify Swagger directly in generateSpec.js
+  // Register Fastifyy Swagger directly in generateSpec.js
   await fastify.register(require('@fastify/swagger'), {
     openapi: {
       info: {

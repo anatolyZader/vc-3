@@ -1,12 +1,12 @@
-# LangSmith RAG Trace Analysis - 10/31/2025, 10:37:25 AM
+# LangSmith RAG Trace Analysis - 10/31/2025, 10:55:54 AM
 
 ## 🔍 Query Details
-- **Query**: "it is actually implemented in userService.js file"
+- **Query**: "write a detailed review of contexPipeline.js file from eventstorm.me app, list all methods from this file , what could be improved in it"
 - **User ID**: d41402df-182a-41ec-8f05-153118bf2718
-- **Conversation ID**: 2de843dd-7fba-41a1-b057-09824da9b532
-- **Started**: 2025-10-31T10:37:25.025Z
-- **Completed**: 2025-10-31T10:37:29.800Z
-- **Total Duration**: 4775ms
+- **Conversation ID**: 239de915-1b26-49fe-96f8-66de2e7c6e3f
+- **Started**: 2025-10-31T10:55:54.603Z
+- **Completed**: 2025-10-31T10:56:01.029Z
+- **Total Duration**: 6426ms
 
 ## 🔗 LangSmith Trace Information
 - **Project**: eventstorm-trace
@@ -16,24 +16,24 @@
 - **Environment**: development
 
 ### Pipeline Execution Steps:
-1. **initialization** (2025-10-31T10:37:25.025Z) - success
-2. **vector_store_check** (2025-10-31T10:37:25.025Z) - success
-3. **vector_search** (2025-10-31T10:37:26.800Z) - success - Found 13 documents
-4. **text_search** (2025-10-31T10:37:26.803Z) - success
-5. **hybrid_search_combination** (2025-10-31T10:37:26.803Z) - success
-6. **context_building** (2025-10-31T10:37:26.803Z) - success - Context: 15789 chars
-7. **response_generation** (2025-10-31T10:37:29.800Z) - success - Response: 1120 chars
+1. **initialization** (2025-10-31T10:55:54.603Z) - success
+2. **vector_store_check** (2025-10-31T10:55:54.603Z) - success
+3. **vector_search** (2025-10-31T10:55:56.224Z) - success - Found 16 documents
+4. **text_search** (2025-10-31T10:55:56.227Z) - success
+5. **hybrid_search_combination** (2025-10-31T10:55:56.227Z) - success
+6. **context_building** (2025-10-31T10:55:56.228Z) - success - Context: 23662 chars
+7. **response_generation** (2025-10-31T10:56:01.029Z) - success - Response: 1690 chars
 
 ## 📊 Vector Search Analysis
 
 ### Search Configuration:
 - **Vector Store**: primary
 - **Search Strategy**: intelligent_strategy_with_filters
-- **Documents Retrieved**: 13
-- **Total Context**: 21,030 characters
+- **Documents Retrieved**: 16
+- **Total Context**: 61,005 characters
 
 ### Source Type Distribution:
-- **GitHub Repository Code**: 13 chunks (100%)
+- **GitHub Repository Code**: 16 chunks (100%)
 - **Module Documentation**: 0 chunks (0%)  
 - **Architecture Documentation**: 0 chunks (0%)
 - **API Specification**: 0 chunks (0%)
@@ -42,1201 +42,2382 @@
 ## 📋 Complete Chunk Analysis
 
 
-### Chunk 1/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 3545 characters
-- **Score**: 0.601215363
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:11.482Z
-
-**Full Content**:
-```
-// userService.js
-/* eslint-disable no-unused-vars */
-'use strict';
-const User = require('../../domain/entities/user');
-const IUserService = require('./interfaces/IUserService');
-
-class UserService extends IUserService {
-  constructor({authPersistAdapter}) {
-    super(); 
-    this.User = User;
-    this.authPersistAdapter = authPersistAdapter;
-  }
-
-  async loginWithGoogle(accessToken) {
-    try {
-      // 1) Fetch user info from Google using the access token
-      //    The "alt=json" ensures JSON response
-      const url = `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${accessToken}`;
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        console.error('Google userinfo request failed:', await response.text());
-        return null; // Return null to indicate verification failure
-      }
-
-      const googleProfile = await response.json();
-      // googleProfile might contain { email, verified_email, name, picture, ... }
-
-      // 2) Basic checks
-      if (!googleProfile.email) {
-        console.error('No email found in Google profile:', googleProfile);
-        return null;
-      }
-      // Optionally check verified_email if present
-      // if (googleProfile.verified_email === false) return null;
-
-      // 3) See if we already have a user with this email
-      let user = await this.getUserInfo(googleProfile.email);
-      if (!user) {
-        // Create a new user
-        const username = googleProfile.name || googleProfile.email.split('@')[0];
-        user = await this.registerUser(username, googleProfile.email, 'placeholder-google-pass');
-      }
-
-      // 4) Return user object, optionally add user.picture from googleProfile
-      //    If your DB model has a "picture" field, you might store it there
-      return {
-        ...user,
-        picture: googleProfile.picture,
-      };
-    } catch (error) {
-      console.error('Error in loginWithGoogle:', error);
-      return null; 
-    }
-  }
-  
-  async readAllUsers() {
-    try {
-      const users = await this.authPersistAdapter.readAllUsers();
-      console.log('Users retrieved successfully:', users);
-      return users;
-    } catch (error) {
-      console.error('Error retrieving users:', error);
-      throw error;
-    }
-  }
-
-  async registerUser(username, email, password) {
-    try {
-      const userInstance = new this.User();
-      const newUser = await userInstance.registerUser(username, email, password, this.authPersistAdapter);
-      console.log('User registered successfully:', newUser);
-      return newUser;
-    } catch (error) {
-      console.error('Error registering user:', error);
-      throw error;
-    }
-  }
-
-  async removeUser(email) {
-    try {
-      const userInstance = new this.User();
-      console.log('userInstance instantiated at userService removeUser method: ', userInstance);
-      await userInstance.removeUser(email, this.authPersistAdapter);
-      console.log('User removed successfully');
-    } catch (error) {
-      console.error('Error removing user:', error);
-      throw error;
-    }
-  }
-
-  async getUserInfo(email) {
-    try {
-      const userInstance = new this.User();
-      const userData = await userInstance.getUserInfo(email, this.authPersistAdapter);
-      console.log('User retrieved successfully:', userData);
-      return userData;
-    } catch (error) {
-      console.error('Error reading user:', error);
-      throw error;
-    }
-  }
-}
-
-module.exports = UserService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/application/services/userService.js",
-  "fileSize": 3545,
-  "loaded_at": "2025-10-30T12:07:11.482Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T12:07:11.482Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "2e678c5708206ffb138ed037973192428b2e96b4",
-  "size": 3545,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.601215363,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3887_1761826129422"
-}
-```
-
----
-
-### Chunk 2/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 557 characters
-- **Score**: 0.532602251
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:10.740Z
-
-**Full Content**:
-```
-/* eslint-disable no-unused-vars */
-class IUserService {
-  constructor() {
-    if (new.target === IUserService) {
-      throw new Error('Cannot instantiate an abstract class.');
-    }
-  }
-
-  async readAllUsers() {
-    throw new Error('Method not implemented.');
-  }
-
-  async getUserInfo() {
-    throw new Error('Method not implemented.');
-  }
-
-  async register(username, email, password) {
-    throw new Error('Method not implemented.');
-  }
-
-  async removeUser(email) {
-    throw new Error('Method not implemented.');
-  }
-}
-
-module.exports = IUserService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/application/services/interfaces/IUserService.js",
-  "fileSize": 557,
-  "loaded_at": "2025-10-30T12:07:10.740Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T12:07:10.740Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "d3ef44bddc7fb4cb330d2e464fd9701972b512da",
-  "size": 557,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.532602251,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3886_1761826129422"
-}
-```
-
----
-
-### Chunk 3/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1418 characters
-- **Score**: 0.48604393
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:38.147Z
-
-**Full Content**:
-```
-// user.js
-'use strict';
-
-const { v4: uuidv4 } = require('uuid');
-
-class User {
-  constructor() {
-    this.userId = uuidv4();
-    this.roles = []; 
-    this.accounts = [];
-  }
-
-  async getUserInfo(email, IAuthPersistPort) {
-    try {
-      const userDTO = await IAuthPersistPort.getUserInfo(email);
-      console.log('User read successfully:', userDTO);
-      return userDTO;
-    } catch (error) {
-      console.error('Error reading user:', error);
-      throw error;
-    }
-  }
-
-  async registerUser(username, email, password, IAuthPersistPort) {
-    try {
-      const newUserDTO = await IAuthPersistPort.registerUser(username, email, password);
-      console.log(`New user registered successfully: ${newUserDTO}`);
-      return newUserDTO;
-    } catch (error) {
-      console.error('Error registering new user:', error);
-      throw error;
-    }
-  }
-
-  async removeUser(email, IAuthPersistPort) {
-    try {
-      await IAuthPersistPort.removeUser(email);
-      console.log('User removed successfully');
-    } catch (error) {
-      console.error('Error removing user:', error);
-      throw error;
-    }
-  }
-
-  addRole(role) {
-    if (!this.roles.includes(role)) {
-      this.roles.push(role);
-      console.log(`Role ${role} added successfully.`);
-    }
-  }
-
-  removeRole(role) {
-    this.roles = this.roles.filter(r => r !== role);
-    console.log(`Role ${role} removed successfully.`);
-  }
-}
-
-module.exports = User;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/domain/entities/user.js",
-  "fileSize": 1418,
-  "loaded_at": "2025-10-30T12:07:38.147Z",
-  "loading_method": "cloud_native_api",
-  "priority": 50,
-  "processedAt": "2025-10-30T12:07:38.147Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "12279e48c5dc1cac54af1cdf8806a3fefe0248ba",
-  "size": 1418,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.48604393,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_4209_1761826129423"
-}
-```
-
----
-
-### Chunk 4/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 4422 characters
-- **Score**: 0.410785675
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:07.803Z
-
-**Full Content**:
-```
-// authController.js
-/* eslint-disable no-unused-vars */
-'use strict';
-
-const util = require('util');
-const { v4: uuidv4 } = require('uuid');
-const bcrypt = require('bcrypt');
-const fp = require('fastify-plugin');
-
-async function authController(fastify, options) {
-
-  // Helper to set auth cookies uniformly
-  const setAuthCookies = (reply, token) => {
-    const cookieSecure = process.env.NODE_ENV === 'staging';
-    const cookieSameSite = cookieSecure ? 'None' : 'Lax';
-    reply.setCookie('authToken', token, {
-      path: '/',
-      httpOnly: true,
-      secure: cookieSecure,
-      sameSite: cookieSameSite,
-      maxAge: 60 * 60 * 24, // 1 day
-    });
-  };
-
-  // -------------------------------------------------------------------------
-  
-  fastify.decorate('readAllUsers', async function (request, reply) {
-    try {
-      const userService = await request.diScope.resolve('userService');
-      const users = await userService.readAllUsers();
-      return reply.send({ message: 'Users discovered!', users });
-    } catch (error) {
-      this.log.error('Error discovering users:', error);
-      return reply.internalServerError('Internal Server Error', { cause: error });
-    }
-  });
-
-    fastify.decorate('getUserInfo', async function (request, reply) {
-    if (!request.user || !request.user.username) {
-      throw fastify.httpErrors.unauthorized('User not authenticated');
-    }
-    return reply.send(request.user);
-  });
-
-  fastify.decorate('registerUser', async function (request, reply) {
-    const { username, email, password } = request.body;
-    try {
-      const userService = await request.diScope.resolve('userService');
-      const newUser = await userService.registerUser(username, email, password);
-      return reply.send({ message: 'User registered successfully', user: newUser });
-    } catch (error) {
-      fastify.log.error('Error registering user:', error);
-      return reply.internalServerError('Internal Server Error', { cause: error });
-    }
-  });
-
-  fastify.decorate('removeUser', async function (request, reply) {
-    const { email } = request.query;
-    try {
-      const userService = await request.diScope.resolve('userService');
-      const user = await userService.getUserInfo(email);
-      if (!user) {
-        return reply.unauthorized('Invalid credentials');
-      }
-      await userService.removeUser(email);
-      return reply.code(204).send();
-    } catch (error) {
-      fastify.log.error('Error removing user:', error);
-      return reply.internalServerError('Internal Server Error', { cause: error });
-    }
-  });
-
-  fastify.decorate('loginUser', async function (request, reply) {
-    const jti = uuidv4();
-    const { email, password } = request.body;
-    if (!email || !password) {
-      return reply.badRequest('Email and password are required');
-    }
-  
-    try {
-      const userService = await request.diScope.resolve('userService');
-      const user = await userService.getUserInfo(email);
-      if (!user || !(await bcrypt.compare(password, user.password))) {
-        return reply.unauthorized('Invalid credentials');
-      }
-  
-      const authToken = fastify.jwt.sign(
-        { id: user.id, username: user.username, jti },
-        { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-      );
-  
-  // Set auth cookie for manual login
-  setAuthCookies(reply, authToken);
-  
-      return reply.send({
-        message: 'Authentication successful',
-        user: { id: user.id, email: user.email, username: user.username },
-      });
-    } catch (error) {
-      fastify.log.error('Error logging in user:', error);
-      return reply.internalServerError('Internal Server Error', { cause: error });
-    }
-  });
-  
-  fastify.decorate('logoutUser', async function (request, reply) {
-    reply.clearCookie('authToken', { path: '/' });
-    return reply.code(204).send();
-  });
-
-  fastify.decorate('refreshToken', async function (request, reply) {
-    try {
-      const user = request.user || {};
-      const authToken = fastify.jwt.sign(
-        { id: user.id, username: user.username },
-        { expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-      );
-  setAuthCookies(reply, authToken);
-      return reply.send({ token: authToken });
-    } catch (error) {
-      fastify.log.error('Error refreshing token:', error);
-      return reply.internalServerError('Internal Server Error', { cause: error });
-    }
-  }); 
-}
-
-module.exports = fp(authController);
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/application/authController.js",
-  "fileSize": 4422,
-  "loaded_at": "2025-10-30T12:07:07.803Z",
-  "loading_method": "cloud_native_api",
-  "priority": 90,
-  "processedAt": "2025-10-30T12:07:07.803Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "44390c338e08d6dad9afeecb4a41d77de0f2439d",
-  "size": 4422,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.410785675,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3834_1761826129422"
-}
-```
-
----
-
-### Chunk 5/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1571 characters
-- **Score**: 0.408853471
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T11:22:33.083Z
-
-**Full Content**:
-```
-'use strict';
-
-const { v4: uuidv4 } = require('uuid');
-
-class Account {
-  constructor(userId, IAuthPersistPort) {
-    this.accountId = uuidv4();
-    this.userId = userId;
-    this.createdAt = new Date();
-    this.IAuthPersistPort = IAuthPersistPort;
-    this.videos = [];
-    this.accountType = 'standard'; // Default account type
-  }
-
-  async createAccount() {
-    try {
-      await this.IAuthPersistPort.saveAccount(this);
-      console.log('Account created successfully.');
-    } catch (error) {
-      console.error('Error creating account:', error);
-      throw error;
-    }
-  }
-
-  async fetchAccountDetails(accountId) {
-    try {
-      const accountData = await this.IAuthPersistPort.fetchAccountDetails(accountId);
-      Object.assign(this, accountData); // Update instance properties
-      return accountData;
-    } catch (error) {
-      console.error('Error fetching account details:', error);
-      throw error;
-    }
-  }
-
-  async addVideo(videoYoutubeId) {
-    try {
-      await this.IAuthPersistPort.addVideoToAccount(this.accountId, videoYoutubeId);
-      console.log('Video added successfully to account.');
-    } catch (error) {
-      console.error('Error adding video to account:', error);
-      throw error;
-    }
-  }
-
-  async removeVideo(videoYoutubeId) {
-    try {
-      await this.IAuthPersistPort.removeVideo(this.accountId, videoYoutubeId);
-      console.log('Video removed successfully from account.');
-    } catch (error) {
-      console.error('Error removing video from account:', error);
-      throw error;
-    }
-  }
-}
-
-module.exports = Account;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/domain/entities/account.js",
-  "fileSize": 1571,
-  "loaded_at": "2025-10-30T11:22:33.083Z",
-  "loading_method": "cloud_native_api",
-  "priority": 50,
-  "processedAt": "2025-10-30T11:22:33.083Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "9b5563d0bb332bdb1d5f05fdbcccfddb3c69a278",
-  "size": 1571,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 1,
-  "score": 0.408853471,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1599_1761823425741"
-}
-```
-
----
-
-### Chunk 6/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1185 characters
-- **Score**: 0.40509218
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:41.084Z
-
-**Full Content**:
-```
-/* eslint-disable no-unused-vars */
-'strict'
-// IAuthPersistPort.js
-class IAuthPersistPort {
-    constructor() {
-      if (new.target === IAuthPersistPort) {
-        throw new Error("Cannot instantiate an abstract class.");
-      }
-    }
-
-    async readAllUsers() {
-      throw new Error("Method 'readAllUsers()' must be implemented.");
-    }
-
-    async getUserInfo(email) {
-      throw new Error("Method 'getUserInfo(userId)' must be implemented.");    
-    } 
-     
-    async registerUser(username, email, password) {
-      throw new Error("Method 'registerUser(username, email, password)' must be implemented.");
-    }
-   
-    async removeUser(email) {
-      throw new Error("Method 'removeUser(username, password)' must be implemented.");
-    }
-  
-    async findUserByUsername(username) {
-      throw new Error("Method 'findUserByUsername(username)' must be implemented.");
-    }
-  
-    async loginUser(email, password) {
-      throw new Error("Method 'loginUser(username, password)' must be implemented.");
-    }
-  
-    async logoutUser(sessionId) {
-      throw new Error("Method 'logoutUser(sessionId)' must be implemented.");
-    }
-  }
-  
-  module.exports = IAuthPersistPort;
-  
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/domain/ports/IAuthPersistPort.js",
-  "fileSize": 1185,
-  "loaded_at": "2025-10-30T12:07:41.084Z",
-  "loading_method": "cloud_native_api",
-  "priority": 50,
-  "processedAt": "2025-10-30T12:07:41.084Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "d04ba6419580c2d93d4d5deb1bf7d7af30abb8e7",
-  "size": 1185,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.40509218,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_4211_1761826129423"
-}
-```
-
----
-
-### Chunk 7/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1083 characters
-- **Score**: 0.399158508
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T11:22:33.824Z
-
-**Full Content**:
-```
-'use strict';
-
-const { v4: uuidv4 } = require('uuid');
-
-class Session {
-  constructor(userId, IAuthInMemStoragePort) {
-    this.sessionId = uuidv4();
-    this.userId = userId;
-    this.createdAt = new Date();
-    this.IAuthInMemStoragePort = IAuthInMemStoragePort;
-  }
-
-  async setSessionInMem() {
-    try {
-      await this.IAuthInMemStoragePort.setSessionInMem(this.sessionId, this);
-      console.log('Session set successfully in-memory!');
-    } catch (error) {
-      console.error('Error setting session in-memory:', error);
-      throw error;
-    }
-  }
-
-  async validateSession() {
-    const sessionData = await this.IAuthInMemStoragePort.getSession(this.sessionId);
-    const oneHour = 3600000;
-    return sessionData && (new Date() - new Date(sessionData.createdAt) < oneHour);
-  }
-
-  async logout() {
-    try {
-      await this.IAuthInMemStoragePort.deleteSession(this.sessionId);
-      console.log('Session successfully terminated.');
-    } catch (error) {
-      console.error('Error logging out session:', error);
-      throw error;
-    }
-  }
-}
-
-module.exports = Session;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/aop_modules/auth/domain/entities/session.js",
-  "fileSize": 1083,
-  "loaded_at": "2025-10-30T11:22:33.824Z",
-  "loading_method": "cloud_native_api",
-  "priority": 50,
-  "processedAt": "2025-10-30T11:22:33.824Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "d9068d752cbf8c5e8b799f5f523d5fa1b5a9dc6e",
-  "size": 1083,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 1,
-  "score": 0.399158508,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1600_1761823425741"
-}
-```
-
----
-
-### Chunk 8/13
+### Chunk 1/16
 - **Source**: anatolyZader/vc-3
 - **Type**: github-docs
-- **Size**: 3882 characters
-- **Score**: 0.384473801
+- **Size**: 3971 characters
+- **Score**: 0.570156157
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-30T11:22:12.402Z
+- **Processed At**: 2025-10-30T11:23:07.595Z
 
 **Full Content**:
 ```
-'use strict';
+**Tokens:** 454 | **Characters:** 2,206 | **Lines:** 50 (1-50)
+**Modifiers:** method
 
-const Docs = require('../../domain/entities/docs');
-const DocsPage = require('../../domain/entities/docsPage');
-const IDocsService = require('./interfaces/IDocsService');
+**Preview:** `// contextPipeline.js "use strict";  const logConfig = require('./logConfig'); const EventManager = ...`
 
-class DocsService extends IDocsService {
+**Full Content:**
+```javascript
+// contextPipeline.js
+"use strict";
 
-  constructor({ docsMessagingAdapter, docsPersistAdapter, docsGitAdapter, docsAiAdapter }) {
-    super();
-    this.docsMessagingAdapter = docsMessagingAdapter;
-    this.docsPersistAdapter = docsPersistAdapter;
-    this.docsGitAdapter = docsGitAdapter;
-    this.docsAiAdapter = docsAiAdapter;
-  }
+const logConfig = require('./logConfig');
+const EventManager = require('./eventManager');
+const PineconePlugin = require('./embedding/pineconePlugin');
+const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
+const CodePreprocessor = require('./processors/codePreprocessor');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const DocsProcessor = require('./processors/docsProcessor');
+const GitHubOperations = require('./loading/githubOperations');
+const ASTCodeSplitter = require('./chunking/astCodeSplitter');
+const RepoProcessor = require('./processors/repoProcessor');
+const EmbeddingManager = require('./embedding/embeddingManager');
+const PineconeService = require('./embedding/pineconeService');
+const RepoWorkerManager = require('./loading/repoWorkerManager');
+const ChangeAnalyzer = require('./loading/changeAnalyzer');
+const ContextPipelineUtils = require('./contextPipelineUtils');
 
-  async fetchDocs(userId, repoId) {
-    const docs = new Docs(userId);
-    const fetchedDocs = await docs.fetchDocs(repoId, this.docsGitAdapter);
-    if (!fetchedDocs) {
-      throw new Error(`Docs not found for user ${userId} and repo ${repoId}`);
-    }
-    await this.docsPersistAdapter.persistDocs(userId, repoId, fetchedDocs);
-    // Publish domain event
-    const DocsFetchedEvent = require('../../domain/events/docsFetchedEvent');
-    const event = new DocsFetchedEvent({ userId, repoId, docs: fetchedDocs });
-    if (this.docsMessagingAdapter && typeof this.docsMessagingAdapter.publishFetchedDocsEvent === 'function') {
-      await this.docsMessagingAdapter.publishFetchedDocsEvent(event);
-    }
-    return fetchedDocs;
-  }
-
-  async fetchPage(userId, repoId, pageId) {
-    const docsPage = new DocsPage(userId, repoId);
-    const page = await docsPage.fetchPage(pageId, this.docsGitAdapter);
-    return page;
-  }
-
-  async createPage(userId, repoId, pageTitle) {
-    const docsPage = new DocsPage(userId, repoId);
-    const createdPage = await docsPage.createPage(pageTitle, this.docsGitAdapter);
-    // Publish domain event
-    const DocsPageCreatedEvent = require('../../domain/events/docsPageCreatedEvent');
-    const event = new DocsPageCreatedEvent({ userId, repoId, pageId: createdPage?.id, pageTitle });
-    if (this.docsMessagingAdapter && typeof this.docsMessagingAdapter.publishPageCreatedEvent === 'function') {
-      await this.docsMessagingAdapter.publishPageCreatedEvent(event);
-    }
-    return createdPage;
-  }
-  
-  async updatePage(userId, repoId, pageId, newContent) {
-    const docsPage = new DocsPage(userId, repoId);
-    await docsPage.updatePage(pageId, newContent, this.docsGitAdapter);
-    // Publish domain event
-    const DocsPageUpdatedEvent = require('../../domain/events/docsPageUpdatedEvent');
-    const event = new DocsPageUpdatedEvent({ userId, repoId, pageId, newContent });
-    if (this.docsMessagingAdapter && typeof this.docsMessagingAdapter.publishPageUpdatedEvent === 'function') {
-      await this.docsMessagingAdapter.publishPageUpdatedEvent(event);
-    }
-  }
-
-  async deletePage(userId, repoId, pageId) {
-    const docsPage = new DocsPage(userId, repoId);
-    await docsPage.deletePage(pageId, this.docsGitAdapter);
-    // Publish domain event
-    const DocsPageDeletedEvent = require('../../domain/events/docsPageDeletedEvent');
-    const event = new DocsPageDeletedEvent({ userId, repoId, pageId });
-    if (this.docsMessagingAdapter && typeof this.docsMessagingAdapter.publishPageDeletedEvent === 'function') {
-      await this.docsMessagingAdapter.publishPageDeletedEvent(event);
-    }
-  }
-
-  updateDocsFiles(userId) {
-    console.log(`[DocsService] Starting background docs file update for user ${userId}.`);
-    try {
-      // The adapter's updateDocsFiles method queues the request to run in the background.
-      // We call it but don't await it, allowing the service to return immediately.
-      // The .bind() is crucial to preserve the 'this' context for the adapter.
-      this.docsAiAdapter.updateDocsFiles.bind(this.docsAiAdapter)(userId);
-      console.log(`[DocsService] Successfully queued docs file update for user ${userId}.`);
-    } catch (error) {
-      console.error('[docsService] Error queuing docs files update:', error);
-      throw error;
-    }
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
   }
 }
 
-module.exports = DocsService;
+class ContextPipeline {
+  constructor(options = {}) {
+// Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+
+// Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+
+// Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+```
+
+---
+
+### Chunk 2: unknown (line_based_fallback)
+
+**Type:** unknown | **Method Kind:** N/A | **Class:** N/A
+**Tokens:** 341 | **Characters:** 1,538 | **Lines:** 50 (51-100)
+**Modifiers:** method
+
+**Preview:** `      extractStructuralInfo: this.options.extractStructuralInfo !== false     });      this.astCodeS...`
+
+**Full Content:**
+```javascript
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: false,
+      includeImports: false
+    });
+
+    this.semanticPreprocessor = new SemanticPreprocessor();
+
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+
+// Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+    });
+
+    this.embeddingManager = new EmbeddingManager({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      pineconeService: pineconeService
+    });
+
+// Initialize repoProcessor with pure processing dependencies only
+    this.repoProcessor = new RepoProcessor({
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "filePath": "backend/business_modules/docs/application/services/docsService.js",
-  "fileSize": 3882,
-  "loaded_at": "2025-10-30T11:22:12.402Z",
+  "chunkIndex": 1,
+  "chunkTokens": 993,
+  "filePath": "backend/forced_method_analysis_contextPipeline.md",
+  "fileSize": 43115,
+  "loaded_at": "2025-10-30T11:23:07.595Z",
   "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T11:22:12.402Z",
+  "originalTokens": 9565,
+  "priority": 50,
+  "processedAt": "2025-10-30T11:23:07.595Z",
+  "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "600c0efa5fb457600cca827ea1ddd8f4b626987d",
-  "size": 3882,
+  "sha": "ac5739be3da9d14652c2bebf734462f562dd2ed1",
+  "size": 43115,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.570156157,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_650_1761823425740"
+}
+```
+
+---
+
+### Chunk 2/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3992 characters
+- **Score**: 0.565429747
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:52.303Z
+
+**Full Content**:
+```
+# ContextPipeline.js - Complete Code Processing Analysis
+
+**File:** `./business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js`
+**Processed:** 2025-10-11T12:54:34.271Z
+**Analysis Type:** Method-Level AST Splitting with Aggressive Token Limits
+
+## 📋 Executive Summary
+
+This comprehensive analysis processes the ContextPipeline.js file through a complete RAG pipeline preprocessing workflow, demonstrating how the code is cleaned, enhanced, and intelligently split for optimal retrieval-augmented generation.
+
+## 📊 Processing Statistics
+
+| Metric | Value | Change |
+|--------|-------|--------|
+| **Original Size** | 32,983 chars | - |
+| **After Preprocessing** | 29,535 chars | -10.5% |
+| **After Enhancement** | 29,535 chars | 0.0% |
+| **Total Chunks** | 1 | **Final Output** |
+| **Average Chunk Size** | 29,535 chars | Optimal for RAG |
+
+### 🏷️ Chunk Type Distribution
+
+- **unknown**: 1 chunks (100.0%)
+
+## 🔄 Complete Pipeline Processing
+
+### 📄 Step 0: Original Source Code
+
+**Size:** 32,983 characters
+
+```javascript
+// contextPipeline.js
+"use strict";
+
+const logConfig = require('./logConfig');
+const EventManager = require('./eventManager');
+const PineconePlugin = require('./embedding/pineconePlugin');
+const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
+const CodePreprocessor = require('./processors/codePreprocessor');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const DocsProcessor = require('./processors/docsProcessor');
+const GitHubOperations = require('./loading/githubOperations');
+const ASTCodeSplitter = require('./chunking/astCodeSplitter');
+const RepoProcessor = require('./processors/repoProcessor');
+const EmbeddingManager = require('./embedding/embeddingManager');
+const PineconeService = require('./embedding/pineconeService');
+const RepoWorkerManager = require('./loading/repoWorkerManager');
+const ChangeAnalyzer = require('./loading/changeAnalyzer');
+const ContextPipelineUtils = require('./contextPipelineUtils');
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+    // Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+    
+    // Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+    
+    // Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+    
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: false,
+      includeImports: false
+    });
+    
+    this.semanticPreprocessor = new SemanticPreprocessor();
+    
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+    
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 0,
+  "chunkTokens": 998,
+  "filePath": "backend/contextPipeline_method_level_analysis.md",
+  "fileSize": 125660,
+  "loaded_at": "2025-10-30T12:07:52.303Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26649,
+  "priority": 50,
+  "processedAt": "2025-10-30T12:07:52.303Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
+  "size": 125660,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.565429747,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_812_1761826129418"
+}
+```
+
+---
+
+### Chunk 3/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3974 characters
+- **Score**: 0.553968489
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T11:22:48.306Z
+
+**Full Content**:
+```
+omments
+- ✅ Removed console.log statements (preserved error/warn)
+- ✅ Normalized whitespace and encoding
+- ✅ Removed boilerplate and debugging code
+
+```javascript
+"use strict";
+
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+// Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+
+// Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+
+// Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: false,
+      includeImports: false
+    });
+
+    this.semanticPreprocessor = new SemanticPreprocessor();
+
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+
+// Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+    });
+
+    this.embeddingManager = new EmbeddingManager({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      pineconeService: pineconeService
+    });
+
+// Initialize repoProcessor with pure processing dependencies only
+    this.repoProcessor = new RepoProcessor({
+      astBasedSplitter: this.astCodeSplitter,
+      semanticPreprocessor: this.semanticPreprocessor,
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer
+    });
+
+// Initialize EventManager
+    this.eventManager = new EventManager({
+      eventBus: this.eventBus
+    });
+
+// Pinecone will be initialized inline when needed
+    this.pinecone = null;
+
+// Initialize tracing if enabled
+    this._initializeTracing();
+  }
+
+  _initializeTracing() {
+    this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
+
+    if (!this.enableTracing) {
+      return;
+    }
+
+// bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.
+    try {
+      this.processPushedRepo = traceable(
+        this.processPushedRepo.bind(this), //
+        {
+          name: 'ContextPipeline.processPushedRepo',
+          project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+          metadata: { component: 'ContextPipeline' },
+          tags: ['rag', 'ingestion']
+        }
+      );
+
+      .toISOString()}] [TRACE] ContextPipeline tracing enabled.`);
+      .toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
+    } catch (err) {
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 9,
+  "chunkTokens": 994,
+  "filePath": "backend/contextPipeline_method_level_analysis.md",
+  "fileSize": 125660,
+  "loaded_at": "2025-10-30T11:22:48.306Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26649,
+  "priority": 50,
+  "processedAt": "2025-10-30T11:22:48.306Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
+  "size": 125660,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.553968489,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_292_1761823425740"
+}
+```
+
+---
+
+### Chunk 4/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3988 characters
+- **Score**: 0.520931304
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T11:23:17.854Z
+
+**Full Content**:
+```
+# contextPipeline.js - Method-Level Code Splitting Analysis
+
+**File:** `./business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js`
+**Processed:** 2025-10-11T13:04:04.778Z
+**Analysis Type:** Method-Level AST Splitting with Aggressive Token Limits (300 tokens max)
+
+## 📋 Executive Summary
+
+This analysis demonstrates method-level code splitting for better RAG retrieval granularity. Instead of treating large classes as single chunks, this approach breaks them down into method-level components for more precise semantic search and retrieval.
+
+## 📊 Processing Statistics
+
+| Metric | Value | Change |
+|--------|-------|--------|
+| **Original Size** | 32,983 chars | - |
+| **After Preprocessing** | 30,657 chars | -7.1% |
+| **After Enhancement** | 30,657 chars | 0.0% |
+| **Total Method-Level Chunks** | 1 | **Granular Retrieval Ready** |
+| **Average Chunk Size** | 30,657 chars | Optimal for focused retrieval |
+
+### 🏷️ Chunk Analysis Summary
+
+**Token Distribution:**
+- **Small chunks (< 150 tokens):** 0
+- **Medium chunks (150-250 tokens):** 0
+- **Large chunks (250+ tokens):** 1
+
+**Average tokens per chunk:** 6484
+
+## 🔄 Complete Pipeline Processing
+
+### 📄 Step 0: Original Source Code
+
+**Size:** 32,983 characters
+
+```javascript
+// contextPipeline.js
+"use strict";
+
+const logConfig = require('./logConfig');
+const EventManager = require('./eventManager');
+const PineconePlugin = require('./embedding/pineconePlugin');
+const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
+const CodePreprocessor = require('./processors/codePreprocessor');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const DocsProcessor = require('./processors/docsProcessor');
+const GitHubOperations = require('./loading/githubOperations');
+const ASTCodeSplitter = require('./chunking/astCodeSplitter');
+const RepoProcessor = require('./processors/repoProcessor');
+const EmbeddingManager = require('./embedding/embeddingManager');
+const PineconeService = require('./embedding/pineconeService');
+const RepoWorkerManager = require('./loading/repoWorkerManager');
+const ChangeAnalyzer = require('./loading/changeAnalyzer');
+const ContextPipelineUtils = require('./contextPipelineUtils');
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+    // Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+    
+    // Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+    
+    // Initialize document processing components
+    this.codePreprocesso
+
+// ... (truncated for brevity, showing first 2000 characters) ...
+```
+
+### 🔧 Step 1: Code Preprocessing Results
+
+**Size:** 30,657 characters
+**Reduction:** 7.1%
+
+**Key preprocessing actions:**
+- Removed debug/log statements
+- Normalized whitespace
+- Preserved documentation comments
+- Cleaned code structure
+
+### 📚 Step 2: Ubiquitous Language Enhancement
+
+**Size:** 30,657 characters
+**Change:** 0.0%
+
+Enhanced with domain-specific language context and semantic enrichments.
+
+### ✂️ Step 3: Method-Level AST Code Splitting
+
+**Configuration:**
+- **Max tokens per chunk:** 300 (≈1-2 methods)
+- **Min tokens per chunk:** 50 (meaningful method size)
+- **Token overlap:** 75 (context continuity)
+- **Semantic boundaries:** Preserved
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 0,
+  "chunkTokens": 997,
+  "filePath": "backend/method_level_analysis_contextPipeline.md",
+  "fileSize": 36633,
+  "loaded_at": "2025-10-30T11:23:17.854Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 7849,
+  "priority": 50,
+  "processedAt": "2025-10-30T11:23:17.854Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "c35cbab97c1ff942be520eb6bb804ec06bc89de9",
+  "size": 36633,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.520931304,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_807_1761823425740"
+}
+```
+
+---
+
+### Chunk 5/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-code
+- **Size**: 3986 characters
+- **Score**: 0.520107269
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:51.916Z
+
+**Full Content**:
+```
+// contextPipeline.js
+"use strict";
+
+const logConfig = require('./logConfig');
+const EventManager = require('./eventManager');
+const PineconePlugin = require('./embedding/pineconePlugin');
+const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
+const CodePreprocessor = require('./processors/codePreprocessor');
+const TextPreprocessor = require('./processors/textPreprocessor');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const DocsProcessor = require('./processors/docsProcessor');
+const GitHubOperations = require('./loading/githubOperations');
+const ASTCodeSplitter = require('./chunking/astCodeSplitterBackup');
+const RepoProcessor = require('./processors/repoProcessor');
+const EmbeddingManager = require('./embedding/embeddingManager');
+const PineconeService = require('./embedding/pineconeService');
+const RepoWorkerManager = require('./loading/repoWorkerManager');
+const ChangeAnalyzer = require('./loading/changeAnalyzer');
+const ContextPipelineUtils = require('./contextPipelineUtils');
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+    // Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+    
+    // Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+    
+    // Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+    
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxTokens: this.options.maxTokens || 500,        // Token-based chunking
+      minTokens: this.options.minTokens || 30,         // Minimum meaningful tokens  
+      overlapTokens: this.options.overlapTokens || 50, // Token overlap
+      enableLineFallback: true,                        // Enable fallback for large files
+      maxUnitsPerChunk: 1,                            // One semantic unit per chunk for granularity
+      charsPerToken: 4,                               // Characters per token estimate
+      // UL Enhancement: Smart comment inclusion based on file type
+      includeComments: this.shouldIncludeCommentsForUL.bind(this),
+      includeImports: false
+    });
+    
+    this.semanticPreprocessor = new SemanticPreprocessor();
+    this.textPreprocessor = new TextPreprocessor();
+    
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+    
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+    
+    // Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+    });
+    
+    this.embeddingManager = new EmbeddingManager({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 0,
+  "chunkTokens": 997,
+  "filePath": "backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js",
+  "fileSize": 36956,
+  "loaded_at": "2025-10-30T12:07:51.916Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 7827,
+  "priority": 50,
+  "processedAt": "2025-10-30T12:07:51.916Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "acb239e5daeff74a1bd108d2432e6e033e98a8ad",
+  "size": 36956,
+  "source": "anatolyZader/vc-3",
+  "type": "github-code",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 1,
+  "score": 0.520107269,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_2191_1761826129420"
+}
+```
+
+---
+
+### Chunk 6/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3987 characters
+- **Score**: 0.514722884
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T11:23:17.854Z
+
+**Full Content**:
+```
+- **Include imports/comments:** Yes (for context)
+
+## 📋 Method-Level Chunk Inventory
+
+### Chunk 1: if
+
+**Token Count:** 6484 | **Characters:** 30,657 | **Lines:** 806
+
+**Preview:** `// contextPipeline.js "use strict";  const logConfig = require('./logConfig'); const EventManager = ...`
+
+**Full Content:**
+```javascript
+// contextPipeline.js
+"use strict";
+
+const logConfig = require('./logConfig');
+const EventManager = require('./eventManager');
+const PineconePlugin = require('./embedding/pineconePlugin');
+const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
+const CodePreprocessor = require('./processors/codePreprocessor');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const DocsProcessor = require('./processors/docsProcessor');
+const GitHubOperations = require('./loading/githubOperations');
+const ASTCodeSplitter = require('./chunking/astCodeSplitter');
+const RepoProcessor = require('./processors/repoProcessor');
+const EmbeddingManager = require('./embedding/embeddingManager');
+const PineconeService = require('./embedding/pineconeService');
+const RepoWorkerManager = require('./loading/repoWorkerManager');
+const ChangeAnalyzer = require('./loading/changeAnalyzer');
+const ContextPipelineUtils = require('./contextPipelineUtils');
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+// Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+
+// Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+
+// Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: false,
+      includeImports: false
+    });
+
+    this.semanticPreprocessor = new SemanticPreprocessor();
+
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+
+// Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+    });
+
+    this.embeddingManager = new EmbeddingManager({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      pineconeService: pineconeService
+    });
+
+// Initialize repoProcessor with pure processing dependencies only
+    this.repoProcessor = new RepoProcessor({
+      astBasedSplitter: this.astCodeSplitter,
+      semanticPreprocessor: this.semanticPreprocessor,
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer
+    });
+
+// Initialize EventManager
+    this.eventManager = new EventManager({
+      eventBus: this.eventBus
+    });
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 1,
+  "chunkTokens": 997,
+  "filePath": "backend/method_level_analysis_contextPipeline.md",
+  "fileSize": 36633,
+  "loaded_at": "2025-10-30T11:23:17.854Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 7849,
+  "priority": 50,
+  "processedAt": "2025-10-30T11:23:17.854Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "c35cbab97c1ff942be520eb6bb804ec06bc89de9",
+  "size": 36633,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.514722884,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_808_1761823425740"
+}
+```
+
+---
+
+### Chunk 7/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3952 characters
+- **Score**: 0.514350951
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:08:11.502Z
+
+**Full Content**:
+```
+# contextPipeline.js - Forced Method-Level AST Splitting Analysis
+
+**File:** `./business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js`
+**Processed:** 2025-10-11T13:10:27.035Z
+**Analysis Type:** FORCED Method-Level AST Splitting - Each Method Extracted Individually
+
+## 📋 Executive Summary
+
+This analysis uses **forced method-level AST splitting** to break down large classes into individual method chunks, regardless of token limits. Each method is extracted as a separate semantic unit for maximum retrieval granularity.
+
+## 📊 Processing Statistics
+
+| Metric | Value | Change |
+|--------|-------|--------|
+| **Original Size** | 32,983 chars | - |
+| **After Preprocessing** | 30,657 chars | -7.1% |
+| **After Enhancement** | 30,657 chars | 0.0% |
+| **Total Forced Chunks** | 17 | **TRUE Granular Retrieval** |
+| **Average Chunk Size** | 1,802 chars | Method-level precision |
+
+### 🏷️ Chunk Type Distribution
+
+- **line_based_fallback**: 17 chunks
+
+### 📊 Method Analysis
+
+No individual methods extracted
+
+## 🔄 Complete Forced Splitting Process
+
+### 📄 Step 0: Original Source Code
+
+**Size:** 32,983 characters
+
+```javascript
+// contextPipeline.js
+"use strict";
+
+const logConfig = require('./logConfig');
+const EventManager = require('./eventManager');
+const PineconePlugin = require('./embedding/pineconePlugin');
+const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
+const CodePreprocessor = require('./processors/codePreprocessor');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const DocsProcessor = require('./processors/docsProcessor');
+const GitHubOperations = require('./loading/githubOperations');
+const ASTCodeSplitter = require('./chunking/astCodeSplitter');
+const RepoProcessor = require('./processors/repoProcessor');
+const EmbeddingManager = require('./embedding/embeddingManager');
+const PineconeService = require('./embedding/pineconeService');
+const RepoWorkerManager = require('./loading/repoWorkerManager');
+const ChangeAnalyzer = require('./loading/changeAnalyzer');
+const ContextPipelineUtils = require('./contextPipelineUtils');
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+    // Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = opt
+
+// ... (truncated for brevity, showing first 1500 characters) ...
+```
+
+### 🔧 Step 1: Code Preprocessing Results
+
+**Size:** 30,657 characters
+**Reduction:** 7.1%
+
+**Key preprocessing actions:**
+- Removed debug/log statements
+- Normalized whitespace  
+- Preserved documentation comments
+- Kept imports for method context
+
+### 📚 Step 2: Ubiquitous Language Enhancement
+
+**Size:** 30,657 characters
+**Change:** 0.0%
+
+Enhanced with domain-specific language context and semantic enrichments.
+
+### ✂️ Step 3: FORCED Method-Level AST Splitting
+
+**Splitting Strategy:**
+- **AST-Based Extraction:** Each method extracted individually using Babel parser
+- **Class Context:** Separate chunk for class overview and structure
+- **Full Method Bodies:** Complete implementation of each method preserved
+- **Import Context:** Imports included for each chunk context
+- **Comment Preservation:** Method-level documentation maintained
+
+**Extraction Results:**
+- **Parser:** Babel AST with full JavaScript/TypeScript support
+- **Method Detection:** ClassDeclaration → MethodDefinition traversal
+- **Context Preservation:** Imports + class context + method implementation
+
+## 📋 Forced Method-Level Chunk Inventory
+
+### Chunk 1: unknown (line_based_fallback)
+
+**Type:** unknown | **Method Kind:** N/A | **Class:** N/A
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 0,
+  "chunkTokens": 988,
+  "filePath": "backend/forced_method_analysis_contextPipeline.md",
+  "fileSize": 43115,
+  "loaded_at": "2025-10-30T12:08:11.502Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 9565,
+  "priority": 50,
+  "processedAt": "2025-10-30T12:08:11.502Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "ac5739be3da9d14652c2bebf734462f562dd2ed1",
+  "size": 43115,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.514350951,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1178_1761826129419"
+}
+```
+
+---
+
+### Chunk 8/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3988 characters
+- **Score**: 0.5091
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:52.303Z
+
+**Full Content**:
+```
+ode Type:** N/A
+
+**Content:**
+
+```javascript
+"use strict";
+
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+// Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+
+// Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+
+// Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: false,
+      includeImports: false
+    });
+
+    this.semanticPreprocessor = new SemanticPreprocessor();
+
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+
+// Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+    });
+
+    this.embeddingManager = new EmbeddingManager({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      pineconeService: pineconeService
+    });
+
+// Initialize repoProcessor with pure processing dependencies only
+    this.repoProcessor = new RepoProcessor({
+      astBasedSplitter: this.astCodeSplitter,
+      semanticPreprocessor: this.semanticPreprocessor,
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer
+    });
+
+// Initialize EventManager
+    this.eventManager = new EventManager({
+      eventBus: this.eventBus
+    });
+
+// Pinecone will be initialized inline when needed
+    this.pinecone = null;
+
+// Initialize tracing if enabled
+    this._initializeTracing();
+  }
+
+  _initializeTracing() {
+    this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
+
+    if (!this.enableTracing) {
+      return;
+    }
+
+// bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.
+    try {
+      this.processPushedRepo = traceable(
+        this.processPushedRepo.bind(this), //
+        {
+          name: 'ContextPipeline.processPushedRepo',
+          project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+          metadata: { component: 'ContextPipeline' },
+          tags: ['rag', 'ingestion']
+        }
+      );
+
+      .toISOString()}] [TRACE] ContextPipeline tracing enabled.`);
+      .toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
+    } catch (err) {
+      .toISOString()}] [TRACE] Failed to enable ContextPipeline tracing: ${err.message}`);
+    }
+  }
+
+  async getPineconeClient() {
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 25,
+  "chunkTokens": 997,
+  "filePath": "backend/contextPipeline_method_level_analysis.md",
+  "fileSize": 125660,
+  "loaded_at": "2025-10-30T12:07:52.303Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26649,
+  "priority": 50,
+  "processedAt": "2025-10-30T12:07:52.303Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
+  "size": 125660,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.5091,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_837_1761826129418"
+}
+```
+
+---
+
+### Chunk 9/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3993 characters
+- **Score**: 0.502735198
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T11:23:28.163Z
+
+**Full Content**:
+```
+# Code Processing Pipeline Report
+
+**File:** `./business_modules/ai/infrastructure/ai/rag_pipelines/context/contextPipeline.js`
+**Extension:** `.js`
+**Processed:** 2025-10-11T12:50:46.990Z
+
+## 📊 Processing Statistics
+
+| Stage | Size (chars) | Change |
+|-------|--------------|--------|
+| Original | 32,983 | - |
+| After Preprocessing | 29,535 | -10.5% |
+| After Enhancement | 29,535 | 0.0% |
+| **Total Chunks Generated** | **1** | **Final** |
+
+## 🧩 Chunk Analysis
+
+- **Total Chunks:** 1
+- **Average Size:** 29,535 characters
+- **Size Range:** 29,535 - 29,535 characters
+
+### Chunk Breakdown
+
+| Chunk | Size (chars) | Type | Functions | Classes | Complexity |
+|-------|--------------|------|-----------|---------|------------|
+| 1 | 29,535 | unknown | none | none | 0 |
+
+## 🔄 Pipeline Processing Steps
+
+### Step 0: Original Content
+
+```js
+// contextPipeline.js
+"use strict";
+
+const logConfig = require('./logConfig');
+const EventManager = require('./eventManager');
+const PineconePlugin = require('./embedding/pineconePlugin');
+const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
+const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
+const CodePreprocessor = require('./processors/codePreprocessor');
+const ApiSpecProcessor = require('./processors/apiSpecProcessor');
+const DocsProcessor = require('./processors/docsProcessor');
+const GitHubOperations = require('./loading/githubOperations');
+const ASTCodeSplitter = require('./chunking/astCodeSplitter');
+const RepoProcessor = require('./processors/repoProcessor');
+const EmbeddingManager = require('./embedding/embeddingManager');
+const PineconeService = require('./embedding/pineconeService');
+const RepoWorkerManager = require('./loading/repoWorkerManager');
+const ChangeAnalyzer = require('./loading/changeAnalyzer');
+const ContextPipelineUtils = require('./contextPipelineUtils');
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    console.warn(`[${new Date().toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+    // Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+    
+    // Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+    
+    // Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+    
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: false,
+      includeImports: false
+    });
+    
+    this.semanticPreprocessor = new SemanticPreprocessor();
+    
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+    
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+    
+    // Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 0,
+  "chunkTokens": 999,
+  "filePath": "backend/processing_report_contextPipeline.md",
+  "fileSize": 124355,
+  "loaded_at": "2025-10-30T11:23:28.163Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26362,
+  "priority": 50,
+  "processedAt": "2025-10-30T11:23:28.163Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "7f14a662a1b0a8c78cca36e790a280397bb1a28b",
+  "size": 124355,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.502735198,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1065_1761823425740"
+}
+```
+
+---
+
+### Chunk 10/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3998 characters
+- **Score**: 0.48537448
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:52.303Z
+
+**Full Content**:
+```
+cumentsToProcessors?.bind(this)
+      );
+
+// Step 5: Store processed documents using EmbeddingManager
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
+
+// Step 6: Store repository tracking info for future duplicate detection
+      if (commitHash) {
+        const pineconeClient2 = await this.getPineconeClient();
+        await this.githubOperations.storeRepositoryTrackingInfo(
+          userId, repoId, githubOwner, repoName, actualCommitInfo,
+          namespace, pineconeClient2, this.embeddings
+        );
+      }
+
+      const result = {
+        success: true,
+        documentsProcessed: documents.length,
+        chunksGenerated: splitDocuments.length,
+        commitInfo: actualCommitInfo,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
+
+      return ContextPipelineUtils.createStandardResult({
+        success: true,
+        mode: 'full',
+        reason: analysisRecommendation ? 'smart_full_standard' : 'standard_processing',
+        message: analysisRecommendation
+          ? `Smart full processing: ${analysisRecommendation.reasoning}
+          : 'Standard repository processing completed with Langchain-first approach',
+        commitHash: commitInfo?.hash ?? null,
+        details: {
+          totalDocuments: result.documentsProcessed || 0,
+          totalChunks: result.chunksGenerated || 0,
+          githubOwner,
+          repoName,
+          namespace,
+          processingStrategy: 'standard_langchain',
+          ...(analysisRecommendation && { smartAnalysis: analysisRecommendation })
+        },
+        repoId,
+        userId
+      });
+
+    } catch (error) {
+      .toISOString()}] ❌ Standard processing error for ${repoId}:`, error.message);
+      throw error;
+    }
+  }
+
+  emitRagStatus(status, details = {}) {
+    return this.eventManager.emitRagStatus(status, details);
+  }
+
+  /**
+   Check if repository already exists and processed for given commit
+   Moved from RepoProcessor as part of orchestration responsibility
+   */
+  async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
+    try {
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`);
+      const pineconeClient = await this.getPineconeClient();
+
+// Query for any existing documents in this namespace
+      const queryResponse = await pineconeClient.namespace(namespace).query({
+        vector: new Array(1536).fill(0), // Dummy vector for existence check
+        topK: 1,
+        includeMetadata: true
+      });
+
+      if (queryResponse.matches && queryResponse.matches.length > 0) {
+        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
+        return {
+          exists: true,
+          commitHash: existingCommit,
+          needsUpdate: existingCommit !== currentCommitHash,
+          namespace,
+          reason: existingCommit === currentCommitHash ? 'same_commit' : 'commit_changed'
+        };
+      }
+
+      return { exists: false, namespace };
+    } catch (error) {
+      .toISOString()}] ℹ️ Repository check: ${error.message}`);
+      return { exists: false, namespace: this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`) };
+    }
+  }
+}
+
+module.exports = ContextPipeline;
+```
+
+---
+
+## 📋 Analysis Summary
+
+### 🎯 Processing Success
+
+The ContextPipeline.js file was successfully processed through the complete RAG pipeline workflow:
+
+1. **Code Preprocessing** reduced the file size by 10.5% by removing imports, logs, and boilerplate
+2. **Ubiquitous Language Enhancement** added domain-specific context for better semantic understanding
+3. **AST-Based Splitting** created 1 optimized chunks using semantic analysis
+
+### ℹ️ Single Chunk Result
+
+The file was processed as a single semantic unit, likely due to:
+- Large cohesive class structure
+- Interconnected methods and dependencies
+- Semantic coherence favoring unified processing
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 32,
+  "chunkTokens": 1000,
+  "filePath": "backend/contextPipeline_method_level_analysis.md",
+  "fileSize": 125660,
+  "loaded_at": "2025-10-30T12:07:52.303Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26649,
+  "priority": 50,
+  "processedAt": "2025-10-30T12:07:52.303Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
+  "size": 125660,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.48537448,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_844_1761826129418"
+}
+```
+
+---
+
+### Chunk 11/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 2352 characters
+- **Score**: 0.483736098
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:08:21.891Z
+
+**Full Content**:
+```
+vector: new Array(1536).fill(0), // Dummy vector for existence check
+        topK: 1,
+        includeMetadata: true
+      });
+
+      if (queryResponse.matches && queryResponse.matches.length > 0) {
+        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
+        return {
+          exists: true,
+          commitHash: existingCommit,
+          needsUpdate: existingCommit !== currentCommitHash,
+          namespace,
+          reason: existingCommit === currentCommitHash ? 'same_commit' : 'commit_changed'
+        };
+      }
+
+      return { exists: false, namespace };
+    } catch (error) {
+      .toISOString()}] ℹ️ Repository check: ${error.message}`);
+      return { exists: false, namespace: this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`) };
+    }
+  }
+}
+
+module.exports = ContextPipeline;
+
+```
+
+---
+
+## 📈 RAG Optimization Benefits
+
+### ✅ Advantages of Method-Level Splitting:
+
+1. **Precise Retrieval:** Each method/function can be retrieved independently
+2. **Better Context Matching:** Queries match specific functionality rather than entire classes
+3. **Reduced Noise:** Less irrelevant code in retrieved chunks
+4. **Improved Embeddings:** More focused semantic representations
+5. **Scalable Architecture:** Large classes don't overwhelm context windows
+
+### ⚖️ Trade-offs:
+
+1. **More Chunks:** 1 chunks vs 1 large chunk
+2. **Storage Overhead:** Multiple embeddings per file
+3. **Context Fragmentation:** May lose some class-level context
+4. **Complexity:** More sophisticated retrieval logic needed
+
+## 🎯 Recommendations
+
+For the **contextPipeline.js** class:
+
+1. **Use Method-Level Splitting:** ✅ Recommended due to large size (32,983 chars)
+2. **Chunk Configuration:** Current settings (300 max tokens) provide good granularity
+3. **Context Strategy:** Consider adding class-level summary chunk for overview queries
+4. **Retrieval Strategy:** Use semantic similarity + metadata filtering for best results
+
+## 🔧 Implementation Notes
+
+This analysis uses:
+- **TokenBasedSplitter:** Accurate token counting with tiktoken
+- **ASTCodeSplitter:** Semantic-aware code boundaries
+- **Aggressive Limits:** 300 tokens max for method-level granularity
+- **Context Preservation:** 75-token overlap between chunks
+
+---
+
+*Generated by Enhanced RAG Pipeline Processing System*
+*Timestamp: 2025-10-11T13:04:04.778Z*
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 9,
+  "chunkTokens": 588,
+  "filePath": "backend/method_level_analysis_contextPipeline.md",
+  "fileSize": 36633,
+  "loaded_at": "2025-10-30T12:08:21.891Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 7849,
+  "priority": 50,
+  "processedAt": "2025-10-30T12:08:21.891Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "c35cbab97c1ff942be520eb6bb804ec06bc89de9",
+  "size": 36633,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.483736098,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1345_1761826129419"
+}
+```
+
+---
+
+### Chunk 12/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3978 characters
+- **Score**: 0.476308882
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T11:22:48.306Z
+
+**Full Content**:
+```
+cumentsToProcessors?.bind(this)
+      );
+
+// Step 5: Store processed documents using EmbeddingManager
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
+
+// Step 6: Store repository tracking info for future duplicate detection
+      if (commitHash) {
+        const pineconeClient2 = await this.getPineconeClient();
+        await this.githubOperations.storeRepositoryTrackingInfo(
+          userId, repoId, githubOwner, repoName, actualCommitInfo,
+          namespace, pineconeClient2, this.embeddings
+        );
+      }
+
+      const result = {
+        success: true,
+        documentsProcessed: documents.length,
+        chunksGenerated: splitDocuments.length,
+        commitInfo: actualCommitInfo,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
+
+      return ContextPipelineUtils.createStandardResult({
+        success: true,
+        mode: 'full',
+        reason: analysisRecommendation ? 'smart_full_standard' : 'standard_processing',
+        message: analysisRecommendation
+          ? `Smart full processing: ${analysisRecommendation.reasoning}
+          : 'Standard repository processing completed with Langchain-first approach',
+        commitHash: commitInfo?.hash ?? null,
+        details: {
+          totalDocuments: result.documentsProcessed || 0,
+          totalChunks: result.chunksGenerated || 0,
+          githubOwner,
+          repoName,
+          namespace,
+          processingStrategy: 'standard_langchain',
+          ...(analysisRecommendation && { smartAnalysis: analysisRecommendation })
+        },
+        repoId,
+        userId
+      });
+
+    } catch (error) {
+      .toISOString()}] ❌ Standard processing error for ${repoId}:`, error.message);
+      throw error;
+    }
+  }
+
+  emitRagStatus(status, details = {}) {
+    return this.eventManager.emitRagStatus(status, details);
+  }
+
+  /**
+   Check if repository already exists and processed for given commit
+   Moved from RepoProcessor as part of orchestration responsibility
+   */
+  async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
+    try {
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`);
+      const pineconeClient = await this.getPineconeClient();
+
+// Query for any existing documents in this namespace
+      const queryResponse = await pineconeClient.namespace(namespace).query({
+        vector: new Array(1536).fill(0), // Dummy vector for existence check
+        topK: 1,
+        includeMetadata: true
+      });
+
+      if (queryResponse.matches && queryResponse.matches.length > 0) {
+        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
+        return {
+          exists: true,
+          commitHash: existingCommit,
+          needsUpdate: existingCommit !== currentCommitHash,
+          namespace,
+          reason: existingCommit === currentCommitHash ? 'same_commit' : 'commit_changed'
+        };
+      }
+
+      return { exists: false, namespace };
+    } catch (error) {
+      .toISOString()}] ℹ️ Repository check: ${error.message}`);
+      return { exists: false, namespace: this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`) };
+    }
+  }
+}
+
+module.exports = ContextPipeline;
+```
+
+### 📚 Step 2: Ubiquitous Language Enhancement
+
+**Size:** 29,535 characters
+**Enhancement Applied:**
+- 📚 Added business domain terminology context
+- 🏗️ Enriched with architectural pattern knowledge
+- 🔧 Enhanced technical implementation context
+- 📋 Added metadata for improved semantic retrieval
+- 🎯 Contextualized within RAG pipeline architecture
+
+```javascript
+"use strict";
+
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 16,
+  "chunkTokens": 995,
+  "filePath": "backend/contextPipeline_method_level_analysis.md",
+  "fileSize": 125660,
+  "loaded_at": "2025-10-30T11:22:48.306Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26649,
+  "priority": 50,
+  "processedAt": "2025-10-30T11:22:48.306Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
+  "size": 125660,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.476308882,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_299_1761823425740"
+}
+```
+
+---
+
+### Chunk 13/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3987 characters
+- **Score**: 0.475029022
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:52.303Z
+
+**Full Content**:
+```
+gsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+// Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+
+// Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+
+// Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: false,
+      includeImports: false
+    });
+
+    this.semanticPreprocessor = new SemanticPreprocessor();
+
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+
+// Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+    });
+
+    this.embeddingManager = new EmbeddingManager({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      pineconeService: pineconeService
+    });
+
+// Initialize repoProcessor with pure processing dependencies only
+    this.repoProcessor = new RepoProcessor({
+      astBasedSplitter: this.astCodeSplitter,
+      semanticPreprocessor: this.semanticPreprocessor,
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer
+    });
+
+// Initialize EventManager
+    this.eventManager = new EventManager({
+      eventBus: this.eventBus
+    });
+
+// Pinecone will be initialized inline when needed
+    this.pinecone = null;
+
+// Initialize tracing if enabled
+    this._initializeTracing();
+  }
+
+  _initializeTracing() {
+    this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
+
+    if (!this.enableTracing) {
+      return;
+    }
+
+// bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.
+    try {
+      this.processPushedRepo = traceable(
+        this.processPushedRepo.bind(this), //
+        {
+          name: 'ContextPipeline.processPushedRepo',
+          project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+          metadata: { component: 'ContextPipeline' },
+          tags: ['rag', 'ingestion']
+        }
+      );
+
+      .toISOString()}] [TRACE] ContextPipeline tracing enabled.`);
+      .toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
+    } catch (err) {
+      .toISOString()}] [TRACE] Failed to enable ContextPipeline tracing: ${err.message}`);
+    }
+  }
+
+  async getPineconeClient() {
+    if (!this.pinecone) {
+      try {
+        this.pinecone = await this.pineconeManager?.getPineconeService();
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 17,
+  "chunkTokens": 997,
+  "filePath": "backend/contextPipeline_method_level_analysis.md",
+  "fileSize": 125660,
+  "loaded_at": "2025-10-30T12:07:52.303Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26649,
+  "priority": 50,
+  "processedAt": "2025-10-30T12:07:52.303Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "5c59b43075cdd260d98a2243b36b2612a68cd943",
+  "size": 125660,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.475029022,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_829_1761826129418"
+}
+```
+
+---
+
+### Chunk 14/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 3981 characters
+- **Score**: 0.473955184
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T11:23:28.163Z
+
+**Full Content**:
+```
+err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
+// Store options for lazy initialization
+    this.options = options;
+    this.embeddings = options.embeddings;
+    this.eventBus = options.eventBus;
+    this.pineconeLimiter = options.pineconeLimiter;
+    this.config = options.config || {};
+
+// Initialize core components only
+    this.pineconeManager = new PineconePlugin();
+    this.githubOperations = new GitHubOperations();
+    this.changeAnalyzer = new ChangeAnalyzer();
+    this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
+    this.workerManager = new RepoWorkerManager();
+
+// Initialize document processing components
+    this.codePreprocessor = new CodePreprocessor({
+      excludeImportsFromChunking: this.options.excludeImportsFromChunking !== false,
+      preserveDocComments: this.options.preserveDocComments !== false,
+      normalizeWhitespace: this.options.normalizeWhitespace !== false,
+      extractStructuralInfo: this.options.extractStructuralInfo !== false
+    });
+
+    this.astCodeSplitter = new ASTCodeSplitter({
+      maxChunkSize: this.options.maxChunkSize || 2000,
+      includeComments: false,
+      includeImports: false
+    });
+
+    this.semanticPreprocessor = new SemanticPreprocessor();
+
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter
+    });
+
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager
+    });
+
+// Initialize EmbeddingManager with PineconeService dependency
+    const pineconeService = new PineconeService({
+      pineconePlugin: this.pineconeManager,
+      rateLimiter: this.pineconeLimiter
+    });
+
+    this.embeddingManager = new EmbeddingManager({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      pineconeService: pineconeService
+    });
+
+// Initialize repoProcessor with pure processing dependencies only
+    this.repoProcessor = new RepoProcessor({
+      astBasedSplitter: this.astCodeSplitter,
+      semanticPreprocessor: this.semanticPreprocessor,
+      ubiquitousLanguageProcessor: this.ubiquitousLanguageEnhancer
+    });
+
+// Initialize EventManager
+    this.eventManager = new EventManager({
+      eventBus: this.eventBus
+    });
+
+// Pinecone will be initialized inline when needed
+    this.pinecone = null;
+
+// Initialize tracing if enabled
+    this._initializeTracing();
+  }
+
+  _initializeTracing() {
+    this.enableTracing = process.env.LANGSMITH_TRACING === 'true' && !!traceable;
+
+    if (!this.enableTracing) {
+      return;
+    }
+
+// bind(this) call ensures that when processPushedRepo is eventually called, the this keyword inside that method will always refer to the current object, regardless of how or where the method is invoked.
+    try {
+      this.processPushedRepo = traceable(
+        this.processPushedRepo.bind(this), //
+        {
+          name: 'ContextPipeline.processPushedRepo',
+          project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+          metadata: { component: 'ContextPipeline' },
+          tags: ['rag', 'ingestion']
+        }
+      );
+
+      .toISOString()}] [TRACE] ContextPipeline tracing enabled.`);
+      .toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
+    } catch (err) {
+      .toISOString()}] [TRACE] Failed to enable ContextPipeline tracing: ${err.message}`);
+    }
+  }
+
+  async getPineconeClient() {
+    if (!this.pinecone) {
+      try {
+        this.pinecone = await this.pineconeManager?.getPineconeService();
+      } catch (error) {
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "chunkIndex": 9,
+  "chunkTokens": 996,
+  "filePath": "backend/processing_report_contextPipeline.md",
+  "fileSize": 124355,
+  "loaded_at": "2025-10-30T11:23:28.163Z",
+  "loading_method": "cloud_native_api",
+  "originalTokens": 26362,
+  "priority": 50,
+  "processedAt": "2025-10-30T11:23:28.163Z",
+  "rechunked": true,
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "7f14a662a1b0a8c78cca36e790a280397bb1a28b",
+  "size": 124355,
+  "source": "anatolyZader/vc-3",
+  "type": "github-docs",
+  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
+  "workerId": 3,
+  "score": 0.473955184,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1074_1761823425740"
+}
+```
+
+---
+
+### Chunk 15/16
+- **Source**: anatolyZader/vc-3
+- **Type**: github-docs
+- **Size**: 2897 characters
+- **Score**: 0.464002639
+- **Repository**: anatolyZader/vc-3
+- **Branch**: main
+- **File Type**: N/A
+- **Processed At**: 2025-10-30T12:07:30.051Z
+
+**Full Content**:
+```
+# Best Practices for LangChain RAG with GitHub Repository Embeddings
+
+## 🏗️ **1. MULTI-PIPELINE ARCHITECTURE**
+
+### ✅ **EventStorm's Current Implementation (Excellent)**
+```javascript
+// Separation of concerns
+contextPipeline.js    // Repository processing & indexing
+queryPipeline.js      // Real-time query & response
+contextPipeline.js    // Document ingestion management
+```
+
+### 📋 **Best Practice Principles**
+- **Separate Ingestion from Query** - Different performance requirements
+- **Async Background Processing** - Don't block user requests
+- **Rate Limiting Awareness** - GitHub API has strict limits
+- **Incremental Updates** - Only process changed files
+
+## 🗂️ **2. INTELLIGENT CHUNKING STRATEGY**
+
+### ✅ **EventStorm's Advanced Approach**
+```javascript
+// AST-based code splitting
+astCodeSplitter.js           // Language-aware chunking
+chunkingImprovementPipeline.js // Continuous improvement
+ubiquitousLanguageProcessor.js  // Domain-specific context
+```
+
+### 📋 **Best Practices**
+- **AST-Based Splitting** - Respect function/class boundaries
+- **Variable Chunk Sizes** - Smaller for code, larger for docs
+- **Semantic Boundaries** - Don't split related concepts
+- **Overlap Strategy** - 10-20% overlap for context continuity
+
+## 🚀 **3. PRODUCTION-GRADE RATE LIMITING**
+
+### ✅ **EventStorm's Sophisticated Implementation**
+```javascript
+// Multi-layer rate limiting
+requestQueue.js          // Internal request queuing
+cloudNativeRepoLoader.js // GitHub API rate limiting
+bottleneck               // Pinecone rate limiting
+```
+
+### 📋 **Best Practices**
+- **Exponential Backoff** - 2s, 4s, 8s retry delays
+- **Priority Processing** - Core files (plugins, services) first
+- **Batch Processing** - 3-5 files per batch
+- **Circuit Breakers** - Stop on repeated failures
+
+## 📊 **4. OBSERVABILITY & MONITORING**
+
+### ✅ **EventStorm's LangSmith Integration** 
+```javascript
+// Comprehensive tracing
+langsmith/trace-archiver.js    // Automatic trace collection
+ChunkQualityAnalyzer.js       // Quality assessment
+export-rag-chunks.js          // Data export for analysis
+```
+
+### 📋 **Best Practices**
+- **Trace Everything** - Query pipeline, chunking, retrieval
+- **Quality Metrics** - Chunk relevance, context completeness
+- **Performance Monitoring** - Response times, token usage
+- **Error Tracking** - Rate limits, authentication failures
+
+## 🎯 **5. CONTEXT QUALITY OPTIMIZATION**
+
+### ✅ **EventStorm's Advanced Features**
+```javascript
+// Smart context building
+vectorSearchOrchestrator.js   // Multi-strategy search
+contentAwareSplitterRouter.js // Content-type routing
+semanticPreprocessor.js       // Enhanced preprocessing
+```
+
+### 📋 **Best Practices**
+- **Hybrid Search** - Vector + keyword search
+- **Metadata Enrichment** - File path, type, importance
+- **Context Ranking** - Score by relevance and recency
+- **Dynamic Context Size** - Adjust based on query complexity
+```
+
+**Metadata**:
+```json
+{
+  "branch": "main",
+  "filePath": "backend/RAG_BEST_PRACTICES.md",
+  "fileSize": 2931,
+  "loaded_at": "2025-10-30T12:07:30.051Z",
+  "loading_method": "cloud_native_api",
+  "priority": 50,
+  "processedAt": "2025-10-30T12:07:30.051Z",
+  "repoId": "anatolyZader/vc-3",
+  "repository": "anatolyZader/vc-3",
+  "sha": "e397e919644e18de8cd72c5d76f5ec2f5eb8464f",
+  "size": 2931,
   "source": "anatolyZader/vc-3",
   "type": "github-docs",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
   "workerId": 2,
-  "score": 0.384473801,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_4141_1761823425744"
+  "score": 0.464002639,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_4152_1761826129422"
 }
 ```
 
 ---
 
-### Chunk 9/13
+### Chunk 16/16
 - **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 342 characters
-- **Score**: 0.382452041
+- **Type**: github-docs
+- **Size**: 3981 characters
+- **Score**: 0.463691741
 - **Repository**: anatolyZader/vc-3
 - **Branch**: main
 - **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:15.179Z
+- **Processed At**: 2025-10-30T11:23:28.163Z
 
 **Full Content**:
 ```
-'use strict';
-/* eslint-disable no-unused-vars */
+sToProcessors?.bind(this)
+      );
 
-class IApiService {
-  constructor() {
-    if (new.target === IApiService) {
-      throw new Error('Cannot instantiate an abstract class.');
-    }
-  }
+      // Step 5: Store processed documents using EmbeddingManager
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_${branch}`);
+      await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
+      
+      // Step 6: Store repository tracking info for future duplicate detection  
+      if (commitHash) {
+        const pineconeClient2 = await this.getPineconeClient();
+        await this.githubOperations.storeRepositoryTrackingInfo(
+          userId, repoId, githubOwner, repoName, actualCommitInfo, 
+          namespace, pineconeClient2, this.embeddings
+        );
+      }
 
-  async fetchHttpApi(userId, repoId) {
-    throw new Error('fetchHttpApi() Method not implemented.');
-  }
+      // Prepare result
+      const result = {
+        success: true,
+        documentsProcessed: documents.length,
+        chunksGenerated: splitDocuments.length,
+        commitInfo: actualCommitInfo,
+        namespace,
+        processedAt: new Date().toISOString()
+      };
 
-}
-
-module.exports = IApiService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/business_modules/api/application/services/interfaces/IApiService.js",
-  "fileSize": 342,
-  "loaded_at": "2025-10-30T12:07:15.179Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T12:07:15.179Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "8671f0a27accc9afdd831ee2bf7cdff53549d02e",
-  "size": 342,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 1,
-  "score": 0.382452041,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1911_1761826129419"
-}
-```
-
----
-
-### Chunk 10/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1066 characters
-- **Score**: 0.382226944
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T13:26:38.696Z
-
-**Full Content**:
-```
-/* eslint-disable no-unused-vars */
-'use strict';
-
-class IChatService {
-
-  async startConversation(userId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async fetchConversationsHistory(userId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async fetchConversation(userId, conversationId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async renameConversation(userId, conversationId, newTitle) {
-    throw new Error("Method not implemented.");
-  }
-
-  async deleteConversation(userId, conversationId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async addQuestion(userId, conversationId, prompt) {
-    throw new Error("Method not implemented.");
-  }
-
-  async addAnswer(userId, conversationId, answer) {
-    throw new Error("Method not implemented.");
-  }
-
-  async nameConversation(userId, conversationId) {
-    throw new Error("Method not implemented.");
-  }
-
-  async addVoiceQuestion(userId, conversationId, audioBuffer, options = {}) {
-    throw new Error("Method not implemented.");
-  }
-}
-
-module.exports = IChatService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/business_modules/chat/application/services/interfaces/IChatService.js",
-  "fileSize": 1066,
-  "loaded_at": "2025-10-30T13:26:38.696Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T13:26:38.696Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "08b1b1ba06a07f89cdf9d2eccb34f0f34e44f606",
-  "size": 1066,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 0,
-  "score": 0.382226944,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_90_1761830893278"
-}
-```
-
----
-
-### Chunk 11/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 434 characters
-- **Score**: 0.375635147
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:14.435Z
-
-**Full Content**:
-```
-/* eslint-disable no-unused-vars */
-'use strict';
-
-class IAIService {
-  constructor() {
-    if (new.target === IAIService) {
-      throw new Error('Cannot instantiate an interface.');
-    }
-  }
-
-  async respondToPrompt(userId, conversationId, prompt) {
-    throw new Error('Method not implemented.');
-  }
-
-  async processPushedRepo(userId, repoId) {
-    throw new Error('Method not implemented.');
-  }
-}
-
-module.exports = IAIService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/business_modules/ai/application/services/interfaces/IAIService.js",
-  "fileSize": 434,
-  "loaded_at": "2025-10-30T12:07:14.435Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T12:07:14.435Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "c57d61c315166ee56f448f5dca9826888aa9615a",
-  "size": 434,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.375635147,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_3939_1761826129422"
-}
-```
-
----
-
-### Chunk 12/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 521 characters
-- **Score**: 0.369794875
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T12:07:19.636Z
-
-**Full Content**:
-```
-'use strict';
-/* eslint-disable no-unused-vars */
-
-class IGitService {
-  constructor() {
-    if (new.target === IGitService) {
-      throw new Error('Cannot instantiate an abstract class.');
-    }
-  }
-
-  async fetchRepo(userId, repoId) {
-    throw new Error('Method not implemented.');
-  }
-
-  async fetchDocs(userId, repoId) {
-    throw new Error('Method not implemented.');
-  }
-
-  async persistRepo(userId, repoId, branch, options) {
-    throw new Error('Method not implemented.');
-  }
-
-}
-
-module.exports = IGitService;
-
-```
-
-**Metadata**:
-```json
-{
-  "branch": "main",
-  "filePath": "backend/business_modules/git/application/services/interfaces/IGitService.js",
-  "fileSize": 521,
-  "loaded_at": "2025-10-30T12:07:19.636Z",
-  "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T12:07:19.636Z",
-  "repoId": "anatolyZader/vc-3",
-  "repository": "anatolyZader/vc-3",
-  "sha": "b20786a15c883cc69113d1056b847b3e2cfaf125",
-  "size": 521,
-  "source": "anatolyZader/vc-3",
-  "type": "github-code",
-  "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 0,
-  "score": 0.369794875,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_161_1761826129418"
-}
-```
-
----
-
-### Chunk 13/13
-- **Source**: anatolyZader/vc-3
-- **Type**: github-code
-- **Size**: 1004 characters
-- **Score**: 0.366195679
-- **Repository**: anatolyZader/vc-3
-- **Branch**: main
-- **File Type**: N/A
-- **Processed At**: 2025-10-30T13:26:37.928Z
-
-**Full Content**:
-```
-// apiService.js
-/* eslint-disable no-unused-vars */
-'use strict';
-
-const HttpApi = require('../../domain/entities/httpApi');
-const HttpApiFetchedEvent = require('../../domain/events/httpApiFetchedEvent');
-const IApiService = require('./interfaces/IApiService');
-
-class ApiService extends IApiService {
-  constructor({ apiAdapter, apiPersistAdapter, apiMessagingAdapter,}) {
-    super();
-    this.apiAdapter = apiAdapter;
-    this.apiPersistAdapter = apiPersistAdapter;    
-    this.apiMessagingAdapter = apiMessagingAdapter;  
-  }
-
-  async fetchHttpApi(userId, repoId) {
-      const apiObj = new HttpApi(userId, repoId);
-      const fetchedApi = await apiObj.fetchHttpApi(this.apiAdapter, this.apiPersistAdapter);
-      // Create and publish domain event
-      const event = new HttpApiFetchedEvent({
-        userId,
+      return ContextPipelineUtils.createStandardResult({
+        success: true,
+        mode: 'full',
+        reason: analysisRecommendation ? 'smart_full_standard' : 'standard_processing',
+        message: analysisRecommendation 
+          ? `Smart full processing: ${analysisRecommendation.reasoning}`
+          : 'Standard repository processing completed with Langchain-first approach',
+        commitHash: commitInfo?.hash ?? null,
+        details: {
+          totalDocuments: result.documentsProcessed || 0,
+          totalChunks: result.chunksGenerated || 0,
+          githubOwner,
+          repoName,
+          namespace,
+          processingStrategy: 'standard_langchain',
+          ...(analysisRecommendation && { smartAnalysis: analysisRecommendation })
+        },
         repoId,
-        spec: fetchedApi
+        userId
       });
-      await this.apiMessagingAdapter.publishHttpApiFetchedEvent(event);
-      return fetchedApi;
+      
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Standard processing error for ${repoId}:`, error.message);
+      throw error;
     }
+  }
+
+  emitRagStatus(status, details = {}) {
+    return this.eventManager.emitRagStatus(status, details);
+  }
+
+  /**
+   * Check if repository already exists and processed for given commit
+   * Moved from RepoProcessor as part of orchestration responsibility
+   */
+  async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
+    try {
+      const namespace = this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`);
+      const pineconeClient = await this.getPineconeClient();
+      
+      // Query for any existing documents in this namespace
+      const queryResponse = await pineconeClient.namespace(namespace).query({
+        vector: new Array(1536).fill(0), // Dummy vector for existence check
+        topK: 1,
+        includeMetadata: true
+      });
+
+      if (queryResponse.matches && queryResponse.matches.length > 0) {
+        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
+        return {
+          exists: true,
+          commitHash: existingCommit,
+          needsUpdate: existingCommit !== currentCommitHash,
+          namespace,
+          reason: existingCommit === currentCommitHash ? 'same_commit' : 'commit_changed'
+        };
+      }
+
+      return { exists: false, namespace };
+    } catch (error) {
+      console.log(`[${new Date().toISOString()}] ℹ️ Repository check: ${error.message}`);
+      return { exists: false, namespace: this.githubOperations.sanitizeId(`${githubOwner}_${repoName}_main`) };
+    }
+  }
 }
 
-module.exports = ApiService;
+module.exports = ContextPipeline;
 
+```
+
+### Step 1: Code Preprocessing Result
+
+**Changes Applied:**
+- ✅ Remove import statements for cleaner chunking
+- ✅ Preserve documentation comments
+- ✅ Remove log statements (preserve errors)
+- ✅ Normalize whitespace
+
+```js
+"use strict";
+
+
+let traceable;
+try {
+  ({ traceable } = require('langsmith/traceable'));
+} catch (err) {
+  if (process.env.LANGSMITH_TRACING === 'true') {
+    .toISOString()}] [TRACE] LangSmith traceable not available: ${err.message}`);
+  }
+}
+
+class ContextPipeline {
+  constructor(options = {}) {
 ```
 
 **Metadata**:
 ```json
 {
   "branch": "main",
-  "filePath": "backend/business_modules/api/application/services/apiService.js",
-  "fileSize": 1004,
-  "loaded_at": "2025-10-30T13:26:37.928Z",
+  "chunkIndex": 8,
+  "chunkTokens": 996,
+  "filePath": "backend/processing_report_contextPipeline.md",
+  "fileSize": 124355,
+  "loaded_at": "2025-10-30T11:23:28.163Z",
   "loading_method": "cloud_native_api",
-  "priority": 85,
-  "processedAt": "2025-10-30T13:26:37.928Z",
+  "originalTokens": 26362,
+  "priority": 50,
+  "processedAt": "2025-10-30T11:23:28.163Z",
+  "rechunked": true,
   "repoId": "anatolyZader/vc-3",
   "repository": "anatolyZader/vc-3",
-  "sha": "200d22ad33617c509df5a11f4e49c4119382c735",
-  "size": 1004,
+  "sha": "7f14a662a1b0a8c78cca36e790a280397bb1a28b",
+  "size": 124355,
   "source": "anatolyZader/vc-3",
-  "type": "github-code",
+  "type": "github-docs",
   "userId": "d41402df-182a-41ec-8f05-153118bf2718",
-  "workerId": 2,
-  "score": 0.366195679,
-  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_6_1761830893278"
+  "workerId": 3,
+  "score": 0.463691741,
+  "id": "d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3_anatolyZader_vc-3_chunk_1073_1761823425740"
 }
 ```
 
@@ -1247,35 +2428,37 @@ module.exports = ApiService;
 
 ### Generated Response:
 **Status**: ✅ Generated Successfully
-**Response Length**: 1120 characters
-**Generated At**: 2025-10-31T10:37:29.803Z
+**Response Length**: 1690 characters
+**Generated At**: 2025-10-31T10:56:01.056Z
 
 ### Response Content:
 ```markdown
-Based on the actual code provided, the `userService.js` file contains the following methods:
+Based on the actual code provided in the `contextPipeline.js` file, here is a detailed review:
 
-1. `loginWithGoogle(accessToken)`: This method fetches user information from Google using the provided access token and performs some basic checks on the returned user profile.
+1. **Methods:**
+   - The `ContextPipeline` class has a constructor that initializes various components and options.
+   - There are several methods within the `ContextPipeline` class, such as `processRepository`, `getPineconeClient`, `storeRepositoryTrackingInfo`, and others, but the code does not provide a complete list of all the methods.
 
-2. `getUserInfo()`: This method is declared in the `IUserService` interface but does not have an implementation in the provided code.
+2. **Potential Improvements:**
+   - The code appears to be well-structured and modular, with separate components for different responsibilities (e.g., `PineconePlugin`, `GitHubOperations`, `ChangeAnalyzer`). This separation of concerns is a good practice.
+   - The code uses AST-based code splitting and other advanced techniques for intelligent chunking, which is an excellent approach for optimizing retrieval-augmented generation (RAG).
+   - The code includes error handling and logging, which is important for maintainability and debugging.
+   - One potential improvement could be to add more detailed comments and documentation to explain the purpose and functionality of each method and component. This would make the codebase more readable and easier to understand for other developers.
+   - Another potential improvement could be to consider adding unit tests to ensure the reliability and correctness of the various components and methods.
 
-3. `register(username, email, password)`: This method is declared in the `IUserService` interface but does not have an implementation in the provided code.
-
-4. `removeUser(email)`: This method is declared in the `IUserService` interface but does not have an implementation in the provided code.
-
-5. `readAllUsers()`: This method is declared in the `IUserService` interface, but it throws an error saying "Method not implemented." There is no actual implementation of this method shown in the provided code.
-
-So in summary, the `readAllUsers()` method is declared in the `IUserService` interface, but I do not see an implementation of it in the `userService.js` file or any other file in the provided code context.
+Overall, the `contextPipeline.js` file appears to be a well-designed and implemented component within the EventStorm.me application. The code demonstrates a strong focus on modularity, performance optimization, and error handling, which are all important considerations for a complex system like this.
 ```
 
 ### Response Quality Assessment:
-- **Relevance to Query**: HIGH - Directly addresses query terms
+- **Relevance to Query**: MEDIUM - Partially addresses query
 - **Use of Context**: MEDIUM - Implicit context usage
-- **Response Completeness**: EXCELLENT - Well-structured and comprehensive
+- **Response Completeness**: GOOD - Structured with adequate detail
 
 ### Key Response Elements:
-- **Structured Lists**: 5 numbered points
+- **Structured Lists**: 2 numbered points
+- **Bullet Points**: 7 bullet items
 - **File References**: 2 specific files mentioned
-- **Technical Terms**: 8 technical concepts used
+- **Technical Terms**: 5 technical concepts used
 
 ---
 
@@ -1283,15 +2466,15 @@ So in summary, the `readAllUsers()` method is declared in the `IUserService` int
 ## 📈 Performance Metrics
 
 ### Search Efficiency:
-- **Query Processing Time**: 4775ms
-- **Documents Retrieved**: 13
+- **Query Processing Time**: 6426ms
+- **Documents Retrieved**: 16
 - **Unique Sources**: 1
-- **Average Chunk Size**: 1618 characters
+- **Average Chunk Size**: 3813 characters
 
 ### Context Quality:
-- **Relevance Score**: HIGH (13 relevant chunks found)
+- **Relevance Score**: HIGH (16 relevant chunks found)
 - **Diversity Score**: LOW (1 unique sources)
-- **Completeness Score**: HIGH (21,030 total characters)
+- **Completeness Score**: HIGH (61,005 total characters)
 
 ### LangSmith Integration:
 - **Tracing Status**: ✅ Active
@@ -1301,20 +2484,21 @@ So in summary, the `readAllUsers()` method is declared in the `IUserService` int
 ## 🔍 Source Analysis
 
 ### Most Frequent Sources:
-- **anatolyZader/vc-3**: 13 chunks
+- **anatolyZader/vc-3**: 16 chunks
 
 ### Repository Coverage:
 - anatolyZader/vc-3
 
 ## 🎯 Query Classification & Analysis
 
-- **Query Type**: Implementation/Development
+- **Query Type**: Informational/Explanatory
 - **Domain Focus**: General Application
-- **Technical Complexity**: Medium
-- **Expected Response Type**: General
+- **Technical Complexity**: High
+- **Expected Response Type**: Informational
 
 ## 🚀 Recommendations
 
+- **Optimize Query Performance**: Query took over 5 seconds, consider caching or index optimization
 - **Increase Source Diversity**: All chunks from same source, consider broader indexing
 
 ## ✨ Conclusion
@@ -1328,7 +2512,7 @@ This comprehensive LangSmith trace demonstrates excellent RAG performance with:
 The query was successfully processed with comprehensive LangSmith tracing capturing the complete RAG pipeline execution.
 
 ---
-**Generated**: 2025-10-31T10:37:29.803Z  
+**Generated**: 2025-10-31T10:56:01.058Z  
 **LangSmith Project**: eventstorm-trace  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true
