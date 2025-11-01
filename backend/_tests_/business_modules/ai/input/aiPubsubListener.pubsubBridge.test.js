@@ -52,7 +52,7 @@ describe('AI Pub/Sub listener - GCP Pub/Sub bridge', () => {
   expect(fastify.diContainer.resolve).toHaveBeenCalledTimes(2);
   // Assert topic and subscription names
   expect(topicSpy).toHaveBeenCalledWith('git-topic');
-    expect(subscriptionFn).toHaveBeenCalledWith('gi-sub');
+    expect(subscriptionFn).toHaveBeenCalledWith('git-sub');
   });
 
   test('forwards GCP message with event to internal eventBus', async () => {
