@@ -35,11 +35,15 @@ async function gitPubsubListener(fastify, options) {
           const [owner, repo] = parts;
 
         if (typeof fastify.fetchRepo === 'function') {
-          // Create mock request object for fetchRepo
+          // Create a DI scope for this Pub/Sub request
+          const diScope = fastify.diContainer.createScope();
+          
+          // Create mock request object for fetchRepo with DI scope
           const mockRequest = {
             params: { owner, repo },
             user: { id: userId },
-            headers: { 'x-correlation-id': correlationId }
+            headers: { 'x-correlation-id': correlationId },
+            diScope: diScope // Add DI scope to request
           };
           const mockReply = {};
 
@@ -60,11 +64,15 @@ async function gitPubsubListener(fastify, options) {
         fastify.log.info(`Processing fetchDocs event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
 
         if (typeof fastify.fetchDocs === 'function') {
-          // Create mock request object for fetchDocs
+          // Create a DI scope for this Pub/Sub request
+          const diScope = fastify.diContainer.createScope();
+          
+          // Create mock request object for fetchDocs with DI scope
           const mockRequest = {
             params: { repoId },
             user: { id: userId },
-            headers: { 'x-correlation-id': correlationId }
+            headers: { 'x-correlation-id': correlationId },
+            diScope: diScope // Add DI scope to request
           };
           const mockReply = {};
 
@@ -93,12 +101,16 @@ async function gitPubsubListener(fastify, options) {
         const [owner, repo] = parts;
 
         if (typeof fastify.persistRepo === 'function') {
-          // Create mock request object for persistRepo
+          // Create a DI scope for this Pub/Sub request
+          const diScope = fastify.diContainer.createScope();
+          
+          // Create mock request object for persistRepo with DI scope
           const mockRequest = {
             params: { owner, repo },
             body: { branch, forceUpdate, includeHistory },
             user: { id: userId },
-            headers: { 'x-correlation-id': correlationId }
+            headers: { 'x-correlation-id': correlationId },
+            diScope: diScope // Add DI scope to request
           };
           const mockReply = {};
 
