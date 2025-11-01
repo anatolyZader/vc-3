@@ -47,7 +47,7 @@ class GitPubsubAdapter {
 
   async publishRepoPersistedEvent(event, correlationId) {
     // DUAL-PATH ARCHITECTURE:
-    // Path 1: GitHub Actions publishes repoPushed events directly (primary)
+    // Path 1: GitHubb Actions publishes repoPushed events directly (primary)
     // Path 2: Git API persist endpoint also publishes (fallback for manual triggers)
     // Both use the same payload format for consistency
     
