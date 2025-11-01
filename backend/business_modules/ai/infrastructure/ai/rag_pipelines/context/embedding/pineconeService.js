@@ -1,4 +1,17 @@
 // pineconeService.js
+//
+// DETERMINISTIC VECTOR IDS (Nov 2025)
+// ====================================
+// Vector IDs are now deterministic using content hash + source:
+//   Format: namespace:source:contentHash (e.g. "my-repo:src_Button.js:a1b2c3d4")
+// 
+// Benefits:
+//   ✅ Idempotent upserts: same content = same ID = automatic overwrite (no duplicates)
+//   ✅ Simplified cleanup: only needed for deleted/renamed files (not duplicates)
+//   ✅ Better performance: no sampling queries or duplicate detection
+//   ✅ Easier debugging: ID tells you exactly what it contains
+//
+// See: DETERMINISTIC_VECTOR_IDS.md for full documentation
 
 const { PineconeStore } = require('@langchain/pinecone');
 const PineconePlugin = require('./pineconePlugin');
@@ -70,23 +83,20 @@ class PineconeService {
   async createVectorStore(embeddings, namespace = null) {
     const index = await this.getIndex();
     
-    // Use the newer LangChain API pattern for better compatibility
-    const storeConfig = {
-      pineconeIndex: index,
-      embeddings: embeddings
-    };
-
-    if (namespace) {
-      storeConfig.namespace = namespace;
-      this.logger.debug(`Creating vector store with namespace: ${namespace}`);
-    }
-
-    // Try newer API first, fallback to legacy constructor if needed
+    // Try v0.2+ API signature first (embedding in config object)
     try {
-      return await PineconeStore.fromExistingIndex(embeddings, storeConfig);
+      return await PineconeStore.fromExistingIndex({
+        pineconeIndex: index,
+        embedding: embeddings,
+        ...(namespace ? { namespace } : {})
+      });
     } catch (error) {
-      this.logger.debug('Using legacy PineconeStore constructor');
-      return new PineconeStore(embeddings, storeConfig);
+      // Fallback to legacy API signature (embeddings as first parameter)
+      this.logger.debug('Using legacy PineconeStore API signature');
+      return await PineconeStore.fromExistingIndex(embeddings, {
+        pineconeIndex: index,
+        ...(namespace ? { namespace } : {})
+      });
     }
   }
 
@@ -295,99 +305,113 @@ class PineconeService {
   }
 
   /**
-   * Clean up old repository embeddings by deleting vectors with older timestamps
-   * This is a more targeted cleanup that preserves system docs while removing old repo versions
+   * Clean up old repository embeddings
+   * 
+   * With deterministic IDs (userId:repoId:source:contentHash), upserts are now idempotent.
+   * Duplicates don't occur because same content = same ID = automatic overwrite.
+   * 
+   * Cleanup is only needed for:
+   * 1. Deleted files (source no longer exists in repo)
+   * 2. Renamed files (old source path should be removed)
+   * 
+   * For now, this is a simplified version that deletes the entire namespace
+   * before re-indexing. Future enhancement: track file deletions/renames explicitly.
    */
   async cleanupOldRepositoryEmbeddings(namespace, options = {}) {
-    const { keepLatestCount = 1, dryRun = false } = options;
+    const { dryRun = false } = options;
     
     try {
-      this.logger.info(`Cleaning up old repository embeddings in namespace: ${namespace}`);
+      this.logger.info(`Cleanup for namespace: ${namespace} (with deterministic IDs, upserts are idempotent)`);
       
-      // Sample the namespace to find repository chunks
-      const sampleQuery = await this.querySimilar(new Array(3072).fill(0.1), {
-        namespace: namespace,
-        topK: 100, // Get larger sample to identify patterns
-        threshold: 0.0, // Include all results
-        includeMetadata: true
-      });
-
-      if (!sampleQuery.matches || sampleQuery.matches.length === 0) {
-        this.logger.info('No vectors found in namespace to clean up');
-        return { success: true, deleted: 0, kept: 0 };
+      if (dryRun) {
+        this.logger.info('Dry run mode - would delete namespace for fresh indexing');
+        return { success: true, deleted: 0, kept: 0, mode: 'dry_run' };
       }
 
-      // Group by content hash (first 200 chars) to identify duplicates
-      const contentGroups = new Map();
+      // With deterministic IDs, we delete the entire namespace before re-indexing
+      // This ensures deleted/renamed files are removed
+      // Same-content files will have same IDs, so upsert overwrites automatically
+      await this.deleteNamespace(namespace);
       
-      sampleQuery.matches.forEach(match => {
-        const content = match.metadata?.text || match.metadata?.content || '';
-        const contentHash = content.substring(0, 200).trim();
+      this.logger.info(`Successfully cleaned namespace: ${namespace} (ready for fresh idempotent upserts)`);
+      return { success: true, deleted: 'all', kept: 0, mode: 'full_namespace_reset' };
+
+    } catch (error) {
+      this.logger.error(`Failed to clean namespace ${namespace}:`, error.message);
+      // Don't throw - might be first time processing this repo (namespace doesn't exist yet)
+      return { success: false, deleted: 0, kept: 0, error: error.message };
+    }
+  }
+
+  /**
+   * Delete vectors for specific files (for handling file deletions/renames)
+   * 
+   * With deterministic IDs (namespace:source:contentHash), we can delete by prefix:
+   * - Delete all vectors matching "namespace:source:*" pattern
+   * 
+   * Note: Pinecone doesn't support prefix-based deletion directly,
+   * so we need to query first, then delete matching IDs.
+   */
+  async deleteVectorsForFiles(namespace, filePaths) {
+    try {
+      if (!filePaths || filePaths.length === 0) {
+        this.logger.info('No files specified for deletion');
+        return { success: true, deleted: 0 };
+      }
+
+      this.logger.info(`Deleting vectors for ${filePaths.length} files in namespace: ${namespace}`);
+      
+      const toDelete = [];
+      
+      // For each file, query to find all matching vector IDs
+      for (const filePath of filePaths) {
+        const sanitizedSource = this.sanitizeId(filePath.replace(/\//g, '_'));
         
-        // Only process repository chunks (exclude system docs)
-        if (match.id.includes('_chunk_') && !match.id.startsWith('system_')) {
-          if (!contentGroups.has(contentHash)) {
-            contentGroups.set(contentHash, []);
-          }
-          contentGroups.get(contentHash).push({
-            id: match.id,
-            timestamp: this.extractTimestampFromId(match.id)
+        // Query with metadata filter for this source
+        // Note: This is a workaround since Pinecone doesn't support prefix deletion
+        const queryResult = await this.querySimilar(new Array(3072).fill(0.0), {
+          namespace: namespace,
+          topK: 1000, // Max vectors per file
+          includeMetadata: true,
+          filter: { source: filePath }
+        });
+        
+        if (queryResult.matches && queryResult.matches.length > 0) {
+          queryResult.matches.forEach(match => {
+            // Only delete if ID matches our deterministic pattern
+            if (match.id.includes(sanitizedSource)) {
+              toDelete.push(match.id);
+            }
           });
         }
-      });
-
-      // Identify vectors to delete (keep only the latest for each content group)
-      const toDelete = [];
-      let keptCount = 0;
-
-      contentGroups.forEach((vectors, contentHash) => {
-        if (vectors.length > keepLatestCount) {
-          // Sort by timestamp (newest first)
-          vectors.sort((a, b) => b.timestamp - a.timestamp);
-          
-          // Keep the latest, mark the rest for deletion
-          for (let i = keepLatestCount; i < vectors.length; i++) {
-            toDelete.push(vectors[i].id);
-          }
-          keptCount += keepLatestCount;
-        } else {
-          keptCount += vectors.length;
-        }
-      });
-
-      this.logger.info(`Cleanup plan: ${toDelete.length} old vectors to delete, ${keptCount} vectors to keep`);
-
-      if (dryRun) {
-        this.logger.info('Dry run mode - no vectors will be deleted');
-        return { success: true, deleted: 0, kept: keptCount, plannedDeletions: toDelete.length };
       }
 
-      // Execute deletions in batches
       if (toDelete.length > 0) {
-        const batchSize = 50;
-        let deleted = 0;
-
-        for (let i = 0; i < toDelete.length; i += batchSize) {
-          const batch = toDelete.slice(i, i + batchSize);
-          try {
-            await this.deleteVectors(batch, namespace);
-            deleted += batch.length;
-          } catch (error) {
-            this.logger.warn(`Failed to delete batch of ${batch.length} vectors:`, error.message);
-          }
-        }
-
-        this.logger.info(`Successfully cleaned up ${deleted} old repository embeddings`);
-        return { success: true, deleted, kept: keptCount };
+        await this.deleteVectors(toDelete, namespace);
+        this.logger.info(`Successfully deleted ${toDelete.length} vectors for ${filePaths.length} files`);
+        return { success: true, deleted: toDelete.length };
       } else {
-        this.logger.info('No old embeddings found to clean up');
-        return { success: true, deleted: 0, kept: keptCount };
+        this.logger.info('No vectors found to delete for specified files');
+        return { success: true, deleted: 0 };
       }
 
     } catch (error) {
-      this.logger.error(`Failed to cleanup old repository embeddings:`, error.message);
+      this.logger.error(`Failed to delete vectors for files:`, error.message);
       throw error;
     }
+  }
+
+  /**
+   * LEGACY METHOD - kept for backward compatibility
+   * With deterministic IDs, duplicates don't occur (same content = same ID = overwrite)
+   * This method now just logs a deprecation warning
+   */
+  async cleanupOldRepositoryEmbeddingsLegacy(namespace, options = {}) {
+    this.logger.warn('cleanupOldRepositoryEmbeddingsLegacy called - this is deprecated with deterministic IDs');
+    this.logger.info('With deterministic IDs (userId:repoId:source:contentHash), upserts are idempotent');
+    this.logger.info('Duplicates are automatically prevented - cleanup only needed for deleted/renamed files');
+    
+    return { success: true, deleted: 0, kept: 0, mode: 'deprecated' };
   }
 
   /**
@@ -477,65 +501,71 @@ class PineconeService {
   }
 
   /**
-   * Generate stable document IDs using content hash + metadata
-   * IDs are deterministic based on content, allowing for reliable deduplication
+   * Generate deterministic, idempotent document IDs based on content hash and source
+   * Format: namespace:source:contentHash (deterministic - upsert overwrites automatically)
+   * 
+   * This approach eliminates duplicate detection needs:
+   * - Same content + source = same ID → automatic overwrite on upsert
+   * - Cleanup only needed for deleted/renamed files (not duplicates)
+   * - Chunk index stored in metadata for ordering, not in ID
    */
   static generateRepositoryDocumentIds(documents, namespace, options = {}) {
     const crypto = require('crypto');
-    const { prefix = null, includeVersion = false } = options;
-    
-    return documents.map((doc, index) => {
-      const sourceFile = doc.metadata?.source || 'unknown';
-      const sanitizedSource = sourceFile
-        .replace(/[^a-zA-Z0-9_-]/g, '_')
-        .replace(/^(?:_+)|(?:_+)$/g, '');
-      
-      // Create stable content hash for deduplication
-      const contentHash = crypto
-        .createHash('sha256')
-        .update(doc.pageContent || '')
-        .digest('hex')
-        .substring(0, 12); // First 12 chars for brevity
-      
-      const parts = [namespace, sanitizedSource, 'chunk', index, contentHash];
-      if (prefix) parts.unshift(prefix);
-      
-      // Store version in metadata instead of ID
-      if (includeVersion && doc.metadata) {
-        doc.metadata.version = Date.now();
-        doc.metadata.contentHash = contentHash;
-      }
-      
-      return parts.join('_');
-    });
-  }
-
-  /**
-   * Generate stable document IDs for user repository chunks 
-   * Uses same pattern as generateRepositoryDocumentIds for consistency
-   */
-  static generateUserRepositoryDocumentIds(documents, userId, repoId, options = {}) {
-    const crypto = require('crypto');
-    const { includeVersion = false } = options;
     
     return documents.map((doc, index) => {
       const sourceFile = doc.metadata?.source || 'unknown';
       const sanitizedSource = this.sanitizeId(sourceFile.replace(/\//g, '_'));
       
-      // Create stable content hash
+      // Create stable content hash for deterministic ID generation
       const contentHash = crypto
         .createHash('sha256')
         .update(doc.pageContent || '')
         .digest('hex')
-        .substring(0, 12);
+        .substring(0, 16); // Use 16 chars for better uniqueness
       
-      // Store version in metadata instead of ID
-      if (includeVersion && doc.metadata) {
-        doc.metadata.version = Date.now();
+      // Store chunk metadata for tracking (not in ID)
+      if (doc.metadata) {
         doc.metadata.contentHash = contentHash;
+        doc.metadata.chunkIndex = index; // Store index in metadata for ordering
+        doc.metadata.version = Date.now(); // Timestamp for reference
       }
       
-      return `${userId}_${repoId}_${sanitizedSource}_chunk_${index}_${contentHash}`;
+      // Deterministic ID: namespace:source:contentHash
+      // Same content + source = same ID → idempotent upserts
+      return `${namespace}:${sanitizedSource}:${contentHash}`;
+    });
+  }
+
+  /**
+   * Generate deterministic document IDs for user repository chunks
+   * Format: userId:repoId:source:contentHash (idempotent - same content = same ID)
+   * 
+   * Matches generateRepositoryDocumentIds pattern for consistency
+   */
+  static generateUserRepositoryDocumentIds(documents, userId, repoId, options = {}) {
+    const crypto = require('crypto');
+    
+    return documents.map((doc, index) => {
+      const sourceFile = doc.metadata?.source || 'unknown';
+      const sanitizedSource = this.sanitizeId(sourceFile.replace(/\//g, '_'));
+      
+      // Create stable content hash for deterministic ID generation
+      const contentHash = crypto
+        .createHash('sha256')
+        .update(doc.pageContent || '')
+        .digest('hex')
+        .substring(0, 16); // Use 16 chars for better uniqueness
+      
+      // Store chunk metadata for tracking (not in ID)
+      if (doc.metadata) {
+        doc.metadata.contentHash = contentHash;
+        doc.metadata.chunkIndex = index; // Store index in metadata for ordering
+        doc.metadata.version = Date.now(); // Timestamp for reference
+      }
+      
+      // Deterministic ID: userId:repoId:source:contentHash
+      // Same content + source = same ID → idempotent upserts
+      return `${userId}:${repoId}:${sanitizedSource}:${contentHash}`;
     });
   }
 

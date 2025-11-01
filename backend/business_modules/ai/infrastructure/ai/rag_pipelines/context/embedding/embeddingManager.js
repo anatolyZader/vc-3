@@ -96,33 +96,24 @@ class EmbeddingManager {
       // Import PineconeService class for static methods
       const PineconeService = require('./pineconeService');
       
-      // Generate stable document IDs with version tracking in metadata
-      const documentIds = PineconeService.generateRepositoryDocumentIds(safeDocuments, namespace, {
-        includeVersion: true,  // Store version in metadata for tracking
-        prefix: null
-      });
+      // Generate deterministic, idempotent document IDs (contentHash + source = unique stable key)
+      // Same content + source = same ID → upsert automatically overwrites (no duplicates)
+      const documentIds = PineconeService.generateRepositoryDocumentIds(safeDocuments, namespace);
 
       console.log(`[${new Date().toISOString()}] 📝 STORING TO PINECONE: Processing ${safeDocuments.length} semantically-rich documents`);
+      console.log(`[${new Date().toISOString()}] 🔑 IDEMPOTENT IDS: Using deterministic IDs (namespace:source:contentHash) - upserts overwrite automatically`);
 
-      // CLEANUP: Delete old embeddings for this repository before adding new ones
-      console.log(`[${new Date().toISOString()}] 🧹 CLEANUP: Removing old embeddings for namespace: ${namespace}`);
+      // CLEANUP: With deterministic IDs, cleanup is only needed for full re-indexing
+      // Incremental updates will automatically overwrite matching IDs
+      console.log(`[${new Date().toISOString()}] 🧹 CLEANUP: Clearing namespace for fresh indexing (deterministic IDs prevent duplicates)`);
       try {
-        // Use targeted cleanup that preserves system docs but removes old repo versions
         const cleanupResult = await pineconeService.cleanupOldRepositoryEmbeddings(namespace, {
-          keepLatestCount: 0, // Remove all old versions since we're adding fresh ones
           dryRun: false
         });
-        console.log(`[${new Date().toISOString()}] ✅ CLEANUP: Successfully cleaned up ${cleanupResult.deleted} old embeddings, kept ${cleanupResult.kept} current ones`);
+        console.log(`[${new Date().toISOString()}] ✅ CLEANUP: ${cleanupResult.mode === 'full_namespace_reset' ? 'Namespace cleared' : 'Cleanup completed'}`);
       } catch (cleanupError) {
-        // If targeted cleanup fails, try full namespace deletion as fallback
-        console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP: Targeted cleanup failed, trying full namespace deletion: ${cleanupError.message}`);
-        try {
-          await pineconeService.deleteNamespace(namespace);
-          console.log(`[${new Date().toISOString()}] ✅ CLEANUP: Successfully cleared namespace as fallback`);
-        } catch (fallbackError) {
-          // Log warning but don't fail - might be first time processing this repo
-          console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP: Could not delete old embeddings (might be first processing): ${fallbackError.message}`);
-        }
+        // Log warning but don't fail - might be first time processing this repo
+        console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP: Could not clear namespace (might be first processing): ${cleanupError.message}`);
       }
 
       // Use enhanced upsertDocuments with verbose logging and rate limiting
@@ -189,10 +180,11 @@ class EmbeddingManager {
       // Import PineconeService class for static methods
       const PineconeService = require('./pineconeService');
       
-      // Generate stable document IDs with version tracking in metadata
-      const documentIds = PineconeService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId, {
-        includeVersion: true  // Store version in metadata for tracking
-      });
+      // Generate deterministic, idempotent document IDs (contentHash + source = unique stable key)
+      // Same content + source = same ID → upsert automatically overwrites (no duplicates)
+      const documentIds = PineconeService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);
+
+      console.log(`[${new Date().toISOString()}] 🔑 IDEMPOTENT IDS: Using deterministic IDs (userId:repoId:source:contentHash)`);
 
       // Use enhanced upsertDocuments method
       await pineconeService.upsertDocuments(splitDocs, this.embeddings, {
