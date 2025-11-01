@@ -12,51 +12,60 @@ class MetadataFlattener {
    */
   static flattenForStore(metadata) {
     const flat = {
-      // Core document fields
-      source: metadata.source || null,
-      type: metadata.type || null,
+      // Core document fields - ensure strings
+      source: String(metadata.source || ''),
+      type: String(metadata.type || ''),
       
-      // Repository identification (fixed format)
-      repoOwner: metadata.repoOwner || null,
-      repoName: metadata.repoName || null,
-      repoId: metadata.repoId || null,
+      // Repository identification - ensure strings for filter compatibility
+      repoOwner: String(metadata.repoOwner || ''),
+      repoName: String(metadata.repoName || ''),
+      repoId: String(metadata.repoId || ''),
       
-      // File context
-      file_path: metadata.file_header?.file_path || metadata.source || null,
-      file_type: metadata.file_header?.file_type || 'unknown',
-      language: metadata.file_header?.language || null,
+      // File context - ensure strings
+      file_path: String(metadata.file_header?.file_path || metadata.source || ''),
+      file_type: String(metadata.file_header?.file_type || 'unknown'),
+      language: String(metadata.file_header?.language || ''),
       
-      // UL fields (flattened and capped for performance)
-      ul_version: metadata.ul_version || null,
-      ul_bounded_context: metadata.ul_bounded_context || null,
-      ul_terms: this.capArray(metadata.ul_terms || [], 32), // Cap to prevent size issues
-      ul_match_count: metadata.ul_match_count || 0,
+      // UL fields - primitives only for Pinecone filter compatibility
+      ul_version: String(metadata.ul_version || ''),
+      ul_bounded_context: String(metadata.ul_bounded_context || ''),
+      ul_terms: Array.isArray(metadata.ul_terms) 
+        ? this.capArray(metadata.ul_terms, 32).join(', ') // Convert array to string
+        : String(metadata.ul_terms || ''),
+      ul_match_count: Number(metadata.ul_match_count || 0),
       
-      // Legacy UL compatibility (select fields only)
-      ubiq_business_module: metadata.ubiq_business_module || null,
-      ubiq_bounded_context: metadata.ubiq_bounded_context || null,
-      ubiq_enhanced: metadata.ubiq_enhanced || false,
+      // Legacy UL compatibility - ensure primitives
+      ubiq_business_module: String(metadata.ubiq_business_module || ''),
+      ubiq_bounded_context: String(metadata.ubiq_bounded_context || ''),
+      ubiq_enhanced: Boolean(metadata.ubiq_enhanced),
       
-      // Content categorization  
-      content_category: metadata.content_category || null,
-      complexity_level: metadata.complexity_level || null,
+      // Content categorization - ensure strings
+      content_category: String(metadata.content_category || ''),
+      complexity_level: String(metadata.complexity_level || ''),
       
-      // Performance metadata
-      estimated_tokens: metadata.estimated_tokens || null,
-      hash_algorithm: metadata.hash_algorithm || null,
-      content_length: metadata.content_length || null,
+      // Performance metadata - ensure numbers
+      estimated_tokens: metadata.estimated_tokens ? Number(metadata.estimated_tokens) : 0,
+      content_length: metadata.content_length ? Number(metadata.content_length) : 0,
       
-      // Quality scoring
-      quality_score: metadata.quality_score || null,
+      // Hashing - ensure string
+      hash_algorithm: String(metadata.hash_algorithm || ''),
       
-      // Processing timestamps
-      processed_at: metadata.processed_at || null,
-      postprocessed_at: metadata.postprocessed_at || null
+      // Quality scoring - ensure number
+      quality_score: metadata.quality_score ? Number(metadata.quality_score) : 0,
+      
+      // Processing timestamps - ensure strings (ISO format)
+      processed_at: metadata.processed_at ? String(metadata.processed_at) : '',
+      postprocessed_at: metadata.postprocessed_at ? String(metadata.postprocessed_at) : ''
     };
     
-    // Remove null values to minimize storage
+    // Remove empty strings and zero values to minimize storage
     return Object.fromEntries(
-      Object.entries(flat).filter(([_, value]) => value !== null)
+      Object.entries(flat).filter(([_, value]) => {
+        if (typeof value === 'string') return value !== '';
+        if (typeof value === 'number') return value !== 0;
+        if (typeof value === 'boolean') return true; // Keep booleans
+        return value !== null && value !== undefined;
+      })
     );
   }
   

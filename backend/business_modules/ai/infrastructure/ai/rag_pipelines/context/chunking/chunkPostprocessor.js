@@ -843,27 +843,28 @@ class ChunkPostprocessor {
 
   /**
    * Fix incomplete metadata (addresses undefined repo names)
+   * Ensures all metadata values are primitive types for Pinecone filter compatibility
    */
   fixIncompleteMetadata(results) {
     return results.map(result => {
       const metadata = result.metadata || {};
       
-      // ALWAYS ensure repo metadata is correct (fix undefined owner issue)
-      if (!metadata.repoOwner || metadata.repoOwner === 'undefined') {
+      // ALWAYS ensure repo metadata is correct string values (fix undefined owner issue)
+      if (!metadata.repoOwner || metadata.repoOwner === 'undefined' || typeof metadata.repoOwner !== 'string') {
         metadata.repoOwner = 'anatolyZader';
       }
       
-      if (!metadata.repoName || metadata.repoName === 'undefined') {
+      if (!metadata.repoName || metadata.repoName === 'undefined' || typeof metadata.repoName !== 'string') {
         metadata.repoName = 'vc-3';
       }
       
-      // Fix missing repoId or rebuild if corrupted
-      if (!metadata.repoId || metadata.repoId.includes('undefined')) {
+      // Fix missing repoId or rebuild if corrupted - ensure string type
+      if (!metadata.repoId || metadata.repoId.includes('undefined') || typeof metadata.repoId !== 'string') {
         metadata.repoId = `${metadata.repoOwner}/${metadata.repoName}`;
       }
       
-      // Ensure type is properly set with specific classification
-      if (!metadata.type || metadata.type === 'github-file') {
+      // Ensure type is properly set with specific classification - ensure string type
+      if (!metadata.type || metadata.type === 'github-file' || typeof metadata.type !== 'string') {
         const FileTypeClassifier = require('../utils/fileTypeClassifier');
         metadata.type = FileTypeClassifier.determineGitHubFileType(
           metadata.source || '', 

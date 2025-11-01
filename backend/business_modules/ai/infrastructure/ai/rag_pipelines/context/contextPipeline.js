@@ -293,7 +293,7 @@ class ContextPipeline {
     };
 
     // Step 2: Enhance document with ubiquitous language context
-    const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(preprocessedDocument);
+    const ubiquitousEnhanced = await this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(preprocessedDocument);
 
     // Step 3: Apply markdown/documentation-specific splitting
     const docs = [ubiquitousEnhanced];
@@ -313,7 +313,7 @@ class ContextPipeline {
 
   async processOpenAPIDocument(document) {
     // Step 1: Enhance document with ubiquitous language context before processing
-    const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
+    const ubiquitousEnhanced = await this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
     
     try {
       // Parse the OpenAPI content
@@ -356,7 +356,7 @@ class ContextPipeline {
 
   async processConfigDocument(document, contentType) {
     // Step 1: Enhance document with ubiquitous language context for configuration files
-    const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
+    const ubiquitousEnhanced = await this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
     
     // Step 2: Apply semantic preprocessing for domain intelligence
     const semanticallyEnhanced = await this.semanticPreprocessor.preprocessChunk(ubiquitousEnhanced);
@@ -367,7 +367,7 @@ class ContextPipeline {
 
   async processGenericDocument(document) {
     // Step 1: Enhance document with ubiquitous language context before processing
-    const ubiquitousEnhanced = this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
+    const ubiquitousEnhanced = await this.ubiquitousLanguageEnhancer.enhanceWithUbiquitousLanguage(document);
     
     // Step 2: Split document into manageable chunks 
     const { RecursiveCharacterTextSplitter } = require('@langchain/textsplitters');
@@ -885,10 +885,10 @@ class ContextPipeline {
   async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
     try {
       const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
-      const pineconeClient = await this.getPineconeClient();
+      const index = await this.pineconeManager.getIndex();
       
       // SAFE APPROACH: Use index stats to check namespace existence
-      const stats = await pineconeClient.describeIndexStats();
+      const stats = await index.describeIndexStats();
       const namespaceStats = stats.namespaces?.[namespace];
       
       if (!namespaceStats || namespaceStats.vectorCount === 0) {
@@ -900,7 +900,7 @@ class ContextPipeline {
       
       // Namespace exists and has vectors - now check commit hash
       // Use metadata filter query (NOT zero vector!) to get commit info
-      const queryResponse = await pineconeClient.namespace(namespace).query({
+      const queryResponse = await index.namespace(namespace).query({
         vector: await this.embeddings.embedQuery('repository metadata'),  // Real embedding for metadata query
         topK: 1,
         includeMetadata: true,

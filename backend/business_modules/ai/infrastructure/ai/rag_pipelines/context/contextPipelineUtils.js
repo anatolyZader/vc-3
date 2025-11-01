@@ -479,7 +479,7 @@ class ContextPipelineUtils {
     
     try {
       // Step 1: Get changed files between commits
-      const changedFiles = await contextPipeline.repoPreparation.getChangedFilesOptimized(
+      const changedFiles = await contextPipeline.githubOperations.getChangedFilesOptimized(
         repoUrl, branch, githubOwner, repoName, oldCommitHash, newCommitInfo?.hash ?? null
       );
       
@@ -491,7 +491,7 @@ class ContextPipelineUtils {
       }
 
       // Step 2: Get repository characteristics for context
-      const repoCharacteristics = await contextPipeline.repoPreparation.getRepositoryCharacteristics(githubOwner, repoName, branch);
+      const repoCharacteristics = await contextPipeline.githubOperations.getRepositoryCharacteristics(githubOwner, repoName, branch);
 
       // Step 3: Use ChangeAnalyzer to make intelligent decision
       const recommendation = await contextPipeline.changeAnalyzer.analyzeChangesAndRecommendStrategy({

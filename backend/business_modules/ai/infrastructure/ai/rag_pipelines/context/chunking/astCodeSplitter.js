@@ -247,24 +247,24 @@ function buildTree(units, fileStart, fileEnd) {
 class ASTCodeSplitter {
   /**
    * @param {object} options
-   * @param {number} [options.maxTokens=2000] - Increased for better semantic preservation
-   * @param {number} [options.minTokens=140] - Increased to avoid tiny fragments
-   * @param {number} [options.overlapTokens=120] - Increased for better context
+   * @param {number} [options.maxTokens=1000] - Optimized for better retrieval (800-1200 range)
+   * @param {number} [options.minTokens=200] - Ensure substantive chunks
+   * @param {number} [options.overlapTokens=65] - Moderate overlap (50-80 tokens)
    * @param {(text:string)=>number} [options.estimateTokens]
    * @param {boolean} [options.enableLineFallback=true]
-   * @param {number} [options.maxUnitsPerChunk=4] - Increased to allow small sibling packing
+   * @param {number} [options.maxUnitsPerChunk=2] - Allow 2 units when functions are tiny
    * @param {number} [options.charsPerToken=4]
-   * @param {number} [options.minResidualChars=100] - Increased to avoid micro-residuals
+   * @param {number} [options.minResidualChars=100] - Avoid micro-residuals
    */
   constructor(options = {}) {
-    // Safer defaults for better semantic preservation
-    this.maxTokens = options.maxTokens ?? 2000;        // Increased from 800 to preserve whole functions/classes
-    this.minTokens = options.minTokens ?? 140;         // Increased from 60 to avoid tiny fragments
-    this.overlapTokens = options.overlapTokens ?? 120; // Increased from 80 for better context
+    // Optimized defaults for retrieval performance (per recommendations)
+    this.maxTokens = options.maxTokens ?? 1000;        // Balanced for retrieval (800-1200 range)
+    this.minTokens = options.minTokens ?? 200;         // Ensure substantive chunks
+    this.overlapTokens = options.overlapTokens ?? 65;  // Moderate overlap (50-80 range)
     this.enableLineFallback = options.enableLineFallback !== false;
-    this.maxUnitsPerChunk = options.maxUnitsPerChunk ?? 4; // Increased from 1 to allow small sibling packing
+    this.maxUnitsPerChunk = options.maxUnitsPerChunk ?? 2; // Allow 2 tiny functions per chunk
     this.charsPerToken = options.charsPerToken ?? 4;
-    this.minResidualChars = options.minResidualChars ?? 100; // Increased from 12 to avoid micro-residuals
+    this.minResidualChars = options.minResidualChars ?? 100; // Avoid micro-residuals
     this.estimateTokens =
       options.estimateTokens || ((txt) => defaultEstimateTokens(txt, this.charsPerToken));
   }
@@ -327,17 +327,119 @@ class ASTCodeSplitter {
     return imports;
   }
 
+  /**
+   * Collect JSDoc comments and function/class headers for better context
+   * @param {Object} ast - Babel AST
+   * @param {string[]} lines - Array of source code lines
+   * @returns {Map} Map of function/class names to their JSDoc + signature
+   */
+  collectJSDocs(ast, lines) {
+    const jsdocs = new Map();
+    
+    // Helper to extract comment block before a node
+    const getLeadingComment = (node) => {
+      if (!node.loc) return null;
+      
+      const nodeLine = node.loc.start.line - 1; // 0-based
+      const commentLines = [];
+      
+      // Look backwards for JSDoc or block comments
+      let lineIdx = nodeLine - 1;
+      while (lineIdx >= 0) {
+        const line = lines[lineIdx].trim();
+        
+        // Found JSDoc start
+        if (line.startsWith('/**') || line.startsWith('/*')) {
+          // Collect all lines until */ or current line
+          const startIdx = lineIdx;
+          while (lineIdx <= nodeLine - 1) {
+            commentLines.unshift(lines[lineIdx]);
+            if (lines[lineIdx].includes('*/')) break;
+            lineIdx++;
+          }
+          return commentLines.join('\n').trim();
+        }
+        
+        // Found single-line comment, include it
+        if (line.startsWith('//')) {
+          commentLines.unshift(lines[lineIdx]);
+          lineIdx--;
+          continue;
+        }
+        
+        // Empty line or closing comment - stop searching
+        if (!line || line.endsWith('*/')) break;
+        
+        lineIdx--;
+      }
+      
+      return commentLines.length > 0 ? commentLines.join('\n').trim() : null;
+    };
+    
+    // Helper to get function signature (first line)
+    const getFunctionSignature = (node) => {
+      if (!node.loc) return null;
+      const startLine = node.loc.start.line - 1;
+      return lines[startLine].trim();
+    };
+    
+    traverse(ast, {
+      FunctionDeclaration(path) {
+        const name = path.node.id?.name;
+        if (name) {
+          const comment = getLeadingComment(path.node);
+          const signature = getFunctionSignature(path.node);
+          if (comment || signature) {
+            jsdocs.set(name, { comment, signature });
+          }
+        }
+      },
+      
+      ClassDeclaration(path) {
+        const name = path.node.id?.name;
+        if (name) {
+          const comment = getLeadingComment(path.node);
+          const signature = getFunctionSignature(path.node);
+          if (comment || signature) {
+            jsdocs.set(name, { comment, signature });
+          }
+        }
+      },
+      
+      VariableDeclaration(path) {
+        // Handle: const myFunc = function() {} or const myFunc = () => {}
+        for (const declarator of path.node.declarations) {
+          if (t.isIdentifier(declarator.id) &&
+              declarator.init &&
+              (t.isFunctionExpression(declarator.init) || 
+               t.isArrowFunctionExpression(declarator.init))) {
+            const name = declarator.id.name;
+            const comment = getLeadingComment(path.node);
+            const signature = getFunctionSignature(path.node);
+            if (comment || signature) {
+              jsdocs.set(name, { comment, signature });
+            }
+          }
+        }
+      }
+    });
+    
+    return jsdocs;
+  }
+
   split(code, metadata = {}) {
     if (!code || typeof code !== "string") return [];
 
-    // 1) Parse & collect imports before sanitization
+    // 1) Parse & collect imports + JSDoc/function headers before sanitization
     const ast = this._parse(code);
-    const imports = this.collectImports(ast, code.split(/\r?\n/));
+    const lines = code.split(/\r?\n/);
+    const imports = this.collectImports(ast, lines);
+    const jsdocs = this.collectJSDocs(ast, lines); // New: collect JSDoc comments
     
     // 2) Sanitize AST (pass metadata for context-aware sanitization)
     this._sanitizeAST(ast, metadata);
 
-    // 3) Generate cleaned code (comments removed)
+    // 3) Generate cleaned code (comments removed, but we saved JSDoc)
     const cleaned = generate(ast, { comments: false, compact: false }).code;
 
     // 4) Reparse cleaned, collect units, and build tree
@@ -345,9 +447,9 @@ class ASTCodeSplitter {
     const units = collectUnits(cleanedAST);
     const root = buildTree(units, 0, cleaned.length);
 
-    // 5) Plan emission recursively (no double-emit) with imports in metadata
+    // 5) Plan emission recursively (no double-emit) with imports and jsdocs in metadata
     const emitted = [];
-    const enrichedMetadata = { ...metadata, imports };
+    const enrichedMetadata = { ...metadata, imports, jsdocs };
     this._emitNode(root, cleaned, enrichedMetadata, emitted);
 
     // 6) Dedupe by span or sha
@@ -581,12 +683,40 @@ class ASTCodeSplitter {
     const baseTokenCount = this.estimateTokens(text);
     let finalText = text.trim();
     let hasPrependedImports = false;
+    let hasPrependedJSDoc = false;
+    
+    // For semantic chunks, optionally prepend JSDoc + function header if available
+    if (extra?.splitting?.startsWith('ast_semantic') && 
+        extra?.unit?.name && 
+        baseMeta.jsdocs?.has(extra.unit.name) &&
+        baseTokenCount < this.maxTokens * 0.85) {
+      const jsdocInfo = baseMeta.jsdocs.get(extra.unit.name);
+      const headerParts = [];
+      
+      if (jsdocInfo.comment) {
+        headerParts.push(jsdocInfo.comment);
+      }
+      if (jsdocInfo.signature && !finalText.startsWith(jsdocInfo.signature)) {
+        headerParts.push(jsdocInfo.signature);
+      }
+      
+      if (headerParts.length > 0) {
+        const headerText = headerParts.join('\n');
+        const withHeader = headerText + '\n' + finalText;
+        const withHeaderTokens = this.estimateTokens(withHeader);
+        
+        if (withHeaderTokens <= this.maxTokens) {
+          finalText = withHeader;
+          hasPrependedJSDoc = true;
+        }
+      }
+    }
     
     // For semantic chunks, optionally prepend imports if budget allows
     if (extra?.splitting?.startsWith('ast_semantic') && 
         baseMeta.imports && 
         baseMeta.imports.length && 
-        baseTokenCount < this.maxTokens * 0.9) {
+        this.estimateTokens(finalText) < this.maxTokens * 0.8) {
       const importsText = baseMeta.imports.join('\n');
       const combinedText = importsText + '\n\n' + finalText;
       const combinedTokens = this.estimateTokens(combinedText);
@@ -613,6 +743,7 @@ class ASTCodeSplitter {
         tokenCount,
         generatedAt: new Date().toISOString(),
         ...(hasPrependedImports && { hasPrependedImports: true }),
+        ...(hasPrependedJSDoc && { hasPrependedJSDoc: true }),
         // Retrieval-friendly fields:
         type: fileType,
         fileType: baseMeta.fileType ?? 'js',
