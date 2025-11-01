@@ -6,7 +6,9 @@ const fp = require('fastify-plugin');
 
 async function gitPubsubListener(fastify, options) {
   const pubSubClient = fastify.diContainer.resolve('pubSubClient');
-  const subscriptionName = 'git-sub';
+  // Git Module uses its own subscription for internal events (fetchRepoRequest, persistRepoRequest)
+  // AI Module uses 'git-sub' for repoPushed events
+  const subscriptionName = 'git-module-sub';
   const subscription = pubSubClient.subscription(subscriptionName);
 
   // Error handling for the subscription stream
