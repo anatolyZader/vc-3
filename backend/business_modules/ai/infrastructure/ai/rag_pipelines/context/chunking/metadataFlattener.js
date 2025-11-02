@@ -205,17 +205,23 @@ class MetadataFlattener {
   
   /**
    * Process and validate metadata for upsert
+   * CRITICAL: Always enforces 35KB limit before returning
    */
   static processForUpsert(metadata) {
     const flattened = this.flattenForStore(metadata);
-    const validation = this.validateMetadata(flattened);
+    
+    // CRITICAL FIX: Always enforce size limit before upsert
+    // Pinecone rejects entire batch if even ONE vector exceeds 40KB
+    const trimmed = this.enforceMetadataSize(flattened, 35840); // 35KB limit (5KB safety margin)
+    
+    const validation = this.validateMetadata(trimmed);
     
     if (!validation.valid) {
       console.warn(`[${new Date().toISOString()}] ⚠️ METADATA_ISSUES:`, validation.issues);
     }
     
     return {
-      metadata: flattened,
+      metadata: trimmed,
       validation
     };
   }
