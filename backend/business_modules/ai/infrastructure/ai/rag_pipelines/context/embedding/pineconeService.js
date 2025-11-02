@@ -15,6 +15,7 @@
 
 const { PineconeStore } = require('@langchain/pinecone');
 const PineconePlugin = require('./pineconePlugin');
+const MetadataFlattener = require('../chunking/metadataFlattener');
 
 class PineconeService {
   constructor(options = {}) {
@@ -151,17 +152,36 @@ class PineconeService {
         console.log(`[${new Date().toISOString()}] ⚡ RATE LIMITING: Using bottleneck limiter to respect Pinecone API limits and prevent throttling`);
       }
 
+      // CRITICAL: Trim metadata BEFORE upsert to respect Pinecone's 40KB limit per vector
+      const trimmedDocuments = documents.map(doc => {
+        const result = MetadataFlattener.processForUpsert(doc.metadata);
+        
+        // Log validation warnings
+        if (!result.validation.valid) {
+          this.logger.warn(`Metadata issues for ${doc.metadata?.source || 'unknown'}:`, result.validation.issues);
+        }
+        
+        return {
+          ...doc,
+          metadata: result.metadata
+        };
+      });
+
+      if (verbose) {
+        console.log(`[${new Date().toISOString()}] 🧹 METADATA_TRIMMING: Trimmed ${trimmedDocuments.length} documents to stay under 40KB Pinecone limit`);
+      }
+
       const addOptions = {};
       if (ids) {
         addOptions.ids = ids;
       }
 
       // Process documents in batches if needed
-      if (documents.length > batchSize) {
+      if (trimmedDocuments.length > batchSize) {
         let processed = 0;
         
-        for (let i = 0; i < documents.length; i += batchSize) {
-          const batch = documents.slice(i, i + batchSize);
+        for (let i = 0; i < trimmedDocuments.length; i += batchSize) {
+          const batch = trimmedDocuments.slice(i, i + batchSize);
           const batchIds = ids ? ids.slice(i, i + batchSize) : undefined;
           const batchOptions = batchIds ? { ids: batchIds } : {};
 
@@ -172,29 +192,29 @@ class PineconeService {
           processed += batch.length;
           
           if (onProgress) {
-            onProgress(processed, documents.length);
+            onProgress(processed, trimmedDocuments.length);
           }
           
           this.logger.debug(`Processed batch ${Math.floor(i / batchSize) + 1}`, {
             processed,
-            total: documents.length
+            total: trimmedDocuments.length
           });
         }
       } else {
         await this.withRateLimit(async () => {
-          await vectorStore.addDocuments(documents, addOptions);
+          await vectorStore.addDocuments(trimmedDocuments, addOptions);
         });
       }
 
       if (verbose) {
-        console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully stored ${documents.length} chunks to Pinecone namespace: ${namespace}`);
+        console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully stored ${trimmedDocuments.length} chunks to Pinecone namespace: ${namespace}`);
       }
 
-      this.logger.info(`Successfully upserted ${documents.length} documents`, { namespace });
+      this.logger.info(`Successfully upserted ${trimmedDocuments.length} documents`, { namespace });
       
       return {
         success: true,
-        processed: documents.length,
+        processed: trimmedDocuments.length,
         namespace,
         documentIds: ids
       };

@@ -9,6 +9,7 @@ class MetadataFlattener {
   /**
    * Flatten metadata for vector store compatibility
    * Focus on UL fields and core metadata
+   * ENFORCES 35KB SIZE LIMIT (Pinecone limit is 40KB, we use safety margin)
    */
   static flattenForStore(metadata) {
     const flat = {
@@ -30,7 +31,7 @@ class MetadataFlattener {
       ul_version: String(metadata.ul_version || ''),
       ul_bounded_context: String(metadata.ul_bounded_context || ''),
       ul_terms: Array.isArray(metadata.ul_terms) 
-        ? this.capArray(metadata.ul_terms, 32).join(', ') // Convert array to string
+        ? this.capArray(metadata.ul_terms, 20).join(', ') // REDUCED from 32 to 20
         : String(metadata.ul_terms || ''),
       ul_match_count: Number(metadata.ul_match_count || 0),
       
@@ -47,8 +48,8 @@ class MetadataFlattener {
       estimated_tokens: metadata.estimated_tokens ? Number(metadata.estimated_tokens) : 0,
       content_length: metadata.content_length ? Number(metadata.content_length) : 0,
       
-      // Hashing - ensure string
-      hash_algorithm: String(metadata.hash_algorithm || ''),
+      // Hashing - ensure string (TRUNCATE if needed)
+      hash_algorithm: this.truncateString(String(metadata.hash_algorithm || ''), 50),
       
       // Quality scoring - ensure number
       quality_score: metadata.quality_score ? Number(metadata.quality_score) : 0,
@@ -59,7 +60,7 @@ class MetadataFlattener {
     };
     
     // Remove empty strings and zero values to minimize storage
-    return Object.fromEntries(
+    const cleaned = Object.fromEntries(
       Object.entries(flat).filter(([_, value]) => {
         if (typeof value === 'string') return value !== '';
         if (typeof value === 'number') return value !== 0;
@@ -67,6 +68,90 @@ class MetadataFlattener {
         return value !== null && value !== undefined;
       })
     );
+    
+    // ENFORCE SIZE LIMIT - aggressively trim if needed
+    return this.enforceMetadataSize(cleaned, 35840); // 35KB limit (5KB safety margin)
+  }
+  
+  /**
+   * Enforce metadata size limit by progressively removing non-essential fields
+   * Target: 35KB (Pinecone limit is 40KB, we use 5KB safety margin)
+   */
+  static enforceMetadataSize(metadata, maxBytes) {
+    let current = JSON.stringify(metadata);
+    let currentSize = Buffer.byteLength(current, 'utf8');
+    
+    if (currentSize <= maxBytes) {
+      return metadata; // Already under limit
+    }
+    
+    console.warn(`[${new Date().toISOString()}] ⚠️ METADATA_TOO_LARGE: ${currentSize} bytes > ${maxBytes} bytes limit. Trimming...`);
+    
+    // Progressive removal strategy (remove least critical fields first)
+    const trimStrategies = [
+      // Level 1: Remove timestamps
+      () => {
+        delete metadata.processed_at;
+        delete metadata.postprocessed_at;
+      },
+      // Level 2: Truncate UL terms heavily
+      () => {
+        if (metadata.ul_terms && typeof metadata.ul_terms === 'string') {
+          metadata.ul_terms = this.truncateString(metadata.ul_terms, 100);
+        }
+      },
+      // Level 3: Remove quality/complexity metadata
+      () => {
+        delete metadata.quality_score;
+        delete metadata.complexity_level;
+        delete metadata.hash_algorithm;
+      },
+      // Level 4: Remove token estimates
+      () => {
+        delete metadata.estimated_tokens;
+        delete metadata.content_length;
+      },
+      // Level 5: Truncate source path
+      () => {
+        if (metadata.source) {
+          metadata.source = this.truncateString(metadata.source, 200);
+        }
+        if (metadata.file_path) {
+          metadata.file_path = this.truncateString(metadata.file_path, 200);
+        }
+      },
+      // Level 6: Remove UL legacy fields
+      () => {
+        delete metadata.ubiq_business_module;
+        delete metadata.ubiq_bounded_context;
+        delete metadata.ubiq_enhanced;
+      }
+    ];
+    
+    // Apply trim strategies until size is acceptable
+    for (const strategy of trimStrategies) {
+      if (currentSize <= maxBytes) break;
+      
+      strategy();
+      current = JSON.stringify(metadata);
+      currentSize = Buffer.byteLength(current, 'utf8');
+    }
+    
+    // Final check
+    if (currentSize > maxBytes) {
+      console.error(`[${new Date().toISOString()}] ❌ METADATA_STILL_TOO_LARGE: ${currentSize} bytes after all trimming strategies`);
+      // Keep only essential fields as last resort
+      return {
+        source: this.truncateString(metadata.source || '', 150),
+        type: metadata.type || '',
+        repoId: metadata.repoId || '',
+        file_path: this.truncateString(metadata.file_path || '', 150),
+        language: metadata.language || ''
+      };
+    }
+    
+    console.log(`[${new Date().toISOString()}] ✅ METADATA_TRIMMED: ${currentSize} bytes (was ${Buffer.byteLength(JSON.stringify(metadata), 'utf8')} bytes)`);
+    return metadata;
   }
   
   /**
