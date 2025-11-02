@@ -3,7 +3,6 @@
 
 const autoload = require('@fastify/autoload');
 const path = require('path');
-const gitPubsubListener = require('./input/gitPubsubListener');
 
 module.exports = async function gitModuleIndex(fastify, opts) {
 
@@ -36,10 +35,7 @@ module.exports = async function gitModuleIndex(fastify, opts) {
     dirNameRoutePrefix: true
   });
 
-  // Register Git Module's Pub/Sub listener (git-module-sub)
-  // Handles: fetchRepoRequest, fetchDocsRequest, persistRepoRequest
-  await fastify.register(gitPubsubListener);
-  fastify.log.info('✅ Git Module: Pub/Sub listener registered (git-module-sub)');
+  fastify.log.info('✅ Git Module initialized');
 }
 
 module.exports.autoConfig = {
