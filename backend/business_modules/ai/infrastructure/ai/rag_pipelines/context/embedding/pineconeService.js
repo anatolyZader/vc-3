@@ -19,7 +19,7 @@ const MetadataFlattener = require('../chunking/metadataFlattener');
 
 class PineconeService {
   constructor(options = {}) {
-    // Require PineconePlugin as a mandatory dependency to ensure singleton pattern
+    // Require PineconePlugin as a mandatoryy dependency to ensure singleton pattern
     if (!options.pineconePlugin) {
       throw new Error('PineconeService requires a pineconePlugin instance. Pass it via options.pineconePlugin');
     }
