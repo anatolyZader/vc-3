@@ -88,30 +88,43 @@ class MetadataFlattener {
     console.warn(`[${new Date().toISOString()}] ⚠️ METADATA_TOO_LARGE: ${currentSize} bytes > ${maxBytes} bytes limit. Trimming...`);
     
     // Progressive removal strategy (remove least critical fields first)
+    // IMPROVED: More gradual trimming to preserve semantic value
     const trimStrategies = [
-      // Level 1: Remove timestamps
+      // Level 1: Remove timestamps (saves ~100 bytes)
       () => {
         delete metadata.processed_at;
         delete metadata.postprocessed_at;
       },
-      // Level 2: Truncate UL terms heavily
+      // Level 2: Truncate UL terms to 5000 chars (preserve semantic richness)
       () => {
         if (metadata.ul_terms && typeof metadata.ul_terms === 'string') {
-          metadata.ul_terms = this.truncateString(metadata.ul_terms, 100);
+          metadata.ul_terms = this.truncateString(metadata.ul_terms, 5000);
         }
       },
-      // Level 3: Remove quality/complexity metadata
+      // Level 3: Remove quality/complexity metadata (saves ~50 bytes)
       () => {
         delete metadata.quality_score;
         delete metadata.complexity_level;
         delete metadata.hash_algorithm;
       },
-      // Level 4: Remove token estimates
+      // Level 4: Truncate UL terms to 2000 chars (still useful for search)
+      () => {
+        if (metadata.ul_terms && typeof metadata.ul_terms === 'string') {
+          metadata.ul_terms = this.truncateString(metadata.ul_terms, 2000);
+        }
+      },
+      // Level 5: Remove token estimates (saves ~30 bytes)
       () => {
         delete metadata.estimated_tokens;
         delete metadata.content_length;
       },
-      // Level 5: Truncate source path
+      // Level 6: Truncate UL terms to 1000 chars (key terms preserved)
+      () => {
+        if (metadata.ul_terms && typeof metadata.ul_terms === 'string') {
+          metadata.ul_terms = this.truncateString(metadata.ul_terms, 1000);
+        }
+      },
+      // Level 7: Truncate source paths moderately
       () => {
         if (metadata.source) {
           metadata.source = this.truncateString(metadata.source, 200);
@@ -120,11 +133,51 @@ class MetadataFlattener {
           metadata.file_path = this.truncateString(metadata.file_path, 200);
         }
       },
-      // Level 6: Remove UL legacy fields
+      // Level 8: Truncate UL terms to 500 chars (core terms only)
+      () => {
+        if (metadata.ul_terms && typeof metadata.ul_terms === 'string') {
+          metadata.ul_terms = this.truncateString(metadata.ul_terms, 500);
+        }
+      },
+      // Level 9: Remove UL legacy fields
       () => {
         delete metadata.ubiq_business_module;
         delete metadata.ubiq_bounded_context;
         delete metadata.ubiq_enhanced;
+      },
+      // Level 10: Truncate UL terms to 200 chars (critical terms)
+      () => {
+        if (metadata.ul_terms && typeof metadata.ul_terms === 'string') {
+          metadata.ul_terms = this.truncateString(metadata.ul_terms, 200);
+        }
+      },
+      // Level 11: Truncate paths more aggressively
+      () => {
+        if (metadata.source) metadata.source = this.truncateString(metadata.source, 100);
+        if (metadata.file_path) metadata.file_path = this.truncateString(metadata.file_path, 100);
+      },
+      // Level 12: Truncate UL terms to 100 chars (minimal)
+      () => {
+        if (metadata.ul_terms && typeof metadata.ul_terms === 'string') {
+          metadata.ul_terms = this.truncateString(metadata.ul_terms, 100);
+        }
+      },
+      // Level 13: Remove category fields
+      () => {
+        delete metadata.content_category;
+        delete metadata.file_type;
+      },
+      // Level 14: Truncate repo info
+      () => {
+        if (metadata.repoId) metadata.repoId = this.truncateString(metadata.repoId, 100);
+        if (metadata.repoOwner) metadata.repoOwner = this.truncateString(metadata.repoOwner, 50);
+        if (metadata.repoName) metadata.repoName = this.truncateString(metadata.repoName, 50);
+        if (metadata.ul_bounded_context) metadata.ul_bounded_context = this.truncateString(metadata.ul_bounded_context, 50);
+      },
+      // Level 15: Remove UL terms entirely (last resort before emergency)
+      () => {
+        delete metadata.ul_terms;
+        delete metadata.ul_match_count;
       }
     ];
     
@@ -137,17 +190,28 @@ class MetadataFlattener {
       currentSize = Buffer.byteLength(current, 'utf8');
     }
     
-    // Final check
+    // Final check - if STILL too large, use emergency fallback
     if (currentSize > maxBytes) {
       console.error(`[${new Date().toISOString()}] ❌ METADATA_STILL_TOO_LARGE: ${currentSize} bytes after all trimming strategies`);
-      // Keep only essential fields as last resort
-      return {
-        source: this.truncateString(metadata.source || '', 150),
-        type: metadata.type || '',
-        repoId: metadata.repoId || '',
-        file_path: this.truncateString(metadata.file_path || '', 150),
-        language: metadata.language || ''
+      console.error(`[${new Date().toISOString()}] 🚨 EMERGENCY: Keeping only essential fields to prevent Pinecone rejection`);
+      
+      // Keep only absolute essentials - GUARANTEED to be under 40KB
+      const emergency = {
+        source: this.truncateString(metadata.source || '', 100),
+        type: String(metadata.type || '').substring(0, 50),
+        repoId: String(metadata.repoId || '').substring(0, 100),
+        file_path: this.truncateString(metadata.file_path || '', 100),
+        language: String(metadata.language || '').substring(0, 20),
+        // Keep critical UL fields but truncate
+        ul_bounded_context: String(metadata.ul_bounded_context || '').substring(0, 50),
+        ul_terms: this.truncateString(String(metadata.ul_terms || ''), 100)
       };
+      
+      // Verify emergency metadata is under limit
+      const emergencySize = Buffer.byteLength(JSON.stringify(emergency), 'utf8');
+      console.log(`[${new Date().toISOString()}] ✅ EMERGENCY_METADATA: ${emergencySize} bytes (essential fields only)`);
+      
+      return emergency;
     }
     
     console.log(`[${new Date().toISOString()}] ✅ METADATA_TRIMMED: ${currentSize} bytes (was ${Buffer.byteLength(JSON.stringify(metadata), 'utf8')} bytes)`);
@@ -205,14 +269,19 @@ class MetadataFlattener {
   
   /**
    * Process and validate metadata for upsert
-   * CRITICAL: Always enforces 35KB limit before returning
+   * CRITICAL: Always enforces 25KB limit before returning
+   * 
+   * WHY 25KB? LangChain's PineconeStore adds pageContent as metadata.text:
+   * - User metadata: 25KB (this limit)
+   * - LangChain adds text field: ~2-10KB (pageContent)
+   * - Total sent to Pinecone: 27-35KB (safely under 40KB limit)
    */
   static processForUpsert(metadata) {
     const flattened = this.flattenForStore(metadata);
     
-    // CRITICAL FIX: Always enforce size limit before upsert
-    // Pinecone rejects entire batch if even ONE vector exceeds 40KB
-    const trimmed = this.enforceMetadataSize(flattened, 35840); // 35KB limit (5KB safety margin)
+    // CRITICAL FIX: Limit to 25KB to account for LangChain adding pageContent as metadata.text
+    // Formula: 25KB (user metadata) + 10KB (text field) + 5KB (safety margin) = 40KB limit
+    const trimmed = this.enforceMetadataSize(flattened, 25600); // 25KB limit (15KB safety margin for text field)
     
     const validation = this.validateMetadata(trimmed);
     
