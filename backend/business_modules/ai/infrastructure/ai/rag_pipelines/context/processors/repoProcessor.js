@@ -447,6 +447,7 @@ class RepoProcessor {
   
   async intelligentProcessDocuments(documents) {
     console.log(`[${new Date().toISOString()}] 🧠 INTELLIGENT_PROCESSING: Processing ${documents.length} documents with full pipeline`);
+    console.log(`[${new Date().toISOString()}] 🔍 UL_FLOW_CHECK: ubiquitousLanguageProcessor exists? ${!!this.ubiquitousLanguageProcessor}`);
     
     const processedDocuments = [];
     

@@ -791,13 +791,31 @@ class ContextPipeline {
 
       // Step 3: Process documents with RepoProcessor (pure processing)
       console.log(`[${new Date().toISOString()}] 🔄 Processing ${documents.length} documents`);
+      console.log(`[${new Date().toISOString()}] 🔍 CALLING: repoProcessor.intelligentProcessDocuments()`);
       const processedDocuments = await this.repoProcessor.intelligentProcessDocuments(documents);
+      console.log(`[${new Date().toISOString()}] ✅ RETURNED: ${processedDocuments.length} processed documents`);
       
       // Step 4: Split documents with intelligent routing
       const splitDocuments = await this.repoProcessor.intelligentSplitDocuments(
         processedDocuments, 
         this.routeDocumentsToProcessors?.bind(this)
       );
+
+      // Step 4.5: UL PRESENCE VALIDATION - Assert UL metadata exists before storage
+      console.log(`[${new Date().toISOString()}] 🔍 UL_VALIDATION: Checking ${splitDocuments.length} chunks for UL metadata...`);
+      let ulMissingCount = 0;
+      let ulPresentCount = 0;
+      for (const doc of splitDocuments) {
+        if (!doc.metadata?.ubiq_enhanced) {
+          ulMissingCount++;
+          if (ulMissingCount <= 3) { // Log first 3 only
+            console.warn(`[${new Date().toISOString()}] ⚠️  UL_MISSING: ${doc.metadata?.source || 'unknown'} - ubiq_enhanced: ${doc.metadata?.ubiq_enhanced}`);
+          }
+        } else {
+          ulPresentCount++;
+        }
+      }
+      console.log(`[${new Date().toISOString()}] 📊 UL_VALIDATION: ${ulPresentCount}/${splitDocuments.length} chunks have UL metadata, ${ulMissingCount} missing`);
 
       // Step 5: Store processed documents using EmbeddingManager
       const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';

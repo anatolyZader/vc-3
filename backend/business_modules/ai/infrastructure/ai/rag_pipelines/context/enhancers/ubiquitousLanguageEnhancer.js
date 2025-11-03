@@ -186,9 +186,22 @@ class UbiquitousLanguageEnhancer {
 
   /**
    * Enhance document with ubiquitous language context
+   * Handles both LangChain Documents (pageContent) and custom objects (content)
    */
   async enhanceWithUbiquitousLanguage(document) {
-    if (!document?.pageContent) return document;
+    // Robust content extraction - handle both pageContent and content fields
+    const rawContent = document?.pageContent ?? document?.content;
+    if (!rawContent) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ UL_SKIP: No content found in document ${document?.metadata?.source || 'unknown'}`);
+      return {
+        ...document,
+        metadata: {
+          ...document?.metadata,
+          ubiq_enhanced: false,
+          ubiq_skip_reason: 'no_content'
+        }
+      };
+    }
 
     // Idempotency guard: skip if already enhanced
     if (document.metadata?.ubiq_enhanced === true) {
@@ -200,7 +213,7 @@ class UbiquitousLanguageEnhancer {
     const catalogs = await this.getCatalogs();
     this.ubiquitousLanguage = catalogs.ubiquitousLanguage;
 
-    const content = document.pageContent.toLowerCase();
+    const content = rawContent.toLowerCase();
     const source = document.metadata?.source || '';
     
     // Detect business module from file path or content
@@ -217,8 +230,9 @@ class UbiquitousLanguageEnhancer {
     // Enhanced document with ubiquitous language metadata (ALWAYS STAMP FIELDS)
     const enhancedDocument = {
       ...document,
-      // DO NOT pollute pageContent - keep original for RAG quality
-      pageContent: document.pageContent,
+      // Preserve content in original format (pageContent takes precedence for LangChain compatibility)
+      pageContent: document.pageContent || rawContent,
+      content: document.content || rawContent,
       metadata: {
         ...document.metadata,
         // UL Core fields (always present)
