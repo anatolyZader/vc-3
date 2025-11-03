@@ -456,16 +456,27 @@ class RepoProcessor {
         const source = document.metadata?.source || '';
         
         // Step 1: File header enrichment (provides context for UL)
+        const fileType = this.inferFileType(source);
+        const mainEntities = this.extractMainEntities(document.pageContent, source);
+        const isServiceFile = source.includes('/services/') || source.includes('Service.js');
+        
         processed = {
           ...processed,
           metadata: {
             ...processed.metadata,
             file_header: {
               file_path: source,
-              file_type: this.inferFileType(source),
+              file_type: fileType,
               language: this.inferLanguage(source),
-              main_entities: this.extractMainEntities(document.pageContent, source),
-              imports_excluded: false
+              main_entities: mainEntities,
+              imports_excluded: false,
+              is_service_file: isServiceFile,
+              // ENHANCED: Add filename without extension as searchable term
+              file_basename: this.getFileBasename(source),
+              // ENHANCED: Add directory context
+              directory_context: this.extractDirectoryContext(source),
+              // ENHANCED: Entity count for better filtering
+              entity_count: mainEntities.length
             }
           }
         };
@@ -537,6 +548,7 @@ class RepoProcessor {
     }
     
     const entities = [];
+    const isServiceFile = source.includes('/services/') || source.includes('Service.js');
     
     // Extract class names
     const classMatches = content.match(/class\s+(\w+)/gi);
@@ -553,7 +565,38 @@ class RepoProcessor {
       });
     }
     
-    return [...new Set(entities.filter(e => e && e.length > 2))].slice(0, 10); // Cap at 10 entities
+    // ENHANCED: Extract method signatures from service files
+    if (isServiceFile) {
+      // Extract async methods
+      const asyncMethods = content.match(/async\s+(\w+)\s*\(/gi);
+      if (asyncMethods) {
+        entities.push(...asyncMethods.map(match => 
+          match.replace(/async\s+/i, '').replace(/\s*\(/, '')
+        ));
+      }
+      
+      // Extract regular methods (including constructor)
+      const methodMatches = content.match(/^\s{2,4}(\w+)\s*\([^)]*\)\s*{/gm);
+      if (methodMatches) {
+        methodMatches.forEach(match => {
+          const methodName = match.trim().split('(')[0].trim();
+          if (methodName && methodName.length > 1) {
+            entities.push(methodName);
+          }
+        });
+      }
+      
+      // Extract exported constants/functions
+      const exportMatches = content.match(/(?:module\.exports|export)\s*=?\s*{([^}]+)}/gi);
+      if (exportMatches) {
+        exportMatches.forEach(match => {
+          const names = match.match(/(\w+)/g);
+          if (names) entities.push(...names.filter(n => n !== 'module' && n !== 'exports' && n !== 'export'));
+        });
+      }
+    }
+    
+    return [...new Set(entities.filter(e => e && e.length > 2))].slice(0, 20); // Increased cap for service files
   }
 
   async intelligentSplitDocuments(documents, routingFunction = null) {
@@ -666,6 +709,22 @@ class RepoProcessor {
     ];
     return codeExtensions.includes(extension);
   }
+  
+  getFileBasename(source) {
+    const parts = source.split('/');
+    const filename = parts[parts.length - 1];
+    return filename.replace(/\.[^/.]+$/, ''); // Remove extension
+  }
+  
+  extractDirectoryContext(source) {
+    const parts = source.split('/').filter(p => p);
+    if (parts.length < 2) return 'root';
+    
+    // Return relevant directory structure
+    // Example: "backend/business_modules/ai/application/services"
+    return parts.slice(Math.max(0, parts.length - 4), parts.length - 1).join('/');
+  }
+
 
   getFileExtension(filename) {
     if (!filename) return '';

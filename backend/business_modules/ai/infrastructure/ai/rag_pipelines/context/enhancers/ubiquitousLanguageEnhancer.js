@@ -422,6 +422,20 @@ class UbiquitousLanguageEnhancer {
   extractRelevantTerms(content, source = '') {
     const relevantTerms = [];
     
+    // CRITICAL: Add filename as high-priority searchable term
+    if (source) {
+      const filename = this.extractFilename(source);
+      const filenameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+      
+      // Add filename variants as terms
+      relevantTerms.push(filenameWithoutExt); // e.g., "aiService"
+      relevantTerms.push(filename); // e.g., "aiService.js"
+      
+      // Split camelCase/PascalCase filenames into separate terms
+      const filenameParts = this.splitIdentifier(filenameWithoutExt);
+      relevantTerms.push(...filenameParts); // e.g., ["ai", "Service"]
+    }
+    
     // Check business terms from ubiquitous language catalog
     for (const [term, definition] of Object.entries(this.ubiquitousLanguage?.businessTerms || {})) {
       if (this.hasWordBoundaryMatch(content, term) || this.hasWordBoundaryMatch(content, definition.name)) {
@@ -446,6 +460,15 @@ class UbiquitousLanguageEnhancer {
     
     // Remove duplicates and return
     return [...new Set(relevantTerms)];
+  }
+  
+  /**
+   * Extract filename from full path
+   */
+  extractFilename(filepath) {
+    if (!filepath) return '';
+    const parts = filepath.split('/');
+    return parts[parts.length - 1] || '';
   }
   
   /**

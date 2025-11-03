@@ -222,6 +222,39 @@ class QueryPipeline {
 
       const searchResults = await this.performVectorSearch(prompt, activeVectorStore, traceData, userId, null, repoDescriptor, conversationHistory);
       
+      // DEBUG: Check UL tags in retrieved chunks
+      console.log(`[${new Date().toISOString()}] 🔍 UL_DEBUG: Checking UL tags in ${searchResults.length} retrieved chunks`);
+      const ulStats = {
+        total: searchResults.length,
+        withUlTerms: 0,
+        withUbiqEnhanced: 0,
+        withUlBoundedContext: 0,
+        sampleMetadata: []
+      };
+      
+      searchResults.forEach((doc, index) => {
+        const metadata = doc.metadata || {};
+        if (metadata.ul_terms) ulStats.withUlTerms++;
+        if (metadata.ubiq_enhanced) ulStats.withUbiqEnhanced++;
+        if (metadata.ul_bounded_context) ulStats.withUlBoundedContext++;
+        
+        // Capture first 3 chunks for inspection
+        if (index < 3) {
+          ulStats.sampleMetadata.push({
+            source: metadata.source,
+            ul_terms: metadata.ul_terms,
+            ul_terms_type: typeof metadata.ul_terms,
+            ul_terms_sample: typeof metadata.ul_terms === 'string' ? metadata.ul_terms.substring(0, 100) : metadata.ul_terms,
+            ubiq_enhanced: metadata.ubiq_enhanced,
+            ul_bounded_context: metadata.ul_bounded_context,
+            ul_match_count: metadata.ul_match_count
+          });
+        }
+      });
+      
+      console.log(`[${new Date().toISOString()}] 🏷️ UL_STATS: ${ulStats.withUlTerms}/${ulStats.total} have ul_terms, ${ulStats.withUbiqEnhanced}/${ulStats.total} have ubiq_enhanced flag`);
+      console.log(`[${new Date().toISOString()}] 📊 UL_SAMPLE:`, JSON.stringify(ulStats.sampleMetadata, null, 2));
+      
       if (searchResults.length === 0) {
         traceData.steps.push({ step: 'vector_search', timestamp: new Date().toISOString(), status: 'no_results' });
         console.log(`[${new Date().toISOString()}] 🔄 No relevant documents found, generating standard response`);
@@ -1589,11 +1622,20 @@ ${(() => {
       if (doc.metadata.ubiq_bounded_context) ulStats.boundedContexts.add(doc.metadata.ubiq_bounded_context);
       if (doc.metadata.ubiq_business_module) ulStats.businessModules.add(doc.metadata.ubiq_business_module);
       
-      const terms = doc.metadata.ul_terms || doc.metadata.ubiq_terminology || [];
+      // FIX: ul_terms is a string after metadata flattening, not an array
+      let terms = doc.metadata.ul_terms || doc.metadata.ubiq_terminology || [];
+      if (typeof terms === 'string') {
+        // Convert comma-separated string back to array
+        terms = terms.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      }
       ulStats.totalTerms += terms.length;
       terms.forEach(term => ulStats.uniqueTerms.add(term));
       
-      const events = doc.metadata.ubiq_domain_events || [];
+      // FIX: Domain events may also be string after flattening
+      let events = doc.metadata.ubiq_domain_events || [];
+      if (typeof events === 'string') {
+        events = events.split(',').map(e => e.trim()).filter(e => e.length > 0);
+      }
       events.forEach(event => ulStats.domainEvents.add(event));
     } else {
       ulStats.chunksWithoutUL++;
@@ -1648,6 +1690,17 @@ ${traceData.chunks ? traceData.chunks.map(chunk => {
     ubiq_enhanced: chunk.metadata.ubiq_enhanced || false,
     ubiq_enhancement_timestamp: chunk.metadata.ubiq_enhancement_timestamp || null
   };
+  
+  // FIX: Convert string fields back to arrays for display
+  if (typeof ulTags.ul_terms === 'string') {
+    ulTags.ul_terms = ulTags.ul_terms.split(',').map(t => t.trim()).filter(t => t.length > 0);
+  }
+  if (typeof ulTags.ubiq_terminology === 'string') {
+    ulTags.ubiq_terminology = ulTags.ubiq_terminology.split(',').map(t => t.trim()).filter(t => t.length > 0);
+  }
+  if (typeof ulTags.ubiq_domain_events === 'string') {
+    ulTags.ubiq_domain_events = ulTags.ubiq_domain_events.split(',').map(e => e.trim()).filter(e => e.length > 0);
+  }
   
   // Check if UL enhancement was applied
   const hasULTags = ulTags.ul_version || ulTags.ubiq_enhanced;

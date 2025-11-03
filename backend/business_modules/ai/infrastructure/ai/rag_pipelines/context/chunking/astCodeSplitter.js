@@ -447,9 +447,24 @@ class ASTCodeSplitter {
     const units = collectUnits(cleanedAST);
     const root = buildTree(units, 0, cleaned.length);
 
-    // 5) Plan emission recursively (no double-emit) with imports and jsdocs in metadata
+    // ENHANCED: Extract class and method information for metadata
+    const classInfo = this.extractClassInfo(ast);
+    const methodNames = this.extractMethodNames(ast);
+    const isServiceFile = metadata.source && (
+      metadata.source.includes('/services/') || 
+      metadata.source.includes('Service.js')
+    );
+
+    // 5) Plan emission recursively (no double-emit) with enriched metadata
     const emitted = [];
-    const enrichedMetadata = { ...metadata, imports, jsdocs };
+    const enrichedMetadata = { 
+      ...metadata, 
+      imports, 
+      jsdocs,
+      className: classInfo.className,
+      methodNames: methodNames,
+      isServiceFile: isServiceFile
+    };
     this._emitNode(root, cleaned, enrichedMetadata, emitted);
 
     // 6) Dedupe by span or sha
@@ -748,6 +763,18 @@ class ASTCodeSplitter {
         type: fileType,
         fileType: baseMeta.fileType ?? 'js',
         eventstorm_module: baseMeta.eventstorm_module ?? null,
+        // ENHANCED: Add semantic metadata for better search
+        ...(extra?.unit?.name && { 
+          semantic_unit_name: extra.unit.name,
+          semantic_unit_type: extra.unit.type 
+        }),
+        ...(extra?.unit?.kind && { semantic_unit_kind: extra.unit.kind }),
+        // ENHANCED: Add searchable entity names
+        ...(baseMeta.className && { class_name: baseMeta.className }),
+        ...(baseMeta.methodNames && baseMeta.methodNames.length > 0 && { 
+          method_names: baseMeta.methodNames 
+        }),
+        ...(baseMeta.isServiceFile && { is_service_file: true }),
         semantic_role: extra.unit?.type ?? null,   // function | class | fastify_route | ...
         unit_name: extra.unit?.name ?? null,
         is_complete_block: isBalancedBraces(finalText),
@@ -940,6 +967,58 @@ class ASTCodeSplitter {
       Math.round((stats.balanceStats.balancedChunks / stats.totalChunks) * 100);
 
     return stats;
+  }
+  
+  /**
+   * Extract class information from AST
+   */
+  extractClassInfo(ast) {
+    let className = null;
+    
+    traverse(ast, {
+      ClassDeclaration(path) {
+        if (path.node.id?.name) {
+          className = path.node.id.name;
+        }
+      }
+    });
+    
+    return { className };
+  }
+  
+  /**
+   * Extract all method names from AST (for service files)
+   */
+  extractMethodNames(ast) {
+    const methods = [];
+    
+    traverse(ast, {
+      // Class methods
+      MethodDefinition(path) {
+        const name = path.node.key?.name;
+        if (name) methods.push(name);
+      },
+      
+      // Function declarations
+      FunctionDeclaration(path) {
+        const name = path.node.id?.name;
+        if (name) methods.push(name);
+      },
+      
+      // Variable function expressions
+      VariableDeclaration(path) {
+        for (const declarator of path.node.declarations) {
+          if (t.isIdentifier(declarator.id) &&
+              declarator.init &&
+              (t.isFunctionExpression(declarator.init) || 
+               t.isArrowFunctionExpression(declarator.init))) {
+            methods.push(declarator.id.name);
+          }
+        }
+      }
+    });
+    
+    return [...new Set(methods)]; // Remove duplicates
   }
 }
 
