@@ -361,7 +361,7 @@ fastify.decorate('testQuestionAdded', async function(userId, conversationId, pro
   try {
     const pubSubClient = await fastify.diContainer.resolve('pubSubClient');
     const topicName = 'git-topic';
-    const subscriptionName = 'gi-sub'; // Fixed: matches actual GCP subscription name
+    const subscriptionName = 'git-sub'; // Fixed: matches architecture documentation and primary subscription
 
     const subscription = pubSubClient.topic(topicName).subscription(subscriptionName);
 
