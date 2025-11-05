@@ -49,7 +49,7 @@ module.exports = async function (fastify, opts) {
     await fastify.register(pubsubPlugin);
   }
   
-  // Sets security-related HTTP headers automatically
+  // Sets security-related HTTP headerss automatically
   await fastify.register(helmet, {
   global: true,
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
