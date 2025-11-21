@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "dev": "concurrently --kill-others-on-fail \"./cloud-sql-proxy eventstorm-1:me-west1:eventstorm-pg-instance-1 --port 5432\" \"NODE_DEBUG=fastify,node-fastify fastify start server.js --watch --watch-ignore logs/ --watch-ignore node_modules/ --port 3000 -l trace | pino-pretty --translateTime 'SYS:standard' --colorize\"",
     "dev-stable": "concurrently --kill-others-on-fail \"./cloud-sql-proxy eventstorm-1:me-west1:eventstorm-pg-instance-1 --port 5432\" \"NODE_DEBUG=fastify,node-fastify fastify start server.js --port 3000 -l info | pino-pretty --translateTime 'SYS:standard' --colorize\"",
+    "dev-stable:local": "NODE_DEBUG=fastify,node-fastify fastify start server.js --port 3000 -l info | pino-pretty --translateTime 'SYS:standard' --colorize",
     "debug": "node --inspect-brk app.js",
     "start": "fastify start server.js -l info --address 0.0.0.0 --port $PORT --config fastify.config.js",
     "generate:spec": "node generateSpec.js",

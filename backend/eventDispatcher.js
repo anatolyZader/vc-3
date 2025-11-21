@@ -1,113 +1,206 @@
-// eventDispatcherPlugin.js
+// eventDispatcher.js
 /* eslint-disable no-unused-vars */
 'use strict';
+
 const fp = require('fastify-plugin');
 const EventEmitter = require('events');
 
-// Create a shared event bus for the simple function version
-const sharedEventBus = new EventEmitter();
+// ────────────────────────────────────────────────────────────────
+// Single, shared in-process event bus for the whole backend
+// ────────────────────────────────────────────────────────────────
+const eventBus = new EventEmitter();
 
-// SIMPLE FUNCTION VERSION (for DI usage)
-async function simpleEventDispatcher(eventType, eventData) {
-    console.log(`📡 EventDispatcher: Processing event '${eventType}'`, {
-        eventType,
-        eventData,
-        timestamp: new Date().toISOString()
-    });
+// Prevent memory leak warnings in high-throughput scenarios
+eventBus.setMaxListeners(100);
 
+/**
+ * Envelope shape for cross-process messages.
+ * {
+ *   event: string;
+ *   payload: any;
+ *   timestamp: string;
+ *   source?: string;
+ * }
+ */
+
+module.exports = fp(async function eventDispatcherPlugin(fastify, opts) {
+  fastify.log.info('🔧 Initializing eventDispatcher...');
+
+  // Transport is the only out-of-process channel (Redis / GCP, etc.)
+  if (!fastify.transport) {
+    throw new Error('[eventDispatcher] fastify.transport is not available. Ensure transportPlugin is registered first.');
+  }
+  const transport = fastify.transport;
+
+  const defaultOutboundTopic =
+    opts.defaultOutboundTopic ||
+    process.env.EVENTS_MAIN_TOPIC ||
+    'main-events';
+
+  const inboundSubscription =
+    opts.inboundSubscription ||
+    process.env.EVENTS_MAIN_SUBSCRIPTION ||
+    null; // optional
+
+  const sourceId =
+    opts.source ||
+    process.env.EVENTS_SOURCE_ID ||
+    'eventstorm-backend';
+
+  // ────────────────────────────────────────────────────────────────
+  // Core API
+  // ────────────────────────────────────────────────────────────────
+
+  /**
+   * In-memory only. Synchronous, no transport involved.
+   */
+  function emitInternal(eventName, payload) {
+    fastify.log.info(
+      { event: eventName },
+      '[eventDispatcher] Emitting internal event'
+    );
+    eventBus.emit(eventName, payload);
+  }
+
+  /**
+   * Cross-process event:
+   *  - wraps payload in an envelope
+   *  - publishes via transport (Redis / GCP)
+   *  - by default also emits to local event bus
+   */
+  async function emitExternal(eventName, payload, options = {}) {
+    const topic =
+      options.topic ||
+      defaultOutboundTopic;
+
+    const envelope = {
+      event: eventName,
+      payload,
+      timestamp: new Date().toISOString(),
+      source: sourceId
+    };
+
+    fastify.log.info(
+      { event: eventName, topic },
+      '[eventDispatcher] Publishing external event'
+    );
+
+    // Out-of-process publish (Redis, Pub/Sub, etc.)
+    let messageId;
     try {
-        // Just emit the event to the shared event bus
-        sharedEventBus.emit(eventType, eventData);
-        console.log(`✅ Event '${eventType}' dispatched successfully`);
-        
-        if (eventType === 'questionAdded') {
-            console.log('🤖 Received questionAdded - AI should process this');
-            // This is where your AI listener should pick it up
-        }
-        
-    } catch (error) {
-        console.error(`❌ Error dispatching event '${eventType}':`, error);
-        throw error;
+      messageId = await transport.publish(topic, envelope);
+      fastify.log.info(
+        { event: eventName, topic, messageId },
+        '[eventDispatcher] External event published'
+      );
+    } catch (err) {
+      fastify.log.error(
+        { err, event: eventName, topic },
+        '[eventDispatcher] Failed to publish external event'
+      );
+      throw err;
     }
-}
 
-// ORIGINAL FASTIFY PLUGIN VERSION (unchanged)
-async function eventDispatcher(fastify, opts) {
-  const eventBus = new EventEmitter();
+    // Optionally also notify local listeners
+    if (options.emitInternal !== false) {
+      emitInternal(eventName, envelope.payload);
+    }
 
+    return { messageId, topic };
+  }
+
+  /**
+   * Subscribe to local in-process events.
+   */
+  function subscribe(eventName, handler) {
+    fastify.log.info(
+      { event: eventName },
+      '[eventDispatcher] Subscribing to internal event'
+    );
+    eventBus.on(eventName, handler);
+
+    // Simple unsubscribe helper (optional)
+    return () => {
+      eventBus.off(eventName, handler);
+    };
+  }
+
+  // Expose API on Fastify
   fastify.decorate('eventDispatcher', {
-    // For external events (Pub/Sub + in-memory)
-    publish: async (eventName, payload) => {
-      fastify.log.info(`[EventDispatcher] Publishing event: ${eventName}`);
-      try {
-        const topicName = fastify.secrets.PUBSUB_MAIN_SUBSCRIPTION || 'main-sub'; 
-        const topic = fastify.pubsubClient.topic(topicName);
-        const event = { event: eventName, payload };
-        const dataBuffer = Buffer.from(JSON.stringify(event));
-        const messageId = await topic.publishMessage({ data: dataBuffer });
-        fastify.log.info(`[EventDispatcher] Published Pub/Sub message ${messageId} for event: ${eventName}`);
-      } catch (error) {
-        fastify.log.error(`[EventDispatcher] Error publishing to Pub/Sub for event ${eventName}:`, error);
-      }
-
-      // Also emit to the in-memory event bus for immediate, local listeners
-      eventBus.emit(eventName, payload);
-    },
-
-    // For internal events (in-memory only) - ADD THIS METHOD
-    emit: (eventName, payload) => {
-      fastify.log.info(`[EventDispatcher] Emitting in-memory event: ${eventName}`);
-      eventBus.emit(eventName, payload);
-    },
-
-    // For subscribing to events
-    subscribe: (eventName, listener) => {
-      fastify.log.info(`[EventDispatcher] Subscribing to in-memory event: ${eventName}`);
-      eventBus.on(eventName, listener);
-    }
+    emitInternal,
+    emitExternal,
+    subscribe,
+    bus: eventBus // raw emitter for advanced cases (e.g. listenerCount)
   });
 
-  fastify.log.info('✅ Event Dispatcher decorated on Fastify instance');
-
-  // ...existing code... (the rest remains the same)
-  fastify.addHook('onReady', async () => {
-    const subscriptionName = fastify.secrets.PUBSUB_SUBSCRIPTION_NAME || 'main-sub';
-    const subscription = fastify.pubsubClient.subscription(subscriptionName);
-
-    subscription.on('error', (error) => {
-      fastify.log.error(`[EventDispatcher] Pub/Sub Stream Error (${subscriptionName}):`, error);
+  // Register in DI so modules can resolve 'eventDispatcher'
+  if (fastify.diContainer) {
+    const { asValue } = require('awilix');
+    await fastify.diContainer.register({
+      eventDispatcher: asValue(fastify.eventDispatcher)
     });
+    fastify.log.info('✅ eventDispatcher registered in DI container');
+  }
 
-    subscription.on('message', async (message) => {
-      fastify.log.info(`[EventDispatcher] Received Pub/Sub message ${message.id} on subscription ${subscriptionName}`);
+  // ────────────────────────────────────────────────────────────────
+  // Optional: Inbound bridge from transport → internal bus
+  // ────────────────────────────────────────────────────────────────
+  if (inboundSubscription) {
+    fastify.log.info(
+      { subscription: inboundSubscription },
+      '[eventDispatcher] Subscribing to inbound transport subscription'
+    );
+
+    await transport.subscribe(inboundSubscription, async (message) => {
+      const { id } = message;
+
       try {
-        const parsedData = JSON.parse(message.data.toString());
-        const { event: eventName, payload } = parsedData;
+        const data = message.data;
 
-        if (eventName) {
-          fastify.log.info(`[EventDispatcher] Dispatching received event '${eventName}' to local listeners.`);
-          eventBus.emit(eventName, payload);
-        } else {
-          fastify.log.warn(`[EventDispatcher] Received Pub/Sub message ${message.id} with no 'event' field.`);
+        if (!data || !data.event) {
+          fastify.log.warn(
+            { messageId: id, data },
+            '[eventDispatcher] Inbound message without event field, acking and ignoring'
+          );
+          await message.ack();
+          return;
         }
 
-        message.ack();
-      } catch (error) {
-        fastify.log.error(`[EventDispatcher] Error processing Pub/Sub message ${message.id}:`, error);
-        message.nack();
+        const { event, payload } = data;
+
+        fastify.log.info(
+          { messageId: id, event },
+          '[eventDispatcher] Inbound transport message, emitting internal event'
+        );
+
+        emitInternal(event, payload);
+
+        await message.ack();
+      } catch (err) {
+        fastify.log.error(
+          { messageId: id, err },
+          '[eventDispatcher] Error processing inbound message'
+        );
+        await message.nack();
       }
     });
+  } else {
+    fastify.log.info('[eventDispatcher] No inboundSubscription configured; transport → bus bridge disabled');
+  }
 
-    fastify.log.info(`[EventDispatcher] Listening for messages on Pub/Sub subscription: ${subscriptionName}...`);
-
-    fastify.addHook('onClose', async () => {
-      fastify.log.info(`[EventDispatcher] Closing Pub/Sub subscription: ${subscriptionName}.`);
-      await subscription.close();
-    });
+  // ────────────────────────────────────────────────────────────────
+  // Cleanup
+  // ────────────────────────────────────────────────────────────────
+  fastify.addHook('onClose', async () => {
+    fastify.log.info('[eventDispatcher] Cleaning up event bus listeners');
+    eventBus.removeAllListeners();
   });
-}
 
-// Export both versions
-module.exports = simpleEventDispatcher;  // The simple function for DI
-module.exports.plugin = fp(eventDispatcher);  // The Fastify plugin
-module.exports.eventBus = sharedEventBus;  // Access to the event bus
+  fastify.log.info('✅ eventDispatcher initialized');
+}, {
+  name: 'eventDispatcher',
+  dependencies: ['@fastify/awilix', 'transportPlugin'] // ensure DI and transport are ready
+});
+
+// Also export the bus for rare direct imports (e.g. tests)
+module.exports.eventBus = eventBus;

@@ -57,6 +57,15 @@ module.exports = fp(async function authPlugin(fastify, opts) {
   // JWT DECORATORS
   // ────────────────────────────────────────────────────────────────
   if (!BUILDING_API_SPEC) {
+    // Centralized JWT issuing
+    fastify.decorate('issueJwt', function (user) {
+      const jti = uuidv4();
+      return fastify.jwt.sign(
+        { id: user.id, username: user.username, jti },
+        { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
+      );
+    });
+
     fastify.decorate('verifyToken', async function (request) {
       let token = request.cookies?.authToken;
       if (!token && request.headers.authorization) {
@@ -95,6 +104,7 @@ module.exports = fp(async function authPlugin(fastify, opts) {
     });
   } else {
     // Provide no-op versions for spec generation
+
     fastify.decorate('verifyToken', async function (request) {
       // No-op for spec generation
       request.user = { id: 'spec-user', username: 'spec-user' };
@@ -113,14 +123,21 @@ module.exports = fp(async function authPlugin(fastify, opts) {
   // ────────────────────────────────────────────────────────────────
   // OAUTH2 SETUP
   // ────────────────────────────────────────────────────────────────
-  const cookieSecure   = process.env.NODE_ENV === 'staging';
+  // Fixed: secure cookies for staging AND production
+  const cookieSecure   = process.env.NODE_ENV !== 'development';
   const cookieSameSite = cookieSecure ? 'None' : 'Lax';
   const googleCallbackUri =
     cookieSecure
       ? 'https://eventstorm.me/api/auth/google/callback'
       : 'http://localhost:3000/api/auth/google/callback';
 
-  if (!BUILDING_API_SPEC) {
+  // Only register OAuth2 if we have valid credentials
+  const hasValidOAuth2Credentials = clientId && clientSecret && 
+    clientId !== 'your_google_client_id' && 
+    clientSecret !== 'your_google_client_secret';
+
+  if (!BUILDING_API_SPEC && hasValidOAuth2Credentials) {
+    fastify.log.info('Registering Google OAuth2 with valid credentials');
     await fastify.register(
       fastifyOAuth2,
       {
@@ -136,66 +153,109 @@ module.exports = fp(async function authPlugin(fastify, opts) {
       },
       { encapsulate: false }
     );
+  } else if (!BUILDING_API_SPEC) {
+    fastify.log.warn('Google OAuth2 not registered - missing valid credentials. Using development mode.');
   }
 
   // ────────────────────────────────────────────────────────────────
   // GOOGLE CLIENT SETUP
   // ────────────────────────────────────────────────────────────────
-  if (!BUILDING_API_SPEC) {
+  if (!BUILDING_API_SPEC && hasValidOAuth2Credentials) {
     const googleClient = new OAuth2Client(clientId);
     fastify.decorate('verifyGoogleIdToken', async (idToken) => {
       const ticket = await googleClient.verifyIdToken({ idToken, audience: clientId });
       return ticket.getPayload();
     });
   } else {
-    // Provide no-op version for spec generation
+    // Provide no-op version for spec generation or when credentials are missing
     fastify.decorate('verifyGoogleIdToken', async (idToken) => {
-      return { sub: 'spec-user', email: 'spec@example.com', name: 'Spec User' };
+      if (process.env.NODE_ENV === 'development') {
+        fastify.log.warn('Using mock Google ID token verification in development mode');
+      }
+      return { sub: 'dev-user', email: 'dev@localhost.com', name: 'Developer' };
     });
   }
 
   // ────────────────────────────────────────────────────────────────
   // GOOGLE OAUTH CALLBACK ROUTE
   // ────────────────────────────────────────────────────────────────
-  fastify.get('/api/auth/google/callback', {
-    schema: {
-      querystring: {
-        type: 'object',
-        properties: {
-          code: { type: 'string' },
-          state: { type: 'string' }
+  if (hasValidOAuth2Credentials) {
+    fastify.get('/api/auth/google/callback', {
+      schema: {
+        querystring: {
+          type: 'object',
+          properties: {
+            code: { type: 'string' },
+            state: { type: 'string' }
+          },
+          additionalProperties: true
         },
-        additionalProperties: true
-      },
-      response: {
-        302: {
-          description: 'Redirect to frontend after successful authentication'
+        response: {
+          302: {
+            description: 'Redirect to frontend after successful authentication'
+          }
         }
       }
-    }
-  }, async (req, reply) => {
-    const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
-    const googleAccessToken = token.token.access_token;
+    }, async (req, reply) => {
+      const token            = await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(req);
+      const googleAccessToken = token.token.access_token;
 
-    const userService = await req.diScope.resolve('userService');
-    const googleUser  = await userService.loginWithGoogle(googleAccessToken);
-    if (!googleUser) return reply.unauthorized('Google profile invalid');
+      const userService = await req.diScope.resolve('userService');
+      const googleUser  = await userService.loginWithGoogle(googleAccessToken);
+      if (!googleUser) return reply.unauthorized('Google profile invalid');
 
-    const jti  = uuidv4();
-    const jwt  = fastify.jwt.sign(
-      { id: googleUser.id, username: googleUser.username, jti },
-      { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-    );
+      // Use centralized JWT creation
+      const jwt = fastify.issueJwt(googleUser);
 
-    fastify.log.info(`DEV: JWT token for user ${googleUser.id}: ${jwt}`);
+      fastify.log.info(`DEV: JWT token for user ${googleUser.id}: ${jwt}`);
 
-    reply.setCookie('authToken', jwt, {
-      path: '/',
-      httpOnly: true,
-      secure: cookieSecure,
-      sameSite: cookieSameSite,
+      reply.setCookie('authToken', jwt, {
+        path: '/',
+        httpOnly: true,
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
+      });
+
+      reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');
+    });
+  } else {
+    // Provide a development endpoint that explains OAuth2 is not available
+    fastify.get('/api/auth/google', {
+      schema: {
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
+              devEndpoint: { type: 'string' }
+            }
+          }
+        }
+      }
+    }, async (req, reply) => {
+      return reply.send({
+        message: 'Google OAuth2 is not configured. Use development authentication instead.',
+        devEndpoint: '/api/auth/dev-login'
+      });
     });
 
-    reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');
-  });
+    fastify.get('/api/auth/google/callback', {
+      schema: {
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
+              devEndpoint: { type: 'string' }
+            }
+          }
+        }
+      }
+    }, async (req, reply) => {
+      return reply.send({
+        message: 'Google OAuth2 callback is not available. Use development authentication instead.',
+        devEndpoint: '/api/auth/dev-login'
+      });
+    });
+  }
 });

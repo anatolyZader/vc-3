@@ -7,11 +7,14 @@ const fp = require('fastify-plugin');
 async function chatPubsubListener(fastify, options) {
   fastify.log.info('💬 Setting up Chat Pub/Sub listeners...');
 
-  // Get the shared event bus from the eventDispatcher module
-  const { eventBus } = require('../../../eventDispatcher');
+  const { eventDispatcher } = fastify;
+  
+  if (!eventDispatcher) {
+    throw new Error('[Chat Module] eventDispatcher not available. Ensure eventDispatcher plugin is registered.');
+  }
 
-  // Subscribe to 'answerAdded' events using the shared event bus
-  eventBus.on('answerAdded', async (data) => {
+  // Subscribe to 'answerAdded' events using eventDispatcher
+  eventDispatcher.subscribe('answerAdded', async (data) => {
     console.log(`🎯 CHAT RECEIVED 'answerAdded' event from EventDispatcher:`, JSON.stringify(data, null, 2));
     fastify.log.info(`🎯 CHAT RECEIVED 'answerAdded' event from EventDispatcher:`, JSON.stringify(data, null, 2));
 
@@ -121,7 +124,10 @@ async function chatPubsubListener(fastify, options) {
   });
 
 
-  fastify.log.info('✅ Chat Pub/Sub listeners registered via shared eventBus');
+  fastify.log.info('✅ Chat Pub/Sub listeners registered via eventDispatcher');
 }
 
-module.exports = fp(chatPubsubListener);
+module.exports = fp(chatPubsubListener, {
+  name: 'chatPubsubListener',
+  dependencies: ['transportPlugin', 'eventDispatcher']
+});

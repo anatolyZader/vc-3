@@ -3,14 +3,15 @@
 
 const { Pool } = require('pg');
 const IGitPersistPort = require('../../domain/ports/IGitPersistPort');
+const { getDbConfig, getEnvironmentInfo } = require('../../../../config/dbConfig');
 
-const isLocal = process.env.NODE_ENV !== 'staging';
+const envInfo = getEnvironmentInfo();
 
 class GitPostgresAdapter extends IGitPersistPort {
   constructor({ cloudSqlConnector }) {
     super();
     this.connector = cloudSqlConnector;
-    this.poolPromise = isLocal
+    this.poolPromise = envInfo.isLocal
       ? this.createLocalPool()
       : this.createCloudSqlPool(cloudSqlConnector);
   }
@@ -22,13 +23,16 @@ class GitPostgresAdapter extends IGitPersistPort {
     return this.pool;
   }
 
-  createLocalPool() {
+  async createLocalPool() {
+    const dbConfig = await getDbConfig();
     const config = {
       user: process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DATABASE,
-      host: 'localhost',
-      port: 5432,
+      host: dbConfig.host,
+      port: dbConfig.port,
+      ssl: dbConfig.ssl,
+      max: dbConfig.maxConnections,
     };
     return Promise.resolve(new Pool(config));
   }

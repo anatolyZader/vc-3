@@ -2,30 +2,30 @@
 'use strict';
 
 const IDocsMessagingPort = require('../../../domain/ports/IDocsMessagingPort');
+const { getChannelName } = require('../../../../../messageChannels');
 
 class DocsPubsubAdapter extends IDocsMessagingPort {
-  constructor({ pubSubClient }) {
+  constructor({ transport, logger }) {
     super();
-    this.pubSubClient = pubSubClient;
-    this.topicName = 'docs';
+    this.transport = transport;
+    this.log = logger;
+    this.topicName = getChannelName('docs');
   }
 
   async publishfetchedDocsEvent(fetchedDocs) {
-    const event = {
-    event: 'docsFetched',
-    payload: { ...fetchedDocs }
+    const envelope = {
+      event: 'docsFetched',
+      payload: { ...fetchedDocs },
+      timestamp: new Date().toISOString(),
+      source: 'docs-module'
     };
 
-    const dataBuffer = Buffer.from(JSON.stringify(event));
     try {
-      const [topic] = await this.pubSubClient
-        .topic(this.topicName)
-        .get({ autoCreate: true });
-      const messageId = await topic.publishMessage({ data: dataBuffer });
-      console.log(`Published 'docsFetched' event with message ID: ${messageId} to topic: ${this.topicName}`);
+      const messageId = await this.transport.publish(this.topicName, envelope);
+      this.log.info({ messageId, topic: this.topicName }, 'Published docsFetched event');
       return messageId;
     } catch (error) {
-      console.error(`Error publishing 'docsFetched' event to topic ${this.topicName}:`, error);
+      this.log.error({ error, topic: this.topicName }, 'Error publishing docsFetched event');
       throw error;
     }
   }

@@ -9,6 +9,7 @@ const LoginPage = () => {
   const {
     verifyCookieUpdateState,
     googleLogin,      
+    devLogin,  // Add dev login function
     logout,
     userProfile,
     isAuthenticated
@@ -17,6 +18,18 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(null);
+
+  // Check if we're in development mode
+  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+
+  // Handle dev login button click
+  const handleDevLogin = async () => {
+    setLoginError(null);
+    const result = await devLogin();
+    if (!result.success) {
+      setLoginError(result.error || 'Development login failed');
+    }
+  };
 
   // Handle manual login form submission; the backend will set the auth cookie
   const handleManualLogin = async (e) => {
@@ -60,6 +73,19 @@ const LoginPage = () => {
             Sign in with Google 
           </Button>
 
+          {/* Development Login Button - Only show in development */}
+          {isDevelopment && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              fullWidth
+              onClick={handleDevLogin}
+              sx={{ mb: 2, bgcolor: '#ff9800', color: 'white', '&:hover': { bgcolor: '#f57c00' } }}
+            >
+              🚀 Dev Login (Local Only)
+            </Button>
+          )}
+
       <form onSubmit={handleManualLogin} autoComplete="on">
             <Box sx={{ mb: 2 }}>
               <TextField
@@ -101,13 +127,18 @@ const LoginPage = () => {
           </Typography>
           {userProfile && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <img
-                src={userProfile.picture}
-                alt="user"
-                style={{ width: 100, height: 100, borderRadius: '50%', marginBottom: '16px' }}
-              />
-              <Typography>Name: {userProfile.name}</Typography>
+              {userProfile.picture && (
+                <img
+                  src={userProfile.picture}
+                  alt="user"
+                  style={{ width: 100, height: 100, borderRadius: '50%', marginBottom: '16px' }}
+                />
+              )}
+              <Typography>Username: {userProfile.username || userProfile.name || 'Unknown'}</Typography>
               <Typography>Email: {userProfile.email}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                ID: {userProfile.id}
+              </Typography>
             </Box>
           )}
           <Button variant="outlined" color="secondary" fullWidth onClick={logout} sx={{ mt: 2 }}>

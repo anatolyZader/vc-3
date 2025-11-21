@@ -2,8 +2,9 @@
 'use strict';
 const { Pool } = require('pg');
 const IAIPersistPort = require('../../domain/ports/IAIPersistPort');
+const { getDbConfig, getEnvironmentInfo } = require('../../../../config/dbConfig');
 
-const isLocal = process.env.NODE_ENV !== 'staging';
+const envInfo = getEnvironmentInfo();
 
 class AIPostgresAdapter extends IAIPersistPort {
   constructor({ cloudSqlConnector }) {
@@ -30,7 +31,7 @@ class AIPostgresAdapter extends IAIPersistPort {
     if (this.pool) return this.pool;
     try {
       if (!this.poolPromise) {
-        this.poolPromise = isLocal
+        this.poolPromise = envInfo.isLocal
           ? Promise.resolve(this.createLocalPool())
           : this.createCloudSqlPool(this.connector);
       }
@@ -42,14 +43,16 @@ class AIPostgresAdapter extends IAIPersistPort {
     }
   }
 
-  createLocalPool() {
+  async createLocalPool() {
+    const dbConfig = await getDbConfig();
     const config = {
-      host: process.env.PG_HOST || '127.0.0.1',
-      port: Number(process.env.PG_PORT || 5432),
+      host: dbConfig.host,
+      port: dbConfig.port,
       user: process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DATABASE,
-      ssl: process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+      ssl: dbConfig.ssl,
+      max: dbConfig.maxConnections,
     };
     console.info('[DB] Using local Postgres config (AI) host:', config.host, 'db:', config.database);
     return new Pool(config);

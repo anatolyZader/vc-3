@@ -5,15 +5,16 @@ const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const IDocsPersistPort = require('../../domain/ports/IDocsPersistPort');
+const { getDbConfig, getEnvironmentInfo } = require('../../../../config/dbConfig');
 
-const isLocal = process.env.NODE_ENV !== 'staging';
+const envInfo = getEnvironmentInfo();
 
 class DocsPostgresAdapter extends IDocsPersistPort {
   constructor({ cloudSqlConnector }) {
     super();
     this.connector = cloudSqlConnector;
 
-    this.poolPromise = isLocal
+    this.poolPromise = envInfo.isLocal
       ? this.createLocalPool()
       : this.createCloudSqlPool(cloudSqlConnector);
   }
@@ -25,13 +26,16 @@ class DocsPostgresAdapter extends IDocsPersistPort {
     return this.pool;
   }
 
-  createLocalPool() {
+  async createLocalPool() {
+    const dbConfig = await getDbConfig();
     const config = {
       user: process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DATABASE,
-      host: 'localhost',
-      port: 5432,
+      host: dbConfig.host,
+      port: dbConfig.port,
+      ssl: dbConfig.ssl,
+      max: dbConfig.maxConnections,
     };
     return Promise.resolve(new Pool(config));
   }

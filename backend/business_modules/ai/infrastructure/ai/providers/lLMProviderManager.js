@@ -6,7 +6,46 @@ class LLMProviderManager {
     this.provider = provider.toLowerCase();
     this.maxRetries = options.maxRetries || 10;
     this.llm = null;
+    this.useDevelopmentFallback = false;
     this.initializeLLM();
+  }
+
+  /**
+   * Check if we're in development with placeholder API keys
+   */
+  shouldUseDevelopmentFallback() {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const hasValidAnthropicKey = process.env.ANTHROPIC_API_KEY && 
+      process.env.ANTHROPIC_API_KEY !== 'your_anthropic_api_key' && 
+      !process.env.ANTHROPIC_API_KEY.startsWith('your_');
+    const hasValidOpenAIKey = process.env.OPENAI_API_KEY && 
+      process.env.OPENAI_API_KEY !== 'your_openai_api_key' && 
+      !process.env.OPENAI_API_KEY.startsWith('your_');
+    
+    return isDevelopment && !hasValidAnthropicKey && !hasValidOpenAIKey;
+  }
+
+  /**
+   * Create a mock LLM for development
+   */
+  createDevelopmentMockLLM() {
+    return {
+      _llmType: 'development-mock',
+      invoke: async (messages) => {
+        console.log(`[${new Date().toISOString()}] [DEV] Mock LLM responding to query`);
+        const userMessage = Array.isArray(messages) ? messages[messages.length - 1]?.content : messages;
+        const prompt = typeof userMessage === 'string' ? userMessage : JSON.stringify(userMessage);
+        
+        // Generate a simple but helpful response
+        return {
+          content: `I'm a development mock AI assistant. You asked: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"\n\nThis is a simulated response for local development. To get real AI responses, please configure a valid API key for Anthropic, OpenAI, or another supported provider in your .env file.`
+        };
+      },
+      call: async (prompt) => {
+        console.log(`[${new Date().toISOString()}] [DEV] Mock LLM call method`);
+        return `Mock response for: ${prompt.slice(0, 50)}...`;
+      }
+    };
   }
 
   /**
@@ -14,6 +53,14 @@ class LLMProviderManager {
    */
   initializeLLM() {
     try {
+      // Check if we should use development fallback first
+      if (this.shouldUseDevelopmentFallback()) {
+        console.log(`[${new Date().toISOString()}] [DEV] Using development mock LLM (no valid API keys detected)`);
+        this.llm = this.createDevelopmentMockLLM();
+        this.useDevelopmentFallback = true;
+        return;
+      }
+
       switch (this.provider) {
         case 'openai': {
           console.log(`[${new Date().toISOString()}] Initializing OpenAI provider`);

@@ -4,49 +4,45 @@
 const IChatMessagingPort = require('../../../domain/ports/IChatMessagingPort');
 
 class ChatPubsubAdapter extends IChatMessagingPort {
-constructor(dependencies) {
+  constructor(dependencies) {
     super();
     
-    // Extract dependenciess - this is the correct way according to docs
-    const { pubSubClient, eventDispatcher } = dependencies || {};
+    const { transport, eventDispatcher, logger } = dependencies || {};
     
-    this.pubSubClient = pubSubClient;
+    this.transport = transport;
     this.eventDispatcher = eventDispatcher;
-    this.topicName = 'ai-topic';
+    this.log = logger;
+    this.topicName = require('../../../../../messageChannels').getChannelName('chat');
 
-    console.log('🔧 After assignment:', {
-        hasPubSubClient: !!this.pubSubClient,
-        hasEventDispatcher: !!this.eventDispatcher,
-        eventDispatcherType: typeof this.eventDispatcher
-    });
-}
+    this.log.debug({ hasTransport: !!this.transport, hasEventDispatcher: !!this.eventDispatcher }, 'ChatPubsubAdapter initialized');
+  }
 
-    // Generic method to publish an eventtttt
-    async publishEvent(eventName, payload) {
-        try {
-            console.log('🚀 ChatPubsubAdapter: Publishing event:', { eventName, payload });
-            
-            // The eventDispatcher IS the function, call it directly
-            if (this.eventDispatcher && typeof this.eventDispatcher === 'function') {
-                await this.eventDispatcher(eventName, payload);
-                console.log(`✅ Published ${eventName} event via EventDispatcher function`);
-            } else {
-                console.error('❌ EventDispatcher is not a function:', {
-                    hasEventDispatcher: !!this.eventDispatcher,
-                    eventDispatcherType: typeof this.eventDispatcher,
-                    eventDispatcherValue: this.eventDispatcher
-                });
-            }
-        } catch (error) {
-            console.error(`❌ Error publishing ${eventName} event:`, error);
-            throw error;
-        }
+  // Generic method to publish an event
+  async publishEvent(eventName, payload) {
+    try {
+      this.log.info({ eventName, payload }, 'ChatPubsubAdapter: Publishing event');
+      
+      // Use eventDispatcher.emitInternal for in-process events
+      if (this.eventDispatcher && typeof this.eventDispatcher.emitInternal === 'function') {
+        this.eventDispatcher.emitInternal(eventName, payload);
+        this.log.info({ eventName }, 'Published internal event via EventDispatcher');
+      } else if (this.eventDispatcher && typeof this.eventDispatcher === 'function') {
+        // Legacy fallback
+        await this.eventDispatcher(eventName, payload);
+        this.log.info({ eventName }, 'Published event via EventDispatcher function (legacy)');
+      } else {
+        this.log.error({ hasEventDispatcher: !!this.eventDispatcher, type: typeof this.eventDispatcher }, 'EventDispatcher is not available');
+      }
+    } catch (error) {
+      this.log.error({ eventName, error }, 'Error publishing event');
+      throw error;
     }
+  }
 
-    // Specific methods remain the same
-    async startConversation(payload) {
-        return this.publishEvent('conversationStarted', payload);
-    }
+  // Specific methods remain the same
+  async startConversation(payload) {
+    return this.publishEvent('conversationStarted', payload);
+  }
 
     async addQuestion(payload) {
         return this.publishEvent('questionAdded', payload);

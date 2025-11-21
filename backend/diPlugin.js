@@ -40,8 +40,8 @@ const AIPubsubAdapter = require('./business_modules/ai/infrastructure/messaging/
 const AIGithubAdapter = require('./business_modules/ai/infrastructure/git/aiGithubAdapter');
 const AIGithubDocsAdapter = require('./business_modules/ai/infrastructure/docs/aiGithubDocsAdapter');
 
-const { PubSub } = require('@google-cloud/pubsub');
-const eventDispatcher = require('./eventDispatcher');
+// const { PubSub } = require('@google-cloud/pubsub'); // Removed - now handled by GcpTransportAdapter
+// const eventDispatcher = require('./eventDispatcher'); // Removed - now registered by eventDispatcher plugin
 const { Connector } = require('@google-cloud/cloud-sql-connector');
 
 module.exports = fp(async function (fastify, opts) {
@@ -94,35 +94,36 @@ module.exports = fp(async function (fastify, opts) {
     throw error;
   }
 
-  fastify.log.info('🔗 Initializing Pub/Sub Client...');
-  const pubSubClient = new PubSub(); 
+  // NOTE: pubSubClient removed - all GCP Pub/Sub usage now handled by GcpTransportAdapter
+  
+  fastify.log.info('🔗 Registering fastifyLogger in DI container...');
   try {
     await fastify.diContainer.register({
-      pubSubClient: asValue(pubSubClient)
+      fastifyLogger: asValue(fastify.log)
     });
-    fastify.log.info('✅ Pub/Sub Client initialized and registered in DI container.');
+    fastify.log.info('✅ fastifyLogger registered in DI container.');
   } catch (error) {
-    fastify.log.error('❌ Failed to register Pub/Sub Client:', error.message);
+    fastify.log.error('❌ Failed to register fastifyLogger:', error.message);
     throw error;
   }
 
-  try {
-    // Debug the eventDispatcher before registration
-    console.log('🔧 EventDispatcher before registration:', {
-      hasEventDispatcher: !!fastify.eventDispatcher,
-      eventDispatcherType: typeof fastify.eventDispatcher,
-      eventDispatcherValue: fastify.eventDispatcher
-    });
-
-    await fastify.diContainer.register({
-      eventDispatcher: asValue(eventDispatcher)
-    });
-       
-    fastify.log.info('✅ EventDispatcher registered in DI container.');
-  } catch (error) {
-    fastify.log.error('❌ Failed to register EventDispatcher:', error.message);
-    throw error;
-  }
+//   try {
+//     // Debug the eventDispatcher before registration
+//     console.log('🔧 EventDispatcher before registration:', {
+//       hasEventDispatcher: !!fastify.eventDispatcher,
+//       eventDispatcherType: typeof fastify.eventDispatcher,
+//       eventDispatcherValue: fastify.eventDispatcher
+//     });
+// 
+//     await fastify.diContainer.register({
+//       eventDispatcher: asValue(eventDispatcher)
+//     });
+//        
+//     fastify.log.info('✅ EventDispatcher registered in DI container.');
+//   } catch (error) {
+//     fastify.log.error('❌ Failed to register EventDispatcher:', error.message);
+//     throw error;
+//   }
 
     //   // Debug after registration
     // const resolvedEventDispatcher = fastify.diContainer.resolve('eventDispatcher');
@@ -137,14 +138,30 @@ module.exports = fp(async function (fastify, opts) {
   const adapters = {
     authPostgresAdapter: asClass(AuthPostgresAdapter).singleton(),
     chatPostgresAdapter: asClass(ChatPostgresAdapter).scoped(),
-    chatPubsubAdapter: asClass(ChatPubsubAdapter).scoped(),
+    chatPubsubAdapter: asClass(ChatPubsubAdapter, {
+      injector: (container) => ({
+        transport: container.resolve('transport'),
+        logger: container.resolve('fastifyLogger'),
+        eventDispatcher: container.resolve('eventDispatcher')
+      })
+    }).scoped(),
     chatAiAdapter: asClass(ChatAiAdapter),
     chatGCPVoiceAdapter: asClass(ChatGCPVoiceAdapter).scoped(),
     apiSwaggerAdapter: asClass(ApiSwaggerAdapter).scoped(),
     apiPostgresAdapter: asClass(ApiPostgresAdapter).scoped(),
-    apiPubsubAdapter: asClass(ApiPubsubAdapter).scoped(),
+    apiPubsubAdapter: asClass(ApiPubsubAdapter, {
+      injector: (container) => ({
+        transport: container.resolve('transport'),
+        logger: container.resolve('fastifyLogger')
+      })
+    }).scoped(),
     gitGithubAdapter: asClass(GitGithubAdapter).scoped(),
-    gitPubsubAdapter: asClass(GitPubsubAdapter).scoped(),
+    gitPubsubAdapter: asClass(GitPubsubAdapter, {
+      injector: (container) => ({
+        transport: container.resolve('transport'),
+        logger: container.resolve('fastifyLogger')
+      })
+    }).scoped(),
     gitPostgresAdapter: asClass(GitPostgresAdapter).scoped(),
     aiPostgresAdapter: asClass(AIPostgresAdapter).scoped(),
     aiLangchainAdapter: asClass(AILangchainAdapter, {
@@ -165,10 +182,20 @@ module.exports = fp(async function (fastify, opts) {
           return aiAdapter.cleanup();
         }
       }),
-    aiPubsubAdapter: asClass(AIPubsubAdapter).scoped(),
+    aiPubsubAdapter: asClass(AIPubsubAdapter, {
+      injector: (container) => ({
+        transport: container.resolve('transport'),
+        logger: container.resolve('fastifyLogger')
+      })
+    }).scoped(),
     aiGithubAdapter: asClass(AIGithubAdapter).scoped(),
     aiGithubDocsAdapter: asClass(AIGithubDocsAdapter).scoped(),
-    docsPubsubAdapter: asClass(DocsPubsubAdapter).scoped(),
+    docsPubsubAdapter: asClass(DocsPubsubAdapter, {
+      injector: (container) => ({
+        transport: container.resolve('transport'),
+        logger: container.resolve('fastifyLogger')
+      })
+    }).scoped(),
     docsPostgresAdapter: asClass(DocsPostgresAdapter).scoped(),
     docsLangchainAdapter: asClass(DocsLangchainAdapter).scoped(),
     docsGithubAdapter: asClass(DocsGithubAdapter).scoped(),
@@ -258,7 +285,7 @@ module.exports = fp(async function (fastify, opts) {
     serviceRegistrations.chatVoiceAdapter = adapters[infraConfig.business_modules.chat.chatVoiceAdapter];
     serviceRegistrations.gitPersistAdapter = adapters[infraConfig.business_modules.git.gitPersistAdapter];
     serviceRegistrations.gitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
-    serviceRegistrations.docsGitAdapter = adapters[infraConfig.business_modules.git.gitAdapter];
+    serviceRegistrations.docsGitAdapter = adapters[infraConfig.business_modules.docs.docsGitAdapter];
     serviceRegistrations.gitMessagingAdapter = adapters[infraConfig.business_modules.git.gitMessagingAdapter];
     serviceRegistrations.aiAdapter = adapters[infraConfig.business_modules.ai.aiAdapter];
     serviceRegistrations.aiPersistAdapter = adapters[infraConfig.business_modules.ai.aiPersistAdapter];

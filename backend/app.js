@@ -18,8 +18,7 @@ const envPlugin         = require('./envPlugin');
 const diPlugin          = require('./diPlugin');
 const corsPlugin        = require('./corsPlugin');
 const helmet            = require('@fastify/helmet');
-const pubsubPlugin      = require('./pubsubPlugin');
-const eventDispatcher   = require('./eventDispatcher');
+// const eventDispatcher   = require('./eventDispatcher');
 
 require('dotenv').config();
 
@@ -43,11 +42,8 @@ module.exports = async function (fastify, opts) {
     }
   });
   
-  await fastify.register(eventDispatcher);
   
-  if (!BUILDING_API_SPEC) {
-    await fastify.register(pubsubPlugin);
-  }
+  // Note: pubsubPlugin replaced by transportPlugin (registered after Redis)
   
   // Sets security-related HTTP headerss automatically
   await fastify.register(helmet, {
@@ -90,6 +86,12 @@ module.exports = async function (fastify, opts) {
     } catch (err) {
       fastify.log.error({ err }, '❌ Redis PING failed');
     }
+    
+    // Register transport abstraction layer
+    await fastify.register(require('./transportPlugin'));
+    
+    // Register event dispatcher (depends on transport)
+    await fastify.register(require('./eventDispatcher'));
   }
 
   if (!BUILDING_API_SPEC) {
@@ -331,6 +333,6 @@ module.exports = async function (fastify, opts) {
 
   fastify.addHook('onReady', async () => {
 
-    fastify.log.info('▶ Registered routes:\n' + fastify.printRoutes());
+    fastify.log.info('▶ Registered routes:' + fastify.printRoutes());
   });
 };

@@ -11,7 +11,8 @@ async function authController(fastify, options) {
 
   // Helper to set auth cookies uniformly
   const setAuthCookies = (reply, token) => {
-    const cookieSecure = process.env.NODE_ENV === 'staging';
+    // Fixed: secure for staging AND production
+    const cookieSecure = process.env.NODE_ENV !== 'development';
     const cookieSameSite = cookieSecure ? 'None' : 'Lax';
     reply.setCookie('authToken', token, {
       path: '/',
@@ -71,7 +72,6 @@ async function authController(fastify, options) {
   });
 
   fastify.decorate('loginUser', async function (request, reply) {
-    const jti = uuidv4();
     const { email, password } = request.body;
     if (!email || !password) {
       return reply.badRequest('Email and password are required');
@@ -84,13 +84,11 @@ async function authController(fastify, options) {
         return reply.unauthorized('Invalid credentials');
       }
   
-      const authToken = fastify.jwt.sign(
-        { id: user.id, username: user.username, jti },
-        { jwtid: jti, expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-      );
+      // Use centralized JWT creation
+      const authToken = fastify.issueJwt(user);
   
-  // Set auth cookie for manual login
-  setAuthCookies(reply, authToken);
+      // Set auth cookie for manual login
+      setAuthCookies(reply, authToken);
   
       return reply.send({
         message: 'Authentication successful',
@@ -110,17 +108,42 @@ async function authController(fastify, options) {
   fastify.decorate('refreshToken', async function (request, reply) {
     try {
       const user = request.user || {};
-      const authToken = fastify.jwt.sign(
-        { id: user.id, username: user.username },
-        { expiresIn: fastify.secrets.JWT_EXPIRE_IN || '1h' }
-      );
-  setAuthCookies(reply, authToken);
+      // Use centralized JWT creation
+      const authToken = fastify.issueJwt(user);
+      setAuthCookies(reply, authToken);
       return reply.send({ token: authToken });
     } catch (error) {
       fastify.log.error('Error refreshing token:', error);
       return reply.internalServerError('Internal Server Error', { cause: error });
     }
   }); 
+
+  // Development-only authentication handlers
+  if (process.env.NODE_ENV === 'development') {
+    fastify.decorate('devLogin', async function (request, reply) {
+      try {
+        const DevAuthProvider = require('../providers/devAuthProvider');
+        // Get the auth persistence adapter from DI container
+        const authPersistAdapter = await request.diScope.resolve('authPersistAdapter');
+        
+        // Use dev auth provider with database persistence
+        const user = await DevAuthProvider.getDevUser(request.body, authPersistAdapter);
+        
+        // Use centralized JWT creation
+        const authToken = fastify.issueJwt(user);
+        setAuthCookies(reply, authToken);
+        
+        return reply.send({
+          message: 'Development authentication successful',
+          user: { id: user.id, email: user.email, username: user.username },
+          token: authToken
+        });
+      } catch (error) {
+        fastify.log.error('Error in dev login:', error);
+        return reply.internalServerError('Internal Server Error', { cause: error });
+      }
+    });
+  } 
 }
 
 module.exports = fp(authController);

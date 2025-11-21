@@ -144,6 +144,59 @@ module.exports = fp(async function authRouter(fastify, opts) {
     handler: fastify.loginUser,
   });
 
+  // Local Development Authentication Routes
+  // Only available when NODE_ENV=development
+  if (process.env.NODE_ENV === 'development') {
+    // POST /api/auth/dev-login - Single endpoint for local development
+    fastify.route({
+      method: 'POST',
+      url: '/api/auth/dev-login',
+      schema: {
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          properties: {
+            email: { 
+              type: 'string', 
+              format: 'email', 
+              default: 'dev@localhost.com',
+              description: 'Development email (optional, defaults to dev@localhost.com)'
+            },
+            username: { 
+              type: 'string', 
+              default: 'Developer',
+              description: 'Development username (optional, defaults to Developer)'
+            }
+          },
+          additionalProperties: false,
+          description: 'Optional body - uses sensible defaults if empty'
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
+              user: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  email: { type: 'string', format: 'email' },
+                  username: { type: 'string' }
+                },
+                required: ['id', 'email', 'username'],
+                additionalProperties: false
+              },
+              token: { type: 'string' }
+            },
+            required: ['message', 'user', 'token'],
+            additionalProperties: false
+          }
+        }
+      },
+      handler: fastify.devLogin,
+    });
+  }
+
   // GET /api/auth/me
   fastify.route({
     method: 'GET',

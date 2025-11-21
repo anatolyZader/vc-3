@@ -5,31 +5,32 @@
 const fp = require('fastify-plugin');
 
 async function apiPubsubListener(fastify, options) {
-  const pubSubClient = fastify.diContainer.resolve('pubSubClient');
-  const subscriptionName = 'api-sub';
-  const subscription = pubSubClient.subscription(subscriptionName);
+  fastify.log.info('🔌 Setting up API Pub/Sub listeners...');
+  
+  const transport = fastify.transport;
+  const { getChannelName } = require('../../../messageChannels');
+  const subscriptionName = getChannelName('api') + '-internal'; // 'api-events-internal'
 
-  // Error handling for the subscription stream
-  subscription.on('error', (error) => {
-    fastify.log.error(`Pub/Sub Subscription Error (${subscriptionName}):`, error);
-  });
-
-  // Message handler for the subscription stream
-  subscription.on('message', async (message) => {
-    fastify.log.info(`Received api message ${message.id} on subscription ${subscriptionName}`);
-
+  // Subscribe to messages using transport abstraction
+  await transport.subscribe(subscriptionName, async (message) => {
     try {
-      const data = JSON.parse(message.data.toString());
+      const { data } = message;
+      
+      fastify.log.info({ messageId: message.id, event: data.event }, 'API module received message');
 
       if (data.event === 'fetchHttpApiRequest') {
         const { userId, repoId, correlationId } = data.payload;
         fastify.log.info(`Processing fetchHttpApi event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
 
         if (typeof fastify.fetchHttpApi === 'function') {
+          // Create DI scope for this request
+          const diScope = fastify.diContainer.createScope();
+          
           // Create mock request object for fetchHttpApi
           const mockRequest = {
             query: { repoId },
-            user: { id: userId }
+            user: { id: userId },
+            diScope: diScope
           };
           const mockReply = {
             badRequest: (message) => {
@@ -40,37 +41,34 @@ async function apiPubsubListener(fastify, options) {
           // Call the same HTTP handler with mock request
           const httpApi = await fastify.fetchHttpApi(mockRequest, mockReply);
           
-          fastify.log.info(`HTTP API fetched via PubSub: ${JSON.stringify(httpApi)}`);
+          fastify.log.info({ repoId }, 'HTTP API fetched via PubSub');
           
           // Publish the result event
-          const apiPubsubAdapter = await fastify.diScope.resolve('apiPubsubAdapter');
+          const apiPubsubAdapter = await diScope.resolve('apiPubsubAdapter');
           await apiPubsubAdapter.publishHttpApiFetchedEvent(httpApi, correlationId);
           
-          fastify.log.info(`HTTP API fetch result published for message ${message.id}`);
+          fastify.log.info({ messageId: message.id }, 'HTTP API fetch result published');
+          await message.ack();
         } else {
-          fastify.log.error(`fastify.fetchHttpApi is not defined. Cannot process message ${message.id}.`);
-          message.nack();
+          fastify.log.error('fastify.fetchHttpApi is not defined');
+          await message.nack();
           return;
         }
 
       } else {
-        fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
+        fastify.log.warn({ event: data.event }, 'Unknown event type');
+        await message.ack(); // Ack unknown events
       }
-
-      message.ack(); // Acknowledge the message upon successful processing
     } catch (error) {
-      fastify.log.error(`Error processing api message ${message.id}:`, error);
-      message.nack(); // Nack the message to re-queue it for another attempt
+      fastify.log.error({ error, messageId: message.id }, 'Error processing message');
+      await message.nack();
     }
   });
 
-  fastify.log.info(`Listening for API messages on Pub/Sub subscription: ${subscriptionName}...`);
-
-  // Ensure the subscription is closed when the Fastify app closes
-  fastify.addHook('onClose', async () => {
-    fastify.log.info(`Closing Pub/Sub subscription: ${subscriptionName}.`);
-    await subscription.close();
-  });
+  fastify.log.info(`✅ API module subscribed to: ${subscriptionName}`);
 }
 
-module.exports = fp(apiPubsubListener);
+module.exports = fp(apiPubsubListener, {
+  name: 'apiPubsubListener',
+  dependencies: ['transportPlugin']
+});

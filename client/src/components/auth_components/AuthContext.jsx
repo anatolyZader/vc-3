@@ -46,6 +46,33 @@ const AuthProvider = ({ children }) => {
     window.location.href = '/api/auth/google';
   };
 
+  // Development login for local testing (NODE_ENV=development)
+  const devLogin = async (email = 'dev@localhost.com', username = 'Developer') => {
+    try {
+      const response = await fetch('/api/auth/dev-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, username }),
+        credentials: 'include', // include cookies
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Dev login successful:', result);
+        // Update auth state
+        setIsAuthenticated(true);
+        setUserProfile(result.user);
+        return { success: true, user: result.user };
+      } else {
+        console.error('❌ Dev login failed:', response.status);
+        return { success: false, error: 'Dev login failed' };
+      }
+    } catch (error) {
+      console.error('❌ Dev login error:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   // Logout by calling backend logout endpoint and updating state
   const logout = async () => {
     try {
@@ -78,6 +105,7 @@ const AuthProvider = ({ children }) => {
         verifyCookieUpdateState,
         logout,
         googleLogin,
+        devLogin,  // Add dev login function
         userProfile,
         authLoading,
       }}

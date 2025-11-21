@@ -5,34 +5,32 @@
 const fp = require('fastify-plugin');
 
 async function gitPubsubListener(fastify, options) {
-  const pubSubClient = fastify.diContainer.resolve('pubSubClient');
+  fastify.log.info('📦 Setting up Git Pub/Sub listeners...');
+  
+  const transport = fastify.transport;
   // Git Module uses its own subscription for internal events (fetchRepoRequest, persistRepoRequest)
-  // AI Module uses 'git-sub' for repoPushed events
-  const subscriptionName = 'git-module-sub';
-  const subscription = pubSubClient.subscription(subscriptionName);
+  // AI Module subscribes to 'git-events' for repoPushed events
+  const { getChannelName } = require('../../../messageChannels');
+  const subscriptionName = getChannelName('git') + '-internal'; // 'git-events-internal'
 
-  // Error handling for the subscription stream
-  subscription.on('error', (error) => {
-    fastify.log.error(`Pub/Sub Subscription Error (${subscriptionName}):`, error);
-  });
-
-  // Message handler for the subscription stream
-  subscription.on('message', async (message) => {
-    fastify.log.info(`Received git message ${message.id} on subscription ${subscriptionName}`);
-
+  // Subscribe to messages using transport abstraction
+  await transport.subscribe(subscriptionName, async (message) => {
     try {
-      const data = JSON.parse(message.data.toString());
+      const { data } = message;
+      
+      fastify.log.info({ messageId: message.id, event: data.event }, 'Git module received message');
 
       if (data.event === 'fetchRepoRequest') {
-        const { userId, repoId, correlationId } = data.payload;
-        fastify.log.info(`Processing fetchRepo event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
-          const parts = repoId.split('/');
-          if (parts.length !== 2) {
-            fastify.log.error(`Invalid repoId format: ${repoId}. Expected format: owner/repo`);
-            message.nack();
-            return;
-          }
-          const [owner, repo] = parts;
+        const { userId, repoId, correlationId } = data;
+        fastify.log.info({ userId, repoId, correlationId }, 'Processing fetchRepo event');
+        
+        const parts = repoId.split('/');
+        if (parts.length !== 2) {
+          fastify.log.error({ repoId }, 'Invalid repoId format. Expected format: owner/repo');
+          await message.ack(); // Ack malformed messages
+          return;
+        }
+        const [owner, repo] = parts;
 
         if (typeof fastify.fetchRepo === 'function') {
           // Create a DI scope for this Pub/Sub request
@@ -43,25 +41,24 @@ async function gitPubsubListener(fastify, options) {
             params: { owner, repo },
             user: { id: userId },
             headers: { 'x-correlation-id': correlationId },
-            diScope: diScope // Add DI scope to request
+            diScope: diScope
           };
           const mockReply = {};
 
           // Call the same HTTP handler with mock request
           const repository = await fastify.fetchRepo(mockRequest, mockReply);
           
-          fastify.log.info(`Repository fetched via PubSub: ${JSON.stringify(repository)}`);
-          
-          fastify.log.info(`Repository fetch result published for message ${message.id}`);
+          fastify.log.info({ repoId }, 'Repository fetched via PubSub');
+          await message.ack();
         } else {
-          fastify.log.error(`fastify.fetchRepo is not defined. Cannot process message ${message.id}.`);
-          message.nack();
+          fastify.log.error('fastify.fetchRepo is not defined');
+          await message.nack();
           return;
         }
 
       } else if (data.event === 'fetchDocsRequest') {
-        const { userId, repoId, correlationId } = data.payload;
-        fastify.log.info(`Processing fetchDocs event for user: ${userId}, repo: ${repoId}, correlation: ${correlationId}`);
+        const { userId, repoId, correlationId } = data;
+        fastify.log.info({ userId, repoId, correlationId }, 'Processing fetchDocs event');
 
         if (typeof fastify.fetchDocs === 'function') {
           // Create a DI scope for this Pub/Sub request
@@ -72,30 +69,29 @@ async function gitPubsubListener(fastify, options) {
             params: { repoId },
             user: { id: userId },
             headers: { 'x-correlation-id': correlationId },
-            diScope: diScope // Add DI scope to request
+            diScope: diScope
           };
           const mockReply = {};
 
           // Call the same HTTP handler with mock request
           const docs = await fastify.fetchDocs(mockRequest, mockReply);
           
-          fastify.log.info(`Docs fetched via PubSub: ${JSON.stringify(docs)}`);
-          
-          fastify.log.info(`Docs fetch result published for message ${message.id}`);
+          fastify.log.info({ repoId }, 'Docs fetched via PubSub');
+          await message.ack();
         } else {
-          fastify.log.error(`fastify.fetchDocs is not defined. Cannot process message ${message.id}.`);
-          message.nack();
+          fastify.log.error('fastify.fetchDocs is not defined');
+          await message.nack();
           return;
         }
 
       } else if (data.event === 'persistRepoRequest') {
-        const { userId, repoId, correlationId, branch = 'main', forceUpdate = false, includeHistory = true } = data.payload;
-        fastify.log.info(`Processing persistRepo event for user: ${userId}, repo: ${repoId}, branch: ${branch}, correlation: ${correlationId}`);
+        const { userId, repoId, correlationId, branch = 'main', forceUpdate = false, includeHistory = true } = data;
+        fastify.log.info({ userId, repoId, branch, correlationId }, 'Processing persistRepo event');
         
         const parts = repoId.split('/');
         if (parts.length !== 2) {
-          fastify.log.error(`Invalid repoId format: ${repoId}. Expected format: owner/repo`);
-          message.nack();
+          fastify.log.error({ repoId }, 'Invalid repoId format. Expected format: owner/repo');
+          await message.ack(); // Ack malformed messages
           return;
         }
         const [owner, repo] = parts;
@@ -110,40 +106,37 @@ async function gitPubsubListener(fastify, options) {
             body: { branch, forceUpdate, includeHistory },
             user: { id: userId },
             headers: { 'x-correlation-id': correlationId },
-            diScope: diScope // Add DI scope to request
+            diScope: diScope
           };
           const mockReply = {};
 
           // Call the same HTTP handler with mock request
           const result = await fastify.persistRepo(mockRequest, mockReply);
           
-          fastify.log.info(`Repository persisted via PubSub: ${JSON.stringify(result)}`);
-          
-          fastify.log.info(`Repository persistence result published for message ${message.id}`);
+          fastify.log.info({ repoId }, 'Repository persisted via PubSub');
+          await message.ack();
         } else {
-          fastify.log.error(`fastify.persistRepo is not defined. Cannot process message ${message.id}.`);
-          message.nack();
+          fastify.log.error('fastify.persistRepo is not defined');
+          await message.nack();
           return;
         }
 
       } else {
-        fastify.log.warn(`Unknown event type "${data.event}" for message ${message.id}.`);
+        fastify.log.warn({ event: data.event }, 'Unknown event type');
+        await message.ack(); // Ack unknown events
       }
 
-      message.ack(); // Acknowledge the message upon successful processing
+      await message.ack();
     } catch (error) {
-      fastify.log.error(`Error processing git message ${message.id}:`, error);
-      message.nack(); // Nack the message to re-queue it for another attempt
+      fastify.log.error({ error, messageId: message.id }, 'Error processing message');
+      await message.nack();
     }
   });
 
-  fastify.log.info(`Listening for Git messages on Pub/Sub subscription: ${subscriptionName}...`);
-
-  // Ensure the subscription is closed when the Fastify app closes
-  fastify.addHook('onClose', async () => {
-    fastify.log.info(`Closing Pub/Sub subscription: ${subscriptionName}.`);
-    await subscription.close();
-  });
+  fastify.log.info(`✅ Git module subscribed to: ${subscriptionName}`);
 }
 
-module.exports = fp(gitPubsubListener);
+module.exports = fp(gitPubsubListener, {
+  name: 'gitPubsubListener',
+  dependencies: ['transportPlugin']
+});

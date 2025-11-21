@@ -1,28 +1,29 @@
 // apiPubsubAdapter.js
 'use strict';
 
+const { getChannelName } = require('../../../../../messageChannels');
+
 class ApiPubsubAdapter {
-  constructor({ pubSubClient }) {
-    this.pubSubClient = pubSubClient;
-    this.topicName = 'git';
+  constructor({ transport, logger }) {
+    this.transport = transport;
+    this.log = logger;
+    this.topicName = getChannelName('api');
   }
 
   async publishHttpApiFetchedEvent(result, correlationId) { 
-    const event = {
+    const envelope = {
       event: 'httpApiFetched',
-      payload: { ...result, correlationId } 
+      payload: { ...result, correlationId },
+      timestamp: new Date().toISOString(),
+      source: 'api-module'
     };
 
-    const dataBuffer = Buffer.from(JSON.stringify(event));
     try {
-      const [topic] = await this.pubSubClient
-        .topic(this.topicName)
-        .get({ autoCreate: true });
-      const messageId = await topic.publishMessage({ data: dataBuffer });
-      console.log(`Published 'httpApiFetched' event with message ID: ${messageId} to topic: ${this.topicName}`);
+      const messageId = await this.transport.publish(this.topicName, envelope);
+      this.log.info({ messageId, correlationId, topic: this.topicName }, 'Published httpApiFetched event');
       return messageId;
     } catch (error) {
-      console.error(`Error publishing 'httpApiFetched' event to topic ${this.topicName}:`, error);
+      this.log.error({ error, correlationId, topic: this.topicName }, 'Error publishing httpApiFetched event');
       throw error;
     }
   }

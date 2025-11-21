@@ -39,9 +39,26 @@ class PineconePlugin {
   }
 
   /**
+   * Check if we're in development with invalid API key
+   */
+  _shouldUseDevelopmentMode() {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const hasValidKey = this.config.apiKey && 
+      this.config.apiKey !== 'your_pinecone_api_key' && 
+      !this.config.apiKey.startsWith('your_');
+    
+    return isDevelopment && !hasValidKey;
+  }
+
+  /**
    * Validate configuration and environment variables
    */
   _validateConfig() {
+    if (this._shouldUseDevelopmentMode()) {
+      this.logger.info('Running in development mode without valid Pinecone API key - vector search will be disabled');
+      return;
+    }
+
     if (!this.config.apiKey) {
       throw new Error('PINECONE_API_KEY is required');
     }
@@ -91,6 +108,13 @@ class PineconePlugin {
    */
   async _connect() {
     try {
+      // Check if we're in development mode without valid API key
+      if (this._shouldUseDevelopmentMode()) {
+        this.logger.info('Development mode detected - creating mock Pinecone connection');
+        this._connected = false; // Keep as false to signal no real connection
+        throw new Error('Pinecone connection failed: Development mode with invalid API key');
+      }
+
       this.logger.info('Connecting to Pinecone...');
       
       // Initialize Pinecone client

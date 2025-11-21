@@ -4,18 +4,19 @@
 
 const { Pool } = require('pg');
 const IApiPersistPort = require('../../domain/ports/IApiPersistPort');
+const { getDbConfig, getEnvironmentInfo } = require('../../../../config/dbConfig');
 const UserId = require('../../domain/value_objects/userId');
 const RepoId = require('../../domain/value_objects/repoId');
 const HttpApiSpec = require('../../domain/value_objects/httpApiSpec');
 
-const isLocal = process.env.NODE_ENV !== 'staging';
+const envInfo = getEnvironmentInfo();
 
 class ApiPostgresAdapter extends IApiPersistPort {
   constructor({ cloudSqlConnector }) {
     super();
     this.connector = cloudSqlConnector;
 
-    this.poolPromise = isLocal
+    this.poolPromise = envInfo.isLocal
       ? this.createLocalPool()
       : this.createCloudSqlPool(cloudSqlConnector);
   }
@@ -27,13 +28,16 @@ class ApiPostgresAdapter extends IApiPersistPort {
     return this.pool;
   }
 
-  createLocalPool() {
+  async createLocalPool() {
+    const dbConfig = await getDbConfig();
     const config = {
       user: process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DATABASE,
-      host: 'localhost',
-      port: 5432,
+      host: dbConfig.host,
+      port: dbConfig.port,
+      ssl: dbConfig.ssl,
+      max: dbConfig.maxConnections,
     };
     return Promise.resolve(new Pool(config));
   }

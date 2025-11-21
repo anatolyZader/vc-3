@@ -5,33 +5,41 @@
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 const IChatPersistPort = require('../../domain/ports/IChatPersistPort');
+const { getDbConfig, getEnvironmentInfo, setLegacyEnvVars } = require('../../../../config/dbConfig');
 
-const isLocal = process.env.NODE_ENV !== 'staging';
+const envInfo = getEnvironmentInfo();
 
 class ChatPostgresAdapter extends IChatPersistPort {
     constructor({ cloudSqlConnector }) {
         super();
         this.connector = cloudSqlConnector;
         this.pool = null;
-        this.poolPromise = isLocal
-            ? this.createLocalPool()
-            : this.createCloudSqlPool(cloudSqlConnector);
+        // Initialize environment-specific database configuration
+        this.initPromise = setLegacyEnvVars().then(() => {
+            this.poolPromise = envInfo.isLocal
+                ? this.createLocalPool()
+                : this.createCloudSqlPool(cloudSqlConnector);
+        });
     }
 
     async getPool() {
         if (!this.pool) {
+            await this.initPromise; // Wait for environment initialization
             this.pool = await this.poolPromise;
         }
         return this.pool;
     }
 
-    createLocalPool() {
+    async createLocalPool() {
+        const dbConfig = await getDbConfig();
         const config = {
             user: process.env.PG_USER,
             password: process.env.PG_PASSWORD,
             database: process.env.PG_DATABASE,
-            host: 'localhost',
-            port: 5432,
+            host: dbConfig.host,
+            port: dbConfig.port,
+            ssl: dbConfig.ssl,
+            max: dbConfig.maxConnections,
         };
         
         return Promise.resolve(new Pool(config));

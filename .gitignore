@@ -59,3 +59,9 @@ dump.rdb
 # Archives that might contain sensitive data
 *.tar.gz
 *.zip
+
+# Environment files
+.env
+backend/.env
+client/.env
+*.env.local

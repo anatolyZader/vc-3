@@ -25,5 +25,33 @@
   },
   "otherPortsAttributes": { "onAutoForward": "silent" },
 
-  "debug.javascript.autoAttachFilter": "disabled"
+  "debug.javascript.autoAttachFilter": "disabled",
+
+  // Local Development Settings
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.git/**": true
+  },
+  
+  // Docker extension settings
+  "docker.containers.sortBy": "Status",
+  "docker.truncateLongRegistryPaths": true,
+  
+  // Environment file syntax
+  "files.associations": {
+    ".env.local": "properties",
+    ".env.sample": "properties",
+    "docker-compose*.yml": "yaml"
+  },
+
+  // Exclude Docker volumes from search
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/postgres_data": true,
+    "**/redis_data": true,
+    "**/pgadmin_data": true
+  },
+  "containers.containers.sortBy": "Status",
+  "containers.truncateLongRegistryPaths": true
 }
