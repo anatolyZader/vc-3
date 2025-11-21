@@ -4,39 +4,48 @@
 const { Document } = require('langchain/document');
 
 /**
- * Handles all embedding and vector storage operations with Pinecone
- * Now uses centralized PineconeService for all vector operations
+ * Handles all embedding and vector storage operations with PostgreSQL pgvector
+ * Now uses centralized PGVectorService for all vector operations
  * Added token-based safety validation to prevent embedding API failures
  */
 class EmbeddingManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
-    this.pineconeLimiter = options.pineconeLimiter;
     
-    // Require PineconeService as a dependency - don't create it ourselves
-    if (!options.pineconeService) {
-      throw new Error('EmbeddingManager requires a pineconeService instance. Pass it via options.pineconeService');
+    // Use PGVectorService instead of PineconeService
+    if (!options.pgVectorService && !options.pineconeService) {
+      throw new Error('EmbeddingManager requires a pgVectorService instance. Pass it via options.pgVectorService');
     }
     
-    this.pineconeService = options.pineconeService;
+    // Support both new PGVector and legacy Pinecone for migration period
+    this.pgVectorService = options.pgVectorService;
+    this.pineconeService = options.pineconeService; // For backward compatibility during migration
     
-    // Backward compatibility alias
-    this.pinecone = this.pineconeService;
+    // Use PostgreSQL as primary, fallback to Pinecone if configured
+    this.vectorService = this.pgVectorService || this.pineconeService;
+    
+    // Backward compatibility aliases
+    this.pinecone = this.vectorService;
   }
 
+  async _getVectorService() {
+    return this.vectorService;
+  }
+
+  // Backward compatibility method
   async _getPineconeService() {
-    return this.pineconeService;
+    return this._getVectorService();
   }
 
   /**
-   * Store documents to Pinecone vector database
+   * Store documents to PostgreSQL vector database (or Pinecone for backward compatibility)
    * NOTE: Safety rechunking enabled ONLY for oversized chunks (>8000 tokens)
    * Preserves semantic metadata by copying it to all sub-chunks
    */
-  async storeToPinecone(documents, namespace, githubOwner, repoName) {
-    const pineconeService = await this._getPineconeService();
-    if (!pineconeService) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Pinecone client unavailable (skipping vector storage)`);
+  async storeToVectorDB(documents, namespace, githubOwner, repoName) {
+    const vectorService = await this._getVectorService();
+    if (!vectorService) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ DATA-PREP: Vector database service unavailable (skipping vector storage)`);
       return;
     }
 
@@ -93,31 +102,33 @@ class EmbeddingManager {
         console.log(`[${new Date().toISOString()}] 📦 SEMANTIC PRESERVATION: All ${documents.length} AST-chunked documents are safe (<8000 tokens)`);
       }
       
-      // Import PineconeService class for static methods
-      const PineconeService = require('./pineconeService');
+      // Import vector service class for static methods
+      const VectorService = this.pgVectorService ? 
+        require('./pgVectorService') : 
+        require('./pineconeService');
       
       // Generate deterministic, idempotent document IDs (contentHash + source = unique stable key)
       // Same content + source = same ID → upsert automatically overwrites (no duplicates)
-      const documentIds = PineconeService.generateRepositoryDocumentIds(safeDocuments, namespace);
+      const documentIds = VectorService.generateRepositoryDocumentIds(safeDocuments, namespace);
 
-      console.log(`[${new Date().toISOString()}] 📝 STORING TO PINECONE: Processing ${safeDocuments.length} semantically-rich documents`);
+      console.log(`[${new Date().toISOString()}] 📝 STORING TO VECTOR DB: Processing ${safeDocuments.length} semantically-rich documents`);
       console.log(`[${new Date().toISOString()}] 🔑 IDEMPOTENT IDS: Using deterministic IDs (namespace:source:contentHash) - upserts overwrite automatically`);
 
       // CLEANUP: With deterministic IDs, cleanup is only needed for full re-indexing
       // Incremental updates will automatically overwrite matching IDs
       console.log(`[${new Date().toISOString()}] 🧹 CLEANUP: Clearing namespace for fresh indexing (deterministic IDs prevent duplicates)`);
       try {
-        const cleanupResult = await pineconeService.cleanupOldRepositoryEmbeddings(namespace, {
+        const cleanupResult = await vectorService.cleanupOldRepositoryEmbeddings(namespace, {
           dryRun: false
         });
-        console.log(`[${new Date().toISOString()}] ✅ CLEANUP: ${cleanupResult.mode === 'full_namespace_reset' ? 'Namespace cleared' : 'Cleanup completed'}`);
+        console.log(`[${new Date().toISOString()}] ✅ CLEANUP: ${cleanupResult.mode === 'full_namespace_reset' || cleanupResult.mode === 'full_collection_reset' ? 'Namespace cleared' : 'Cleanup completed'}`);
       } catch (cleanupError) {
         // Log warning but don't fail - might be first time processing this repo
         console.warn(`[${new Date().toISOString()}] ⚠️ CLEANUP: Could not clear namespace (might be first processing): ${cleanupError.message}`);
       }
 
       // Use enhanced upsertDocuments with verbose logging and rate limiting
-      console.log(`[${new Date().toISOString()}] ⚡ STORAGE: Starting Pinecone upsert with timeout protection...`);
+      console.log(`[${new Date().toISOString()}] ⚡ STORAGE: Starting vector database upsert with timeout protection...`);
       const storageStartTime = Date.now();
       
       // Use AbortController for proper cancellation (though Pinecone SDK may not support it yet)
@@ -128,13 +139,12 @@ class EmbeddingManager {
       }, 300000);
       
       try {
-        const result = await pineconeService.upsertDocuments(safeDocuments, this.embeddings, {
+        const result = await vectorService.upsertDocuments(safeDocuments, this.embeddings, {
           namespace: namespace,
           ids: documentIds,
           githubOwner,
           repoName,
-          verbose: true,
-          rateLimiter: this.pineconeLimiter
+          verbose: true
         });
         
         clearTimeout(timeoutId);
@@ -154,8 +164,8 @@ class EmbeddingManager {
       }
 
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error storing documents to Pinecone:`, error);
-      console.error(`[${new Date().toISOString()}] 💡 This may be due to API limits, network issues, or invalid document format`);
+      console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error storing documents to vector database:`, error);
+      console.error(`[${new Date().toISOString()}] 💡 This may be due to database connection issues, API limits, or invalid document format`);
       throw error;
     }
   }
@@ -168,35 +178,36 @@ class EmbeddingManager {
     // Removed excessive per-chunk logging for performance - logging summary only
     console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] Processing ${splitDocs.length} repository chunks for storage`);
 
-    console.log(`[${new Date().toISOString()}] 🚀 PINECONE STORAGE: Storing ${splitDocs.length} vector embeddings with unique IDs in user-specific namespace '${userId}'`);
+    console.log(`[${new Date().toISOString()}] 🚀 VECTOR STORAGE: Storing ${splitDocs.length} vector embeddings with unique IDs in user-specific namespace '${userId}'`);
 
-    // Store in Pinecone with user-specific namespace
-    const pineconeService = await this._getPineconeService();
-    if (!pineconeService) {
-      throw new Error('Pinecone client not available');
+    // Store in vector database with user-specific namespace
+    const vectorService = await this._getVectorService();
+    if (!vectorService) {
+      throw new Error('Vector database service not available');
     }
 
     try {
-      // Import PineconeService class for static methods
-      const PineconeService = require('./pineconeService');
+      // Import vector service class for static methods
+      const VectorService = this.pgVectorService ? 
+        require('./pgVectorService') : 
+        require('./pineconeService');
       
       // Generate deterministic, idempotent document IDs (contentHash + source = unique stable key)
       // Same content + source = same ID → upsert automatically overwrites (no duplicates)
-      const documentIds = PineconeService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);
+      const documentIds = VectorService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);
 
       console.log(`[${new Date().toISOString()}] 🔑 IDEMPOTENT IDS: Using deterministic IDs (userId:repoId:source:contentHash)`);
 
       // Use enhanced upsertDocuments method
-      await pineconeService.upsertDocuments(splitDocs, this.embeddings, {
+      await vectorService.upsertDocuments(splitDocs, this.embeddings, {
         namespace: userId,
         ids: documentIds,
         githubOwner,
         repoName,
-        verbose: false, // Keep current detailed logging above, no need for duplicate logs
-        rateLimiter: this.pineconeLimiter
+        verbose: false // Keep current detailed logging above, no need for duplicate logs
       });
 
-      console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully indexed ${splitDocs.length} document chunks to Pinecone`);
+      console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully indexed ${splitDocs.length} document chunks to vector database`);
 
       return {
         success: true,
@@ -206,9 +217,18 @@ class EmbeddingManager {
       };
 
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error storing in Pinecone:`, error.message);
+      console.error(`[${new Date().toISOString()}] ❌ DATA-PREP: Error storing in vector database:`, error.message);
       throw error;
     }
+  }
+
+  /**
+   * Backward compatibility method - redirects to storeToVectorDB
+   * @deprecated Use storeToVectorDB instead
+   */
+  async storeToPinecone(documents, namespace, githubOwner, repoName) {
+    console.warn('[EmbeddingManager] storeToPinecone is deprecated. Use storeToVectorDB instead.');
+    return this.storeToVectorDB(documents, namespace, githubOwner, repoName);
   }
 
 

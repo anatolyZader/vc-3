@@ -79,16 +79,35 @@ class ContextPipeline {
       pineconeManager: this.pineconeManager
     });
     
-    // Initialize EmbeddingManager with PineconeService dependency
-    const pineconeService = new PineconeService({
-      pineconePlugin: this.pineconeManager,
-      rateLimiter: this.pineconeLimiter
-    });
+    // Initialize vector database service (PostgreSQL pgvector or Pinecone fallback)
+    const usePostgreSQL = process.env.USE_POSTGRESQL_VECTORS !== 'false'; // Default to true
+    let vectorService = null;
     
+    if (usePostgreSQL) {
+      try {
+        const PGVectorService = require('./embedding/pgVectorService');
+        vectorService = PGVectorService.fromEnvironment();
+        console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline using PostgreSQL pgvector`);
+      } catch (error) {
+        console.warn(`[${new Date().toISOString()}] Failed to initialize PostgreSQL pgvector, falling back to Pinecone:`, error.message);
+      }
+    }
+    
+    // Fallback to Pinecone if PostgreSQL is not available
+    if (!vectorService) {
+      const PineconeService = require('./embedding/pineconeService');
+      vectorService = new PineconeService({
+        pineconePlugin: this.pineconeManager,
+        rateLimiter: this.pineconeLimiter
+      });
+      console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline using Pinecone fallback`);
+    }
+    
+    // Initialize EmbeddingManager with vector service dependency
     this.embeddingManager = new EmbeddingManager({
       embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      pineconeService: pineconeService
+      pgVectorService: usePostgreSQL ? vectorService : null,
+      pineconeService: !usePostgreSQL ? vectorService : null
     });
     
     // Initialize repoProcessor with pure processing dependencies only

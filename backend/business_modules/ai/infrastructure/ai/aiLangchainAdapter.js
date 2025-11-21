@@ -108,14 +108,41 @@ class AILangchainAdapter extends IAIPort {
         maxChunkSize: 1500,  // Optimized for better semantic chunking and embedding quality
         chunkOverlap: 200    // Add overlap for better context preservation
       });
-      console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline initialized with embedded Pinecone services.`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline initialized with vector database services.`);
 
   // System documentation is processed via the normal docs pipeline when triggered
 
-      // Initialize shared Pinecone resources that will be used by QueryPipeline
+      // Initialize vector database resources (PostgreSQL pgvector or Pinecone fallback)
+      this.pgVectorService = null;
       this.pineconePlugin = null;
       this.vectorSearchOrchestrator = null;
-      if (process.env.PINECONE_API_KEY) {
+      
+      // Prefer PostgreSQL pgvector, fallback to Pinecone
+      const usePostgreSQL = process.env.USE_POSTGRESQL_VECTORS !== 'false'; // Default to true
+      
+      if (usePostgreSQL) {
+        try {
+          const PGVectorService = require('./rag_pipelines/context/embedding/pgVectorService');
+          this.pgVectorService = PGVectorService.fromEnvironment();
+          
+          const VectorSearchOrchestrator = require('./rag_pipelines/query/vectorSearchOrchestrator');
+          this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
+            embeddings: this.embeddings,
+            pgVectorService: this.pgVectorService,
+            defaultTopK: 10,
+            defaultThreshold: 0.3,
+            maxResults: 50
+          });
+          
+          console.log(`[${new Date().toISOString()}] [DEBUG] PostgreSQL pgvector resources initialized in AILangchainAdapter`);
+        } catch (error) {
+          console.warn(`[${new Date().toISOString()}] Failed to initialize PostgreSQL pgvector, falling back to Pinecone:`, error.message);
+          usePostgreSQL = false;
+        }
+      }
+      
+      // Fallback to Pinecone if PostgreSQL is not available or disabled
+      if (!usePostgreSQL && process.env.PINECONE_API_KEY) {
         const PineconePlugin = require('./rag_pipelines/context/embedding/pineconePlugin');
         const VectorSearchOrchestrator = require('./rag_pipelines/query/vectorSearchOrchestrator');
         
@@ -131,9 +158,9 @@ class AILangchainAdapter extends IAIPort {
           defaultThreshold: 0.3,
           maxResults: 50
         });
-        console.log(`[${new Date().toISOString()}] [DEBUG] Shared Pinecone resources initialized in AILangchainAdapter`);
-      } else {
-        console.warn(`[${new Date().toISOString()}] Missing Pinecone API key - vector services not initialized`);
+        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone fallback resources initialized in AILangchainAdapter`);
+      } else if (!process.env.PINECONE_API_KEY) {
+        console.warn(`[${new Date().toISOString()}] No vector database configured - neither PostgreSQL pgvector nor Pinecone available`);
       }
 
       // Initialize text search services

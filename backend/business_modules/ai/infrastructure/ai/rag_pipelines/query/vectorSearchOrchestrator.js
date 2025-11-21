@@ -1,13 +1,10 @@
 /**
  * VectorSearchOrchestrator - Modern vector search implementation
  * 
- * Replaces the old vectorSearchOrchestrator with a modern implementation
- * that uses the centralized PineconeService for efficient similarity search.
+ * Supports both PostgreSQL pgvector and Pinecone for vector similarity search.
+ * Uses the centralized PGVectorService or PineconeService for efficient similarity search.
  * Maintains compatibility with existing QueryPipeline interface.
  */
-
-const PineconeService = require('../context/embedding/pineconeService');
-const VectorSearchStrategy = require('./vectorSearchStrategy');
 
 class VectorSearchOrchestrator {
   constructor(options = {}) {
@@ -30,22 +27,38 @@ class VectorSearchOrchestrator {
       this.maxResults = options.maxResults || 50;
     }
     
-    // Initialize PineconeService for modern functionality
-    // Use provided pineconePlugin or create new one as fallback (for backward compatibility)
-    const pineconePlugin = options.pineconePlugin;
-    if (!pineconePlugin) {
+    // Initialize vector service (PostgreSQL pgvector preferred, Pinecone fallback)
+    this.vectorService = null;
+    
+    if (options.pgVectorService) {
+      this.vectorService = options.pgVectorService;
+      this.serviceType = 'postgresql';
+      console.log(`[${new Date().toISOString()}] [VectorSearchOrchestrator] Using PostgreSQL pgvector`);
+    } else if (options.pineconePlugin) {
+      // Legacy Pinecone initialization
+      const PineconeService = require('../context/embedding/pineconeService');
+      this.vectorService = new PineconeService({
+        pineconePlugin: options.pineconePlugin,
+        rateLimiter: this.embeddings?.rateLimiter
+      });
+      this.serviceType = 'pinecone';
+      console.log(`[${new Date().toISOString()}] [VectorSearchOrchestrator] Using Pinecone`);
+    } else {
+      console.warn(`[${new Date().toISOString()}] [VectorSearchOrchestrator] No vector service provided, creating Pinecone fallback`);
       const PineconePlugin = require('../context/embedding/pineconePlugin');
-      console.warn(`[${new Date().toISOString()}] [VectorSearchOrchestrator] No pineconePlugin provided, creating new instance (consider injecting for consistency)`);
-      this.pineconeService = new PineconeService({
+      const PineconeService = require('../context/embedding/pineconeService');
+      this.vectorService = new PineconeService({
         pineconePlugin: new PineconePlugin(),
         rateLimiter: this.embeddings?.rateLimiter
       });
-    } else {
-      this.pineconeService = new PineconeService({
-        pineconePlugin: pineconePlugin,
-        rateLimiter: this.embeddings?.rateLimiter
-      });
+      this.serviceType = 'pinecone';
     }
+
+    // Backward compatibility
+    this.pineconeService = this.serviceType === 'pinecone' ? this.vectorService : null;
+
+    // Search configuration
+    const VectorSearchStrategy = require('./vectorSearchStrategy');
 
     // Search configuration
     this.defaultTopK = this.defaultTopK || 10;
@@ -172,7 +185,7 @@ class VectorSearchOrchestrator {
       const queryEmbedding = await this.embeddings.embedQuery(query);
       
       // Perform vector search
-      const searchResults = await this.pineconeService.querySimilar(queryEmbedding, {
+      const searchResults = await this.vectorService.querySimilar(queryEmbedding, {
         namespace,
         topK: Math.min(topK, this.maxResults),
         filter,
@@ -295,7 +308,7 @@ class VectorSearchOrchestrator {
       const queryEmbedding = await this.embeddings.embedQuery(query);
       
       // Search with metadata filters
-      const searchResults = await this.pineconeService.querySimilar(queryEmbedding, {
+      const searchResults = await this.vectorService.querySimilar(queryEmbedding, {
         namespace,
         topK,
         filter: filters,
@@ -482,8 +495,8 @@ class VectorSearchOrchestrator {
       const dummyQuery = `contents of ${filename}`;
       const queryEmbedding = await this.embeddings.embedQuery(dummyQuery);
       
-      // Query Pinecone with file path filter and high topK to get all chunks
-      const searchResults = await this.pineconeService.querySimilar(queryEmbedding, {
+      // Query vector database with file path filter and high topK to get all chunks
+      const searchResults = await this.vectorService.querySimilar(queryEmbedding, {
         namespace,
         topK: maxChunks, // High limit to ensure we get all chunks
         filter: {

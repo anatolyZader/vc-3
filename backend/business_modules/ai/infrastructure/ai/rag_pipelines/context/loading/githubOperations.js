@@ -801,19 +801,36 @@ class GitHubOperations {
       // Step 3: Store documents (this should be delegated to EmbeddingManager, but for fallback we'll handle here)
       console.log(`[${new Date().toISOString()}] ⚠️ FALLBACK STORAGE: GitHubOperations handling storage directly (should use EmbeddingManager in production)`);
       
-      // CRITICAL FIX: Actually store the embeddings to Pinecone!
-      console.log(`[${new Date().toISOString()}] 💾 FALLBACK EMBEDDING STORAGE: Storing ${splitDocuments.length} chunks to Pinecone namespace ${namespace}`);
+      // CRITICAL FIX: Actually store the embeddings to vector database!
+      console.log(`[${new Date().toISOString()}] 💾 FALLBACK EMBEDDING STORAGE: Storing ${splitDocuments.length} chunks to vector database namespace ${namespace}`);
       
       try {
-        // Use the EmbeddingManager approach directly
+        // Use the EmbeddingManager approach directly with vector service selection
         const EmbeddingManager = require('../embedding/embeddingManager');
+        
+        // Determine which vector service to use
+        const usePostgreSQL = process.env.USE_POSTGRESQL_VECTORS !== 'false';
+        let vectorServiceConfig = {};
+        
+        if (usePostgreSQL) {
+          try {
+            const PGVectorService = require('../embedding/pgVectorService');
+            vectorServiceConfig.pgVectorService = PGVectorService.fromEnvironment();
+          } catch (error) {
+            console.warn('Falling back to Pinecone for fallback storage:', error.message);
+            vectorServiceConfig.pineconeService = this.pineconeService;
+          }
+        } else {
+          vectorServiceConfig.pineconeService = this.pineconeService;
+        }
+        
         const embeddingManager = new EmbeddingManager({
           embeddings: embeddings,
-          pineconeService: this.pineconeService
+          ...vectorServiceConfig
         });
         
-        await embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
-        console.log(`[${new Date().toISOString()}] ✅ FALLBACK EMBEDDING SUCCESS: Stored embeddings to Pinecone`);
+        await embeddingManager.storeToVectorDB(splitDocuments, namespace, githubOwner, repoName);
+        console.log(`[${new Date().toISOString()}] ✅ FALLBACK EMBEDDING SUCCESS: Stored embeddings to vector database`);
         
       } catch (embeddingError) {
         console.error(`[${new Date().toISOString()}] ❌ FALLBACK EMBEDDING FAILED:`, embeddingError.message);
