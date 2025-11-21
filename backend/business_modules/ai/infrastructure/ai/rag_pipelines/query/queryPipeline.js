@@ -445,10 +445,20 @@ class QueryPipeline {
   isVectorStoreAvailable(vectorStore) {
     // If we have an injected vectorStore, validate it properly
     if (vectorStore) {
-      // Check if vectorStore has the required properties and methods
-      if (!vectorStore.embeddings || !vectorStore.pineconeIndex) {
-        console.warn(`[${new Date().toISOString()}] [DEBUG] Injected vectorStore missing required properties`);
-        return false;
+      // Check for LangChain PGVectorStore properties (PostgreSQL)
+      if (vectorStore.tableName && vectorStore.pool) {
+        return true;
+      }
+      
+      // Check for LangChain PineconeStore properties (Pinecone fallback)
+      if (vectorStore.embeddings && vectorStore.pineconeIndex) {
+        return true;
+      }
+      
+      // Check for basic LangChain VectorStore interface
+      if (typeof vectorStore.similaritySearch === 'function' && 
+          typeof vectorStore.addDocuments === 'function') {
+        return true;
       }
       
       // If vectorStore has a namespace, that's a good sign it's properly configured
@@ -456,12 +466,12 @@ class QueryPipeline {
         return true;
       }
       
-      // For vectorStores without explicit namespace, we need the orchestrator to validate
+      // For vectorStores without explicit properties, we need the orchestrator to validate
       if (this.vectorSearchOrchestrator?.isConnected?.() === true) {
         return true;
       }
       
-      console.warn(`[${new Date().toISOString()}] [DEBUG] Injected vectorStore appears to be stale or incomplete`);
+      console.warn(`[${new Date().toISOString()}] [DEBUG] Injected vectorStore missing required properties`);
       return false;
     }
     

@@ -76,16 +76,21 @@ class VectorSearchOrchestrator {
       }
     };
 
-    // Initialize connection to Pinecone
+    // Initialize connection
     this._initializeConnection();
   }
 
   async _initializeConnection() {
     try {
-      await this.pineconeService.getClient();
-      this.logger.debug('VectorSearchOrchestrator connected to Pinecone');
+      if (this.serviceType === 'postgresql') {
+        // PostgreSQL pgvector doesn't need special initialization
+        this.logger.debug('VectorSearchOrchestrator using PostgreSQL pgvector');
+      } else if (this.vectorService && typeof this.vectorService.getClient === 'function') {
+        await this.vectorService.getClient();
+        this.logger.debug('VectorSearchOrchestrator connected to Pinecone');
+      }
     } catch (error) {
-      this.logger.error('Failed to connect VectorSearchOrchestrator to Pinecone:', error.message);
+      this.logger.error(`Failed to connect VectorSearchOrchestrator to ${this.serviceType}:`, error.message);
     }
   }
 
@@ -540,7 +545,7 @@ class VectorSearchOrchestrator {
    */
   async getSearchableContent(namespace) {
     try {
-      const stats = await this.pineconeService.getNamespaceStats(namespace);
+      const stats = await this.vectorService.getNamespaceStats(namespace);
       return stats;
     } catch (error) {
       this.logger.error(`Error getting searchable content for ${namespace}:`, error.message);
@@ -558,21 +563,26 @@ class VectorSearchOrchestrator {
 
     console.log(`[${new Date().toISOString()}] � Using namespace: '${namespace}' for vector store`);
 
-    return await this.pineconeService.createVectorStore(this.embeddings, namespace);
+    return await this.vectorService.createVectorStore(this.embeddings, namespace);
   }
 
   /**
    * Check connection status
    */
   isConnected() {
-    return this.pineconeService.isConnectedToIndex();
+    if (this.serviceType === 'postgresql') {
+      return this.vectorService ? true : false;
+    }
+    return this.vectorService && this.vectorService.isConnectedToIndex();
   }
 
   /**
-   * Disconnect from Pinecone
+   * Disconnect from vector service
    */
   async disconnect() {
-    await this.pineconeService.disconnect();
+    if (this.vectorService && typeof this.vectorService.disconnect === 'function') {
+      await this.vectorService.disconnect();
+    }
     this.logger.info('Vector search orchestrator disconnected');
   }
 }

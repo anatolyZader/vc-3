@@ -67,18 +67,6 @@ class ContextPipeline {
     this.semanticPreprocessor = new SemanticPreprocessor();
     this.textPreprocessor = new TextPreprocessor();
     
-    this.apiSpecProcessor = new ApiSpecProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter
-    });
-    
-    this.docsProcessor = new DocsProcessor({
-      embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      repoPreparation: this.githubOperations,
-      pineconeManager: this.pineconeManager
-    });
-    
     // Initialize vector database service (PostgreSQL pgvector or Pinecone fallback)
     const usePostgreSQL = process.env.USE_POSTGRESQL_VECTORS !== 'false'; // Default to true
     let vectorService = null;
@@ -108,6 +96,23 @@ class ContextPipeline {
       embeddings: this.embeddings,
       pgVectorService: usePostgreSQL ? vectorService : null,
       pineconeService: !usePostgreSQL ? vectorService : null
+    });
+    
+    // Initialize docsProcessor with vector service
+    this.docsProcessor = new DocsProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      vectorService: vectorService,
+      repoPreparation: this.githubOperations,
+      pineconeManager: this.pineconeManager // Backward compatibility
+    });
+
+    // Initialize apiSpecProcessor with vector service
+    this.apiSpecProcessor = new ApiSpecProcessor({
+      embeddings: this.embeddings,
+      pineconeLimiter: this.pineconeLimiter,
+      vectorService: vectorService,
+      pineconeManager: this.pineconeManager // Backward compatibility
     });
     
     // Initialize repoProcessor with pure processing dependencies only
@@ -916,39 +921,39 @@ class ContextPipeline {
    * Moved from RepoProcessor as part of orchestration responsibility
    */
   /**
-   * Check if repository already exists in Pinecone using index stats
-   * FIXED: Use namespace stats instead of zero-vector query (undefined behavior)
+   * Check if repository already exists in vector store using service abstraction
+   * FIXED: Use vectorService abstraction instead of direct Pinecone calls
    */
   async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
     try {
       const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
-      const index = await this.pineconeManager.getIndex();
       
-      // SAFE APPROACH: Use index stats to check namespace existence
-      const stats = await index.describeIndexStats();
-      const namespaceStats = stats.namespaces?.[namespace];
+      // Use vectorService abstraction to get namespace stats
+      const namespaceStats = await this.embeddingManager.vectorService.getNamespaceStats(namespace);
       
       if (!namespaceStats || namespaceStats.vectorCount === 0) {
-        console.log(`[${new Date().toISOString()}] 📊 Namespace '${namespace}' not found or empty in index stats`);
+        console.log(`[${new Date().toISOString()}] 📊 Namespace '${namespace}' not found or empty`);
         return { exists: false, namespace };
       }
       
       console.log(`[${new Date().toISOString()}] 📊 Namespace '${namespace}' exists with ${namespaceStats.vectorCount} vectors`);
       
-      // Namespace exists and has vectors - now check commit hash
-      // Use metadata filter query (NOT zero vector!) to get commit info
-      const queryResponse = await index.namespace(namespace).query({
-        vector: await this.embeddings.embedQuery('repository metadata'),  // Real embedding for metadata query
-        topK: 1,
-        includeMetadata: true,
-        filter: {
-          repoOwner: { $eq: githubOwner },
-          repoName: { $eq: repoName }
+      // Namespace exists and has vectors - now check commit hash using vectorService
+      const queryResults = await this.embeddingManager.vectorService.querySimilar(
+        await this.embeddings.embedQuery('repository metadata'),
+        {
+          namespace: namespace,
+          topK: 1,
+          includeMetadata: true,
+          filter: {
+            repoOwner: { $eq: githubOwner },
+            repoName: { $eq: repoName }
+          }
         }
-      });
+      );
 
-      if (queryResponse.matches && queryResponse.matches.length > 0) {
-        const existingCommit = queryResponse.matches[0].metadata?.commitHash;
+      if (queryResults && queryResults.length > 0) {
+        const existingCommit = queryResults[0].metadata?.commitHash;
         return {
           exists: true,
           commitHash: existingCommit,

@@ -3,7 +3,14 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const { PineconeStore } = require('@langchain/pinecone');
+
+// Support both PostgreSQL pgvector and Pinecone (legacy)
+let PineconeStore;
+try {
+  ({ PineconeStore } = require('@langchain/pinecone'));
+} catch (err) {
+  console.warn(`[${new Date().toISOString()}] PineconeStore not available:`, err.message);
+}
 
 /**
  * Dedicated processor for API specification files
@@ -13,28 +20,38 @@ class ApiSpecProcessor {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     this.pineconeLimiter = options.pineconeLimiter;
+    this.vectorService = options.vectorService;
+    
+    // Legacy Pinecone support
     this.pineconeManager = options.pineconeManager;
     
-    // Defer pinecone resolution
-    this._pineconeService = null;
-    this._pineconeServicePromise = this.pineconeManager?.getPineconeService?.();
+    // Defer service resolution
+    this._vectorService = null;
+    this._vectorServicePromise = this.pineconeManager?.getPineconeService?.();
     this.pinecone = null; // Backward compatibility alias after resolution
   }
 
-  async _getPineconeService() {
-    if (this._pineconeService) return this._pineconeService;
-    if (this._pineconeServicePromise) {
+  async _getVectorService() {
+    if (this._vectorService) return this._vectorService;
+    if (this.vectorService) return this.vectorService;
+    
+    if (this._vectorServicePromise) {
       try {
-        this._pineconeService = await this._pineconeServicePromise;
+        this._vectorService = await this._vectorServicePromise;
       } catch (err) {
-        console.warn(`[${new Date().toISOString()}] ⚠️ ApiSpecProcessor: Pinecone initialization failed: ${err.message}`);
-        this._pineconeService = null;
+        console.warn(`[${new Date().toISOString()}] ⚠️ ApiSpecProcessor: Vector service initialization failed: ${err.message}`);
+        this._vectorService = null;
       } finally {
-        this._pineconeServicePromise = null;
+        this._vectorServicePromise = null;
       }
-      this.pinecone = this._pineconeService;
+      this.pinecone = this._vectorService; // Backward compatibility
     }
-    return this._pineconeService;
+    return this._vectorService;
+  }
+
+  // Backward compatibility method
+  async _getPineconeService() {
+    return this._getVectorService();
   }
 
   /**
@@ -262,26 +279,15 @@ class ApiSpecProcessor {
    */
   async storeApiSpecDocuments(documents, namespace) {
     console.log(`[${new Date().toISOString()}] 🗄️ API-SPEC STORAGE: Storing ${documents.length} API spec chunks in namespace '${namespace}'`);
-    const pineconeService = await this._getPineconeService();
-    if (!pineconeService) {
-      console.warn(`[${new Date().toISOString()}] ⚠️ API-SPEC: Pinecone not available, skipping storage`);
-      return { success: true, skipped: true, reason: 'pinecone_unavailable', chunksStored: 0 };
+    const vectorService = await this._getVectorService();
+    if (!vectorService) {
+      console.warn(`[${new Date().toISOString()}] ⚠️ API-SPEC: Vector service not available, skipping storage`);
+      return { success: true, skipped: true, reason: 'vector_service_unavailable', chunksStored: 0 };
     }
 
     try {
-      const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
-      let index;
-      if (typeof pineconeService.index === 'function') {
-        index = pineconeService.index(indexName);
-      } else if (pineconeService.client && typeof pineconeService.client.index === 'function') {
-        index = pineconeService.client.index(indexName);
-      } else {
-        index = pineconeService;
-      }
-      const vectorStore = new PineconeStore(this.embeddings, {
-        pineconeIndex: index,
-        namespace: namespace
-      });
+      // Create vector store using the service
+      const vectorStore = await vectorService.createVectorStore(this.embeddings, namespace);
 
       // Generate unique IDs using built-in sanitization
       const documentIds = documents.map((doc, index) => {
