@@ -100,7 +100,8 @@ class VectorSearchOrchestrator {
    * @returns {Array} Array of search results in old format
    */
   async performSearch(prompt) {
-    const searchStrategy = VectorSearchStrategy.determineSearchStrategy(prompt);
+    // Simple strategy determination without external dependency
+    const searchStrategy = this.determineSearchStrategy(prompt);
     this.logSearchStrategy(searchStrategy);
 
     try {

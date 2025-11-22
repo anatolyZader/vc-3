@@ -46,6 +46,12 @@ class ChatPostgresAdapter extends IChatPersistPort {
     }
 
     async createCloudSqlPool(connector) {
+        // Skip Cloud SQL connection in test environment
+        if (process.env.NODE_ENV === 'test') {
+            console.warn('⚠️ Skipping Cloud SQL connection in test environment');
+            return this.createLocalPool();
+        }
+        
         const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
         if (!instanceConnectionName) {
             throw new Error('❌ CLOUD_SQL_CONNECTION_NAME environment variable is not set. Cannot connect to Cloud SQL.');

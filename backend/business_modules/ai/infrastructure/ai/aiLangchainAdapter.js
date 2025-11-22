@@ -31,6 +31,19 @@ class AILangchainAdapter extends IAIPort {
     // Make userId null by default to avoid DI error
     this.userId = null;
 
+    // Skip heavy initialization during tests
+    if (process.env.NODE_ENV === 'test' && process.env.DISABLE_AI_SERVICES_IN_TESTS === 'true') {
+      console.log('[TEST] Skipping AI services initialization for faster testing');
+      this.mockMode = true;
+      this.aiProvider = options.aiProvider || 'openai';
+      this.eventBus = null;
+      this.requestQueue = { add: jest.fn(), startQueueProcessor: jest.fn(), stopQueueProcessor: jest.fn() };
+      this.pineconeService = null;
+      this.pgVectorService = null;
+      this.contextPipeline = null;
+      return;
+    }
+
     // Get provider from infraConfig or options
     this.aiProvider = options.aiProvider || 'openai';
     console.log(`[${new Date().toISOString()}] AILangchainAdapter initializing with provider: ${this.aiProvider}`);
@@ -238,6 +251,14 @@ class AILangchainAdapter extends IAIPort {
       console.warn(`[${new Date().toISOString()}] Attempted to set null/undefined userId in AILangchainAdapter`);
       return this;
     }
+    
+    // Handle mock mode during tests
+    if (this.mockMode) {
+      console.log('[TEST] Mock setUserId called with:', userId);
+      this.userId = userId;
+      return this;
+    }
+    
     console.log(`[${new Date().toISOString()}] [DEBUG] setUserId called with: ${userId}`);
 
     this.userId = userId;
@@ -387,6 +408,17 @@ class AILangchainAdapter extends IAIPort {
   // 2. Retrieval anddd generation:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
   async respondToPrompt(userId, conversationId, prompt, conversationHistory = []) {
+    // Handle mock mode during tests
+    if (this.mockMode) {
+      console.log('[TEST] Mock respondToPrompt called');
+      return {
+        success: true,
+        response: "Mock AI response for testing",
+        conversationId: conversationId,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
     const exec = async () => {
       await this.setUserId(userId);
       if (!this.userId) {

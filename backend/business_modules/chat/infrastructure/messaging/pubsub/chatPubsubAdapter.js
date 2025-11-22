@@ -11,7 +11,7 @@ class ChatPubsubAdapter extends IChatMessagingPort {
     
     this.transport = transport;
     this.eventDispatcher = eventDispatcher;
-    this.log = logger;
+    this.log = logger || console; // Fallback to console if no logger provided
     this.topicName = require('../../../../../messageChannels').getChannelName('chat');
 
     this.log.debug({ hasTransport: !!this.transport, hasEventDispatcher: !!this.eventDispatcher }, 'ChatPubsubAdapter initialized');
