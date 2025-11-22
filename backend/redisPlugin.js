@@ -5,20 +5,27 @@ const fp = require('fastify-plugin')
 const fastifyRedis = require('@fastify/redis')
 
 async function redisPlugin (fastify, opts) {
+  fastify.log.info('Registering Redis client with REDIS_HOST:', fastify.secrets.REDIS_HOST);
 
-  fastify.log.debug('Registering Redis client with REDIS_HOST: ', fastify.secrets.REDIS_HOST)
+  if (!fastify.secrets.REDIS_HOST) {
+    throw new Error('REDIS_HOST is required but not configured');
+  }
 
   const redisOpts = {
     host: fastify.secrets.REDIS_HOST,
-    port: fastify.secrets.REDIS_PORT,
-    connectionTimeout: opts.connectionTimeout ?? 1000, // how long (in milliseconds) the client will wait when trying to establish a connection before giving up.
-    lazyConnect: true, //If true, the Redis client will not connect automatically on instantiation. Instead, you must explicitly call .connect() to initiate the connection.
-    timeout: 1000 // Sets the socket timeout for network operations (in milliseconds). If any Redis operation takes longer than this, it will fail with a timeout error.
+    port: fastify.secrets.REDIS_PORT || 6379,
+    connectTimeout: opts.connectTimeout ?? 10000, // Increased timeout for Cloud Run
+    lazyConnect: true, // Don't connect immediately
+    retryDelayOnFailover: 100,
+    maxRetriesPerRequest: 3,
+    retryConnectOnFailure: true,
+    keepAlive: 30000
   }
 
   fastify.log.info({ redisOpts }, 'About to register @fastify/redis');
 
-  await fastify.register(fastifyRedis, redisOpts)
+  await fastify.register(fastifyRedis, redisOpts);
+  fastify.log.info('✅ Redis plugin registered successfully');
   // afterwards: fastify.redis.get(...), fastify.redis.set(...)
 }
 

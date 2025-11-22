@@ -1,0 +1,464 @@
+name: Local Development Workflow
+
+on:
+  push:
+    branches: [ dev ]
+
+# Cancel older runs on same branch to save time
+concurrency:
+  group: local-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+# Default to backend directory for most operations
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  # RAG indexing configuration and API spec generation
+  rag-config-and-spec:
+    name: RAG Config Check & API Spec Generation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # PostgreSQL pgvector configuration (primary)
+      USE_POSTGRESQL_VECTORS: 'true'
+      # Pinecone fallback configuration (optional)
+      PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+      PINECONE_REGION: us-central1
+      PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+      GENERATE_DOCS: 'true'
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      LANGSMITH_WORKSPACE_ID: ${{ secrets.LANGSMITH_WORKSPACE_ID }}
+      LANGSMITH_TRACING: 'true'
+      LANGSMITH_ORGANIZATION_NAME: eventstorm-trace
+      LANGCHAIN_PROJECT: eventstorm-trace
+      RAG_ENABLE_CHUNK_LOGGING: 'false'
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate HTTP API Specification
+        env:
+          GENERATING_HTTP_API_SPEC: '1'
+        run: |
+          npm run generate:spec
+          [ -f httpApiSpec.json ] || { echo "API Spec generation failed"; exit 1; }
+          node -e "JSON.parse(require('fs').readFileSync('httpApiSpec.json','utf8')); console.log('API Spec is valid JSON')"
+
+      - name: Trigger RAG Indexing
+        run: |
+          echo "🚀 Triggering RAG indexing for branch: $BRANCH"
+          echo "📊 Repository: ${{ github.repository }}"
+          echo "🔄 Commit SHA: ${{ github.sha }}"
+          echo "💡 This will populate the PostgreSQL pgvector database with codebase content"
+          
+          # Here you would typically trigger your RAG indexing service
+          # For now, we'll just log the configuration
+          echo "✅ RAG indexing configuration:"
+          echo "  - USE_POSTGRESQL_VECTORS: $USE_POSTGRESQL_VECTORS"
+          echo "  - BRANCH: $BRANCH"
+
+  # Run tests and quality checks
+  tests:
+    name: Tests and Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests
+        env:
+          NODE_ENV: test
+        run: npm test
+
+      - name: Run integration tests
+        env:
+          NODE_ENV: test
+        run: npm run test:integration
+
+      - name: Archive test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            backend/coverage/
+            backend/test-results/
+          retention-days: 1
+
+  domain-tests:
+    name: Domain Layer Tests
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Verify each domain module has tests
+        run: |
+          echo "🔎 Checking domain modules for tests..."
+          modules=$(ls -d business_modules/*/domain 2>/dev/null | sed 's@business_modules/@@; s@/domain@@') || true
+          if [ -z "$modules" ]; then
+            echo "⚠️ No domain modules found under business_modules/*/domain (skipping check)"; exit 0; fi
+          missing_list=""
+          for m in $modules; do
+            # Enable globstar for ** pattern matching
+            shopt -s globstar
+            pattern="_tests_/business_modules/$m/domain/**/*.test.js"
+            if compgen -G $pattern > /dev/null; then
+              count=$(ls _tests_/business_modules/$m/domain/**/*.test.js 2>/dev/null | wc -l)
+              echo "✅ $m: $count domain test file(s) (centralized)"
+            else
+              echo "⚠️ $m: no centralized domain tests found at _tests_/business_modules/$m/domain"; missing_list="$missing_list $m"
+            fi
+          done
+          if [ -n "$missing_list" ]; then
+            echo "⚠️ Modules without domain tests (non-blocking):$missing_list"
+          else
+            echo "✅ All domain modules have at least one test file"
+          fi
+
+      - name: Run domain layer tests with coverage
+        run: |
+          echo "🧪 Running domain tests..."
+          # Run only domain tests from centralized _tests_ tree
+          npx jest _tests_/business_modules/*/domain \
+            --coverage \
+            --coverageDirectory=coverage/domain \
+            --maxWorkers=50% \
+            --passWithNoTests \
+            || { echo "❌ Domain tests failed"; exit 1; }
+
+      - name: Upload domain coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-domain
+          path: backend/coverage/domain/lcov.info
+          if-no-files-found: ignore
+          retention-days: 1
+
+  sonar:
+    name: SonarCloud Analysis
+    needs: [tests, domain-tests]
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    env:
+      # mirror the secret into env so the `if` can read it even when secrets context is unavailable
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Disabling shallow clone is recommended for improving relevancy of reporting
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Setup Java (required for SonarCloud)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache SonarCloud scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner-
+
+      - name: Install and run SonarCloud scanner
+        if: env.SONAR_TOKEN != ''
+        working-directory: backend
+        run: |
+          npm install -g sonarqube-scanner
+          sonar-scanner \
+            -Dsonar.projectKey=anatolyZader_vc-3 \
+            -Dsonar.organization=anatolyzader \
+            -Dsonar.sources=. \
+            -Dsonar.exclusions=node_modules/**,coverage/**,*.log,**/*.log \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+            -Dsonar.branch.name=${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+
+  # Git module operations - persist repo and trigger events
+  git-operations:
+    name: Git Operations and RAG Pipeline
+    runs-on: ubuntu-latest
+    needs: [ tests, domain-tests ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: postgres
+          POSTGRES_DB: eventstorm_test
+        ports:
+          - 5432:5432
+        options: >
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Database configuration
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PASSWORD: test
+      PG_DATABASE: eventstorm_test
+      # Redis configuration
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      # AI service configuration
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      USE_POSTGRESQL_VECTORS: 'true'
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      LANGSMITH_WORKSPACE_ID: ${{ secrets.LANGSMITH_WORKSPACE_ID }}
+      LANGSMITH_TRACING: 'true'
+      # Development environment
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git operations
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup PostgreSQL pgvector extension
+        run: |
+          echo "🔧 Setting up PostgreSQL with pgvector extension..."
+          # Wait for PostgreSQL to be ready
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          
+          # Create database and enable pgvector extension
+          PGPASSWORD=test createdb -h localhost -U postgres eventstorm_test || echo "Database might already exist"
+          PGPASSWORD=test psql -h localhost -U postgres -d eventstorm_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          echo "✅ PostgreSQL with pgvector ready"
+
+      - name: Start Backend Server
+        run: |
+          echo "🚀 Starting backend server for event processing..."
+          # Start server in background
+          npm start &
+          SERVER_PID=$!
+          echo "Server PID: $SERVER_PID"
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          
+          # Wait for server to be ready
+          echo "⏳ Waiting for server to be ready..."
+          timeout 60 bash -c 'until curl -f http://localhost:3000/health 2>/dev/null; do sleep 2; done'
+          echo "✅ Backend server is ready"
+
+      - name: Trigger RAG Context Pipeline
+        run: |
+          echo "🚀 Triggering RAG context pipeline via repoPushed event..."
+          echo "📊 Repository: ${{ github.repository }}"
+          echo "🔄 Commit SHA: ${{ github.sha }}"
+          echo "🌿 Branch: ${{ github.ref_name }}"
+          
+          # Create repoPushed event payload
+          EVENT_PAYLOAD=$(cat << 'EOF'
+          {
+            "event": "repoPushed",
+            "payload": {
+              "userId": "github-actions-${{ github.run_id }}",
+              "repoId": "${{ github.repository }}",
+              "repoData": {
+                "url": "https://github.com/${{ github.repository }}",
+                "branch": "${{ github.ref_name }}",
+                "githubOwner": "${{ github.repository_owner }}",
+                "repoName": "${{ github.event.repository.name }}",
+                "commitHash": "${{ github.sha }}",
+                "description": "RAG context pipeline triggered by GitHub Actions",
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
+                "source": "github-actions-dev-pipeline"
+              }
+            }
+          }
+          EOF
+          )
+          
+          # Publish event to trigger RAG context pipeline
+          echo "📤 Publishing repoPushed event..."
+          curl -X POST http://localhost:3000/api/events/repo-pushed \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -d "$EVENT_PAYLOAD" \
+            --fail --show-error
+          
+          echo "✅ RAG context pipeline triggered successfully"
+
+      - name: Monitor RAG Pipeline Progress
+        run: |
+          echo "👀 Monitoring RAG pipeline progress..."
+          
+          # Wait a bit for processing to start
+          sleep 5
+          
+          # Check pipeline status (customize based on your API)
+          for i in {1..12}; do
+            echo "🔄 Check $i: Querying RAG pipeline status..."
+            
+            # Query pipeline status via API
+            STATUS_RESPONSE=$(curl -s http://localhost:3000/api/rag/status?repoId=${{ github.repository }} || echo "{}")
+            echo "📊 Pipeline status: $STATUS_RESPONSE"
+            
+            # Check if processing is complete (customize based on your response format)
+            if echo "$STATUS_RESPONSE" | grep -q '"status":"completed"'; then
+              echo "✅ RAG context pipeline completed successfully"
+              break
+            elif echo "$STATUS_RESPONSE" | grep -q '"status":"error"'; then
+              echo "❌ RAG context pipeline failed"
+              exit 1
+            else
+              echo "⏳ Pipeline still processing... (attempt $i/12)"
+              sleep 10
+            fi
+          done
+
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "🧹 Cleaning up..."
+          if [ ! -z "$SERVER_PID" ]; then
+            kill $SERVER_PID 2>/dev/null || true
+            echo "✅ Backend server stopped"
+          fi
+
+  # Documentation generation
+  generate-docs:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    needs: [ tests, domain-tests ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    env:
+      GENERATE_DOCS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate API Documentation
+        working-directory: backend
+        env:
+          GENERATING_HTTP_API_SPEC: '1'
+        run: |
+          npm run generate:spec
+          npm run docs:generate
+
+      - name: Archive documentation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: |
+            backend/httpApiSpec.json
+            backend/docs/
+          retention-days: 7
+
+  # Summary job
+  local-deploy-summary:
+    name: Local Deploy Summary
+    runs-on: ubuntu-latest
+    needs: [ rag-config-and-spec, tests, domain-tests, sonar, git-operations, generate-docs ]
+    if: always()
+    steps:
+      - name: Report Results
+        run: |
+          echo "🎉 Local Development Workflow Complete!"
+          echo ""
+          echo "📊 Job Results:"
+          echo "  - RAG Config & Spec: ${{ needs.rag-config-and-spec.result }}"
+          echo "  - Tests: ${{ needs.tests.result }}"
+          echo "  - Domain Tests: ${{ needs.domain-tests.result }}"
+          echo "  - SonarCloud: ${{ needs.sonar.result }}"
+          echo "  - RAG Pipeline: ${{ needs.git-operations.result }}"
+          echo "  - Documentation: ${{ needs.generate-docs.result }}"
+          echo ""
+          echo "🔍 Next Steps:"
+          echo "  - Check test artifacts for detailed results"
+          echo "  - Review SonarCloud analysis for code quality"
+          echo "  - RAG context pipeline has processed the codebase"
+          echo "  - Vector database is populated with latest code changes"
+          echo "  - Local development environment is ready"

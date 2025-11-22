@@ -2,9 +2,9 @@ name: Full deploy
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 # Cancel older runs on same branch to save time
 concurrency:
@@ -16,7 +16,7 @@ jobs:
   trigger-indexing:
     name: Trigger RAG Indexing
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     env:
       GCP_PROJECT_ID: eventstorm-1
       USER_ID: 'd41402df-182a-41ec-8f05-153118bf2718'
@@ -123,7 +123,7 @@ jobs:
     name: SonarCloud Analysis
     needs: tests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' }}
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
     env:
       # mirror the secret into env so the `if` can read it even when secrets context is unavailable
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

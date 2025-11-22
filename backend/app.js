@@ -76,15 +76,22 @@ module.exports = async function (fastify, opts) {
 
   if (!BUILDING_API_SPEC) {
     await fastify.register(redisPlugin);
-    fastify.redis.on('error', (err) => {
-      fastify.log.error({ err }, 'Redis client error');
-    });
-    fastify.log.info('⏳ Testing Redis connection with PING…');
-    try {
-      const pong = await fastify.redis.ping();
-      fastify.log.info(`✅ Redis PING response: ${pong}`);
-    } catch (err) {
-      fastify.log.error({ err }, '❌ Redis PING failed');
+    
+    // Only setup Redis handlers if Redis is available
+    if (fastify.redis && typeof fastify.redis.on === 'function') {
+      fastify.redis.on('error', (err) => {
+        fastify.log.error({ err }, 'Redis client error');
+      });
+      
+      fastify.log.info('⏳ Testing Redis connection with PING…');
+      try {
+        const pong = await fastify.redis.ping();
+        fastify.log.info(`✅ Redis PING response: ${pong}`);
+      } catch (err) {
+        fastify.log.error({ err }, '❌ Redis PING failed');
+      }
+    } else {
+      fastify.log.info('ℹ️ Redis not available, running without Redis');
     }
     
     // Register transport abstraction layer
@@ -109,12 +116,23 @@ module.exports = async function (fastify, opts) {
   }
 
   if (!BUILDING_API_SPEC) {
-    await fastify.register(fastifySession, {
-    secret: fastify.secrets.SESSION_SECRET,
-    cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
-    store: new RedisStore(fastify.redis.sendCommand.bind(fastify.redis)), // where session data is stored.
-    saveUninitialized: false, // Do not create session until something stored in session.
-  });
+    // Determine session store based on Redis availability
+    const sessionConfig = {
+      secret: fastify.secrets.SESSION_SECRET,
+      cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
+      saveUninitialized: false, // Do not create session until something stored in session.
+    };
+    
+    // Use Redis store if available, otherwise use memory store
+    if (fastify.redis && typeof fastify.redis.sendCommand === 'function') {
+      sessionConfig.store = new RedisStore(fastify.redis.sendCommand.bind(fastify.redis));
+      fastify.log.info('📦 Using Redis session store');
+    } else {
+      fastify.log.warn('⚠️ Redis not available, using memory session store (not recommended for production)');
+      // Memory store is the default when no store is specified
+    }
+    
+    await fastify.register(fastifySession, sessionConfig);
   }
 
   // ────────────────────────────────────────────────────────────────
