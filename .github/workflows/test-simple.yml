@@ -1,0 +1,15 @@
+name: Simple Test Workflow
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Simple test
+        run: echo "Hello from dev branch workflow!"
