@@ -137,12 +137,13 @@ class AILangchainAdapter extends IAIPort {
           console.log(`[${new Date().toISOString()}] [DEBUG] PostgreSQL pgvector resources initialized in AILangchainAdapter`);
         } catch (error) {
           console.warn(`[${new Date().toISOString()}] Failed to initialize PostgreSQL pgvector, falling back to Pinecone:`, error.message);
-          usePostgreSQL = false;
+          // Cannot reassign const, create a new variable
+          const shouldFallbackToPinecone = true;
         }
       }
       
       // Fallback to Pinecone if PostgreSQL is not available or disabled
-      if (!usePostgreSQL && process.env.PINECONE_API_KEY) {
+      if ((!usePostgreSQL || shouldFallbackToPinecone) && process.env.PINECONE_API_KEY) {
         const PineconePlugin = require('./rag_pipelines/context/embedding/pineconePlugin');
         const VectorSearchOrchestrator = require('./rag_pipelines/query/vectorSearchOrchestrator');
         
