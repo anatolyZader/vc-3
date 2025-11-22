@@ -475,6 +475,86 @@
         }
       }
     },
+    "/api/auth/dev-login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "default": "dev@localhost.com",
+                    "description": "Development email (optional, defaults to dev@localhost.com)"
+                  },
+                  "username": {
+                    "type": "string",
+                    "default": "Developer",
+                    "description": "Development username (optional, defaults to Developer)"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Optional body - uses sensible defaults if empty"
+              }
+            }
+          },
+          "description": "Optional body - uses sensible defaults if empty"
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email"
+                        },
+                        "username": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "username"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "user",
+                    "token"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/me": {
       "get": {
         "tags": [
@@ -836,6 +916,488 @@
                       "additionalProperties": true
                     }
                   },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/search/text": {
+      "get": {
+        "summary": "Search documents using PostgreSQL text search",
+        "tags": [
+          "ai",
+          "search"
+        ],
+        "description": "Perform text-based search across stored documents using PostgreSQL full-text search capabilities",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "description": "Search query text"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "repoId",
+            "required": false,
+            "description": "Filter by repository ID (optional)"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Maximum number of results to return"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "description": "Offset for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
+                          "repoId": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          },
+                          "rank": {
+                            "type": "number"
+                          },
+                          "snippet": {
+                            "type": "string"
+                          },
+                          "searchType": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "content",
+                          "rank",
+                          "searchType",
+                          "source"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "query": {
+                      "type": "string"
+                    },
+                    "totalResults": {
+                      "type": "integer"
+                    },
+                    "searchType": {
+                      "type": "string",
+                      "enum": [
+                        "text"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "results",
+                    "query",
+                    "totalResults",
+                    "searchType"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/search/hybrid": {
+      "get": {
+        "summary": "Search documents using both vector and text search",
+        "tags": [
+          "ai",
+          "search"
+        ],
+        "description": "Perform hybrid search combining Pinecone vector search and PostgreSQL text search for comprehensive results",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "description": "Search query text"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "repoId",
+            "required": false,
+            "description": "Filter by repository ID (optional)"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Maximum number of results to return"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": true
+            },
+            "in": "query",
+            "name": "includeVector",
+            "required": false,
+            "description": "Include vector search results"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": true
+            },
+            "in": "query",
+            "name": "includeText",
+            "required": false,
+            "description": "Include text search results"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "interleave",
+                "vector_first",
+                "text_first"
+              ],
+              "default": "interleave"
+            },
+            "in": "query",
+            "name": "strategy",
+            "required": false,
+            "description": "Strategy for merging results from different search types"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          },
+                          "rank": {
+                            "type": "number"
+                          },
+                          "snippet": {
+                            "type": "string"
+                          },
+                          "searchType": {
+                            "type": "string",
+                            "enum": [
+                              "vector",
+                              "text",
+                              "simple_text"
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "pinecone",
+                              "postgres"
+                            ]
+                          },
+                          "metadata": {
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "content",
+                          "rank",
+                          "searchType",
+                          "source"
+                        ],
+                        "additionalProperties": true
+                      }
+                    },
+                    "query": {
+                      "type": "string"
+                    },
+                    "totalResults": {
+                      "type": "integer"
+                    },
+                    "searchType": {
+                      "type": "string",
+                      "enum": [
+                        "hybrid"
+                      ]
+                    },
+                    "searchStats": {
+                      "type": "object",
+                      "properties": {
+                        "vectorResults": {
+                          "type": "integer"
+                        },
+                        "textResults": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "results",
+                    "query",
+                    "totalResults",
+                    "searchType"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/search/capabilities": {
+      "get": {
+        "summary": "Get information about available search capabilities",
+        "tags": [
+          "ai",
+          "search"
+        ],
+        "description": "Returns information about which search systems are available and their status",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "vectorSearch": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "connected": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "available",
+                        "connected"
+                      ]
+                    },
+                    "textSearch": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "connected": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "available",
+                        "connected"
+                      ]
+                    },
+                    "hybridSearch": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "available"
+                      ]
+                    },
+                    "detailed": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "vectorSearch",
+                    "textSearch",
+                    "hybridSearch"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/search/test": {
+      "post": {
+        "summary": "Test all search systems with a sample query",
+        "tags": [
+          "ai",
+          "search"
+        ],
+        "description": "Runs a test query against all available search systems to verify they are working correctly",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "testQuery": {
+                    "type": "string",
+                    "default": "function",
+                    "description": "Query to test with (defaults to \"function\")"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "vectorSearch": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "results": {
+                          "type": "array"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "available",
+                        "success",
+                        "results"
+                      ]
+                    },
+                    "textSearch": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "results": {
+                          "type": "array"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "available",
+                        "success",
+                        "results"
+                      ]
+                    },
+                    "hybridSearch": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "results": {
+                          "type": "object"
+                        },
+                        "error": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "available",
+                        "success",
+                        "results"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "vectorSearch",
+                    "textSearch",
+                    "hybridSearch"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1822,6 +2384,126 @@
                     }
                   },
                   "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/git/repositories/{owner}/{repo}/persist": {
+      "post": {
+        "tags": [
+          "git"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "branch": {
+                    "type": "string",
+                    "default": "main"
+                  },
+                  "forceUpdate": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "includeHistory": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "owner",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "in": "path",
+            "name": "repo",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "x-correlation-id",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "repositoryId": {
+                      "type": "string"
+                    },
+                    "owner": {
+                      "type": "string"
+                    },
+                    "repo": {
+                      "type": "string"
+                    },
+                    "branch": {
+                      "type": "string"
+                    },
+                    "persistedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "filesProcessed": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }

@@ -2,7 +2,15 @@
 
 const fp = require('fastify-plugin');
 
+const BUILDING_API_SPEC = process.env.GENERATING_HTTP_API_SPEC === '1';
+
 module.exports = fp(async function aiPubsubListener(fastify, opts) {
+  // Skip during API spec generation since eventDispatcher isn't available
+  if (BUILDING_API_SPEC) {
+    fastify.log.info('🤖 Skipping AI listeners setup during API spec generation');
+    return;
+  }
+  
   fastify.log.info('🤖 Setting up AI listeners...');
   
   const { eventDispatcher } = fastify;
@@ -243,5 +251,5 @@ module.exports = fp(async function aiPubsubListener(fastify, opts) {
   fastify.log.info('✅ AI listeners registered successfully');
 }, {
   name: 'aiPubsubListener',
-  dependencies: ['eventDispatcher', 'transportPlugin', '@fastify/awilix']
+  dependencies: BUILDING_API_SPEC ? [] : ['eventDispatcher', 'transportPlugin', '@fastify/awilix']
 });

@@ -5,6 +5,12 @@
 const fp = require('fastify-plugin');
 
 async function gitPubsubListener(fastify, options) {
+  // Skip pub/sub setup during API spec generation
+  if (process.env.BUILDING_API_SPEC === 'true') {
+    fastify.log.info('📦 Skipping Git Pub/Sub listeners during API spec generation');
+    return;
+  }
+
   fastify.log.info('📦 Setting up Git Pub/Sub listeners...');
   
   const transport = fastify.transport;
@@ -138,5 +144,5 @@ async function gitPubsubListener(fastify, options) {
 
 module.exports = fp(gitPubsubListener, {
   name: 'gitPubsubListener',
-  dependencies: ['transportPlugin']
+  dependencies: process.env.BUILDING_API_SPEC === 'true' ? [] : ['transportPlugin']
 });

@@ -4,7 +4,13 @@
 
 const fp = require('fastify-plugin');
 
-async function docsPubsubListener(fastify, options) {  
+async function docsPubsubListener(fastify, options) {
+  // Skip pub/sub setup during API spec generation
+  if (process.env.BUILDING_API_SPEC === 'true') {
+    fastify.log.info('📚 Skipping Docs Pub/Sub listeners during API spec generation');
+    return;
+  }
+
   fastify.log.info('📚 Setting up Docs Pub/Sub listeners...');
   
   const transport = fastify.transport;
@@ -133,5 +139,5 @@ async function docsPubsubListener(fastify, options) {
 
 module.exports = fp(docsPubsubListener, {
   name: 'docsPubsubListener',
-  dependencies: ['transportPlugin']
+  dependencies: process.env.BUILDING_API_SPEC === 'true' ? [] : ['transportPlugin']
 });

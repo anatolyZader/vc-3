@@ -1,6 +1,9 @@
 // generateSpec.js
 'use strict';
 
+// Set flag to indicate we're building API spec
+process.env.BUILDING_API_SPEC = 'true';
+
 const fs = require('fs');
 const path = require('path');
 const fastify = require('fastify')({ logger: false });

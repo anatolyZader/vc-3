@@ -5,6 +5,12 @@
 const fp = require('fastify-plugin');
 
 async function chatPubsubListener(fastify, options) {
+  // Skip pub/sub setup during API spec generation
+  if (process.env.BUILDING_API_SPEC === 'true') {
+    fastify.log.info('💬 Skipping Chat Pub/Sub listeners during API spec generation');
+    return;
+  }
+
   fastify.log.info('💬 Setting up Chat Pub/Sub listeners...');
 
   const { eventDispatcher } = fastify;
@@ -129,5 +135,5 @@ async function chatPubsubListener(fastify, options) {
 
 module.exports = fp(chatPubsubListener, {
   name: 'chatPubsubListener',
-  dependencies: ['transportPlugin', 'eventDispatcher']
+  dependencies: process.env.BUILDING_API_SPEC === 'true' ? [] : ['transportPlugin', 'eventDispatcher']
 });
