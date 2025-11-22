@@ -323,15 +323,17 @@ class QueryPipeline {
           reason: 'service_not_available' 
         });
         
-        // Log vector-only results to markdown (non-blocking)
-        setImmediate(async () => {
-          try {
-            const logPath = await this.writeChunksToMarkdown(searchResults, [], prompt);
-            console.log(`[${new Date().toISOString()}] ✅ Vector-only chunks saved to: ${logPath}`);
-          } catch (logError) {
-            console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
-          }
-        });
+        // Log vector-only results to markdown (non-blocking) - skip during tests
+        if (process.env.NODE_ENV !== 'test') {
+          setImmediate(async () => {
+            try {
+              const logPath = await this.writeChunksToMarkdown(searchResults, [], prompt);
+              console.log(`[${new Date().toISOString()}] ✅ Vector-only chunks saved to: ${logPath}`);
+            } catch (logError) {
+              console.warn(`[${new Date().toISOString()}] ⚠️ Failed to write chunk log:`, logError.message);
+            }
+          });
+        }
       }
 
       const contextData = ContextBuilder.formatContext(finalSearchResults);

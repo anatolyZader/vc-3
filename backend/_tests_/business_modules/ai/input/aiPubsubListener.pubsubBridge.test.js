@@ -30,7 +30,7 @@ describe('AI Pub/Sub listener - GCP Pub/Sub bridge', () => {
     const diContainer = {
       hasRegistration: jest.fn(async (name) => name === 'eventDispatcher'),
       resolve: jest.fn(async (name) => {
-        if (name === 'eventDispatcher') return { eventBus };
+        if (name === 'eventDispatcher') return eventBus;  // Return eventBus directly, not wrapped
         if (name === 'pubSubClient') return pubSubClient;
         return null;
       }),
