@@ -24,6 +24,20 @@ describe("Chat event bus bridge (answerAdded)", () => {
       const app = Fastify({ logger: false });
       const addAnswer = jest.fn(async () => ({ ok: true }));
       app.decorate("addAnswer", addAnswer);
+      
+      // Register required plugin dependencies
+      const fp = require('fastify-plugin');
+      await app.register(fp(async function transportPlugin(fastify) {
+        // Mock transportPlugin
+      }, { name: 'transportPlugin' }));
+      
+      await app.register(fp(async function eventDispatcher(fastify) {
+        fastify.decorate('eventDispatcher', { 
+          eventBus,
+          subscribe: (eventName, handler) => eventBus.on(eventName, handler)
+        });
+      }, { name: 'eventDispatcher' }));
+      
       app.register(require(listenerPath));
       await app.ready();
 

@@ -2,16 +2,16 @@ const DocsPubsubAdapter = require('../../../../../../business_modules/docs/infra
 
 describe('DocsPubsubAdapter', () => {
   test('publishfetchedDocsEvent publishes event', async () => {
-    const publishMessage = jest.fn().mockResolvedValue('w1');
-    const topicObj = { publishMessage };
-    const topic = { get: jest.fn().mockResolvedValue([topicObj]) };
-    const pubSubClient = { topic: jest.fn().mockReturnValue(topic) };
-    const adapter = new DocsPubsubAdapter({ pubSubClient });
+    const transport = { publish: jest.fn().mockResolvedValue('w1') };
+    const logger = { info: jest.fn(), error: jest.fn() };
+    const adapter = new DocsPubsubAdapter({ transport, logger });
+    
     const id = await adapter.publishfetchedDocsEvent({ repoId: 'owner/repo', pages: [] });
+    
     expect(id).toBe('w1');
-    expect(pubSubClient.topic).toHaveBeenCalledWith('docs');
-    const payload = JSON.parse(publishMessage.mock.calls[0][0].data.toString());
-    expect(payload.event).toBe('docsFetched');
-    expect(payload.payload.repoId).toBe('owner/repo');
+    expect(transport.publish).toHaveBeenCalledWith('docs-events', expect.objectContaining({
+      event: 'docsFetched',
+      payload: expect.objectContaining({ repoId: 'owner/repo', pages: [] })
+    }));
   });
 });

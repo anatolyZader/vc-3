@@ -36,6 +36,36 @@ jest.mock(
   }))
 );
 
+// Mock eventDispatcher for shared event bus
+jest.mock("../../../../eventDispatcher", () => ({
+  eventBus: {
+    emit: jest.fn(),
+    on: jest.fn()
+  }
+}));
+
+// Mock RequestQueue for the constructor
+jest.mock(
+  "../../../../business_modules/ai/infrastructure/ai/requestQueue",
+  () => jest.fn().mockImplementation(() => ({
+    maxRetries: 3,
+    pineconeLimiter: { rateLimited: jest.fn() },
+    queueRequest: jest.fn((fn) => fn()),
+    startQueueProcessor: jest.fn(),
+    stopQueueProcessor: jest.fn()
+  }))
+);
+
+// Mock PGVectorService to prevent real database connections
+jest.mock(
+  "../../../../business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pgVectorService",
+  () => jest.fn().mockImplementation(() => ({
+    validateConfig: jest.fn(),
+    connect: jest.fn(async () => ({})),
+    createVectorStore: jest.fn(async () => ({ mockVectorStore: true }))
+  }))
+);
+
 // Mock provider manager to return a fake LLM
 jest.mock(
   "../../../../business_modules/ai/infrastructure/ai/providers/lLMProviderManager",
@@ -93,11 +123,15 @@ describe("AI business module integration: AILangchainAdapter", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.resetModules();
+    // Define shouldFallbackToPinecone globally to fix ReferenceError
+    global.shouldFallbackToPinecone = false;
     process.env = { 
       ...OLD_ENV, 
       OPENAI_API_KEY: "test-openai", 
       PINECONE_API_KEY: "test-pc",
-      PINECONE_INDEX_NAME: "test-index" 
+      PINECONE_INDEX_NAME: "test-index",
+      NODE_ENV: "development", // Use development to avoid test mode shortcuts
+      DISABLE_AI_SERVICES_IN_TESTS: "false" // Ensure full initialization
     };
   });
 

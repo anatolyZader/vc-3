@@ -2,99 +2,75 @@
 const path = require('path');
 const { EventEmitter } = require('events');
 
-describe('AI Pub/Sub listener - GCP Pub/Sub bridge', () => {
+describe('AI Pub/Sub listener - Internal Event Bridge', () => {
   let plugin;
   let fastify;
   let eventBus;
-  let subscriptionMock;
-  let subscriptionFn;
-  let topicSpy;
-  let capturedHandlers;
 
   beforeEach(() => {
     jest.resetModules();
     plugin = require(path.resolve(__dirname, '../../../../business_modules/ai/input/aiPubsubListener.js'));
     eventBus = new EventEmitter();
-    capturedHandlers = {};
-
-    subscriptionMock = {
-      on: jest.fn((event, handler) => {
-        capturedHandlers[event] = handler;
-      })
-    };
-
-  subscriptionFn = jest.fn(() => subscriptionMock);
-  topicSpy = jest.fn(() => ({ subscription: subscriptionFn }));
-  const pubSubClient = { topic: topicSpy };
-
-    const diContainer = {
-      hasRegistration: jest.fn(async (name) => name === 'eventDispatcher'),
-      resolve: jest.fn(async (name) => {
-        if (name === 'eventDispatcher') return eventBus;  // Return eventBus directly, not wrapped
-        if (name === 'pubSubClient') return pubSubClient;
-        return null;
-      }),
-      createScope: () => ({})
-    };
 
     fastify = {
-      diContainer,
+      eventDispatcher: { 
+        eventBus, 
+        subscribe: jest.fn((event, handler) => eventBus.on(event, handler)),
+        emitInternal: jest.fn((eventName, payload) => eventBus.emit(eventName, payload))
+      },
+      transport: { subscribe: jest.fn() },
+      diContainer: { createScope: jest.fn(() => ({})) },
+      processPushedRepo: jest.fn(async () => ({ success: true, chunksStored: 3 })),
+      respondToPrompt: jest.fn(async () => ({ response: 'test answer' })),
       decorate: function (name, value) { this[name] = value; },
       log: { info: jest.fn(), error: jest.fn(), debug: jest.fn(), warn: jest.fn() },
       httpErrors: { internalServerError: (msg) => new Error(msg) },
     };
   });
 
-  test('uses expected topic and subscription names', async () => {
+  test('registers internal event listeners for repoPushed and questionAdded', async () => {
     await plugin(fastify, {});
-  expect(fastify.diContainer.resolve).toHaveBeenCalledWith('pubSubClient');
-  expect(fastify.diContainer.resolve).toHaveBeenCalledWith('eventDispatcher');
-  expect(fastify.diContainer.resolve).toHaveBeenCalledTimes(2);
-  // Assert topic and subscription names
-  expect(topicSpy).toHaveBeenCalledWith('git-topic');
-    expect(subscriptionFn).toHaveBeenCalledWith('git-sub');
+    
+    // Verify that subscribe was called for internal events
+    expect(fastify.eventDispatcher.subscribe).toHaveBeenCalledWith('repoPushed', expect.any(Function));
+    expect(fastify.eventDispatcher.subscribe).toHaveBeenCalledWith('questionAdded', expect.any(Function));
+    
+    // Verify transport subscribe was called for external messaging (uses git-events, not ai-events-internal)
+    expect(fastify.transport.subscribe).toHaveBeenCalledWith('git-events', expect.any(Function));
   });
 
-  test('forwards GCP message with event to internal eventBus', async () => {
+  test('handles repoPushed event and processes repo', async () => {
     await plugin(fastify, {});
 
-    expect(typeof capturedHandlers.message).toBe('function');
-    const onQuestionAdded = jest.fn();
-    eventBus.on('questionAdded', onQuestionAdded);
+    // Emit repoPushed event directly to event bus 
+    const repoData = { userId: 'u1', repoId: 'r1', repoData: { name: 'test-repo' } };
+    eventBus.emit('repoPushed', repoData);
 
-    const message = {
-      id: 'm1',
-      data: Buffer.from(JSON.stringify({ event: 'questionAdded', payload: { userId: 'u1', conversationId: 'c1', prompt: 'hi' } })),
-      ack: jest.fn(),
-      nack: jest.fn()
-    };
+    await new Promise(resolve => setImmediate(resolve)); // Allow async processing
 
-    await capturedHandlers.message(message);
-
-    expect(onQuestionAdded).toHaveBeenCalledTimes(1);
-    expect(onQuestionAdded.mock.calls[0][0]).toEqual({ userId: 'u1', conversationId: 'c1', prompt: 'hi' });
-    expect(message.ack).toHaveBeenCalledTimes(1);
+    // The AI listener calls processPushedRepo with a request object structure
+    expect(fastify.processPushedRepo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user: { id: repoData.userId },
+        body: expect.objectContaining({
+          repoId: repoData.repoId,
+          repoData: repoData.repoData
+        })
+      }),
+      expect.any(Object) // reply object
+    );
   });
 
-  test('falls back to repoPushed when event is missing', async () => {
+  test('handles questionAdded event and responds to prompt', async () => {
     await plugin(fastify, {});
 
-    expect(typeof capturedHandlers.message).toBe('function');
-    const onRepoPushed = jest.fn();
-    eventBus.on('repoPushed', onRepoPushed);
+    // Emit questionAdded event directly to event bus
+    const questionData = { userId: 'u1', conversationId: 'c1', prompt: 'Hello?' };
+    eventBus.emit('questionAdded', questionData);
 
-    const payload = { userId: 'u2', repoId: 'r2' };
-    const message = {
-      id: 'm2',
-      data: Buffer.from(JSON.stringify(payload)),
-      ack: jest.fn(),
-      nack: jest.fn()
-    };
+    await new Promise(resolve => setImmediate(resolve)); // Allow async processing
 
-    await capturedHandlers.message(message);
-
-    expect(onRepoPushed).toHaveBeenCalledTimes(1);
-    expect(onRepoPushed.mock.calls[0][0]).toEqual(payload);
-    expect(message.ack).toHaveBeenCalledTimes(1);
+    // The handler calls respondToPrompt with request/reply pattern, not direct args
+    expect(fastify.respondToPrompt).toHaveBeenCalled();
   });
 });

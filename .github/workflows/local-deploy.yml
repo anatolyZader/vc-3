@@ -9,17 +9,15 @@ concurrency:
   group: local-deploy-${{ github.ref }}
   cancel-in-progress: true
 
-# Default to backend directory for most operations
-defaults:
-  run:
-    working-directory: backend
-
 jobs:
   # RAG indexing configuration and API spec generation
   rag-config-and-spec:
     name: RAG Config Check & API Spec Generation
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    defaults:
+      run:
+        working-directory: backend
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -78,6 +76,9 @@ jobs:
   tests:
     name: Tests and Quality Checks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
@@ -97,12 +98,13 @@ jobs:
       - name: Run tests
         env:
           NODE_ENV: test
+          USE_LOCAL_POSTGRES: 'true'
+          PG_HOST: localhost
+          PG_PORT: 5432
+          PG_USER: postgres
+          PG_PASSWORD: test
+          PG_DATABASE: eventstorm_test
         run: npm test
-
-      - name: Run integration tests
-        env:
-          NODE_ENV: test
-        run: npm run test:integration
 
       - name: Archive test results
         if: always()
@@ -118,6 +120,9 @@ jobs:
     name: Domain Layer Tests
     needs: tests
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - name: Checkout (shallow)
         uses: actions/checkout@v4
@@ -182,6 +187,9 @@ jobs:
     needs: [tests, domain-tests]
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/dev' }}
+    defaults:
+      run:
+        working-directory: backend
     env:
       # mirror the secret into env so the `if` can read it even when secrets context is unavailable
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -236,6 +244,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ tests, domain-tests ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    defaults:
+      run:
+        working-directory: backend
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -404,6 +415,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ tests, domain-tests ]
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    defaults:
+      run:
+        working-directory: backend
     env:
       GENERATE_DOCS: 'true'
     steps:

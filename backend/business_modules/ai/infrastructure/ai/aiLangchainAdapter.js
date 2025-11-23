@@ -132,6 +132,7 @@ class AILangchainAdapter extends IAIPort {
       
       // Prefer PostgreSQL pgvector, fallback to Pinecone
       const usePostgreSQL = process.env.USE_POSTGRESQL_VECTORS !== 'false'; // Default to true
+      let shouldFallbackToPinecone = false;
       
       if (usePostgreSQL) {
         try {
@@ -150,8 +151,8 @@ class AILangchainAdapter extends IAIPort {
           console.log(`[${new Date().toISOString()}] [DEBUG] PostgreSQL pgvector resources initialized in AILangchainAdapter`);
         } catch (error) {
           console.warn(`[${new Date().toISOString()}] Failed to initialize PostgreSQL pgvector, falling back to Pinecone:`, error.message);
-          // Cannot reassign const, create a new variable
-          const shouldFallbackToPinecone = true;
+          // Set fallback flag when PostgreSQL initialization fails
+          shouldFallbackToPinecone = true;
         }
       }
       

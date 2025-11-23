@@ -2,33 +2,29 @@ const GitPubsubAdapter = require('../../../../../../business_modules/git/infrast
 
 describe('GitPubsubAdapter', () => {
   function make() {
-    const publishMessage = jest.fn().mockResolvedValue('git-msg');
-    const topic = { publishMessage };
-    const pubSubClient = { topic: jest.fn().mockReturnValue(topic) };
+    const transport = { publish: jest.fn().mockResolvedValue('git-msg') };
     const logger = { error: jest.fn(), info: jest.fn(), debug: jest.fn(), warn: jest.fn() };
-    const adapter = new GitPubsubAdapter({ 
-      transport: { pubSubClient }, 
-      logger 
-    });
-    return { adapter, publishMessage, pubSubClient, logger };
+    const adapter = new GitPubsubAdapter({ transport, logger });
+    return { adapter, transport, logger };
   }
 
   test('publishRepoFetchedEvent publishes correct payload', async () => {
-    const { adapter, publishMessage, pubSubClient } = make();
+    const { adapter, transport } = make();
     const id = await adapter.publishRepoFetchedEvent({ repoId: 'owner/r', userId: 'u1' }, 'corr-2');
     expect(id).toBe('git-msg');
-    expect(pubSubClient.topic).toHaveBeenCalled();
-    const payload = JSON.parse(publishMessage.mock.calls[0][0].data.toString());
-    expect(payload.event).toBe('repositoryFetched');
-    expect(payload.correlationId).toBe('corr-2');
-    expect(payload.repoId).toBe('owner/r');
+    expect(transport.publish).toHaveBeenCalledWith('git-events', expect.objectContaining({
+      event: 'repositoryFetched',
+      payload: expect.objectContaining({ correlationId: 'corr-2', repoId: 'owner/r', userId: 'u1' })
+    }));
   });
 
   test('publishDocsFetchedEvent publishes correct payload', async () => {
-    const { adapter, publishMessage } = make();
-    await adapter.publishDocsFetchedEvent({ repoId: 'owner/r', userId: 'u1' }, 'corr-3');
-    const payload = JSON.parse(publishMessage.mock.calls[0][0].data.toString());
-    expect(payload.event).toBe('docsFetched');
-    expect(payload.correlationId).toBe('corr-3');
+    const { adapter, transport } = make();
+    const id = await adapter.publishDocsFetchedEvent({ repoId: 'owner/r', userId: 'u1' }, 'corr-3');
+    expect(id).toBe('git-msg');
+    expect(transport.publish).toHaveBeenCalledWith('git-events', expect.objectContaining({
+      event: 'docsFetched',
+      payload: expect.objectContaining({ correlationId: 'corr-3', repoId: 'owner/r', userId: 'u1' })
+    }));
   });
 });

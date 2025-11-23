@@ -29,6 +29,12 @@ describe('AI Pub/Sub listener plugin', () => {
 
     fastify = {
       diContainer,
+      eventDispatcher: { 
+        eventBus, 
+        subscribe: eventBus.on.bind(eventBus),
+        emitInternal: (eventName, payload) => eventBus.emit(eventName, payload)
+      },
+      transport: { subscribe: jest.fn() },
       decorate: function (name, value) { this[name] = value; },
       log: { info: jest.fn(), error: jest.fn(), debug: jest.fn(), warn: jest.fn() },
       httpErrors: { internalServerError: (msg) => new Error(msg) },
@@ -43,7 +49,7 @@ describe('AI Pub/Sub listener plugin', () => {
     const emitted = [];
     eventBus.on('repoProcessed', (payload) => emitted.push(payload));
 
-    eventBus.emit('repoPushed', { payload: { userId: 'u', repoId: 'r', repoData: { k: 1 } } });
+    eventBus.emit('repoPushed', { userId: 'u', repoId: 'r', repoData: { k: 1 } });
 
     await new Promise((r) => setTimeout(r, 0));
 
@@ -63,7 +69,7 @@ describe('AI Pub/Sub listener plugin', () => {
     const emitted = [];
     eventBus.on('answerAdded', (payload) => emitted.push(payload));
 
-    eventBus.emit('questionAdded', { payload: { userId: 'u1', conversationId: 'c1', prompt: 'hi' } });
+    eventBus.emit('questionAdded', { userId: 'u1', conversationId: 'c1', prompt: 'hi' });
     await new Promise((r) => setTimeout(r, 0));
 
     expect(fastify.respondToPrompt).toHaveBeenCalled();
