@@ -24,10 +24,10 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       # PostgreSQL pgvector configuration (primary)
       USE_POSTGRESQL_VECTORS: 'true'
-      # Pinecone fallback configuration (optional)
-      PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
-      PINECONE_REGION: us-central1
-      PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+      # Legacy Pinecone vars commented out - no longer required
+      # PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+      # PINECONE_REGION: us-central1
+      # PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
       GENERATE_DOCS: 'true'
       LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
       LANGSMITH_WORKSPACE_ID: ${{ secrets.LANGSMITH_WORKSPACE_ID }}
@@ -305,6 +305,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
+        working-directory: backend
         run: npm ci
 
       - name: Setup PostgreSQL pgvector extension
@@ -420,8 +421,29 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_USER: postgres
+          POSTGRES_DB: eventstorm_test
+        ports:
+          - 5432:5432
+        options: >
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       GENERATE_DOCS: 'true'
+      # PostgreSQL configuration for pgvector
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PASSWORD: test
+      PG_DATABASE: eventstorm_test
+      USE_POSTGRESQL_VECTORS: 'true'
     steps:
       - uses: actions/checkout@v4
 

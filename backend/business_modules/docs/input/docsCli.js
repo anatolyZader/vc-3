@@ -92,7 +92,7 @@ EXAMPLES:
 ENVIRONMENT VARIABLES:
   The following environment variables must be set:
   - OPENAI_API_KEY or ANTHROPIC_API_KEY (for AI provider)
-  - PINECONE_API_KEY (for vector storage)
+  - PostgreSQL connection vars (PG_HOST, PG_USER, etc.) for vector storage
 
 OUTPUT:
   The command will generate:
@@ -115,7 +115,7 @@ OUTPUT:
     console.log(`   • Backend root: ${backendRoot}/.env`);
     console.log(`   • Project root: ${projectRoot}/.env`);
     
-    const requiredEnvVars = ['PINECONE_API_KEY'];
+    const requiredEnvVars = []; // No longer require PINECONE_API_KEY since using PostgreSQL vectors
     const aiProviderVars = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY'];
     
     // Check required environment variables
