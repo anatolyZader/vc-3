@@ -789,6 +789,9 @@ class ContextPipeline {
       commitInfo
     } = params;
 
+    // Initialize analysis recommendation (safe default)
+    const analysisRecommendation = null;
+
     console.log(`[${new Date().toISOString()}] 🔵 STANDARD PROCESSING: Using Langchain-first approach for repository`);
     
     try {

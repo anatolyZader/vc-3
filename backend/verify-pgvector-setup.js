@@ -14,6 +14,8 @@ async function verifyPgVectorSetup() {
   console.log('🔧 PostgreSQL pgvector Setup Verification');
   console.log('=' .repeat(50));
 
+  let pgVectorService = null;
+
   try {
     // 1. Test environment variables
     console.log('📋 Checking environment configuration...');
@@ -36,7 +38,7 @@ async function verifyPgVectorSetup() {
     });
     console.log('   ✅ OpenAI embeddings initialized');
 
-    const pgVectorService = PGVectorService.fromEnvironment();
+    pgVectorService = PGVectorService.fromEnvironment();
     console.log('   ✅ PGVectorService initialized');
 
     // 3. Test database connection and pgvector extension

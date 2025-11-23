@@ -343,9 +343,9 @@ class PGVectorService {
    * Compatible with PineconeService API
    */
   async deleteNamespace(namespace) {
+    const collectionName = namespace || 'default';
+    
     try {
-      const collectionName = namespace || 'default';
-      
       this.logger.info(`Deleting all vectors in collection: ${collectionName}`);
       
       // For PostgreSQL, we can delete by collection name
@@ -373,9 +373,9 @@ class PGVectorService {
    */
   async cleanupOldRepositoryEmbeddings(namespace, options = {}) {
     const { dryRun = false } = options;
+    const collectionName = namespace || 'default';
     
     try {
-      const collectionName = namespace || 'default';
       this.logger.info(`Cleanup for collection: ${collectionName} (PostgreSQL native cleanup)`);
       
       if (dryRun) {
@@ -465,9 +465,9 @@ class PGVectorService {
    * Compatible with PineconeService API
    */
   async getNamespaceStats(namespace) {
+    const collectionName = namespace || 'default';
+    
     try {
-      const collectionName = namespace || 'default';
-      
       // This would need a custom query to PostgreSQL to get accurate stats
       this.logger.debug(`Getting stats for collection: ${collectionName}`);
       

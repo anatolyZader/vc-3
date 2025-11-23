@@ -58,7 +58,7 @@ class VectorSearchOrchestrator {
     this.pineconeService = this.serviceType === 'pinecone' ? this.vectorService : null;
 
     // Search configuration
-    const VectorSearchStrategy = require('./vectorSearchStrategy');
+    // const VectorSearchStrategy = require('./vectorSearchStrategy'); // Unused
 
     // Search configuration
     this.defaultTopK = this.defaultTopK || 10;
@@ -157,14 +157,6 @@ class VectorSearchOrchestrator {
       codeResults: 5,
       userResults: hasUserTerms ? 3 : 0
     };
-  }
-
-  /**
-   * Log search strategy (stub method)
-   * @param {Object} strategy - The search strategy
-   */
-  logSearchStrategy(strategy) {
-    this.logger.debug('Using search strategy:', strategy.type);
   }
 
   /**
