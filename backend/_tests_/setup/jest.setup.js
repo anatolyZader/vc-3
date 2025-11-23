@@ -64,8 +64,8 @@ global.testUtils = {
   })
 };
 
-// Mock heavy AI services by default
-jest.mock('../business_modules/ai/infrastructure/ai/requestQueue', () => {
+// Mock heavy AI services by default using absolute paths from backend directory
+jest.mock('../../business_modules/ai/infrastructure/ai/requestQueue', () => {
   return jest.fn().mockImplementation(() => ({
     add: jest.fn().mockResolvedValue({ success: true }),
     startQueueProcessor: jest.fn(),
@@ -74,7 +74,7 @@ jest.mock('../business_modules/ai/infrastructure/ai/requestQueue', () => {
   }));
 });
 
-jest.mock('../business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeLimiter', () => {
+jest.mock('../../business_modules/ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeLimiter', () => {
   return jest.fn().mockImplementation(() => ({
     schedule: jest.fn().mockResolvedValue({ success: true }),
     stop: jest.fn(),

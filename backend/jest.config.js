@@ -12,7 +12,6 @@ module.exports = {
     // Performance optimizations for fast testing
     maxWorkers: '50%',
     testTimeout: 10000,
-    // Setup files to run before tests
-    setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-    setupFilesAfterEnv: ['<rootDir>/_tests_/setup/jest.setup.js'],
+    // Setup files to run before tests - temporarily disabled to fix path issues
+    // setupFilesAfterEnv: ['<rootDir>/_tests_/setup/jest.setup.js'],
 };

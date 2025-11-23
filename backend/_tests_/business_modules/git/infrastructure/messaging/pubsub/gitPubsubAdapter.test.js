@@ -5,8 +5,12 @@ describe('GitPubsubAdapter', () => {
     const publishMessage = jest.fn().mockResolvedValue('git-msg');
     const topic = { publishMessage };
     const pubSubClient = { topic: jest.fn().mockReturnValue(topic) };
-    const adapter = new GitPubsubAdapter({ pubSubClient });
-    return { adapter, publishMessage, pubSubClient };
+    const logger = { error: jest.fn(), info: jest.fn(), debug: jest.fn(), warn: jest.fn() };
+    const adapter = new GitPubsubAdapter({ 
+      transport: { pubSubClient }, 
+      logger 
+    });
+    return { adapter, publishMessage, pubSubClient, logger };
   }
 
   test('publishRepoFetchedEvent publishes correct payload', async () => {

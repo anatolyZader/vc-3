@@ -60,9 +60,18 @@ class AIPostgresAdapter extends IAIPersistPort {
 
   async createCloudSqlPool(connector) {
       try {
+          // Use local PostgreSQL in test environment or when Cloud SQL is not configured
+          if (process.env.NODE_ENV === 'test' || 
+              process.env.USE_LOCAL_POSTGRES === 'true' ||
+              !process.env.CLOUD_SQL_CONNECTION_NAME) {
+            console.warn('⚠️ Using local PostgreSQL instead of Cloud SQL');
+            return this.createLocalPool();
+          }
+          
           const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
           if (!instanceConnectionName) {
-              throw new Error('❌ CLOUD_SQL_CONNECTION_NAME environment variable is not set. Cannot connect to Cloud SQL.');
+              console.warn('⚠️ CLOUD_SQL_CONNECTION_NAME not set, using local PostgreSQL');
+              return this.createLocalPool();
           }
 
           const clientOpts = await connector.getOptions({

@@ -143,6 +143,31 @@ class VectorSearchOrchestrator {
   }
 
   /**
+   * Determine search strategy based on prompt
+   * @param {string} prompt - The search query
+   * @returns {Object} Search strategy configuration
+   */
+  determineSearchStrategy(prompt) {
+    // Simple heuristic strategy
+    const userTerms = ['my', 'user', 'personal', 'account'];
+    const hasUserTerms = userTerms.some(term => prompt.toLowerCase().includes(term));
+    
+    return {
+      type: hasUserTerms ? 'user_specific' : 'core',
+      codeResults: 5,
+      userResults: hasUserTerms ? 3 : 0
+    };
+  }
+
+  /**
+   * Log search strategy (stub method)
+   * @param {Object} strategy - The search strategy
+   */
+  logSearchStrategy(strategy) {
+    this.logger.debug('Using search strategy:', strategy.type);
+  }
+
+  /**
    * Convert modern search results to legacy format
    */
   convertToLegacyFormat(matches) {

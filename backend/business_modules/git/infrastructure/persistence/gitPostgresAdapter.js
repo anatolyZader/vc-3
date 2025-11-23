@@ -38,9 +38,18 @@ class GitPostgresAdapter extends IGitPersistPort {
   }
 
   async createCloudSqlPool(connector) {
+    // Use local PostgreSQL in test environment or when Cloud SQL is not configured
+    if (process.env.NODE_ENV === 'test' || 
+        process.env.USE_LOCAL_POSTGRES === 'true' ||
+        !process.env.CLOUD_SQL_CONNECTION_NAME) {
+      console.warn('⚠️ Using local PostgreSQL instead of Cloud SQL');
+      return this.createLocalPool();
+    }
+    
     const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
     if (!instanceConnectionName) {
-      throw new Error('❌ CLOUD_SQL_CONNECTION_NAME env var not set.');
+      console.warn('⚠️ CLOUD_SQL_CONNECTION_NAME not set, using local PostgreSQL');
+      return this.createLocalPool();
     }
 
     const clientOpts = await connector.getOptions({

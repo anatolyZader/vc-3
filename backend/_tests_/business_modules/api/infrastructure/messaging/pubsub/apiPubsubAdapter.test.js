@@ -16,7 +16,8 @@ describe("ApiPubsubAdapter", () => {
     const pubSubClient = { topic };
 
     const Adapter = require(adapterPath);
-    const adapter = new Adapter({ pubSubClient });
+    const logger = { error: jest.fn(), info: jest.fn(), debug: jest.fn(), warn: jest.fn() };
+    const adapter = new Adapter({ pubSubClient }, null, logger);
 
     const result = { openapi: "3.0.0", info: { title: "x" } };
     const correlationId = "c1";
@@ -40,7 +41,8 @@ describe('ApiPubsubAdapter', () => {
     const topic = { publishMessage, get: jest.fn() };
     const topicGetter = jest.fn().mockReturnValue({ get: jest.fn().mockResolvedValue([ { publishMessage } ]) });
     const pubSubClient = { topic: topicGetter };
-    const adapter = new ApiPubsubAdapter({ pubSubClient });
+    const logger = { error: jest.fn(), info: jest.fn(), debug: jest.fn(), warn: jest.fn() };
+    const adapter = new ApiPubsubAdapter({ pubSubClient }, null, logger);
     const messageId = await adapter.publishHttpApiFetchedEvent({ spec: { paths: {} } }, 'corr-1');
     expect(messageId).toBe('msg-1');
     expect(topicGetter).toHaveBeenCalledWith('git');

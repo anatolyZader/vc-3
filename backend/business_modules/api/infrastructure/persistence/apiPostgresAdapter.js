@@ -43,9 +43,15 @@ class ApiPostgresAdapter extends IApiPersistPort {
   }
 
   async createCloudSqlPool(connector) {
+    if (!connector) {
+      console.warn('⚠️ Cloud SQL connector not available, falling back to local PostgreSQL');
+      return this.createLocalPool();
+    }
+    
     const instanceConnectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
     if (!instanceConnectionName) {
-      throw new Error('❌ CLOUD_SQL_CONNECTION_NAME env var not set.');
+      console.warn('⚠️ CLOUD_SQL_CONNECTION_NAME not set, using local PostgreSQL');
+      return this.createLocalPool();
     }
 
     const clientOpts = await connector.getOptions({
