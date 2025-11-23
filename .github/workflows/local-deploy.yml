@@ -183,61 +183,62 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
-  sonar:
-    name: SonarCloud Analysis
-    needs: [tests, domain-tests]
-    runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/dev' }}
-    defaults:
-      run:
-        working-directory: backend
-    env:
-      # mirror the secret into env so the `if` can read it even when secrets context is unavailable
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Disabling shallow clone is recommended for improving relevancy of reporting
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        working-directory: backend
-        run: npm ci
-
-      - name: Setup Java (required for SonarCloud)
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Cache SonarCloud scanner
-        id: cache-sonar-scanner
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar-scanner
-          restore-keys: ${{ runner.os }}-sonar-scanner-
-
-      - name: Install and run SonarCloud scanner
-        if: env.SONAR_TOKEN != ''
-        working-directory: backend
-        run: |
-          npm install -g sonarqube-scanner
-          sonar-scanner \
-            -Dsonar.projectKey=anatolyZader_vc-3 \
-            -Dsonar.organization=anatolyzader \
-            -Dsonar.sources=. \
-            -Dsonar.exclusions=node_modules/**,coverage/**,*.log,**/*.log \
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-            -Dsonar.branch.name=${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+  # Temporarily disabled SonarCloud analysis - project configuration issues
+  # sonar:
+  #   name: SonarCloud Analysis
+  #   needs: [tests, domain-tests]
+  #   runs-on: ubuntu-latest
+  #   if: ${{ github.ref == 'refs/heads/dev' }}
+  #   defaults:
+  #     run:
+  #       working-directory: backend
+  #   env:
+  #     # mirror the secret into env so the `if` can read it even when secrets context is unavailable
+  #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         # Disabling shallow clone is recommended for improving relevancy of reporting
+  #         fetch-depth: 0
+  #
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #
+  #     - name: Install dependencies
+  #       working-directory: backend
+  #       run: npm ci
+  #
+  #     - name: Setup Java (required for SonarCloud)
+  #       uses: actions/setup-java@v4
+  #       with:
+  #         java-version: '17'
+  #         distribution: 'temurin'
+  #
+  #     - name: Cache SonarCloud scanner
+  #       id: cache-sonar-scanner
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ~/.sonar/cache
+  #         key: ${{ runner.os }}-sonar-scanner
+  #         restore-keys: ${{ runner.os }}-sonar-scanner-
+  #
+  #     - name: Install and run SonarCloud scanner
+  #       if: env.SONAR_TOKEN != ''
+  #       working-directory: backend
+  #       run: |
+  #         npm install -g sonarqube-scanner
+  #         sonar-scanner \
+  #           -Dsonar.projectKey=anatolyZader_vc-3 \
+  #           -Dsonar.organization=anatolyzader \
+  #           -Dsonar.sources=. \
+  #           -Dsonar.exclusions=node_modules/**,coverage/**,*.log,**/*.log \
+  #           -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+  #           -Dsonar.branch.name=${{ github.ref_name }}
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
 
   # Git module operations - persist repo and trigger events
   git-operations:
@@ -456,7 +457,7 @@ jobs:
   local-deploy-summary:
     name: Local Deploy Summary
     runs-on: ubuntu-latest
-    needs: [ rag-config-and-spec, tests, domain-tests, sonar, git-operations, generate-docs ]
+    needs: [ rag-config-and-spec, tests, domain-tests, git-operations, generate-docs ]
     if: always()
     steps:
       - name: Report Results
@@ -467,13 +468,13 @@ jobs:
           echo "  - RAG Config & Spec: ${{ needs.rag-config-and-spec.result }}"
           echo "  - Tests: ${{ needs.tests.result }}"
           echo "  - Domain Tests: ${{ needs.domain-tests.result }}"
-          echo "  - SonarCloud: ${{ needs.sonar.result }}"
+          echo "  - SonarCloud: temporarily disabled"
           echo "  - RAG Pipeline: ${{ needs.git-operations.result }}"
           echo "  - Documentation: ${{ needs.generate-docs.result }}"
           echo ""
           echo "🔍 Next Steps:"
           echo "  - Check test artifacts for detailed results"
-          echo "  - Review SonarCloud analysis for code quality"
+          echo "  - SonarCloud analysis temporarily disabled (project setup needed)"
           echo "  - RAG context pipeline has processed the codebase"
           echo "  - Vector database is populated with latest code changes"
           echo "  - Local development environment is ready"
