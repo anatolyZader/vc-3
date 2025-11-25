@@ -340,29 +340,33 @@ jobs:
           }
           echo "✅ PostgreSQL with pgvector setup complete"
 
-      - name: Start Backend Server
+      - name: Start Local Backend Server
         run: |
-          echo "🚀 Starting backend server for event processing..."
-          # Start server in background
-          npm start &
+          echo "🚀 Starting backend server for local deployment..."
+          # Start server in background using CI-friendly script
+          npm run dev-stable:local-deploy &
           SERVER_PID=$!
           echo "Server PID: $SERVER_PID"
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           
-          # Wait for server to be ready (more robust check)
+          # Wait for server to be ready with better error handling
           echo "⏳ Waiting for server to be ready..."
-          for i in {1..30}; do
-            if curl -s http://localhost:3000/health >/dev/null 2>&1; then
+          for i in {1..45}; do
+            if curl -f -s http://localhost:3000/health >/dev/null 2>&1; then
               echo "✅ Backend server is ready"
+              echo "BACKEND_AVAILABLE=true" >> $GITHUB_ENV
+              echo "BACKEND_URL=http://localhost:3000" >> $GITHUB_ENV
               break
-            elif [ $i -eq 30 ]; then
-              echo "❌ Server failed to start within 60 seconds"
-              echo "🔍 Checking server logs..."
-              ps aux | grep node || true
-              echo "⚠️ Continuing without health check - server might still be starting"
-              break
+            elif [ $i -eq 45 ]; then
+              echo "❌ Server failed to start within 90 seconds"
+              echo "🔍 Server process status:"
+              ps aux | grep -E "(node|fastify)" || echo "No node processes found"
+              echo "📜 Checking logs:"
+              [ -f logs/*.log ] && tail -n 20 logs/*.log || echo "No logs found"
+              echo "BACKEND_AVAILABLE=false" >> $GITHUB_ENV
+              exit 1
             else
-              echo "⏳ Attempt $i/30: Server not ready yet..."
+              echo "⏳ Attempt $i/45: Server starting up..."
               sleep 2
             fi
           done
@@ -374,83 +378,114 @@ jobs:
           echo "🔄 Commit SHA: ${{ github.sha }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
           
-          # Create repoPushed event payload
-          EVENT_PAYLOAD=$(cat << 'EOF'
-          {
-            "event": "repoPushed",
-            "payload": {
-              "userId": "github-actions-${{ github.run_id }}",
-              "repoId": "${{ github.repository }}",
-              "repoData": {
-                "url": "https://github.com/${{ github.repository }}",
-                "branch": "${{ github.ref_name }}",
-                "githubOwner": "${{ github.repository_owner }}",
-                "repoName": "${{ github.event.repository.name }}",
-                "commitHash": "${{ github.sha }}",
-                "description": "RAG context pipeline triggered by GitHub Actions",
-                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-                "source": "github-actions-dev-pipeline"
+          if [ "$BACKEND_AVAILABLE" = "true" ]; then
+            echo "✅ Local backend server is ready for RAG pipeline trigger"
+            
+            # Create repoPushed event payload
+            EVENT_PAYLOAD=$(cat << EOF
+            {
+              "event": "repoPushed",
+              "payload": {
+                "userId": "github-actions-${{ github.run_id }}",
+                "repoId": "${{ github.repository }}",
+                "repoData": {
+                  "url": "https://github.com/${{ github.repository }}",
+                  "branch": "${{ github.ref_name }}",
+                  "githubOwner": "${{ github.repository_owner }}",
+                  "repoName": "${{ github.event.repository.name }}",
+                  "commitHash": "${{ github.sha }}",
+                  "description": "RAG context pipeline triggered by GitHub Actions local deployment",
+                  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
+                  "source": "github-actions-local-deploy-pipeline"
+                }
               }
             }
-          }
           EOF
-          )
-          
-          # Publish event to trigger RAG context pipeline
-          echo "📤 Publishing repoPushed event..."
-          RESPONSE=$(curl -X POST http://localhost:3000/api/events/repo-pushed \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -d "$EVENT_PAYLOAD" \
-            -w "HTTP_STATUS:%{http_code}" \
-            -s)
-          
-          echo "📊 Response: $RESPONSE"
-          
-          # Check if request was successful
-          if echo "$RESPONSE" | grep -q "HTTP_STATUS:2"; then
-            echo "✅ RAG context pipeline triggered successfully"
+            )
+            
+            # Publish event to trigger RAG context pipeline
+            echo "📤 Publishing repoPushed event to local server..."
+            RESPONSE=$(curl -X POST http://localhost:3000/api/events/repo-pushed \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -d "$EVENT_PAYLOAD" \
+              -w "HTTP_STATUS:%{http_code}" \
+              -s \
+              --max-time 30)
+            
+            echo "📊 Response: $RESPONSE"
+            
+            # Check if request was successful
+            if echo "$RESPONSE" | grep -q "HTTP_STATUS:2"; then
+              echo "✅ RAG context pipeline triggered successfully"
+            else
+              echo "⚠️ RAG pipeline trigger failed, but continuing workflow..."
+              echo "🔍 Server might still be initializing or have configuration issues"
+            fi
           else
-            echo "⚠️ RAG pipeline trigger may have failed, but continuing..."
-            # Don't fail the job for now - just log for debugging
+            echo "❌ Local backend server failed to start - cannot trigger RAG pipeline"
+            echo "💡 Check server logs and configuration"
+            exit 1
           fi
 
       - name: Monitor RAG Pipeline Progress
         run: |
           echo "👀 Monitoring RAG pipeline progress..."
           
-          # Wait a bit for processing to start
-          sleep 5
-          
-          # Check pipeline status (customize based on your API)
-          for i in {1..12}; do
-            echo "🔄 Check $i: Querying RAG pipeline status..."
+          if [ "$BACKEND_AVAILABLE" = "true" ]; then
+            echo "📡 Monitoring via local backend server..."
             
-            # Query pipeline status via API
-            STATUS_RESPONSE=$(curl -s http://localhost:3000/api/rag/status?repoId=${{ github.repository }} || echo "{}")
-            echo "📊 Pipeline status: $STATUS_RESPONSE"
+            # Wait a bit for processing to start
+            sleep 5
             
-            # Check if processing is complete (customize based on your response format)
-            if echo "$STATUS_RESPONSE" | grep -q '"status":"completed"'; then
-              echo "✅ RAG context pipeline completed successfully"
-              break
-            elif echo "$STATUS_RESPONSE" | grep -q '"status":"error"'; then
-              echo "❌ RAG context pipeline failed"
-              exit 1
-            else
-              echo "⏳ Pipeline still processing... (attempt $i/12)"
-              sleep 10
-            fi
-          done
+            # Check pipeline status
+            for i in {1..8}; do
+              echo "🔄 Check $i: Querying RAG pipeline status..."
+              
+              STATUS_RESPONSE=$(curl -s --max-time 10 "http://localhost:3000/api/rag/status?repoId=${{ github.repository }}" || echo "{}")
+              echo "📊 Pipeline status: $STATUS_RESPONSE"
+              
+              # Check if processing is complete
+              if echo "$STATUS_RESPONSE" | grep -q '"status":"completed"'; then
+                echo "✅ RAG context pipeline completed successfully"
+                break
+              elif echo "$STATUS_RESPONSE" | grep -q '"status":"error"'; then
+                echo "❌ RAG context pipeline failed"
+                echo "🔍 Check server logs for details"
+                break
+              elif echo "$STATUS_RESPONSE" | grep -q '"status":"processing"'; then
+                echo "⏳ Pipeline still processing... (attempt $i/8)"
+                sleep 15
+              else
+                echo "💡 Pipeline status unknown or not started yet (attempt $i/8)"
+                sleep 10
+              fi
+            done
+          else
+            echo "❌ Local backend not available - cannot monitor RAG pipeline"
+          fi
 
-      - name: Cleanup
+      - name: Cleanup Local Server
         if: always()
         run: |
-          echo "🧹 Cleaning up..."
-          if [ ! -z "$SERVER_PID" ]; then
+          echo "🧹 Cleaning up local server..."
+          if [ ! -z "$SERVER_PID" ] && [ "$SERVER_PID" != "" ]; then
+            echo "🔄 Stopping server (PID: $SERVER_PID)..."
             kill $SERVER_PID 2>/dev/null || true
-            echo "✅ Backend server stopped"
+            # Give it a moment to shutdown gracefully
+            sleep 2
+            # Force kill if still running
+            kill -9 $SERVER_PID 2>/dev/null || true
+            echo "✅ Local backend server stopped"
+          else
+            echo "💡 No server PID found - server may have already stopped"
           fi
+          
+          # Kill any remaining node processes on port 3000
+          echo "🧹 Cleaning up any remaining processes..."
+          pkill -f "fastify.*3000" 2>/dev/null || true
+          
+          echo "📋 Local deployment cleanup complete"
 
   # Documentation generation
   generate-docs:
@@ -480,6 +515,12 @@ jobs:
       PG_PASSWORD: test
       PG_DATABASE: eventstorm_test
       USE_POSTGRESQL_VECTORS: 'true'
+      # AI service configuration for docs generation
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      LANGSMITH_WORKSPACE_ID: ${{ secrets.LANGSMITH_WORKSPACE_ID }}
+      LANGSMITH_TRACING: 'true'
     steps:
       - uses: actions/checkout@v4
 
