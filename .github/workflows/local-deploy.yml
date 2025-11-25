@@ -288,6 +288,11 @@ jobs:
       REDIS_PORT: 6379
       # Session configuration
       SESSION_SECRET: ci-test-secret-key-for-github-actions
+      # JWT configuration
+      JWT_SECRET: ci-test-jwt-secret-for-github-actions
+      JWT_EXPIRE_IN: 1h
+      # Cookie configuration
+      COOKIE_SECRET: ci-test-cookie-secret-for-github-actions
       # AI service configuration
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
