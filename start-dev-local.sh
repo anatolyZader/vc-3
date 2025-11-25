@@ -46,10 +46,10 @@ fi
 
 # Start Redis service
 echo "📦 Starting Redis service..."
-if sudo service redis-server status | grep -q "running"; then
+if pgrep redis-server > /dev/null; then
     echo "   Redis: ✅ already running"
 else
-    sudo service redis-server start
+    redis-server --daemonize yes
     echo "   Redis: ✅ started"
 fi
 
@@ -60,7 +60,7 @@ sleep 3
 
 # Check service health
 POSTGRES_STATUS=$(sudo service postgresql status | grep -o "online\|offline" || echo "unknown")
-REDIS_STATUS=$(sudo service redis-server status | grep -o "running\|stopped" || echo "unknown")
+REDIS_STATUS=$(pgrep redis-server > /dev/null && echo "running" || echo "stopped")
 
 echo ""
 echo "📊 Service Status:"
