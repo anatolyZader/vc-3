@@ -81,7 +81,7 @@ class RepoWorkerManager {
         
         try {
           // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
-          const namespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
+          const namespace = this.generateCollectionName(repoData);
           console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${namespace}`);
           await embeddingManager.storeToPinecone(
             aggregatedResult.processedChunks,

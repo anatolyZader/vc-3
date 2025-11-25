@@ -269,9 +269,9 @@ class AILangchainAdapter extends IAIPort {
     try {
       // Create vector store using shared Pinecone resources
       if (this.vectorSearchOrchestrator) {
-        // TEMPORARY FIX: Hardcode the complete namespace that exists in Pinecone
-        const repositoryNamespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
-        console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${repositoryNamespace}`);
+        // Use dynamic collection name based on user context
+        const repositoryNamespace = CollectionNameGenerator.generateForUser(this.userId, { repoId: 'default' });
+        console.log(`[${new Date().toISOString()}] [DEBUG] Using dynamic collection: ${repositoryNamespace}`);
         this.vectorStore = await this.vectorSearchOrchestrator.createVectorStore(this.userId);
         // Override with correct namespace
         this.vectorStore.namespace = repositoryNamespace;

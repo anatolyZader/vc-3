@@ -287,12 +287,12 @@ jobs:
       REDIS_HOST: localhost
       REDIS_PORT: 6379
       # Session configuration
-      SESSION_SECRET: ci-test-secret-key-for-github-actions
-      # JWT configuration
-      JWT_SECRET: ci-test-jwt-secret-for-github-actions
+      SESSION_SECRET: ci-session-${{ github.run_id }}-${{ github.sha }}
+      # JWT configuration (generated per run for security)
+      JWT_SECRET: ci-jwt-${{ github.run_id }}-${{ github.sha }}
       JWT_EXPIRE_IN: 1h
-      # Cookie configuration
-      COOKIE_SECRET: ci-test-cookie-secret-for-github-actions
+      # Cookie configuration (generated per run for security)
+      COOKIE_SECRET: ci-cookie-${{ github.run_id }}-${{ github.sha }}
       # AI service configuration
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

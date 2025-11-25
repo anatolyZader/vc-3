@@ -63,6 +63,20 @@ class RepoWorker {
   }
 
   /**
+   * Generate collection name for PostgreSQL based on repository context
+   * Replaces hardcoded Pinecone namespace with dynamic naming
+   */
+  generateCollectionName(repoData) {
+    if (repoData && repoData.repoId) {
+      // Use repoId directly (already includes owner/repo format)
+      return `repo_${repoData.repoId.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase()}`;
+    }
+    
+    // Fallback for legacy compatibility during migration
+    return 'repo_default';
+  }
+
+  /**
    * Process a work unit
    */
   async processWorkUnit(jobId, workUnit) {
@@ -278,8 +292,8 @@ class RepoWorker {
     try {
       // Simplified processing - just return the document as chunks for main pipeline
       // Main pipeline will handle: embedding generation, advanced chunking, and Pinecone storage
-      // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
-      const namespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
+      // Generate collection name based on repository context (PostgreSQL)
+      const namespace = this.generateCollectionName(this.currentWorkUnit?.repoData);
       const chunks = [{
         pageContent: document.pageContent,
         metadata: document.metadata,

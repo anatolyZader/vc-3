@@ -712,7 +712,7 @@ class ContextPipeline {
         
         // Step 2: Store repository tracking info for future duplicate detection
         const pineconeClient2 = await this.getPineconeClient();
-        const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
+        const namespace = CollectionNameGenerator.generateForRepository({ repoId, githubOwner, repoName });
         
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, commitInfo, 
@@ -845,7 +845,7 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] 📊 UL_VALIDATION: ${ulPresentCount}/${splitDocuments.length} chunks have UL metadata, ${ulMissingCount} missing`);
 
       // Step 5: Store processed documents using EmbeddingManager
-      const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
+      const namespace = CollectionNameGenerator.generateForRepository({ repoId, githubOwner, repoName });
       await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
       
       // Step 5.5: SYNCHRONIZED CHUNKING - Store same chunks to PostgreSQL with rich metadata
@@ -929,7 +929,7 @@ class ContextPipeline {
    */
   async _checkExistingRepo(githubOwner, repoName, currentCommitHash) {
     try {
-      const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
+      const namespace = CollectionNameGenerator.generateForRepository({ githubOwner, repoName });
       
       // Use vectorService abstraction to get namespace stats
       const namespaceStats = await this.embeddingManager.vectorService.getNamespaceStats(namespace);
@@ -979,7 +979,7 @@ class ContextPipeline {
       console.log(`[${new Date().toISOString()}] ℹ️ Repository check error: ${error.message}`);
       return { 
         exists: false, 
-        namespace: 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3',
+        namespace: CollectionNameGenerator.generateForRepository({ repoId }),
         error: error.message
       };
     }

@@ -111,7 +111,7 @@ class DocsLangchainAdapter extends IDocsAiPort {
       // Initialize vector store directly - adapter owns the vector store lifecycle (matching AI module)
       if (process.env.PINECONE_API_KEY && this.pineconeService) {
         // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
-        const repositoryNamespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
+        const repositoryNamespace = CollectionNameGenerator.generateForRepository({ repoId: 'docs' });
         console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${repositoryNamespace}`);
         this.vectorStore = await this.pineconeService.createVectorStore(this.embeddings, repositoryNamespace);
         console.log(`[${new Date().toISOString()}] [DEBUG] Vector store created and owned by adapter for userId: ${this.userId} with namespace: ${repositoryNamespace}`);

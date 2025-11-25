@@ -1,5 +1,6 @@
 // Import services for RAG pipeline
 const VectorSearchOrchestrator = require('./vectorSearchOrchestrator');
+const CollectionNameGenerator = require('../context/utils/collectionNameGenerator');
 const ContextBuilder = require('./contextBuilder');
 const ResponseGenerator = require('./responseGenerator');
 
@@ -177,9 +178,9 @@ class QueryPipeline {
     }
     
     const vectorStore = await this.vectorSearchOrchestrator.createVectorStore(this.userId);
-    // TEMPORARY FIX: Use hardcoded namespace that matches aiLangchainAdapter
-    vectorStore.namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
-    console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: getVectorStore using hardcoded namespace:`);
+    // Use dynamic collection name based on user context
+    vectorStore.namespace = CollectionNameGenerator.generateForUser(this.userId, { repoId: 'default' });
+    console.log(`[${new Date().toISOString()}] [DEBUG] Using dynamic collection: ${vectorStore.namespace}`);
     return vectorStore;
   }
 
@@ -659,7 +660,7 @@ class QueryPipeline {
       });
     } else {
       // Apply intelligent search strategy with proper filters
-      const repositoryNamespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
+      const repositoryNamespace = CollectionNameGenerator.generateForUser(userId, { repoId: 'default' });
       console.log(`[${new Date().toISOString()}] 🔍 Intelligent search with filters in namespace: ${repositoryNamespace}`);
       
       // Apply filters to prevent API spec dominance

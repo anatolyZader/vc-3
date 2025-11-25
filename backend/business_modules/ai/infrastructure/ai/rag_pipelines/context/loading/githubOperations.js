@@ -289,9 +289,9 @@ class GitHubOperations {
     }
 
     try {
-      // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
-      const namespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
-      console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${namespace}`);
+      // Generate dynamic namespace based on repository context
+      const namespace = CollectionNameGenerator.generateForRepository(repoData);
+      console.log(`[${new Date().toISOString()}] [DEBUG] Using dynamic collection: ${namespace} for repo: ${repoData?.repoId || 'unknown'}`);
       
       // Handle both PineconeService and raw Pinecone client
       let index;
@@ -786,7 +786,7 @@ class GitHubOperations {
 
       // Process documents using pure processing methods (no orchestration in repoProcessor)
       // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
-      const namespace = `d41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3`;
+      const namespace = CollectionNameGenerator.generateForRepository(repoData);
       console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded namespace: ${namespace}`);
       
       // Step 1: Process documents
