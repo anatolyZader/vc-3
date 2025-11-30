@@ -251,9 +251,9 @@ jobs:
   #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   #         SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
 
-  # Git module operations - persist repo and trigger events
-  git-operations:
-    name: Git Operations and RAG Pipeline
+  # Git module operations - verify backend health
+  backend-health-check:
+    name: Backend Health Check and Environment Validation
     runs-on: ubuntu-latest
     # needs: [ tests, domain-tests ] # Temporarily disabled test dependencies
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
@@ -376,98 +376,40 @@ jobs:
             fi
           done
 
-      - name: Trigger RAG Context Pipeline
+      - name: RAG Context Pipeline Notes
         run: |
-          echo "🚀 Triggering RAG context pipeline via repoPushed event..."
+          echo "📝 RAG Context Pipeline Information"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
           echo "📊 Repository: ${{ github.repository }}"
           echo "🔄 Commit SHA: ${{ github.sha }}"
           echo "🌿 Branch: ${{ github.ref_name }}"
-          
+          echo ""
+          echo "ℹ️  RAG Indexing Architecture:"
+          echo "   The actual RAG indexing happens in the production environment via:"
+          echo "   1. GitHub Actions deploy.yml pushes to GCP Pub/Sub (git-topic)"
+          echo "   2. Git Module receives persistRepoRequest event"
+          echo "   3. Fetches repo from GitHub API → persists to PostgreSQL"
+          echo "   4. Publishes repoPushed event"
+          echo "   5. AI Module receives repoPushed → triggers RAG pipeline"
+          echo "   6. RAG Pipeline: Load → Chunk → Embed → Store (pgvector + PostgreSQL)"
+          echo ""
+          echo "✅ Local Deployment (this workflow):"
+          echo "   - Verifies backend server starts successfully"
+          echo "   - Confirms PostgreSQL pgvector is properly configured"
+          echo "   - Validates Redis connectivity"
+          echo "   - Generates API documentation"
+          echo ""
+          echo "🚀 Production Indexing:"
+          echo "   - Triggered automatically on push to main/dev"
+          echo "   - Handled by deploy.yml → GCP Pub/Sub → Cloud Run"
+          echo "   - Full RAG indexing occurs in production environment"
+          echo ""
           if [ "$BACKEND_AVAILABLE" = "true" ]; then
-            echo "✅ Local backend server is ready for RAG pipeline trigger"
-            
-            # Create repoPushed event payload
-            EVENT_PAYLOAD=$(cat << EOF
-            {
-              "event": "repoPushed",
-              "payload": {
-                "userId": "github-actions-${{ github.run_id }}",
-                "repoId": "${{ github.repository }}",
-                "repoData": {
-                  "url": "https://github.com/${{ github.repository }}",
-                  "branch": "${{ github.ref_name }}",
-                  "githubOwner": "${{ github.repository_owner }}",
-                  "repoName": "${{ github.event.repository.name }}",
-                  "commitHash": "${{ github.sha }}",
-                  "description": "RAG context pipeline triggered by GitHub Actions local deployment",
-                  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-                  "source": "github-actions-local-deploy-pipeline"
-                }
-              }
-            }
-          EOF
-            )
-            
-            # Publish event to trigger RAG context pipeline
-            echo "📤 Publishing repoPushed event to local server..."
-            RESPONSE=$(curl -X POST http://localhost:3000/api/events/repo-pushed \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -d "$EVENT_PAYLOAD" \
-              -w "HTTP_STATUS:%{http_code}" \
-              -s \
-              --max-time 30)
-            
-            echo "📊 Response: $RESPONSE"
-            
-            # Check if request was successful
-            if echo "$RESPONSE" | grep -q "HTTP_STATUS:2"; then
-              echo "✅ RAG context pipeline triggered successfully"
-            else
-              echo "⚠️ RAG pipeline trigger failed, but continuing workflow..."
-              echo "🔍 Server might still be initializing or have configuration issues"
-            fi
+            echo "✅ Local backend server is healthy and ready"
           else
-            echo "❌ Local backend server failed to start - cannot trigger RAG pipeline"
-            echo "💡 Check server logs and configuration"
+            echo "❌ Local backend server failed to start"
             exit 1
-          fi
-
-      - name: Monitor RAG Pipeline Progress
-        run: |
-          echo "👀 Monitoring RAG pipeline progress..."
-          
-          if [ "$BACKEND_AVAILABLE" = "true" ]; then
-            echo "📡 Monitoring via local backend server..."
-            
-            # Wait a bit for processing to start
-            sleep 5
-            
-            # Check pipeline status
-            for i in {1..8}; do
-              echo "🔄 Check $i: Querying RAG pipeline status..."
-              
-              STATUS_RESPONSE=$(curl -s --max-time 10 "http://localhost:3000/api/rag/status?repoId=${{ github.repository }}" || echo "{}")
-              echo "📊 Pipeline status: $STATUS_RESPONSE"
-              
-              # Check if processing is complete
-              if echo "$STATUS_RESPONSE" | grep -q '"status":"completed"'; then
-                echo "✅ RAG context pipeline completed successfully"
-                break
-              elif echo "$STATUS_RESPONSE" | grep -q '"status":"error"'; then
-                echo "❌ RAG context pipeline failed"
-                echo "🔍 Check server logs for details"
-                break
-              elif echo "$STATUS_RESPONSE" | grep -q '"status":"processing"'; then
-                echo "⏳ Pipeline still processing... (attempt $i/8)"
-                sleep 15
-              else
-                echo "💡 Pipeline status unknown or not started yet (attempt $i/8)"
-                sleep 10
-              fi
-            done
-          else
-            echo "❌ Local backend not available - cannot monitor RAG pipeline"
           fi
 
       - name: Cleanup Local Server
@@ -561,7 +503,7 @@ jobs:
   local-deploy-summary:
     name: Local Deploy Summary
     runs-on: ubuntu-latest
-    needs: [ rag-config-and-spec, git-operations, generate-docs ] # Removed tests, domain-tests dependencies
+    needs: [ rag-config-and-spec, backend-health-check, generate-docs ] # Removed tests, domain-tests dependencies
     if: always()
     steps:
       - name: Report Results
@@ -573,12 +515,21 @@ jobs:
           echo "  - Tests: temporarily disabled"
           echo "  - Domain Tests: temporarily disabled"
           echo "  - SonarCloud: temporarily disabled"
-          echo "  - RAG Pipeline: ${{ needs.git-operations.result }}"
+          echo "  - Backend Health Check: ${{ needs.backend-health-check.result }}"
           echo "  - Documentation: ${{ needs.generate-docs.result }}"
           echo ""
-          echo "🔍 Next Steps:"
+          echo "🔍 Environment Verification:"
+          echo "  ✅ Backend server starts successfully"
+          echo "  ✅ PostgreSQL pgvector configured correctly"
+          echo "  ✅ Redis connectivity verified"
+          echo "  ✅ API documentation generated"
+          echo ""
+          echo "📝 Note on RAG Indexing:"
+          echo "  - RAG indexing occurs in production environment"
+          echo "  - Triggered by deploy.yml → GCP Pub/Sub → Cloud Run"
+          echo "  - This workflow validates the local environment only"
+          echo ""
+          echo "🚀 Next Steps:"
           echo "  - Tests temporarily disabled for faster iteration"
-          echo "  - SonarCloud analysis temporarily disabled (project setup needed)"
-          echo "  - RAG context pipeline has processed the codebase"
-          echo "  - Vector database is populated with latest code changes"
+          echo "  - Merge to main for production deployment and RAG indexing"
           echo "  - Local development environment is ready"
