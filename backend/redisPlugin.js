@@ -14,6 +14,7 @@ async function redisPlugin (fastify, opts) {
   const redisOpts = {
     host: fastify.secrets.REDIS_HOST,
     port: fastify.secrets.REDIS_PORT || 6379,
+    password: fastify.secrets.REDIS_SECRET, // Redis authentication password
     connectTimeout: opts.connectTimeout ?? 10000, // Increased timeout for Cloud Run
     lazyConnect: true, // Don't connect immediately
     retryDelayOnFailover: 100,

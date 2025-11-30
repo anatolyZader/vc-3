@@ -1,0 +1,47 @@
+[Unit]
+Description=EventStorm Backend API
+After=network.target redis.service postgresql.service
+Requires=redis.service postgresql.service
+
+[Service]
+Type=simple
+User=appuser
+Group=appuser
+WorkingDirectory=/opt/eventstorm/backend
+
+# Environment variables (non-sensitive)
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+Environment="REDIS_HOST=localhost"
+Environment="REDIS_PORT=6379"
+Environment="PG_HOST=localhost"
+Environment="PG_PORT=5432"
+
+# Load GCP project configuration
+EnvironmentFile=-/opt/eventstorm/backend/.env.production
+
+# Start the application
+ExecStart=/usr/bin/node /opt/eventstorm/backend/app.js
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=eventstorm-backend
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/eventstorm/backend/logs
+
+[Install]
+WantedBy=multi-user.target
+

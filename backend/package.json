@@ -50,6 +50,7 @@
     "@google-cloud/cloud-sql-connector": "^1.4.0",
     "@google-cloud/pubsub": "^4.10.0",
     "@google-cloud/redis": "^4.3.0",
+    "@google-cloud/secret-manager": "^5.6.0",
     "@google-cloud/speech": "^7.2.0",
     "@google-cloud/sql": "^0.19.0",
     "@google-cloud/text-to-speech": "^6.2.0",

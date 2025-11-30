@@ -12,6 +12,7 @@ const LLMProviderManager = require('./providers/lLMProviderManager');
 // Import the ContextPipeline for handling repository processing
 const ContextPipeline = require('./rag_pipelines/context/contextPipeline');
 const QueryPipeline = require('./rag_pipelines/query/queryPipeline');
+const CollectionNameGenerator = require('./rag_pipelines/context/utils/collectionNameGenerator');
 
 // LangSmith tracing (optional)
 let wrapOpenAI, traceable;

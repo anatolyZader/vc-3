@@ -38,19 +38,26 @@ const getDbConfig = async () => {
       idleTimeoutMillis: 30000,
     };
   } else {
-    // Production configuration - GCP Cloud SQL via proxy on port 5432
+    // Production configuration
+    // Supports both:
+    // 1. Standalone PostgreSQL on VM (localhost:5432)
+    // 2. GCP Cloud SQL via proxy
+    // 3. Remote PostgreSQL with SSL
+    
+    const useSSL = process.env.PG_USE_SSL === 'true';
+    
     return {
-      host: process.env.PROD_DATABASE_HOST || 'localhost',
-      port: parseInt(process.env.PROD_DATABASE_PORT || '5432', 10),
-      database: process.env.PROD_DATABASE_NAME || 'eventstorm_db',
-      user: process.env.PROD_DATABASE_USER || 'eventstorm_user',
-      password: process.env.PROD_DATABASE_PASSWORD || 'production_password',
-      ssl: {
+      host: process.env.PG_HOST || process.env.PROD_DATABASE_HOST || 'localhost',
+      port: parseInt(process.env.PG_PORT || process.env.PROD_DATABASE_PORT || '5432', 10),
+      database: process.env.PG_DATABASE || process.env.PROD_DATABASE_NAME || 'eventstorm_db',
+      user: process.env.PG_USER || process.env.PROD_DATABASE_USER || 'eventstorm_user',
+      password: process.env.PG_PASSWORD || process.env.PROD_DATABASE_PASSWORD || 'production_password',
+      ssl: useSSL ? {
         rejectUnauthorized: false
-      },
-      maxConnections: 20,
-      connectionTimeoutMillis: 10000,
-      idleTimeoutMillis: 30000,
+      } : false,
+      maxConnections: parseInt(process.env.PG_MAX_CONNECTIONS || '20', 10),
+      connectionTimeoutMillis: parseInt(process.env.PG_CONNECT_TIMEOUT || '10000', 10),
+      idleTimeoutMillis: parseInt(process.env.PG_IDLE_TIMEOUT || '30000', 10),
     };
   }
 };

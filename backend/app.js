@@ -102,24 +102,33 @@ module.exports = async function (fastify, opts) {
   }
 
   if (!BUILDING_API_SPEC) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     await fastify.register(
       fastifyCookie,
       {
         secret: fastify.secrets.COOKIE_SECRET,
         parseOptions: { 
-          secure: true, // Only send cookies over HTTPS.
+          secure: isProduction, // Only send cookies over HTTPS in production
           httpOnly: true, // Prevents client-side JavaScript from accessing the cookie. Helps mitigate XSS (Cross-Site Scripting) attacks.
-          sameSite: 'None' }, // Allows cross-site cookies (e.g., for third-party integrations). Must be used with secure: true (required by modern browsers).
+          sameSite: isProduction ? 'None' : 'Lax' }, // Lax for local dev, None for production cross-site cookies
       },
       { encapsulate: false }
     );
   }
 
   if (!BUILDING_API_SPEC) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    
     // Determine session store based on Redis availability
     const sessionConfig = {
       secret: fastify.secrets.SESSION_SECRET,
-      cookie: { secure: true, maxAge: 86400000, httpOnly: true, sameSite: 'None' },
+      cookie: { 
+        secure: isProduction, // Only HTTPS in production
+        maxAge: 86400000, 
+        httpOnly: true, 
+        sameSite: isProduction ? 'None' : 'Lax' 
+      },
       saveUninitialized: false, // Do not create session until something stored in session.
     };
     
