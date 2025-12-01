@@ -178,9 +178,14 @@ class QueryPipeline {
     }
     
     const vectorStore = await this.vectorSearchOrchestrator.createVectorStore(this.userId);
-    // Use dynamic collection name based on user context
-    vectorStore.namespace = CollectionNameGenerator.generateForUser(this.userId, { repoId: 'default' });
-    console.log(`[${new Date().toISOString()}] [DEBUG] Using dynamic collection: ${vectorStore.namespace}`);
+    
+    // FIXED: Use repository collection name (from environment or default)
+    // This should match the collection used during indexing
+    const defaultRepo = process.env.DEFAULT_REPO_ID || 'anatolyZader/vc-3';
+    const repoCollection = CollectionNameGenerator.generateForRepository({ repoId: defaultRepo });
+    vectorStore.namespace = repoCollection;
+    
+    console.log(`[${new Date().toISOString()}] [DEBUG] Using repository collection for queries: ${vectorStore.namespace}`);
     return vectorStore;
   }
 
@@ -660,8 +665,10 @@ class QueryPipeline {
       });
     } else {
       // Apply intelligent search strategy with proper filters
-      const repositoryNamespace = CollectionNameGenerator.generateForUser(userId, { repoId: 'default' });
-      console.log(`[${new Date().toISOString()}] 🔍 Intelligent search with filters in namespace: ${repositoryNamespace}`);
+      // FIXED: Use repository collection name (shared across all users)
+      const defaultRepo = process.env.DEFAULT_REPO_ID || 'anatolyZader/vc-3';
+      const repositoryNamespace = CollectionNameGenerator.generateForRepository({ repoId: defaultRepo });
+      console.log(`[${new Date().toISOString()}] 🔍 Intelligent search with filters in repository collection: ${repositoryNamespace}`);
       
       // Apply filters to prevent API spec dominance
       const combinedFilter = this.combineFilters(searchStrategy.codeFilters, searchStrategy.docsFilters);

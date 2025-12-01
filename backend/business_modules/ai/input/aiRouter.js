@@ -133,6 +133,121 @@ module.exports = fp(async function aiRouter(fastify, opts) {
     }
   });
 
+  // CI/CD RAG indexing endpoint - for GitHub Actions workflows
+  fastify.route({
+    method: 'POST',
+    url: '/ci/trigger-indexing',
+    preValidation: async (request, reply) => {
+      // Check for GITHUB_TOKEN in Authorization header (GitHub Actions provides this)
+      const authHeader = request.headers.authorization;
+      if (!authHeader) {
+        throw fastify.httpErrors.unauthorized('Missing authorization header');
+      }
+      
+      // For CI environment, we accept the GitHub token or a simple bearer token
+      // In production with GCP, this endpoint should be disabled or more strictly controlled
+      const token = authHeader.replace('Bearer ', '');
+      if (!token || token.length < 10) {
+        throw fastify.httpErrors.unauthorized('Invalid token');
+      }
+      
+      // Set a mock user for CI operations
+      request.user = { 
+        id: 'github-actions-ci', 
+        username: 'github-actions' 
+      };
+    },
+    handler: async (request, reply) => {
+      try {
+        const { repoId, repoData } = request.body;
+        
+        if (!repoId) {
+          throw fastify.httpErrors.badRequest('repoId is required');
+        }
+        
+        fastify.log.info(`[CI] Triggering RAG indexing for repo: ${repoId}`);
+        
+        // Create DI scope
+        const diScope = fastify.diContainer.createScope();
+        const aiService = await diScope.resolve('aiService');
+        
+        if (!aiService) {
+          throw new Error('AI service not found in DI container');
+        }
+        
+        // Process the repo (this triggers the RAG pipeline)
+        const result = await aiService.processPushedRepo(
+          request.user.id,
+          repoId,
+          repoData || {
+            url: `https://github.com/${repoId}`,
+            branch: 'dev',
+            timestamp: new Date().toISOString(),
+            source: 'github-actions-ci'
+          }
+        );
+        
+        fastify.log.info(`[CI] RAG indexing triggered successfully for ${repoId}`);
+        
+        return {
+          success: true,
+          message: 'RAG indexing triggered successfully',
+          repoId,
+          result
+        };
+      } catch (error) {
+        fastify.log.error('[CI] Error triggering RAG indexing:', error);
+        throw fastify.httpErrors.internalServerError('Failed to trigger RAG indexing', { cause: error });
+      }
+    },
+    schema: {
+      tags: ['ai', 'ci'],
+      summary: 'Trigger RAG indexing from CI/CD pipeline',
+      description: 'CI/CD endpoint for triggering repository indexing from GitHub Actions',
+      body: {
+        type: 'object',
+        required: ['repoId'],
+        properties: {
+          repoId: { 
+            type: 'string', 
+            minLength: 1,
+            description: 'Repository identifier (e.g., "owner/repo-name")'
+          },
+          repoData: {
+            type: 'object',
+            properties: {
+              url: { type: 'string' },
+              branch: { type: 'string' },
+              commitHash: { type: 'string' },
+              githubOwner: { type: 'string' },
+              repoName: { type: 'string' },
+              description: { type: 'string' },
+              timestamp: { type: 'string' },
+              source: { type: 'string' }
+            },
+            additionalProperties: true
+          }
+        },
+        additionalProperties: false
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            repoId: { type: 'string' },
+            result: { 
+              type: 'object',
+              additionalProperties: true
+            }
+          },
+          additionalProperties: false
+        }
+      }
+    }
+  });
+
   // Text search endpoint
   fastify.route({
     method: 'GET',

@@ -178,9 +178,13 @@ class EmbeddingManager {
     // Removed excessive per-chunk logging for performance - logging summary only
     console.log(`[${new Date().toISOString()}] 📋 [DATA-PREP] Processing ${splitDocs.length} repository chunks for storage`);
 
-    console.log(`[${new Date().toISOString()}] 🚀 VECTOR STORAGE: Storing ${splitDocs.length} vector embeddings with unique IDs in user-specific namespace '${userId}'`);
+    // FIXED: Use repository-based collection name (shared across all users)
+    const CollectionNameGenerator = require('../utils/collectionNameGenerator');
+    const repoCollection = CollectionNameGenerator.generateForRepository({ repoId, githubOwner, repoName });
+    
+    console.log(`[${new Date().toISOString()}] 🚀 VECTOR STORAGE: Storing ${splitDocs.length} vector embeddings in repository collection '${repoCollection}'`);
 
-    // Store in vector database with user-specific namespace
+    // Store in vector database with repository-specific collection
     const vectorService = await this._getVectorService();
     if (!vectorService) {
       throw new Error('Vector database service not available');
@@ -197,22 +201,23 @@ class EmbeddingManager {
       const documentIds = VectorService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);
 
       console.log(`[${new Date().toISOString()}] 🔑 IDEMPOTENT IDS: Using deterministic IDs (userId:repoId:source:contentHash)`);
+      console.log(`[${new Date().toISOString()}] 📁 COLLECTION: Repository collection name: ${repoCollection} (shared by all users)`);
 
-      // Use enhanced upsertDocuments method
+      // Use enhanced upsertDocuments method with repository collection
       await vectorService.upsertDocuments(splitDocs, this.embeddings, {
-        namespace: userId,
+        namespace: repoCollection,  // FIXED: Use repository collection instead of userId
         ids: documentIds,
         githubOwner,
         repoName,
         verbose: false // Keep current detailed logging above, no need for duplicate logs
       });
 
-      console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully indexed ${splitDocs.length} document chunks to vector database`);
+      console.log(`[${new Date().toISOString()}] ✅ DATA-PREP: Successfully indexed ${splitDocs.length} document chunks to repository collection: ${repoCollection}`);
 
       return {
         success: true,
         chunksStored: splitDocs.length,
-        namespace: userId,
+        namespace: repoCollection,  // FIXED: Return repository collection name
         documentIds
       };
 
