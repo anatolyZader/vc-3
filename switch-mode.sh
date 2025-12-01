@@ -9,6 +9,8 @@ VIBE_RULES="$PROJECT_ROOT/.cursorrules.vibe"
 DEV_RULES="$PROJECT_ROOT/.cursorrules.dev"
 VSCODE_DIR="$PROJECT_ROOT/.vscode"
 SETTINGS_FILE="$VSCODE_DIR/settings.json"
+VIBE_SETTINGS="$VSCODE_DIR/settings.vibe.json"
+DEV_SETTINGS="$VSCODE_DIR/settings.dev.json"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -32,38 +34,62 @@ show_current_mode() {
 
 switch_to_vibe() {
     echo -e "${GREEN}Switching to VIBE MODE (Autonomous)...${NC}"
-    cp "$VIBE_RULES" "$CURSORRULES_FILE"
     
-    # Update VSCode settings if they exist
-    if [ -f "$SETTINGS_FILE" ]; then
-        # Use jq if available, otherwise use sed
-        if command -v jq &> /dev/null; then
-            jq '.["cursor.general.enableAutoUpdate"] = true | 
-                .["cursor.ai.autoApply"] = true' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && \
-                mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-        fi
+    # Copy cursorrules
+    if [ -f "$VIBE_RULES" ]; then
+        cp "$VIBE_RULES" "$CURSORRULES_FILE"
+        echo "  ✓ Applied VIBE .cursorrules"
+    else
+        echo -e "${YELLOW}  ⚠ Warning: $VIBE_RULES not found${NC}"
     fi
     
+    # Create .vscode directory if needed
+    mkdir -p "$VSCODE_DIR"
+    
+    # Copy settings
+    if [ -f "$VIBE_SETTINGS" ]; then
+        cp "$VIBE_SETTINGS" "$SETTINGS_FILE"
+        echo "  ✓ Applied VIBE VSCode/Cursor settings"
+    else
+        echo -e "${YELLOW}  ⚠ Warning: $VIBE_SETTINGS not found${NC}"
+    fi
+    
+    echo ""
     echo -e "${GREEN}✓ Switched to VIBE MODE${NC}"
-    echo "Agent will now operate autonomously with minimal interruptions"
+    echo "  → Agent operates autonomously"
+    echo "  → Minimal interruptions and prompts"
+    echo "  → Auto-apply suggestions enabled"
+    echo "  → Max context and long-running tasks"
 }
 
 switch_to_dev() {
     echo -e "${GREEN}Switching to DEV MODE (Collaborative)...${NC}"
-    cp "$DEV_RULES" "$CURSORRULES_FILE"
     
-    # Update VSCode settings if they exist
-    if [ -f "$SETTINGS_FILE" ]; then
-        # Use jq if available, otherwise use sed
-        if command -v jq &> /dev/null; then
-            jq '.["cursor.general.enableAutoUpdate"] = false | 
-                .["cursor.ai.autoApply"] = false' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && \
-                mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-        fi
+    # Copy cursorrules
+    if [ -f "$DEV_RULES" ]; then
+        cp "$DEV_RULES" "$CURSORRULES_FILE"
+        echo "  ✓ Applied DEV .cursorrules"
+    else
+        echo -e "${YELLOW}  ⚠ Warning: $DEV_RULES not found${NC}"
     fi
     
+    # Create .vscode directory if needed
+    mkdir -p "$VSCODE_DIR"
+    
+    # Copy settings
+    if [ -f "$DEV_SETTINGS" ]; then
+        cp "$DEV_SETTINGS" "$SETTINGS_FILE"
+        echo "  ✓ Applied DEV VSCode/Cursor settings"
+    else
+        echo -e "${YELLOW}  ⚠ Warning: $DEV_SETTINGS not found${NC}"
+    fi
+    
+    echo ""
     echo -e "${GREEN}✓ Switched to DEV MODE${NC}"
-    echo "Agent will now work collaboratively with frequent check-ins"
+    echo "  → Agent works collaboratively"
+    echo "  → Frequent approvals required"
+    echo "  → Detailed explanations enabled"
+    echo "  → Educational mode active"
 }
 
 show_help() {

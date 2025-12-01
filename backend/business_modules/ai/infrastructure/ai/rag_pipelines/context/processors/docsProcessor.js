@@ -5,14 +5,6 @@ const fs = require('fs').promises;
 const path = require('path');
 const { RecursiveCharacterTextSplitter } = require('langchain/text_splitter');
 
-// Support both PostgreSQL pgvector and Pinecone (legacy)
-let PineconeStore;
-try {
-  ({ PineconeStore } = require('@langchain/pinecone'));
-} catch (err) {
-  console.warn(`[${new Date().toISOString()}] PineconeStore not available:`, err.message);
-}
-
 // Import MarkdownTextSplitter from the textsplitters package (no header-based splitting available)
 let MarkdownTextSplitter;
 try {
@@ -30,8 +22,7 @@ try {
 class DocsProcessor {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
-    this.pineconeLimiter = options.pineconeLimiter;
-    this.vectorService = options.vectorService || options.pineconeService; // Support both
+    this.vectorService = options.vectorService;
     
     // Backward compatibility aliases
     this.pineconeService = this.vectorService;
@@ -471,14 +462,8 @@ class DocsProcessor {
         return `system_markdown_${sanitizedSource}_${sanitizedType}_chunk_${index}`;
       });
 
-      // Store with rate limiting if available
-      if (this.pineconeLimiter) {
-        await this.pineconeLimiter.schedule(async () => {
-          await vectorStore.addDocuments(documents, { ids: documentIds });
-        });
-      } else {
-        await vectorStore.addDocuments(documents, { ids: documentIds });
-      }
+      // Store documents to vector database
+      await vectorStore.addDocuments(documents, { ids: documentIds });
 
       console.log(`[${new Date().toISOString()}] ✅ MARKDOWN STORAGE: Successfully stored ${documents.length} documentation chunks`);
       return { success: true, chunksStored: documents.length };

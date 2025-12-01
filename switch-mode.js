@@ -14,6 +14,8 @@ const VIBE_RULES = path.join(PROJECT_ROOT, '.cursorrules.vibe');
 const DEV_RULES = path.join(PROJECT_ROOT, '.cursorrules.dev');
 const VSCODE_DIR = path.join(PROJECT_ROOT, '.vscode');
 const SETTINGS_FILE = path.join(VSCODE_DIR, 'settings.json');
+const VIBE_SETTINGS = path.join(VSCODE_DIR, 'settings.vibe.json');
+const DEV_SETTINGS = path.join(VSCODE_DIR, 'settings.dev.json');
 
 // Colors
 const colors = {
@@ -38,62 +40,64 @@ function showCurrentMode() {
   }
 }
 
-function updateVSCodeSettings(mode) {
+function copySettings(sourceFile, label) {
   // Create .vscode directory if it doesn't exist
   if (!fs.existsSync(VSCODE_DIR)) {
     fs.mkdirSync(VSCODE_DIR, { recursive: true });
   }
 
-  let settings = {};
-  if (fs.existsSync(SETTINGS_FILE)) {
-    try {
-      settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
-    } catch (err) {
-      console.warn('Warning: Could not parse existing settings.json, creating new one');
-    }
+  if (fs.existsSync(sourceFile)) {
+    fs.copyFileSync(sourceFile, SETTINGS_FILE);
+    console.log(`  ✓ Applied ${label} VSCode/Cursor settings`);
+    return true;
+  } else {
+    console.log(`${colors.yellow}  ⚠ Warning: ${sourceFile} not found${colors.reset}`);
+    return false;
   }
-
-  if (mode === 'vibe') {
-    // More autonomous settings
-    settings['cursor.general.enableAutoUpdate'] = true;
-    settings['cursor.ai.autoApply'] = true;
-  } else if (mode === 'dev') {
-    // More controlled settings
-    settings['cursor.general.enableAutoUpdate'] = false;
-    settings['cursor.ai.autoApply'] = false;
-  }
-
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
 }
 
 function switchToVibe() {
   console.log(`${colors.green}Switching to VIBE MODE (Autonomous)...${colors.reset}`);
   
-  if (!fs.existsSync(VIBE_RULES)) {
-    console.error(`Error: ${VIBE_RULES} not found`);
-    process.exit(1);
+  // Copy cursorrules
+  if (fs.existsSync(VIBE_RULES)) {
+    fs.copyFileSync(VIBE_RULES, CURSORRULES_FILE);
+    console.log('  ✓ Applied VIBE .cursorrules');
+  } else {
+    console.log(`${colors.yellow}  ⚠ Warning: ${VIBE_RULES} not found${colors.reset}`);
   }
   
-  fs.copyFileSync(VIBE_RULES, CURSORRULES_FILE);
-  updateVSCodeSettings('vibe');
+  // Copy settings
+  copySettings(VIBE_SETTINGS, 'VIBE');
   
+  console.log('');
   console.log(`${colors.green}✓ Switched to VIBE MODE${colors.reset}`);
-  console.log('Agent will now operate autonomously with minimal interruptions');
+  console.log('  → Agent operates autonomously');
+  console.log('  → Minimal interruptions and prompts');
+  console.log('  → Auto-apply suggestions enabled');
+  console.log('  → Max context and long-running tasks');
 }
 
 function switchToDev() {
   console.log(`${colors.green}Switching to DEV MODE (Collaborative)...${colors.reset}`);
   
-  if (!fs.existsSync(DEV_RULES)) {
-    console.error(`Error: ${DEV_RULES} not found`);
-    process.exit(1);
+  // Copy cursorrules
+  if (fs.existsSync(DEV_RULES)) {
+    fs.copyFileSync(DEV_RULES, CURSORRULES_FILE);
+    console.log('  ✓ Applied DEV .cursorrules');
+  } else {
+    console.log(`${colors.yellow}  ⚠ Warning: ${DEV_RULES} not found${colors.reset}`);
   }
   
-  fs.copyFileSync(DEV_RULES, CURSORRULES_FILE);
-  updateVSCodeSettings('dev');
+  // Copy settings
+  copySettings(DEV_SETTINGS, 'DEV');
   
+  console.log('');
   console.log(`${colors.green}✓ Switched to DEV MODE${colors.reset}`);
-  console.log('Agent will now work collaboratively with frequent check-ins');
+  console.log('  → Agent works collaboratively');
+  console.log('  → Frequent approvals required');
+  console.log('  → Detailed explanations enabled');
+  console.log('  → Educational mode active');
 }
 
 function showHelp() {

@@ -15,9 +15,6 @@ const { StringOutputParser } = require('@langchain/core/output_parsers');
 const RequestQueue = require('../../../ai/infrastructure/ai/requestQueue');
 const LLMProviderManager = require('../../../ai/infrastructure/ai/providers/lLMProviderManager');
 
-// Modern Pinecone service (matching AI module)
-const PineconeService = require('../../../ai/infrastructure/ai/rag_pipelines/context/embedding/pineconeService');
-const PineconePlugin = require('../../../ai/infrastructure/ai/rag_pipelines/context/embedding/pineconePlugin');
 const { formatDocumentsAsString } = require('langchain/util/document');
 
 class DocsLangchainAdapter extends IDocsAiPort {
@@ -49,9 +46,6 @@ class DocsLangchainAdapter extends IDocsAiPort {
       maxRetries: 3              // Reasonable retry count (15s max retry time)
     });
 
-    // Keep direct access to pineconeLimiter for backward compatibility (matching AI module)
-    this.pineconeLimiter = this.requestQueue.pineconeLimiter;
-
     try {
       // Initialize embeddings model: converts text to vectors (matching AI module)
       this.embeddings = new OpenAIEmbeddings({
@@ -71,13 +65,12 @@ class DocsLangchainAdapter extends IDocsAiPort {
       this.vectorStore = null;
       console.log(`[${new Date().toISOString()}] [DEBUG] Vector store set to null (will be initialized after userId).`);
 
-      // Initialize Pinecone service (matching AI module)
+      // Initialize Pinecone service (matching AI module) - deprecated, keeping for backward compatibility
       if (process.env.PINECONE_API_KEY) {
-        this.pineconePlugin = new PineconePlugin();
-        this.pineconeService = new PineconeService({
-          pineconePlugin: this.pineconePlugin,
-          rateLimiter: this.pineconeLimiter
-        });
+        console.warn(`[${new Date().toISOString()}] Pinecone is no longer used. Please use pgvector instead.`);
+        this.pineconeService = null;
+        this.pineconePlugin = null;
+      } else {
         
         // Use wiki-specific index if available, fallback to main index
         this.pineconeIndexName = process.env.PINECONE_WIKI_INDEX_NAME || process.env.PINECONE_INDEX_NAME || 'eventstorm-index';

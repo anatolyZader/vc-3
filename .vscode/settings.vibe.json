@@ -1,0 +1,118 @@
+{
+  "// MODE": "VIBE - Autonomous Agent Mode",
+  
+  "// ========================================": "",
+  "// CURSOR AGENT SETTINGS": "",
+  "// ========================================": "",
+  
+  "// Agent Behavior - Maximum Autonomy": "",
+  "cursor.chat.defaultMode": "agent",
+  "cursor.chat.alwaysUseAgent": true,
+  "cursor.agent.autonomyLevel": "high",
+  "cursor.agent.requireApproval": false,
+  "cursor.agent.autoApplyEdits": true,
+  "cursor.agent.maxTurns": 50,
+  "cursor.agent.allowLongRunning": true,
+  
+  "// AI Model Settings - Fast & Autonomous": "",
+  "cursor.ai.model": "claude-3.5-sonnet",
+  "cursor.ai.temperature": 0.7,
+  "cursor.ai.maxTokens": 8000,
+  "cursor.ai.streamResponse": true,
+  "cursor.ai.useCache": true,
+  
+  "// Code Generation": "",
+  "cursor.ai.autoApply": true,
+  "cursor.ai.autoComplete": true,
+  "cursor.ai.inlineSuggestions": true,
+  "cursor.ai.aggressiveCompletion": true,
+  "cursor.ai.multiLineCompletion": true,
+  "cursor.ai.showSuggestions": "always",
+  
+  "// Context & Indexing - Maximize context": "",
+  "cursor.codebase.indexing": "full",
+  "cursor.codebase.autoIndex": true,
+  "cursor.codebase.includeNodeModules": false,
+  "cursor.context.maxFiles": 100,
+  "cursor.context.autoInclude": true,
+  "cursor.context.includeRecentFiles": true,
+  
+  "// Chat Settings": "",
+  "cursor.chat.autoScroll": true,
+  "cursor.chat.autoFocus": false,
+  "cursor.chat.clearOnNewSession": false,
+  "cursor.chat.showThinkingProcess": false,
+  "cursor.chat.minimalMode": true,
+  
+  "// Privacy & Data": "",
+  "cursor.privacy.allowTelemetry": true,
+  "cursor.privacy.shareCodeContext": true,
+  "cursor.privacy.improveModels": true,
+  
+  "// Terminal Integration": "",
+  "cursor.terminal.autoExecute": false,
+  "cursor.terminal.showCommands": true,
+  "cursor.terminal.confirmExecution": false,
+  
+  "// General Cursor Settings": "",
+  "cursor.general.enableAutoUpdate": true,
+  "cursor.general.showWelcome": false,
+  "cursor.general.showTips": false,
+  
+  "// ========================================": "",
+  "// VSCODE SETTINGS": "",
+  "// ========================================": "",
+  
+  "// Auto-save and formatting": "",
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": false,
+  
+  "// Editor behavior - flow state": "",
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  },
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.tabCompletion": "on",
+  "editor.minimap.enabled": true,
+  "editor.renderWhitespace": "none",
+  "editor.stickyScroll.enabled": true,
+  "editor.lightbulb.enabled": false,
+  "workbench.editor.enablePreview": false,
+  "breadcrumbs.enabled": true,
+  
+  "// Confirmations - minimize": "",
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  "files.refactoring.autoSave": true,
+  
+  "// Terminal": "",
+  "terminal.integrated.confirmOnExit": "never",
+  "terminal.integrated.confirmOnKill": "never",
+  
+  "// Git - auto-stage and less prompts": "",
+  "git.enableSmartCommit": true,
+  "git.confirmSync": false,
+  "git.autofetch": true,
+  "git.confirmNoVerifyCommit": false,
+  "git.showPushSuccessNotification": false,
+  
+  "// Linting - warnings only": "",
+  "eslint.run": "onType",
+  "eslint.alwaysShowStatus": false,
+  "problems.showCurrentInStatus": false,
+  
+  "// Notifications - minimal": "",
+  "notification.sticky": false,
+  
+  "// Workspace trust": "",
+  "security.workspace.trust.untrustedFiles": "open",
+  
+  "// Testing": "",
+  "testing.automaticallyOpenPeekView": "never"
+}

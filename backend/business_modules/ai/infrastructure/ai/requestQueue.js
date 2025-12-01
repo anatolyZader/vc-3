@@ -1,8 +1,6 @@
 // requestQueue.js
 "use strict";
 
-const PineconeLimiter = require('./rag_pipelines/context/embedding/pineconeLimiter');
-
 /**
  * Handles rate limiting and request queuing for AI operations
  */
@@ -44,24 +42,6 @@ class RequestQueue {
         queueLength: this.requestQueue.length,
         isProcessingQueue: this.isProcessingQueue
       });
-      
-      // Initialize specialized Pinecone rate limiter
-      try {
-        this.pineconeLimiter = new PineconeLimiter({
-          reservoir: options.pineconeReservoir || 100,                    // 100 operations per second
-          reservoirRefreshAmount: options.pineconeRefreshAmount || 100,   
-          reservoirRefreshInterval: options.pineconeRefreshInterval || 1000,  // 1 second
-          maxConcurrent: options.pineconeMaxConcurrent || 5               // 5 concurrent for performance
-        });
-        
-        console.log(`[${timestamp}] [DEBUG] PineconeLimiter initialized successfully`);
-      } catch (pineconeLimiterError) {
-        console.error(`[${timestamp}] [ERROR] Failed to create PineconeLimiter:`, {
-          error: pineconeLimiterError.message,
-          stack: pineconeLimiterError.stack
-        });
-        throw pineconeLimiterError;
-      }
       
       console.log(`[${timestamp}] [DEBUG] RequestQueue initialized: maxRequestsPerMinute=${this.maxRequestsPerMinute}, retryDelay=${this.retryDelay}, maxRetries=${this.maxRetries}`);
       console.log(`[${timestamp}] [DEBUG] Bottleneck limiter initialized.`);
@@ -494,12 +474,6 @@ class RequestQueue {
       // Clear the queue
       this.requestQueue = [];
       this.isProcessingQueue = false;
-
-      // Disconnect PineconeLimiter if available
-      if (this.pineconeLimiter && typeof this.pineconeLimiter.disconnect === 'function') {
-        await this.pineconeLimiter.disconnect();
-        console.log(`[${timestamp}] [DEBUG] PineconeLimiter disconnected`);
-      }
 
       console.log(`[${timestamp}] [INFO] RequestQueue cleanup completed successfully`);
       

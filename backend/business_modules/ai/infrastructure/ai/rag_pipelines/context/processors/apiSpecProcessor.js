@@ -4,14 +4,6 @@
 const fs = require('fs').promises;
 const path = require('path');
 
-// Support both PostgreSQL pgvector and Pinecone (legacy)
-let PineconeStore;
-try {
-  ({ PineconeStore } = require('@langchain/pinecone'));
-} catch (err) {
-  console.warn(`[${new Date().toISOString()}] PineconeStore not available:`, err.message);
-}
-
 /**
  * Dedicated processor for API specification files
  * Handles JSON API specs, creates endpoint-specific chunks, and schema documentation
@@ -19,7 +11,6 @@ try {
 class ApiSpecProcessor {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
-    this.pineconeLimiter = options.pineconeLimiter;
     this.vectorService = options.vectorService;
     
     // Legacy Pinecone support
@@ -296,14 +287,8 @@ class ApiSpecProcessor {
         return `system_apispec_${sanitizedSource}_${sanitizedType}_chunk_${index}`;
       });
 
-      // Store with rate limiting if available
-      if (this.pineconeLimiter) {
-        await this.pineconeLimiter.schedule(async () => {
-          await vectorStore.addDocuments(documents, { ids: documentIds });
-        });
-      } else {
-        await vectorStore.addDocuments(documents, { ids: documentIds });
-      }
+      // Store documents to vector database
+      await vectorStore.addDocuments(documents, { ids: documentIds });
 
       console.log(`[${new Date().toISOString()}] ✅ API-SPEC STORAGE: Successfully stored ${documents.length} API spec chunks`);
       return { success: true, chunksStored: documents.length };
