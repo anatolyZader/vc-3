@@ -387,23 +387,16 @@ jobs:
           if [ "$BACKEND_AVAILABLE" = "true" ]; then
             echo "✅ Local backend server is ready - triggering RAG indexing"
             
-            # Create payload for RAG indexing
-            PAYLOAD=$(cat << 'EOF'
-{
-  "repoId": "${{ github.repository }}",
-  "repoData": {
-    "url": "https://github.com/${{ github.repository }}",
-    "branch": "${{ github.ref_name }}",
-    "commitHash": "${{ github.sha }}",
-    "githubOwner": "${{ github.repository_owner }}",
-    "repoName": "${{ github.event.repository.name }}",
-    "description": "RAG indexing triggered by GitHub Actions on push to dev",
-    "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
-    "source": "github-actions-local-deploy"
-  }
-}
-EOF
-            )
+            # Create payload for RAG indexing (avoiding heredoc to prevent YAML parsing issues)
+            REPO_ID="${{ github.repository }}"
+            REPO_URL="https://github.com/${{ github.repository }}"
+            BRANCH="${{ github.ref_name }}"
+            COMMIT="${{ github.sha }}"
+            OWNER="${{ github.repository_owner }}"
+            REPO_NAME="${{ github.event.repository.name }}"
+            TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+            
+            PAYLOAD="{\"repoId\":\"${REPO_ID}\",\"repoData\":{\"url\":\"${REPO_URL}\",\"branch\":\"${BRANCH}\",\"commitHash\":\"${COMMIT}\",\"githubOwner\":\"${OWNER}\",\"repoName\":\"${REPO_NAME}\",\"description\":\"RAG indexing triggered by GitHub Actions on push to dev\",\"timestamp\":\"${TIMESTAMP}\",\"source\":\"github-actions-local-deploy\"}}"
             
             echo "📤 Sending RAG indexing request to backend..."
             RESPONSE=$(curl -X POST http://localhost:3000/api/ai/ci/trigger-indexing \
