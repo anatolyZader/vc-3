@@ -67,9 +67,6 @@ class AILangchainAdapter extends IAIPort {
       maxRetries: 5              // Increased retries for better reliability
     });
 
-    // Keep direct access to pineconeLimiter for backward compatibility
-    this.pineconeLimiter = this.requestQueue.pineconeLimiter;
-
     try {
       // Initialize embeddings model: converts text to vectors
       this.embeddings = new OpenAIEmbeddings({
@@ -118,65 +115,34 @@ class AILangchainAdapter extends IAIPort {
       this.contextPipeline = new ContextPipeline({
         embeddings: this.embeddings,
         eventBus: this.eventBus,
-        pineconeLimiter: this.pineconeLimiter,
         maxChunkSize: 1500,  // Optimized for better semantic chunking and embedding quality
         chunkOverlap: 200    // Add overlap for better context preservation
       });
-      console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline initialized with vector database services.`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline initialized with pgvector.`);
 
   // System documentation is processed via the normal docs pipeline when triggered
 
-      // Initialize vector database resources (PostgreSQL pgvector or Pinecone fallback)
+      // Initialize vector database resources (PostgreSQL pgvector only)
       this.pgVectorService = null;
-      this.pineconePlugin = null;
       this.vectorSearchOrchestrator = null;
       
-      // Prefer PostgreSQL pgvector, fallback to Pinecone
-      const usePostgreSQL = process.env.USE_POSTGRESQL_VECTORS !== 'false'; // Default to true
-      let shouldFallbackToPinecone = false;
-      
-      if (usePostgreSQL) {
-        try {
-          const PGVectorService = require('./rag_pipelines/context/embedding/pgVectorService');
-          this.pgVectorService = PGVectorService.fromEnvironment();
-          
-          const VectorSearchOrchestrator = require('./rag_pipelines/query/vectorSearchOrchestrator');
-          this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
-            embeddings: this.embeddings,
-            pgVectorService: this.pgVectorService,
-            defaultTopK: 10,
-            defaultThreshold: 0.3,
-            maxResults: 50
-          });
-          
-          console.log(`[${new Date().toISOString()}] [DEBUG] PostgreSQL pgvector resources initialized in AILangchainAdapter`);
-        } catch (error) {
-          console.warn(`[${new Date().toISOString()}] Failed to initialize PostgreSQL pgvector, falling back to Pinecone:`, error.message);
-          // Set fallback flag when PostgreSQL initialization fails
-          shouldFallbackToPinecone = true;
-        }
-      }
-      
-      // Fallback to Pinecone if PostgreSQL is not available or disabled
-      if ((!usePostgreSQL || shouldFallbackToPinecone) && process.env.PINECONE_API_KEY) {
-        const PineconePlugin = require('./rag_pipelines/context/embedding/pineconePlugin');
-        const VectorSearchOrchestrator = require('./rag_pipelines/query/vectorSearchOrchestrator');
+      try {
+        const PGVectorService = require('./rag_pipelines/context/embedding/pgVectorService');
+        this.pgVectorService = PGVectorService.fromEnvironment();
         
-        this.pineconePlugin = new PineconePlugin();
+        const VectorSearchOrchestrator = require('./rag_pipelines/query/vectorSearchOrchestrator');
         this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
           embeddings: this.embeddings,
-          rateLimiter: this.requestQueue?.pineconeLimiter,
-          pineconePlugin: this.pineconePlugin,
-          apiKey: process.env.PINECONE_API_KEY,
-          indexName: process.env.PINECONE_INDEX_NAME,
-          region: process.env.PINECONE_REGION,
+          pgVectorService: this.pgVectorService,
           defaultTopK: 10,
           defaultThreshold: 0.3,
           maxResults: 50
         });
-        console.log(`[${new Date().toISOString()}] [DEBUG] Pinecone fallback resources initialized in AILangchainAdapter`);
-      } else if (!process.env.PINECONE_API_KEY) {
-        console.warn(`[${new Date().toISOString()}] No vector database configured - neither PostgreSQL pgvector nor Pinecone available`);
+        
+        console.log(`[${new Date().toISOString()}] ✅ PostgreSQL pgvector initialized successfully`);
+      } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ CRITICAL: Failed to initialize PostgreSQL pgvector:`, error.message);
+        throw new Error(`PostgreSQL pgvector initialization failed: ${error.message}`);
       }
 
       // Initialize text search services
@@ -184,18 +150,16 @@ class AILangchainAdapter extends IAIPort {
       this.hybridSearchService = null;
       console.log(`[${new Date().toISOString()}] [DEBUG] Text search services will be initialized after PostgresAdapter is available`);
 
-      // Initialize QueryPipeline with shared Pinecone resources (no duplication)
+      // Initialize QueryPipeline with pgvector resources
       this.queryPipeline = new QueryPipeline({  
         embeddings: this.embeddings,
         llm: this.llm,
         eventBus: this.eventBus,
         requestQueue: this.requestQueue,
         maxRetries: this.requestQueue.maxRetries,
-        // Pass shared Pinecone resources to avoid duplication
-        pineconePlugin: this.pineconePlugin,
         vectorSearchOrchestrator: this.vectorSearchOrchestrator
       });
-      console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized in constructor`);
+      console.log(`[${new Date().toISOString()}] [DEBUG] QueryPipeline initialized with pgvector`);
 
       console.log(`[${new Date().toISOString()}] AILangchainAdapter initialized successfully`);
     } catch (error) {

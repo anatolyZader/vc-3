@@ -1,61 +1,29 @@
 /**
  * VectorSearchOrchestrator - Modern vector search implementation
  * 
- * Supports both PostgreSQL pgvector and Pinecone for vector similarity search.
- * Uses the centralized PGVectorService or PineconeService for efficient similarity search.
+ * Supports PostgreSQL pgvector for vector similarity search.
+ * Uses the centralized PGVectorService for efficient similarity search.
  * Maintains compatibility with existing QueryPipeline interface.
  */
 
 class VectorSearchOrchestrator {
   constructor(options = {}) {
-    // Handle both legacy and modern initialization patterns
-    if (arguments.length > 1) {
-      // Legacy positional arguments pattern: (vectorStore, pinecone, embeddings)
-      this.vectorStore = arguments[0];
-      this.pinecone = arguments[1];  
-      this.embeddings = arguments[2];
-      this.defaultTopK = 10;
-      this.defaultThreshold = 0.4;
-      this.maxResults = 50;
-    } else {
-      // Modern options object pattern
-      this.vectorStore = options.vectorStore || null;
-      this.pinecone = options.pinecone || null;
-      this.embeddings = options.embeddings;
-      this.defaultTopK = options.defaultTopK || 10;
-      this.defaultThreshold = options.defaultThreshold || 0.3;  // Lowered from 0.4 to 0.3 for more matches
-      this.maxResults = options.maxResults || 50;
+    // Require pgVectorService
+    if (!options.pgVectorService) {
+      throw new Error('VectorSearchOrchestrator requires pgVectorService. Pass it via options.pgVectorService');
     }
     
-    // Initialize vector service (PostgreSQL pgvector preferred, Pinecone fallback)
-    this.vectorService = null;
+    // Modern options object pattern
+    this.vectorStore = options.vectorStore || null;
+    this.embeddings = options.embeddings;
+    this.defaultTopK = options.defaultTopK || 10;
+    this.defaultThreshold = options.defaultThreshold || 0.3;  // Lowered from 0.4 to 0.3 for more matches
+    this.maxResults = options.maxResults || 50;
     
-    if (options.pgVectorService) {
-      this.vectorService = options.pgVectorService;
-      this.serviceType = 'postgresql';
-      console.log(`[${new Date().toISOString()}] [VectorSearchOrchestrator] Using PostgreSQL pgvector`);
-    } else if (options.pineconePlugin) {
-      // Legacy Pinecone initialization
-      const PineconeService = require('../context/embedding/pineconeService');
-      this.vectorService = new PineconeService({
-        pineconePlugin: options.pineconePlugin,
-        rateLimiter: this.embeddings?.rateLimiter
-      });
-      this.serviceType = 'pinecone';
-      console.log(`[${new Date().toISOString()}] [VectorSearchOrchestrator] Using Pinecone`);
-    } else {
-      console.warn(`[${new Date().toISOString()}] [VectorSearchOrchestrator] No vector service provided, creating Pinecone fallback`);
-      const PineconePlugin = require('../context/embedding/pineconePlugin');
-      const PineconeService = require('../context/embedding/pineconeService');
-      this.vectorService = new PineconeService({
-        pineconePlugin: new PineconePlugin(),
-        rateLimiter: this.embeddings?.rateLimiter
-      });
-      this.serviceType = 'pinecone';
-    }
-
-    // Backward compatibility
-    this.pineconeService = this.serviceType === 'pinecone' ? this.vectorService : null;
+    // Initialize vector service (PostgreSQL pgvector only)
+    this.vectorService = options.pgVectorService;
+    this.serviceType = 'postgresql';
+    console.log(`[${new Date().toISOString()}] [VectorSearchOrchestrator] Using PostgreSQL pgvector`);
 
     // Search configuration
     // const VectorSearchStrategy = require('./vectorSearchStrategy'); // Unused
@@ -82,15 +50,10 @@ class VectorSearchOrchestrator {
 
   async _initializeConnection() {
     try {
-      if (this.serviceType === 'postgresql') {
-        // PostgreSQL pgvector doesn't need special initialization
-        this.logger.debug('VectorSearchOrchestrator using PostgreSQL pgvector');
-      } else if (this.vectorService && typeof this.vectorService.getClient === 'function') {
-        await this.vectorService.getClient();
-        this.logger.debug('VectorSearchOrchestrator connected to Pinecone');
-      }
+      // PostgreSQL pgvector doesn't need special initialization
+      this.logger.debug('VectorSearchOrchestrator using PostgreSQL pgvector');
     } catch (error) {
-      this.logger.error(`Failed to connect VectorSearchOrchestrator to ${this.serviceType}:`, error.message);
+      this.logger.error(`Failed to initialize VectorSearchOrchestrator:`, error.message);
     }
   }
 
@@ -117,7 +80,7 @@ class VectorSearchOrchestrator {
         }
       }
 
-      // Search core Pinecone store
+      // Search core pgvector store
       try {
         const coreResults = await this.searchSimilar(prompt, {
           namespace: this.vectorStore?.namespace || null,
@@ -461,7 +424,7 @@ class VectorSearchOrchestrator {
 
     this.logger.info(`🏠 Searching within repository: ${repoId} for user: ${userId}`);
 
-    // TEMPORARY FIX: Hardcode the actual namespace that exists in Pinecone
+    // TEMPORARY FIX: Hardcode the actual namespace that exists in the database
     // TODO: Fix the namespace generation inconsistency
     const repositoryNamespace = `${userId}_anatolyzader_vc-3`;
     console.log(`[${new Date().toISOString()}] [DEBUG] TEMP FIX: Using hardcoded repository namespace: ${repositoryNamespace}`);
@@ -514,7 +477,7 @@ class VectorSearchOrchestrator {
     
     try {
       // Create a dummy query vector (we're using metadata filter only)
-      // We need a query vector for Pinecone, but we'll rely on metadata filtering
+      // We need a query vector for similarity search, but we'll rely on metadata filtering
       const dummyQuery = `contents of ${filename}`;
       const queryEmbedding = await this.embeddings.embedQuery(dummyQuery);
       

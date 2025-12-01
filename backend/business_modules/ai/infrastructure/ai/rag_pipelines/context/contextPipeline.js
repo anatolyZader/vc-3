@@ -3,7 +3,6 @@
 
 const logConfig = require('./logConfig');
 const EventManager = require('./eventManager');
-const PineconePlugin = require('./embedding/pineconePlugin');
 const SemanticPreprocessor = require('./enhancers/semanticPreprocessor');
 const UbiquitousLanguageEnhancer = require('./enhancers/ubiquitousLanguageEnhancer');
 const CodePreprocessor = require('./processors/codePreprocessor');
@@ -14,7 +13,6 @@ const GitHubOperations = require('./loading/githubOperations');
 const ASTCodeSplitter = require('./chunking/astCodeSplitter');
 const RepoProcessor = require('./processors/repoProcessor');
 const EmbeddingManager = require('./embedding/embeddingManager');
-const PineconeService = require('./embedding/pineconeService');
 const RepoWorkerManager = require('./loading/repoWorkerManager');
 const ChangeAnalyzer = require('./loading/changeAnalyzer');
 const ContextPipelineUtils = require('./contextPipelineUtils');
@@ -34,11 +32,9 @@ class ContextPipeline {
     this.options = options;
     this.embeddings = options.embeddings;
     this.eventBus = options.eventBus;
-    this.pineconeLimiter = options.pineconeLimiter;
     this.config = options.config || {};
     
-    // Initialize core components only
-    this.pineconeManager = new PineconePlugin();
+    // Initialize core components
     this.githubOperations = new GitHubOperations();
     this.changeAnalyzer = new ChangeAnalyzer();
     this.ubiquitousLanguageEnhancer = new UbiquitousLanguageEnhancer();
@@ -67,52 +63,35 @@ class ContextPipeline {
     this.semanticPreprocessor = new SemanticPreprocessor();
     this.textPreprocessor = new TextPreprocessor();
     
-    // Initialize vector database service (PostgreSQL pgvector or Pinecone fallback)
-    const usePostgreSQL = process.env.USE_POSTGRESQL_VECTORS !== 'false'; // Default to true
+    // Initialize vector database service (PostgreSQL pgvector only)
     let vectorService = null;
     
-    if (usePostgreSQL) {
-      try {
-        const PGVectorService = require('./embedding/pgVectorService');
-        vectorService = PGVectorService.fromEnvironment();
-        console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline using PostgreSQL pgvector`);
-      } catch (error) {
-        console.warn(`[${new Date().toISOString()}] Failed to initialize PostgreSQL pgvector, falling back to Pinecone:`, error.message);
-      }
+    try {
+      const PGVectorService = require('./embedding/pgVectorService');
+      vectorService = PGVectorService.fromEnvironment();
+      console.log(`[${new Date().toISOString()}] ✅ ContextPipeline using PostgreSQL pgvector`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Failed to initialize PostgreSQL pgvector:`, error.message);
+      throw new Error(`PostgreSQL pgvector initialization failed: ${error.message}`);
     }
     
-    // Fallback to Pinecone if PostgreSQL is not available
-    if (!vectorService) {
-      const PineconeService = require('./embedding/pineconeService');
-      vectorService = new PineconeService({
-        pineconePlugin: this.pineconeManager,
-        rateLimiter: this.pineconeLimiter
-      });
-      console.log(`[${new Date().toISOString()}] [DEBUG] ContextPipeline using Pinecone fallback`);
-    }
-    
-    // Initialize EmbeddingManager with vector service dependency
+    // Initialize EmbeddingManager with pgvector service
     this.embeddingManager = new EmbeddingManager({
       embeddings: this.embeddings,
-      pgVectorService: usePostgreSQL ? vectorService : null,
-      pineconeService: !usePostgreSQL ? vectorService : null
+      pgVectorService: vectorService
     });
     
-    // Initialize docsProcessor with vector service
+    // Initialize docsProcessor with pgvector service
     this.docsProcessor = new DocsProcessor({
       embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
       vectorService: vectorService,
-      repoPreparation: this.githubOperations,
-      pineconeManager: this.pineconeManager // Backward compatibility
+      repoPreparation: this.githubOperations
     });
 
-    // Initialize apiSpecProcessor with vector service
+    // Initialize apiSpecProcessor with pgvector service
     this.apiSpecProcessor = new ApiSpecProcessor({
       embeddings: this.embeddings,
-      pineconeLimiter: this.pineconeLimiter,
-      vectorService: vectorService,
-      pineconeManager: this.pineconeManager // Backward compatibility
+      vectorService: vectorService
     });
     
     // Initialize repoProcessor with pure processing dependencies only
@@ -126,9 +105,6 @@ class ContextPipeline {
     this.eventManager = new EventManager({
       eventBus: this.eventBus
     });
-    
-    // Pinecone will be initialized inline when needed
-    this.pinecone = null;
     
     // Initialize tracing if enabled
     this._initializeTracing();
@@ -202,18 +178,6 @@ class ContextPipeline {
     } catch (err) {
       console.warn(`[${new Date().toISOString()}] [TRACE] Failed to enable ContextPipeline tracing: ${err.message}`);
     }
-  }
-
-  async getPineconeClient() {
-    if (!this.pinecone) {
-      try {
-        this.pinecone = await this.pineconeManager?.getClient();
-      } catch (error) {
-        console.error(`Pinecone initialization failed:`, error.message);
-        return null;
-      }
-    }
-    return this.pinecone;
   }
 
   async routeDocumentToProcessor(document) {
@@ -509,10 +473,9 @@ class ContextPipeline {
 
       console.log(`[${new Date().toISOString()}] 🔑 COMMIT DETECTED: ${commitInfo?.hash?.substring(0, 8) ?? 'unknown'} - ${commitInfo?.subject ?? 'No subject'}`);
 
-      // Step 2: Enhanced duplicate check with commit hash comparison
-      const pineconeClient = await this.getPineconeClient();
+      // Step 2: Enhanced duplicate check with commit hash comparison (pgvector-based)
       const existingRepo = await this.githubOperations.findExistingRepo(
-        userId, repoId, githubOwner, repoName, commitInfo?.hash ?? null, pineconeClient, this.embeddings
+        userId, repoId, githubOwner, repoName, commitInfo?.hash ?? null, null, this.embeddings
       );
       
       if (existingRepo) {
@@ -576,7 +539,7 @@ class ContextPipeline {
           userId, repoId, repoUrl: url, branch, githubOwner, repoName,
           repoProcessor: this.repoProcessor,
           repoPreparation: this.githubOperations,
-          pineconeClient: await this.getPineconeClient(),
+          pineconeClient: null, // Not using Pinecone anymore
           embeddings: this.embeddings,
           routeDocumentsToProcessors: this.routeDocumentsToProcessors.bind(this),
           eventManager: this.eventManager
@@ -710,13 +673,12 @@ class ContextPipeline {
       if (result.success) {
         logConfig.logProcessing(`[${new Date().toISOString()}] ✅ Worker processing successful, storing tracking info...`);
         
-        // Step 2: Store repository tracking info for future duplicate detection
-        const pineconeClient2 = await this.getPineconeClient();
+        // Step 2: Store repository tracking info for future duplicate detection (pgvector)
         const namespace = CollectionNameGenerator.generateForRepository({ repoId, githubOwner, repoName });
         
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, commitInfo, 
-          namespace, pineconeClient2, this.embeddings
+          namespace, null, this.embeddings
         );
 
         return ContextPipelineUtils.createStandardResult({
@@ -844,14 +806,13 @@ class ContextPipeline {
       }
       console.log(`[${new Date().toISOString()}] 📊 UL_VALIDATION: ${ulPresentCount}/${splitDocuments.length} chunks have UL metadata, ${ulMissingCount} missing`);
 
-      // Step 5: Store processed documents using EmbeddingManager
-      const namespace = CollectionNameGenerator.generateForRepository({ repoId, githubOwner, repoName });
-      await this.embeddingManager.storeToPinecone(splitDocuments, namespace, githubOwner, repoName);
+      // Step 5: Store processed documents to pgvector using EmbeddingManager
+      await this.embeddingManager.storeRepositoryDocuments(splitDocuments, userId, repoId, githubOwner, repoName);
       
-      // Step 5.5: SYNCHRONIZED CHUNKING - Store same chunks to PostgreSQL with rich metadata
+      // Step 5.5: Store chunks to PostgreSQL text search with rich metadata
       if (this.textSearchService) {
         try {
-          console.log(`[${new Date().toISOString()}] 💾 SYNC: Storing ${splitDocuments.length} chunks to PostgreSQL (mirroring Pinecone)...`);
+          console.log(`[${new Date().toISOString()}] 💾 Storing ${splitDocuments.length} chunks to PostgreSQL text search...`);
           const storeResult = await this.textSearchService.storeChunks(
             splitDocuments, 
             userId, 
@@ -860,21 +821,20 @@ class ContextPipeline {
               includeMetadata: true  // Include all semantic tags and metadata
             }
           );
-          console.log(`[${new Date().toISOString()}] ✅ SYNC: PostgreSQL storage complete - ${storeResult.stored} new, ${storeResult.updated || 0} updated, ${storeResult.skipped} skipped`);
+          console.log(`[${new Date().toISOString()}] ✅ PostgreSQL text search storage complete - ${storeResult.stored} new, ${storeResult.updated || 0} updated, ${storeResult.skipped} skipped`);
         } catch (pgError) {
-          console.error(`[${new Date().toISOString()}] ⚠️  PostgreSQL storage failed (non-fatal):`, pgError.message);
+          console.error(`[${new Date().toISOString()}] ⚠️  PostgreSQL text search storage failed (non-fatal):`, pgError.message);
           // Don't fail the whole process if PostgreSQL storage fails
         }
       } else {
-        console.log(`[${new Date().toISOString()}] ⏭️  Text search service not available, skipping PostgreSQL storage`);
+        console.log(`[${new Date().toISOString()}] ⏭️  Text search service not available, skipping PostgreSQL text search storage`);
       }
       
-      // Step 6: Store repository tracking info for future duplicate detection  
+      // Step 6: Store repository tracking info for future duplicate detection (pgvector)
       if (commitHash) {
-        const pineconeClient2 = await this.getPineconeClient();
         await this.githubOperations.storeRepositoryTrackingInfo(
           userId, repoId, githubOwner, repoName, actualCommitInfo, 
-          namespace, pineconeClient2, this.embeddings
+          namespace, null, this.embeddings
         );
       }
 

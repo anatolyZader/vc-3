@@ -220,13 +220,20 @@ module.exports = async function (fastify, opts) {
       const hasAiService = !!aiService;
       const hasAiAdapter = !!aiService?.aiAdapter;
       const hasPersistAdapter = !!aiService?.aiPersistAdapter;
-      const isReady = hasAiService && hasAiAdapter && hasPersistAdapter;
+      
+      // Check if the adapter has pgvector (the only vector database we use)
+      const hasPgVector = !!aiService?.aiAdapter?.pgVectorService;
+      const hasContextPipeline = !!aiService?.aiAdapter?.contextPipeline;
+      
+      const isReady = hasAiService && hasAiAdapter && hasPersistAdapter && hasPgVector && hasContextPipeline;
       
       if (!isReady) {
         const missing = [];
         if (!hasAiService) missing.push('aiService');
         if (!hasAiAdapter) missing.push('aiAdapter');
         if (!hasPersistAdapter) missing.push('aiPersistAdapter');
+        if (!hasPgVector) missing.push('pgvector');
+        if (!hasContextPipeline) missing.push('contextPipeline');
         
         return {
           ready: false,
@@ -235,7 +242,9 @@ module.exports = async function (fastify, opts) {
           details: {
             aiService: hasAiService ? 'ready' : 'initializing',
             aiAdapter: hasAiAdapter ? 'ready' : 'initializing',
-            aiPersistAdapter: hasPersistAdapter ? 'ready' : 'initializing'
+            aiPersistAdapter: hasPersistAdapter ? 'ready' : 'initializing',
+            pgvector: hasPgVector ? 'ready' : 'initializing',
+            contextPipeline: hasContextPipeline ? 'ready' : 'initializing'
           },
           timestamp: new Date().toISOString()
         };
@@ -247,7 +256,9 @@ module.exports = async function (fastify, opts) {
         services: {
           aiService: 'ready',
           aiAdapter: 'ready',
-          aiPersistAdapter: 'ready'
+          aiPersistAdapter: 'ready',
+          vectorDatabase: 'pgvector',
+          contextPipeline: 'ready'
         },
         timestamp: new Date().toISOString()
       };

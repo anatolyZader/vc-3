@@ -117,25 +117,12 @@ class QueryPipeline {
     this.textSearchService = options.textSearchService || null;
     this.hybridSearchService = options.hybridSearchService || null;
     
-    // Use shared vectorSearchOrchestrator if provided, otherwise create our own
-    if (options.vectorSearchOrchestrator) {
-      this.vectorSearchOrchestrator = options.vectorSearchOrchestrator;
-      console.log(`[${new Date().toISOString()}] QueryPipeline using shared VectorSearchOrchestrator`);
-    } else {
-      // Fallback: create our own (for backwards compatibility or standalone usage)
-      this.vectorSearchOrchestrator = new VectorSearchOrchestrator({
-        embeddings: this.embeddings,
-        rateLimiter: this.requestQueue?.pineconeLimiter,
-        pineconePlugin: options.pineconePlugin,
-        apiKey: process.env.PINECONE_API_KEY,
-        indexName: process.env.PINECONE_INDEX_NAME,
-        region: process.env.PINECONE_REGION,
-        defaultTopK: 60,        // DOUBLED: Increased from 30 to 60 for more chunks
-        defaultThreshold: 0.25, // Lowered from 0.3 to 0.25 for even more matches
-        maxResults: 200         // DOUBLED: Increased from 100 to 200
-      });
-      console.log(`[${new Date().toISOString()}] QueryPipeline created its own VectorSearchOrchestrator`);
+    // Use shared vectorSearchOrchestrator (pgvector-based) from aiLangchainAdapter
+    if (!options.vectorSearchOrchestrator) {
+      throw new Error('QueryPipeline requires a vectorSearchOrchestrator instance from aiLangchainAdapter');
     }
+    this.vectorSearchOrchestrator = options.vectorSearchOrchestrator;
+    console.log(`[${new Date().toISOString()}] QueryPipeline using shared pgvector-based VectorSearchOrchestrator`);
     this.responseGenerator = new ResponseGenerator(this.llm, this.requestQueue);
     
     // Initialize trace archiver for automatic analysis archiving
@@ -455,11 +442,6 @@ class QueryPipeline {
     if (vectorStore) {
       // Check for LangChain PGVectorStore properties (PostgreSQL)
       if (vectorStore.tableName && vectorStore.pool) {
-        return true;
-      }
-      
-      // Check for LangChain PineconeStore properties (Pinecone fallback)
-      if (vectorStore.embeddings && vectorStore.pineconeIndex) {
         return true;
       }
       
@@ -829,10 +811,10 @@ class QueryPipeline {
   }
 
   /**
-   * Combine code and docs filters into a single Pinecone filter
+   * Combine code and docs filters into a single vector search filter
    * @param {object} codeFilters - Filters for code chunks
    * @param {object} docsFilters - Filters for documentation chunks
-   * @returns {object} Combined Pinecone filter
+   * @returns {object} Combined filter for vector search
    */
   combineFilters(codeFilters, docsFilters) {
     const filters = [];

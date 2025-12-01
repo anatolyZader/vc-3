@@ -5,40 +5,28 @@ const { Document } = require('langchain/document');
 
 /**
  * Handles all embedding and vector storage operations with PostgreSQL pgvector
- * Now uses centralized PGVectorService for all vector operations
+ * Uses centralized PGVectorService for all vector operations
  * Added token-based safety validation to prevent embedding API failures
  */
 class EmbeddingManager {
   constructor(options = {}) {
     this.embeddings = options.embeddings;
     
-    // Use PGVectorService instead of PineconeService
-    if (!options.pgVectorService && !options.pineconeService) {
+    // Require PGVectorService
+    if (!options.pgVectorService) {
       throw new Error('EmbeddingManager requires a pgVectorService instance. Pass it via options.pgVectorService');
     }
     
-    // Support both new PGVector and legacy Pinecone for migration period
     this.pgVectorService = options.pgVectorService;
-    this.pineconeService = options.pineconeService; // For backward compatibility during migration
-    
-    // Use PostgreSQL as primary, fallback to Pinecone if configured
-    this.vectorService = this.pgVectorService || this.pineconeService;
-    
-    // Backward compatibility aliases
-    this.pinecone = this.vectorService;
+    this.vectorService = this.pgVectorService;
   }
 
   async _getVectorService() {
     return this.vectorService;
   }
 
-  // Backward compatibility method
-  async _getPineconeService() {
-    return this._getVectorService();
-  }
-
   /**
-   * Store documents to PostgreSQL vector database (or Pinecone for backward compatibility)
+   * Store documents to PostgreSQL pgvector database
    * NOTE: Safety rechunking enabled ONLY for oversized chunks (>8000 tokens)
    * Preserves semantic metadata by copying it to all sub-chunks
    */
@@ -102,14 +90,12 @@ class EmbeddingManager {
         console.log(`[${new Date().toISOString()}] 📦 SEMANTIC PRESERVATION: All ${documents.length} AST-chunked documents are safe (<8000 tokens)`);
       }
       
-      // Import vector service class for static methods
-      const VectorService = this.pgVectorService ? 
-        require('./pgVectorService') : 
-        require('./pineconeService');
+      // Import pgvector service class for static methods
+      const PGVectorService = require('./pgVectorService');
       
       // Generate deterministic, idempotent document IDs (contentHash + source = unique stable key)
       // Same content + source = same ID → upsert automatically overwrites (no duplicates)
-      const documentIds = VectorService.generateRepositoryDocumentIds(safeDocuments, namespace);
+      const documentIds = PGVectorService.generateRepositoryDocumentIds(safeDocuments, namespace);
 
       console.log(`[${new Date().toISOString()}] 📝 STORING TO VECTOR DB: Processing ${safeDocuments.length} semantically-rich documents`);
       console.log(`[${new Date().toISOString()}] 🔑 IDEMPOTENT IDS: Using deterministic IDs (namespace:source:contentHash) - upserts overwrite automatically`);
@@ -191,14 +177,12 @@ class EmbeddingManager {
     }
 
     try {
-      // Import vector service class for static methods
-      const VectorService = this.pgVectorService ? 
-        require('./pgVectorService') : 
-        require('./pineconeService');
+      // Import pgvector service class for static methods
+      const PGVectorService = require('./pgVectorService');
       
       // Generate deterministic, idempotent document IDs (contentHash + source = unique stable key)
       // Same content + source = same ID → upsert automatically overwrites (no duplicates)
-      const documentIds = VectorService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);
+      const documentIds = PGVectorService.generateUserRepositoryDocumentIds(splitDocs, userId, repoId);
 
       console.log(`[${new Date().toISOString()}] 🔑 IDEMPOTENT IDS: Using deterministic IDs (userId:repoId:source:contentHash)`);
       console.log(`[${new Date().toISOString()}] 📁 COLLECTION: Repository collection name: ${repoCollection} (shared by all users)`);
@@ -226,17 +210,6 @@ class EmbeddingManager {
       throw error;
     }
   }
-
-  /**
-   * Backward compatibility method - redirects to storeToVectorDB
-   * @deprecated Use storeToVectorDB instead
-   */
-  async storeToPinecone(documents, namespace, githubOwner, repoName) {
-    console.warn('[EmbeddingManager] storeToPinecone is deprecated. Use storeToVectorDB instead.');
-    return this.storeToVectorDB(documents, namespace, githubOwner, repoName);
-  }
-
-
 }
 
 module.exports = EmbeddingManager;
