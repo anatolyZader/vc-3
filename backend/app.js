@@ -185,6 +185,83 @@ module.exports = async function (fastify, opts) {
     version: process.env.npm_package_version || '1.0.0'
   }));
 
+  // Readiness check endpoint - verifies DI container is fully initialized
+  // This is specifically for CI/CD workflows that need to wait for full initialization
+  // Production can ignore this endpoint - it's purely for CI orchestration
+  fastify.get('/ready', async () => {
+    try {
+      // Check if DI container is available
+      if (!fastify.diContainer) {
+        return { 
+          ready: false, 
+          reason: 'DI container not initialized - still loading',
+          waitMessage: 'Please wait, system is starting up...',
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+      // Try to resolve critical services to verify DI is fully loaded
+      const testScope = fastify.diContainer.createScope();
+      
+      let aiService;
+      try {
+        aiService = await testScope.resolve('aiService');
+      } catch (resolveError) {
+        return {
+          ready: false,
+          reason: 'AI service not yet registered in DI container',
+          waitMessage: 'DI container still initializing modules...',
+          error: resolveError.message,
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+      // Check if aiService and its dependencies are properly initialized
+      const hasAiService = !!aiService;
+      const hasAiAdapter = !!aiService?.aiAdapter;
+      const hasPersistAdapter = !!aiService?.aiPersistAdapter;
+      const isReady = hasAiService && hasAiAdapter && hasPersistAdapter;
+      
+      if (!isReady) {
+        const missing = [];
+        if (!hasAiService) missing.push('aiService');
+        if (!hasAiAdapter) missing.push('aiAdapter');
+        if (!hasPersistAdapter) missing.push('aiPersistAdapter');
+        
+        return {
+          ready: false,
+          reason: 'AI service dependencies still initializing',
+          waitMessage: `Waiting for: ${missing.join(', ')}`,
+          details: {
+            aiService: hasAiService ? 'ready' : 'initializing',
+            aiAdapter: hasAiAdapter ? 'ready' : 'initializing',
+            aiPersistAdapter: hasPersistAdapter ? 'ready' : 'initializing'
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+      return { 
+        ready: true,
+        message: 'All AI services fully initialized and ready for requests',
+        services: {
+          aiService: 'ready',
+          aiAdapter: 'ready',
+          aiPersistAdapter: 'ready'
+        },
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        ready: false,
+        reason: 'Unexpected error during readiness check',
+        waitMessage: 'System still initializing, please wait...',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  });
+
   // ────────────────────────────────────────────────────────────────
   // AUTOLOAD MODULES
   // ────────────────────────────────────────────────────────────────

@@ -358,9 +358,7 @@ jobs:
           echo "⏳ Waiting for server to be ready..."
           for i in {1..45}; do
             if curl -f -s http://localhost:3000/health >/dev/null 2>&1; then
-              echo "✅ Backend server is ready"
-              echo "BACKEND_AVAILABLE=true" >> $GITHUB_ENV
-              echo "BACKEND_URL=http://localhost:3000" >> $GITHUB_ENV
+              echo "✅ Backend server health check passed"
               break
             elif [ $i -eq 45 ]; then
               echo "❌ Server failed to start within 90 seconds"
@@ -375,6 +373,44 @@ jobs:
               sleep 2
             fi
           done
+          
+          # Additional readiness check - wait for DI container to be fully initialized
+          echo "🔍 Checking DI container readiness..."
+          echo "💡 This ensures aiAdapter and other dependencies are loaded before indexing"
+          
+          READY=false
+          for i in {1..60}; do
+            READY_CHECK=$(curl -s http://localhost:3000/ready || echo '{"ready":false}')
+            IS_READY=$(echo "$READY_CHECK" | grep -o '"ready":true' || echo "")
+            
+            if [ -n "$IS_READY" ]; then
+              echo "✅ DI container is fully initialized and ready for indexing"
+              echo "BACKEND_AVAILABLE=true" >> $GITHUB_ENV
+              echo "BACKEND_URL=http://localhost:3000" >> $GITHUB_ENV
+              READY=true
+              break
+            else
+              if [ $((i % 10)) -eq 0 ]; then
+                echo "⏳ Still waiting for initialization... (${i}/60 attempts, $((i*2))s elapsed)"
+                echo "📊 Status: $READY_CHECK"
+              fi
+              sleep 2
+            fi
+          done
+          
+          if [ "$READY" != "true" ]; then
+            echo "❌ DI container did not initialize within 120 seconds"
+            echo "📊 Final readiness check response:"
+            echo "$READY_CHECK"
+            echo ""
+            echo "💡 This might indicate:"
+            echo "   - Missing environment variables (OPENAI_API_KEY, etc.)"
+            echo "   - Database connection issues"
+            echo "   - Module loading errors"
+            echo ""
+            echo "BACKEND_AVAILABLE=false" >> $GITHUB_ENV
+            exit 1
+          fi
 
       - name: Trigger RAG Indexing
         run: |
