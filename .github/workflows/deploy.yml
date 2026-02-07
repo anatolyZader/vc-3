@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     env:
-      GCP_PROJECT_ID: eventstorm-1
+      GCP_PROJECT_ID: vibeswitch-1
       USER_ID: 'd41402df-182a-41ec-8f05-153118bf2718'
     steps:
       - name: Authenticate with GCP
@@ -57,7 +57,7 @@ jobs:
                 "githubOwner": "$GITHUB_OWNER",
                 "repoName": "$REPO_NAME",
                 "commitHash": "$COMMIT_SHA",
-                "description": "EventStorm repository - automatic RAG reindexing via GitHub Actions",
+                "description": "VibeSwitch repository - automatic RAG reindexing via GitHub Actions",
                 "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
                 "source": "github-actions-push"
               }
@@ -251,9 +251,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
-      GCP_PROJECT: eventstorm-1
+      GCP_PROJECT: vibeswitch-1
       REGION: me-west1
-      GCP_BUCKET: eventstorm-bucket
+      GCP_BUCKET: vibeswitch-bucket
       REDIS_HOST: 10.26.209.3
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -264,7 +264,7 @@ jobs:
       LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
       LANGSMITH_WORKSPACE_ID: ${{ secrets.LANGSMITH_WORKSPACE_ID }}
       LANGSMITH_TRACING: true
-      LANGSMITH_ORGANIZATION_NAME: eventstorm-trace
+      LANGSMITH_ORGANIZATION_NAME: vibeswitch-trace
     steps:
       - name: Checkout (shallow)
         uses: actions/checkout@v4
@@ -401,7 +401,7 @@ jobs:
         working-directory: backend
         run: |
           echo "Deploying backend (now uses GitHub API instead of Git cloning)..."
-          gcloud run deploy eventstorm-backend \
+          gcloud run deploy vibeswitch-backend \
             --source . \
             --region $REGION \
             --project $GCP_PROJECT \
@@ -414,13 +414,13 @@ jobs:
             --timeout=900 \
             --max-instances=10 \
             --set-secrets=USER_OAUTH2_CREDENTIALS=google-creds:latest \
-            --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=eventstorm_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=eventstorm-1:me-west1:eventstorm-pg-instance-1,DEPLOYMENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ"),DEPLOYMENT_RUN_ID=${{ github.run_id }} \
-            --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_REGION=us-central1,PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }},LANGSMITH_TRACING=true,LANGSMITH_API_KEY=${{ secrets.LANGSMITH_API_KEY }},LANGSMITH_WORKSPACE_ID=${{ secrets.LANGSMITH_WORKSPACE_ID }},LANGSMITH_ORGANIZATION_NAME=eventstorm-trace,LANGCHAIN_PROJECT=eventstorm-trace,RAG_ENABLE_CHUNK_LOGGING=false \
+            --set-env-vars=NODE_ENV=staging,REDIS_PORT=6379,PG_USER=postgres,PG_DATABASE=vibeswitch_db,JWT_EXPIRE_IN=1h,REDIS_HOST=$REDIS_HOST,CLOUD_SQL_CONNECTION_NAME=vibeswitch-1:me-west1:vibeswitch-pg-instance-1,DEPLOYMENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ"),DEPLOYMENT_RUN_ID=${{ github.run_id }} \
+            --set-env-vars=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }},PINECONE_REGION=us-central1,PINECONE_INDEX_NAME=${{ secrets.PINECONE_INDEX_NAME }},LANGSMITH_TRACING=true,LANGSMITH_API_KEY=${{ secrets.LANGSMITH_API_KEY }},LANGSMITH_WORKSPACE_ID=${{ secrets.LANGSMITH_WORKSPACE_ID }},LANGSMITH_ORGANIZATION_NAME=vibeswitch-trace,LANGCHAIN_PROJECT=vibeswitch-trace,RAG_ENABLE_CHUNK_LOGGING=false \
             --set-secrets=JWT_SECRET=jwt-secret:latest,GCP_OAUTH2_CLIENT_SECRET=google-oauth2-secret:latest,PG_PASSWORD=pg-pwd:latest,COOKIE_SECRET=cookie-secret:latest,SESSION_SECRET=session-secret:latest,GITHUB_TOKEN=github-token:latest
 
       - name: Post-deployment verification
         run: |
-          SERVICE_URL=$(gcloud run services describe eventstorm-backend --region=$REGION --format='value(status.url)')
+          SERVICE_URL=$(gcloud run services describe vibeswitch-backend --region=$REGION --format='value(status.url)')
           echo "Service URL: $SERVICE_URL"
           timeout 25 curl -s "$SERVICE_URL/health" || echo "Health endpoint not responding"
 
@@ -508,7 +508,7 @@ jobs:
                 "githubOwner": "$GITHUB_OWNER",
                 "repoName": "$REPO_NAME",
                 "commitHash": "$COMMIT_SHA",
-                "description": "EventStorm repository - automatic RAG reindexing via GitHub Actions",
+                "description": "VibeSwitch repository - automatic RAG reindexing via GitHub Actions",
                 "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)",
                 "source": "github-actions-deployment"
               }

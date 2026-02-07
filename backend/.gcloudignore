@@ -35,9 +35,9 @@ cloud-sql-proxy
 *.tar.gz
 
 # Ignore database files and backups
-eventstorm_db
+vibeswitch_db
 postgres
-eventstorm_db_export.sql
+vibeswitch_db_export.sql
 *_backup_*
 *.patch
 

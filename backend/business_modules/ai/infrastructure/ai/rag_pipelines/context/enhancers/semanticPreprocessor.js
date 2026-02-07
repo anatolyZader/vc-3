@@ -16,7 +16,7 @@
  */
 class SemanticPreprocessor {
   constructor() {
-    // Define semantic role patterns for your EventStorm architecture
+    // Define semantic role patterns for your VibeSwitch architecture
     this.semanticPatterns = {
       controller: [
         /class.*Controller/,
@@ -173,8 +173,8 @@ class SemanticPreprocessor {
       ]
     };
 
-    // EventStorm specific patterns
-    this.eventstormPatterns = {
+    // VibeSwitch specific patterns
+    this.vibeswitchPatterns = {
       chatModule: [
         /chat/i,
         /conversation/i,
@@ -216,7 +216,7 @@ class SemanticPreprocessor {
     const semanticRole = this.detectSemanticRole(pageContent, metadata);
     const architecturalLayer = this.detectArchitecturalLayer(pageContent, metadata);
     const isEntrypoint = this.detectEntrypoint(pageContent, metadata);
-    const eventstormModule = this.detectEventstormModule(pageContent, metadata);
+    const vibeswitchModule = this.detectVibeswitchModule(pageContent, metadata);
     const complexity = this.assessComplexity(pageContent, metadata);
     
     // Generate semantic annotations for metadata (NOT pageContent)
@@ -224,7 +224,7 @@ class SemanticPreprocessor {
       semanticRole,
       architecturalLayer,
       isEntrypoint,
-      eventstormModule,
+      vibeswitchModule,
       complexity,
       source: metadata.source
     });
@@ -239,7 +239,7 @@ class SemanticPreprocessor {
         semantic_role: semanticRole,
         layer: architecturalLayer,
         is_entrypoint: isEntrypoint,
-        eventstorm_module: eventstormModule,
+        vibeswitch_module: vibeswitchModule,
         complexity: complexity,
         semantic_annotation: semanticAnnotation, // ✅ ANNOTATION IN METADATA
         related_tests: contextualInfo.relatedTests,
@@ -325,13 +325,13 @@ class SemanticPreprocessor {
   }
 
   /**
-   * Detect EventStorm specific module
+   * Detect VibeSwitch specific module
    */
-  detectEventstormModule(content, metadata) {
+  detectVibeswitchModule(content, metadata) {
     const source = metadata.source || '';
     const contentLower = content.toLowerCase();
 
-    for (const [module, patterns] of Object.entries(this.eventstormPatterns)) {
+    for (const [module, patterns] of Object.entries(this.vibeswitchPatterns)) {
       if (patterns.some(pattern => {
         if (typeof pattern === 'string') {
           return contentLower.includes(pattern.toLowerCase()) || 
@@ -371,7 +371,7 @@ class SemanticPreprocessor {
   generateSemanticAnnotation(context) {
     let annotation = `SEMANTIC CONTEXT: ${context.semanticRole.toUpperCase()}`;
     annotation += ` | LAYER: ${context.architecturalLayer.toUpperCase()}`;
-    annotation += ` | MODULE: ${context.eventstormModule.toUpperCase()}`;
+    annotation += ` | MODULE: ${context.vibeswitchModule.toUpperCase()}`;
     annotation += ` | COMPLEXITY: ${context.complexity.toUpperCase()}`;
     
     if (context.isEntrypoint) {
@@ -416,7 +416,7 @@ class SemanticPreprocessor {
     
     // Add module-specific functionality
     let moduleDescription = '';
-    switch (context.eventstormModule) {
+    switch (context.vibeswitchModule) {
       case 'chatModule':
         moduleDescription = 'CHAT/CONVERSATION FUNCTIONALITY';
         break;

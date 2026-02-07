@@ -664,7 +664,7 @@ class RepoWorkerManager {
     const headers = {};
     if (process.env.GITHUB_TOKEN) {
       headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
-      headers['User-Agent'] = 'eventstorm-worker-manager';
+      headers['User-Agent'] = 'vibeswitch-worker-manager';
     }
     
     // CRITICAL FIX: The git/trees API requires a SHA, not a branch name

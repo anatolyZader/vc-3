@@ -9,7 +9,7 @@ module.exports = fp(async function corsPlugin (fastify, opts) {
   fastify.register(fastifyCors, {
     origin: [
       'http://localhost:5173',
-      'https://eventstorm.me',
+      'https://vibeswitch.me',
       'http://localhost:3000',  
       'http://127.0.0.1:3000'  
     ],

@@ -448,7 +448,7 @@ class DocsProcessor {
     }
 
     try {
-      const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+      const indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
       const index = typeof pineconeService.index === 'function'
         ? pineconeService.index(indexName)
         : (pineconeService.client ? pineconeService.client.index(indexName) : pineconeService);

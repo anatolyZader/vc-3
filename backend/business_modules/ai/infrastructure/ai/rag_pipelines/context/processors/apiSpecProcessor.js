@@ -269,7 +269,7 @@ class ApiSpecProcessor {
     }
 
     try {
-      const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+      const indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
       let index;
       if (typeof pineconeService.index === 'function') {
         index = pineconeService.index(indexName);

@@ -762,7 +762,7 @@ class ASTCodeSplitter {
         // Retrieval-friendly fields:
         type: fileType,
         fileType: baseMeta.fileType ?? 'js',
-        eventstorm_module: baseMeta.eventstorm_module ?? null,
+        vibeswitch_module: baseMeta.vibeswitch_module ?? null,
         // ENHANCED: Add semantic metadata for better search
         ...(extra?.unit?.name && { 
           semantic_unit_name: extra.unit.name,
@@ -1041,7 +1041,7 @@ const chunks = splitter.split(sourceCode, {
   source: '/path/to/file.js',
   type: 'github-code',  // Will be auto-detected if not provided
   fileType: 'js',
-  eventstorm_module: 'ai'
+  vibeswitch_module: 'ai'
 });
 // => [{ pageContent, metadata: { spanHash, semantic_role, unit_name, is_complete_block, ... } }, ...]
 */

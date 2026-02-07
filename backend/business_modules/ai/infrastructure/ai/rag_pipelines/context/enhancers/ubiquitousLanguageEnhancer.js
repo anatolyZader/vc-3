@@ -56,7 +56,7 @@ class UbiquitousLanguageEnhancer {
   }
 
   /**
-   * Load all EventStorm.me catalogs asynchronously
+   * Load all VibeSwitch catalogs asynchronously
    */
   async loadAllCatalogs() {
     const fs = require('fs').promises;
@@ -110,7 +110,7 @@ class UbiquitousLanguageEnhancer {
   }
 
   /**
-   * Load EventStorm.me ubiquitous language dictionary asynchronously (legacy method)
+   * Load VibeSwitch ubiquitous language dictionary asynchronously (legacy method)
    */
   async loadUbiquitousLanguage() {
     const catalogs = await this.loadAllCatalogs();
@@ -265,7 +265,7 @@ class UbiquitousLanguageEnhancer {
   }
 
   /**
-   * Detect EventStorm business module from file content and path
+   * Detect VibeSwitch business module from file content and path
    */
   detectBusinessModule(content, source) {
     // Generate path patterns from ubiquitous language catalog if available

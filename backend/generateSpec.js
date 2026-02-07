@@ -10,13 +10,13 @@ async function writeSpec() {
   await fastify.register(require('@fastify/swagger'), {
     openapi: {
       info: {
-        title: 'EventStorm.me API',
-        description: 'EventStorm API Documentation',
+        title: 'VibeSwitch API',
+        description: 'VibeSwitch API Documentation',
         version: '1.0.0'
       },
       servers: [
         {
-          url: process.env.NODE_ENV === 'staging' ? 'https://eventstorm.me' : 'http://localhost:3000',
+          url: process.env.NODE_ENV === 'staging' ? 'https://vibeswitch.me' : 'http://localhost:3000',
           description: process.env.NODE_ENV === 'staging' ? 'staging server' : 'Development server'
         }
       ],

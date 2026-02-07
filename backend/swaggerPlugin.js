@@ -8,14 +8,14 @@ module.exports = fp(async function swaggerPlugin(fastify) {
     openapi: {
       openapi: '3.0.3',
       info: {
-        title: 'EventStorm.me API',
-        description: 'EventStorm API – Git analysis, AI insights, docs, chat and more',
+        title: 'VibeSwitch API',
+        description: 'VibeSwitch API – Git analysis, AI insights, docs, chat and more',
         version: '1.0.0',
       },
       servers: [
         {
           url: process.env.NODE_ENV === 'staging'
-            ? 'https://eventstorm.me'
+            ? 'https://vibeswitch.me'
             : 'http://localhost:3000',
           description: process.env.NODE_ENV === 'staging'
             ? 'Production server'

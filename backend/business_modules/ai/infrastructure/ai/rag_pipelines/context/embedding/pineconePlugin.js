@@ -12,7 +12,7 @@ class PineconePlugin {
 
     this.config = {
       apiKey: options.apiKey || process.env.PINECONE_API_KEY,
-      indexName: options.indexName || process.env.PINECONE_INDEX_NAME || 'eventstorm-index',
+      indexName: options.indexName || process.env.PINECONE_INDEX_NAME || 'vibeswitch-index',
       region: options.region || process.env.PINECONE_REGION || 'us-central1',
       cloud: options.cloud || 'gcp'
     };

@@ -167,14 +167,14 @@ class ContextPipeline {
         this.processPushedRepo.bind(this), // 
         {
           name: 'ContextPipeline.processPushedRepo',
-          project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+          project_name: process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace',
           metadata: { component: 'ContextPipeline' },
           tags: ['rag', 'ingestion']
         }
       );
       
       console.log(`[${new Date().toISOString()}] [TRACE] ContextPipeline tracing enabled.`);
-      console.log(`[${new Date().toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
+      console.log(`[${new Date().toISOString()}] [TRACE] ContextPipeline tracing env summary: project=${process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID}`);
     } catch (err) {
       console.warn(`[${new Date().toISOString()}] [TRACE] Failed to enable ContextPipeline tracing: ${err.message}`);
     }

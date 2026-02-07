@@ -117,7 +117,7 @@ module.exports = fp(async function authPlugin(fastify, opts) {
   const cookieSameSite = cookieSecure ? 'None' : 'Lax';
   const googleCallbackUri =
     cookieSecure
-      ? 'https://eventstorm.me/api/auth/google/callback'
+      ? 'https://vibeswitch.me/api/auth/google/callback'
       : 'http://localhost:3000/api/auth/google/callback';
 
   if (!BUILDING_API_SPEC) {
@@ -196,6 +196,6 @@ module.exports = fp(async function authPlugin(fastify, opts) {
       sameSite: cookieSameSite,
     });
 
-    reply.redirect((cookieSecure ? 'https://eventstorm.me' : 'http://localhost:5173') + '/chat');
+    reply.redirect((cookieSecure ? 'https://vibeswitch.me' : 'http://localhost:5173') + '/chat');
   });
 });

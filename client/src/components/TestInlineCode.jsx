@@ -3,7 +3,7 @@ import MessageRenderer from './chat_components/MessageRenderer';
 
 const TestInlineCode = () => {
   const testText = `
-Based on the provided code and documentation, it appears that the eventstorm.me application uses a combination of dependency injection (DI) and inversion of control (IoC) principles to manage its event handling and communication mechanisms.
+Based on the provided code and documentation, it appears that the vibeswitch application uses a combination of dependency injection (DI) and inversion of control (IoC) principles to manage its event handling and communication mechanisms.
 
 1. **Dependency Injection (DI):**
    - The eventDispatcher module in the backend code is a Fastify plugin that decorates the Fastify instance with an eventDispatcher object.

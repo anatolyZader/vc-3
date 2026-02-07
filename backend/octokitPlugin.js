@@ -15,7 +15,7 @@ module.exports = fp(async function octokitPlugin(fastify, opts) {
 
   const octokit = new Octokit({
     auth: token,
-    userAgent: 'eventstorm/v0.0.1',
+    userAgent: 'vibeswitch/v0.0.1',
   });
 
   fastify.decorate('octokit', octokit);

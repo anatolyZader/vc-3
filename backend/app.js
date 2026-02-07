@@ -322,7 +322,7 @@ module.exports = async function (fastify, opts) {
     langsmithTracing: process.env.LANGSMITH_TRACING === 'true',
     langsmithApiKeySet: !!process.env.LANGSMITH_API_KEY,
     langsmithWorkspaceIdSet: !!process.env.LANGSMITH_WORKSPACE_ID,
-    langchainProject: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+    langchainProject: process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace',
     langsmithOrganizationName: process.env.LANGSMITH_ORGANIZATION_NAME || 'not-set',
     timestamp: new Date().toISOString()
   }));

@@ -78,7 +78,7 @@ class CloudNativeRepoLoader {
         const headers = {};
         if (process.env.GITHUB_TOKEN) {
           headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
-          headers['User-Agent'] = 'eventstorm-cloud-native-loader';
+          headers['User-Agent'] = 'vibeswitch-cloud-native-loader';
         }
         
         const response = await fetch(url, {
@@ -189,7 +189,7 @@ class CloudNativeRepoLoader {
       
       const headers = {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'eventstorm-cloud-loader'
+        'User-Agent': 'vibeswitch-cloud-loader'
       };
       
       // Add GitHub token if available
