@@ -3,7 +3,7 @@
 # LangSmith Files Cleanup Script
 echo "🧹 Cleaning up redundant LangSmith files..."
 
-cd /home/myzader/eventstorm/backend
+cd /home/myzader/vibeswitch/backend
 
 # Create archive directory
 echo "📁 Creating archive directory..."

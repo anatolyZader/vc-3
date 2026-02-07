@@ -5,7 +5,7 @@
 echo "🧪 Testing Trace Archiver System"
 echo "=================================="
 
-cd /home/myzader/eventstorm/backend/business_modules/ai/infrastructure/ai/langsmith
+cd /home/myzader/vibeswitch/backend/business_modules/ai/infrastructure/ai/langsmith
 
 echo "📁 Current directory: $(pwd)"
 echo ""

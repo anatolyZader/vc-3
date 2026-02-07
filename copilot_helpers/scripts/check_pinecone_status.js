@@ -45,7 +45,7 @@ async function checkPineconeStatus() {
       }
     });
     
-    console.log(`\n📋 EVENTSTORM CONTENT CHECK:`);
+    console.log(`\n📋 VIBESWITCH CONTENT CHECK:`);
     console.log(`Found ${queryResponse.matches.length} VibeSwitch documents`);
     
     if (queryResponse.matches.length > 0) {

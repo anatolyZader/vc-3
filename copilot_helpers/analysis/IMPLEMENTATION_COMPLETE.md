@@ -45,7 +45,7 @@ await this.textSearchService.storeChunks(
 ### Step 1: Run Database Migration
 
 ```bash
-cd /home/myzader/eventstorm
+cd /home/myzader/vibeswitch
 node backend/migrate_add_chunking_support.js
 ```
 
@@ -58,7 +58,7 @@ node backend/migrate_add_chunking_support.js
 ### Step 2: Push to Production
 
 ```bash
-cd /home/myzader/eventstorm
+cd /home/myzader/vibeswitch
 git push origin main
 ```
 
@@ -242,7 +242,7 @@ LIMIT 10;
 ### Issue: Migration Fails
 ```bash
 # Check if columns already exist
-psql -d eventStormDB -c "\d repo_data"
+psql -d vibeswitchDB -c "\d repo_data"
 
 # If migration partially completed, it will skip existing columns
 # Safe to re-run
@@ -251,16 +251,16 @@ psql -d eventStormDB -c "\d repo_data"
 ### Issue: Text Search Returns No Results
 ```bash
 # Check if data was migrated
-psql -d eventStormDB -c "SELECT COUNT(*) FROM repo_data WHERE chunk_content IS NOT NULL;"
+psql -d vibeswitchDB -c "SELECT COUNT(*) FROM repo_data WHERE chunk_content IS NOT NULL;"
 
 # Check if indexes exist
-psql -d eventStormDB -c "\di"
+psql -d vibeswitchDB -c "\di"
 ```
 
 ### Issue: Metadata Not Showing
 ```bash
 # Check metadata structure
-psql -d eventStormDB -c "SELECT metadata FROM repo_data WHERE metadata IS NOT NULL LIMIT 1;"
+psql -d vibeswitchDB -c "SELECT metadata FROM repo_data WHERE metadata IS NOT NULL LIMIT 1;"
 
 # Should see JSON with semantic_tags, function_names, etc.
 ```

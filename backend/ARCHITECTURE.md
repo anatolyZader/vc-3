@@ -1,12 +1,12 @@
 ! this file is to be updated manually only !
 
-Eventstorm.me Architecture
+VibeSwitch Architecture
 
 (In this document, file names are taken from the ai module for exemplary purposes.)
 
 General Overview
 
-Eventstorm.me is a full-stack React – Fastify application.
+VibeSwitch is a full-stack React – Fastify application.
 
 Client Side
 
@@ -16,7 +16,7 @@ Backend Side
 
 Modular Monolith
 
-Eventstorm.me backend is a modular monolith with two kinds of modules:
+VibeSwitch backend is a modular monolith with two kinds of modules:
 
 AOP modules – for cross-cutting concerns
 
@@ -25,7 +25,7 @@ Each business module represents a bounded context in Domain-Driven Design.
 
 The Business modules represent the core business capabilities with strict boundaries and event-driven communication, while AOP modules provide shared technical services that cross module boundaries. This creates a clean separation between business concerns (what the system does) and technical concerns (how the system works), following both Domain-Driven Design and Aspect-Oriented Programming principles. 
 
-This architecture allows Eventstorm.me to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.
+This architecture allows VibeSwitch to maintain a modular monolith that could potentially be split into microservices by extracting business modules while keeping AOP concerns as shared libraries or infrastructure services.
 
 Difference in communication:
 

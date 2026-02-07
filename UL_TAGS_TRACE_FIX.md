@@ -127,7 +127,7 @@ if (typeof ulTags.ubiq_domain_events === 'string') {
 ## 🔍 How to Verify the Fix
 
 ### Option 1: Query via UI
-1. Open EventStorm.me chat interface
+1. Open VibeSwitch chat interface
 2. Ask: "list all methods in aiService.js"
 3. Check the trace analysis markdown file
 4. Should now show: "Chunks with UL Tags: X/Y (>0%)"

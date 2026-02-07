@@ -2,7 +2,7 @@
 
 ## Overview
 
-EventStorm uses a **dual-path architecture** for triggering repository indexing in the AI module's RAG (Retrieval-Augmented Generation) system. Both paths are independent and can work in parallel or separately.
+VibeSwitch uses a **dual-path architecture** for triggering repository indexing in the AI module's RAG (Retrieval-Augmented Generation) system. Both paths are independent and can work in parallel or separately.
 
 ---
 
@@ -240,7 +240,7 @@ The AI module's **ContextPipeline** validates these fields (lines 431-466 in `co
 ### Manual Re-indexing
 **Use Path 2**: Git API
 ```bash
-curl -X POST https://api.eventstorm.app/api/git/repositories/owner/repo/persist \
+curl -X POST https://api.vibeswitch.me/api/git/repositories/owner/repo/persist \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"branch": "main", "forceUpdate": true}'
 ```
@@ -248,7 +248,7 @@ curl -X POST https://api.eventstorm.app/api/git/repositories/owner/repo/persist 
 ### Indexing Different Branch
 **Use Path 2**: Git API
 ```bash
-curl -X POST https://api.eventstorm.app/api/git/repositories/owner/repo/persist \
+curl -X POST https://api.vibeswitch.me/api/git/repositories/owner/repo/persist \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"branch": "feature-branch"}'
 ```
@@ -256,7 +256,7 @@ curl -X POST https://api.eventstorm.app/api/git/repositories/owner/repo/persist 
 ### Troubleshooting Failed Index
 **Use Path 2**: Git API with force update
 ```bash
-curl -X POST https://api.eventstorm.app/api/git/repositories/owner/repo/persist \
+curl -X POST https://api.vibeswitch.me/api/git/repositories/owner/repo/persist \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"branch": "main", "forceUpdate": true}'
 ```

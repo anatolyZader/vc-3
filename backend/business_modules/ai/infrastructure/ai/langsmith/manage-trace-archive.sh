@@ -2,7 +2,7 @@
 
 # manage-trace-archive.sh - Management utility for LangSmith trace archives
 
-LANGSMITH_DIR="/home/myzader/eventstorm/backend/business_modules/ai/infrastructure/ai/langsmith"
+LANGSMITH_DIR="/home/myzader/vibeswitch/backend/business_modules/ai/infrastructure/ai/langsmith"
 ARCHIVE_DIR="$LANGSMITH_DIR/langsmith-archive"
 
 cd "$LANGSMITH_DIR"
