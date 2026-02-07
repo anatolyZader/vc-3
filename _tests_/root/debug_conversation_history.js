@@ -11,7 +11,7 @@ async function testDatabaseConnection() {
   const dbConfig = {
     user: process.env.PG_USER || 'postgres',
     host: `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME}`,
-    database: process.env.PG_DATABASE || 'eventstorm_db',
+    database: process.env.PG_DATABASE || 'vibeswitch_db',
     password: process.env.PG_PASSWORD,
     port: 5432,
   };

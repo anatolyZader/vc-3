@@ -20,7 +20,7 @@ class ChunkRetrievalTester {
     this.testQueries = [
       "How do I implement user authentication in the system?",
       "What are the API endpoints for managing events?",
-      "Explain the architecture of the EventStorm application",
+      "Explain the architecture of the VibeSwitch application",
       "How does the vector search work in the RAG pipeline?",
       "Show me the code for handling database connections"
     ];

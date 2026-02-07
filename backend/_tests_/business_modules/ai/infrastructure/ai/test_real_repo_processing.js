@@ -16,13 +16,13 @@ async function testRealRepoProcessing() {
   
   // Get some real files from your repository
   const testFiles = [
-    '/home/myzader/eventstorm/backend/server.js',
-    '/home/myzader/eventstorm/backend/business_modules/ai/application/services/aiService.js',
-    '/home/myzader/eventstorm/backend/business_modules/chat/input/chatController.js',
-    '/home/myzader/eventstorm/backend/business_modules/ai/infrastructure/ai/aiLangchainAdapter.js',
-    '/home/myzader/eventstorm/backend/aop_modules/auth/index.js',
-    '/home/myzader/eventstorm/backend/_tests_/business_modules/ai/aiService.test.js',
-    '/home/myzader/eventstorm/backend/fastify.config.js'
+    '/home/myzader/vibeswitch/backend/server.js',
+    '/home/myzader/vibeswitch/backend/business_modules/ai/application/services/aiService.js',
+    '/home/myzader/vibeswitch/backend/business_modules/chat/input/chatController.js',
+    '/home/myzader/vibeswitch/backend/business_modules/ai/infrastructure/ai/aiLangchainAdapter.js',
+    '/home/myzader/vibeswitch/backend/aop_modules/auth/index.js',
+    '/home/myzader/vibeswitch/backend/_tests_/business_modules/ai/aiService.test.js',
+    '/home/myzader/vibeswitch/backend/fastify.config.js'
   ];
   
   console.log(`Testing semantic preprocessing on ${testFiles.length} real files...\n`);
@@ -42,7 +42,7 @@ async function testRealRepoProcessing() {
       const mockDocument = {
         pageContent: content,
         metadata: {
-          source: filePath.replace('/home/myzader/eventstorm/', ''),
+          source: filePath.replace('/home/myzader/vibeswitch/', ''),
           userId: 'test-user',
           repoId: 'test-repo'
         }
@@ -57,7 +57,7 @@ async function testRealRepoProcessing() {
       console.log(`🧠 Enhanced Metadata:`);
       console.log(`  • Semantic Role: ${enhancedDoc.metadata.semantic_role}`);
       console.log(`  • Architectural Layer: ${enhancedDoc.metadata.layer}`);
-      console.log(`  • EventStorm Module: ${enhancedDoc.metadata.eventstorm_module}`);
+      console.log(`  • VibeSwitch Module: ${enhancedDoc.metadata.vibeswitch_module}`);
       console.log(`  • Is Entry Point: ${enhancedDoc.metadata.is_entrypoint}`);
       console.log(`  • Complexity: ${enhancedDoc.metadata.complexity}`);
       console.log(`  • Enhanced: ${enhancedDoc.metadata.enhanced}`);
@@ -135,7 +135,7 @@ function testSearchStrategies() {
         type: 'Git Module Query',
         userResults: 8,
         coreResults: 3,
-        userFilters: { eventstorm_module: 'gitModule' },
+        userFilters: { vibeswitch_module: 'gitModule' },
         coreFilters: { type: 'module_documentation' }
       };
     }
@@ -145,7 +145,7 @@ function testSearchStrategies() {
         type: 'AI Module Query',
         userResults: 8,
         coreResults: 3,
-        userFilters: { eventstorm_module: 'aiModule' },
+        userFilters: { vibeswitch_module: 'aiModule' },
         coreFilters: { type: 'module_documentation' }
       };
     }

@@ -26,7 +26,7 @@ jest.mock(
       ]
     })),
     client: {
-      listIndexes: jest.fn(async () => ({ indexes: [{ name: 'eventstorm-index' }] })),
+      listIndexes: jest.fn(async () => ({ indexes: [{ name: 'vibeswitch-index' }] })),
       createIndex: jest.fn(async () => ({})),
       index: jest.fn(() => ({}))
     }

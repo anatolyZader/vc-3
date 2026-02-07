@@ -58,7 +58,7 @@ async function testCriticalFixes() {
       source: '/api/routes/users.js',
       type: 'github-file',
       fileType: 'js',
-      eventstorm_module: 'api'
+      vibeswitch_module: 'api'
     });
     
     console.log(`✅ Generated ${chunks.length} chunks successfully`);
@@ -74,7 +74,7 @@ async function testCriticalFixes() {
       console.log(`  📝 Unit Name: ${chunk.metadata.unit_name || 'none'}`);
       console.log(`  🔲 Complete Block: ${chunk.metadata.is_complete_block ? '✅' : '❌'}`);
       console.log(`  📁 File Type: ${chunk.metadata.fileType}`);
-      console.log(`  🏗️ Module: ${chunk.metadata.eventstorm_module}`);
+      console.log(`  🏗️ Module: ${chunk.metadata.vibeswitch_module}`);
       
       // Show content preview
       const preview = chunk.pageContent.substring(0, 120).replace(/\n/g, ' ');

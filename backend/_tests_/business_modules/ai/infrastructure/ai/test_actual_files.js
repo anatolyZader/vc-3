@@ -3,7 +3,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const SemanticPreprocessor = require('/home/myzader/eventstorm/backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/semanticPreprocessor');
+const SemanticPreprocessor = require('/home/myzader/vibeswitch/backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/semanticPreprocessor');
 
 /**
  * Test semantic preprocessing on actual files found in the repository
@@ -15,13 +15,13 @@ async function testActualFiles() {
   
   // Test with actual files we found
   const actualFiles = [
-    '/home/myzader/eventstorm/backend/server.js',
-    '/home/myzader/eventstorm/backend/app.js',
-    '/home/myzader/eventstorm/backend/envPlugin.js',
-    '/home/myzader/eventstorm/backend/pubsubSubscriber.js',
-    '/home/myzader/eventstorm/backend/loggerConfig.js',
-    '/home/myzader/eventstorm/backend/_tests_/business_modules/api/application/services/apiService.test.js',
-    '/home/myzader/eventstorm/backend/business_modules/ai/application/services/aiService.js'
+    '/home/myzader/vibeswitch/backend/server.js',
+    '/home/myzader/vibeswitch/backend/app.js',
+    '/home/myzader/vibeswitch/backend/envPlugin.js',
+    '/home/myzader/vibeswitch/backend/pubsubSubscriber.js',
+    '/home/myzader/vibeswitch/backend/loggerConfig.js',
+    '/home/myzader/vibeswitch/backend/_tests_/business_modules/api/application/services/apiService.test.js',
+    '/home/myzader/vibeswitch/backend/business_modules/ai/application/services/aiService.js'
   ];
   
   let processedCount = 0;
@@ -31,7 +31,7 @@ async function testActualFiles() {
     try {
       // Check if file exists
       if (!fs.existsSync(filePath)) {
-        console.log(`⚠️  Skipped (not found): ${filePath.replace('/home/myzader/eventstorm/', '')}\n`);
+        console.log(`⚠️  Skipped (not found): ${filePath.replace('/home/myzader/vibeswitch/', '')}\n`);
         skippedCount++;
         continue;
       }
@@ -44,9 +44,9 @@ async function testActualFiles() {
       const mockDocument = {
         pageContent: content,
         metadata: {
-          source: filePath.replace('/home/myzader/eventstorm/', ''),
+          source: filePath.replace('/home/myzader/vibeswitch/', ''),
           userId: 'test-user',
-          repoId: 'eventstorm-repo'
+          repoId: 'vibeswitch-repo'
         }
       };
       
@@ -61,7 +61,7 @@ async function testActualFiles() {
       console.log(`🧠 Semantic Analysis:`);
       console.log(`  🎯 Role: ${enhancedDoc.metadata.semantic_role}`);
       console.log(`  🏗️  Layer: ${enhancedDoc.metadata.layer}`);
-      console.log(`  🔧 Module: ${enhancedDoc.metadata.eventstorm_module}`);
+      console.log(`  🔧 Module: ${enhancedDoc.metadata.vibeswitch_module}`);
       console.log(`  🚪 Entry Point: ${enhancedDoc.metadata.is_entrypoint}`);
       console.log(`  📊 Complexity: ${enhancedDoc.metadata.complexity}`);
       

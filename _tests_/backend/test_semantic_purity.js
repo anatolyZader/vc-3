@@ -58,7 +58,7 @@ class ChatService {
     metadata: {
       source: 'backend/business_modules/chat/application/services/chatService.js',
       userId: 'test-user',
-      repoId: 'eventstorm-test'
+      repoId: 'vibeswitch-test'
     }
   };
 
@@ -93,7 +93,7 @@ class ChatService {
   console.log('─'.repeat(60));
   console.log(`🎯 Semantic Role: ${enhanced.metadata.semantic_role}`);
   console.log(`🏗️  Architectural Layer: ${enhanced.metadata.layer}`);
-  console.log(`🔧 EventStorm Module: ${enhanced.metadata.eventstorm_module}`);
+  console.log(`🔧 VibeSwitch Module: ${enhanced.metadata.vibeswitch_module}`);
   console.log(`🚪 Entry Point: ${enhanced.metadata.is_entrypoint}`);
   console.log(`📊 Complexity: ${enhanced.metadata.complexity}`);
   console.log(`✨ Enhanced: ${enhanced.metadata.enhanced}`);

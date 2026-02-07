@@ -8,7 +8,7 @@ async function testConversationHistoryAPI() {
   console.log('==================================');
   
   // Get the backend URL
-  const baseURL = 'https://eventstorm-backend-979848823566.me-west1.run.app';
+  const baseURL = 'https://vibeswitch-backend-979848823566.me-west1.run.app';
   console.log(`🌐 Testing against: ${baseURL}`);
   
   try {

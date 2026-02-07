@@ -15,7 +15,7 @@ async function debugNamespaces() {
             apiKey: process.env.PINECONE_API_KEY,
         });
         
-        const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+        const indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
         const index = pinecone.index(indexName);
         
         console.log(`[${new Date().toISOString()}] 📊 Using index: ${indexName}`);

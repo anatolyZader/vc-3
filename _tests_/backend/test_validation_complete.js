@@ -27,7 +27,7 @@ async function validateCloudNativeFixes() {
       headers: {
         'Authorization': `token ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'eventstorm-validation-test'
+        'User-Agent': 'vibeswitch-validation-test'
       }
     });
     

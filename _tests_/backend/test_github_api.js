@@ -32,7 +32,7 @@ async function testGitHubAPI() {
       headers: {
         'Authorization': `token ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'eventstorm-test-script'
+        'User-Agent': 'vibeswitch-test-script'
       }
     });
     

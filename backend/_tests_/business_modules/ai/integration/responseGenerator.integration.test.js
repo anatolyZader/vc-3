@@ -15,7 +15,7 @@ jest.mock(
 jest.mock(
   "../../../../business_modules/ai/infrastructure/ai/prompts/promptConfig",
   () => ({
-    keywords: { application: ["eventstorm"], general: ["what", "how"] },
+    keywords: { application: ["vibeswitch"], general: ["what", "how"] },
     logging: { logPromptSelection: false }
   })
 );
