@@ -1,13 +1,13 @@
  {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Eventstorm.me Ubiquitous Language Dictionary",
-  "description": "DDD-based terminology dictionary for the EventStorm.me developer toolkit platform",
+  "title": "VibeSwitch Ubiquitous Language Dictionary",
+  "description": "DDD-based terminology dictionary for the VibeSwitch developer toolkit platform",
   "version": "1.0.0",
   "lastUpdated": "2025-08-24",
   "domains": {
     "core": {
       "name": "Core Domain",
-      "description": "The primary business domain of EventStorm.me - intelligent developer toolkit and automation platform",
+      "description": "The primary business domain of VibeSwitch - intelligent developer toolkit and automation platform",
       "boundedContexts": [
         "chat",
         "ai",
@@ -406,14 +406,14 @@
     }
   },
   "businessTerms": {
-    "eventstorm": {
-      "name": "EventStorm",
-      "description": "The application name and approach - event storming for DDD",
-      "aliases": ["eventstorm.me", "EventStorm.me"]
+    "vibeswitch": {
+      "name": "VibeSwitch",
+      "description": "The application name and platform",
+      "aliases": ["vibeswitch.me", "VibeSwitch.me"]
     },
     "videocode": {
       "name": "Videocode", 
-      "description": "Previous name of the eventstorm.me application",
+      "description": "Previous name of the vibeswitch application",
       "status": "deprecated"
     },
     "developer_toolkit": {

@@ -8,12 +8,12 @@ This file was created to trigger repository re-indexing with the new semantic me
 
 ### Before (Old Chunks):
 - `"rechunked": true` - chunks were re-chunked at 1400 token threshold
-- Missing `semantic_role`, `unit_name`, `eventstorm_module` metadata
+- Missing `semantic_role`, `unit_name`, `vibeswitch_module` metadata
 - Incomplete file coverage (only 2/3 methods visible for large files)
 
 ### After (New Chunks):
 - No `"rechunked": true` flag (or `"rechunked": false`)
-- Preserved `semantic_role`, `unit_name`, `eventstorm_module` from AST splitter
+- Preserved `semantic_role`, `unit_name`, `vibeswitch_module` from AST splitter
 - Complete file coverage - up to 100 chunks for explicit filename queries
 - Better semantic coherence - functions/classes not split mid-code
 
@@ -23,6 +23,6 @@ This file was created to trigger repository re-indexing with the new semantic me
 
 ## Verification Steps
 1. Query: "list all methods in aiService.js"
-2. Check metadata for: `semantic_role`, `unit_name`, `eventstorm_module`
+2. Check metadata for: `semantic_role`, `unit_name`, `vibeswitch_module`
 3. Verify all 3 methods visible: `respondToPrompt`, `processPushedRepo`, `generateResponse`
 4. Confirm no `"rechunked": true` in metadata

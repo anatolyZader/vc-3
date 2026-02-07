@@ -46,7 +46,7 @@ async function triggerLocalReindex() {
     console.log('═══════════════════════════════════════════════════════════════\n');
     console.log('🎯 Next steps:');
     console.log('   1. Query your RAG system: "list all methods in aiService.js"');
-    console.log('   2. Check metadata for: semantic_role, unit_name, eventstorm_module');
+    console.log('   2. Check metadata for: semantic_role, unit_name, vibeswitch_module');
     console.log('   3. Verify all 3 methods visible (no "rechunked": true)\n');
     
     process.exit(0);

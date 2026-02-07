@@ -8,7 +8,7 @@ let mockListIndexes;
 
 jest.mock("@pinecone-database/pinecone", () => {
   mockIndexDelete = jest.fn(async () => ({}));
-  mockListIndexes = jest.fn(async () => ({ indexes: [{ name: "eventstorm-index" }] }));
+  mockListIndexes = jest.fn(async () => ({ indexes: [{ name: "vibeswitch-index" }] }));
   
   return {
     Pinecone: jest.fn().mockImplementation(() => ({
@@ -37,7 +37,7 @@ describe("PineconeService delete operations", () => {
 
   beforeAll(() => {
     process.env.PINECONE_API_KEY = "test-key";
-    process.env.PINECONE_INDEX_NAME = "eventstorm-index";
+    process.env.PINECONE_INDEX_NAME = "vibeswitch-index";
     
     PineconeService = require(servicePath);
   });

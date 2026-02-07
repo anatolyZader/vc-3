@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "EventStorm.me API",
-    "description": "EventStorm API Documentation",
+    "title": "VibeSwitch API",
+    "description": "VibeSwitch API Documentation",
     "version": "1.0.0"
   },
   "components": {

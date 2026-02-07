@@ -11,7 +11,7 @@ class PineconeCLI {
     this.client = new Pinecone({
       apiKey: process.env.PINECONE_API_KEY
     });
-    this.indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+    this.indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
   }
 
   async listIndexes() {

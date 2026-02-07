@@ -20,7 +20,7 @@ require('dotenv').config({ path: './backend/.env' });
 
 // Configuration
 const CONFIG = {
-  apiUrl: process.env.API_URL || 'https://eventstorm.me',
+  apiUrl: process.env.API_URL || 'https://vibeswitch.me',
   userId: 'd41402df-182a-41ec-8f05-153118bf2718',
   repoId: 'anatolyZader/vc-3',
   repoUrl: 'https://github.com/anatolyZader/vc-3',
@@ -149,7 +149,7 @@ async function reindexRepository() {
     if (error.message.includes('Authentication required')) {
       console.error('AUTHENTICATION ISSUE:');
       console.error('  1. Add JWT_TOKEN to backend/.env');
-      console.error('  2. Get token by logging in to https://eventstorm.me');
+      console.error('  2. Get token by logging in to https://vibeswitch.me');
       console.error('  3. Or use frontend UI to trigger re-indexing\n');
     } else if (error.message.includes('401') || error.message.includes('403')) {
       console.error('AUTHORIZATION ISSUE:');
@@ -166,7 +166,7 @@ async function reindexRepository() {
     
     console.error('═══════════════════════════════════════════════════════════════\n');
     console.error('ALTERNATIVE: Trigger via frontend UI');
-    console.error('  1. Go to https://eventstorm.me');
+    console.error('  1. Go to https://vibeswitch.me');
     console.error('  2. Navigate to repository settings');
     console.error('  3. Click "Re-index Repository" button\n');
     

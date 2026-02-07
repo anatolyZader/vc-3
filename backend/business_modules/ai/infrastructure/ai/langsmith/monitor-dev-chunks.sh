@@ -50,7 +50,7 @@ monitor_server() {
     # Check if there are any log files in the backend directory
     echo ""
     echo "🔍 Checking for log files in backend directory..."
-    find /home/myzader/eventstorm/backend -name "*.log" -o -name "server.log" -o -name "fastify.log" 2>/dev/null | while read logfile; do
+    find /home/myzader/vibeswitch/backend -name "*.log" -o -name "server.log" -o -name "fastify.log" 2>/dev/null | while read logfile; do
         echo "Found log file: $logfile"
         echo "Recent entries:"
         tail -20 "$logfile" | grep -E "(CHUNK|📄|📝)" || echo "No chunk logging found in this file"

@@ -44,12 +44,12 @@ async function getLangSmithInfo() {
     // Get recent runs
     try {
       const runs = await client.listRuns({
-        projectName: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+        projectName: process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace',
         limit: 10,
         order: 'desc'
       });
 
-      console.log(`\n🔍 Found ${runs.length} recent runs in project "${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'}"`);
+      console.log(`\n🔍 Found ${runs.length} recent runs in project "${process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace'}"`);
       
       for (let i = 0; i < Math.min(runs.length, 5); i++) {
         const run = runs[i];
@@ -120,7 +120,7 @@ async function getLangSmithInfo() {
     console.log('\n💡 Tips:');
     console.log('   - Visit https://smith.langchain.com to view traces in the web UI');
     console.log('   - Use LANGSMITH_TRACING=true to enable tracing');
-    console.log('   - Check the "eventstorm-trace" project for your application traces');
+    console.log('   - Check the "vibeswitch-trace" project for your application traces');
 
   } catch (error) {
     console.error('❌ Error connecting to LangSmith:', error.message);

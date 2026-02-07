@@ -50,7 +50,7 @@ Pinecone + PostgreSQL
       "githubOwner": "anatolyZader",
       "repoName": "vc-3",
       "commitHash": "<sha>",
-      "description": "EventStorm repository - automatic RAG reindexing via GitHub Actions",
+      "description": "VibeSwitch repository - automatic RAG reindexing via GitHub Actions",
       "timestamp": "<iso-timestamp>",
       "source": "github-actions-deployment"
     }
@@ -162,7 +162,7 @@ The detailed logging will reveal which of these is the actual cause.
 
 ## Follow-up Actions
 1. ⏳ Wait for GitHub Actions deployment (~5-10 min)
-2. 📊 Monitor logs: `gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=eventstorm-backend" --limit=50 --format=json --freshness=10m | grep -E "GIT MODULE|AI MODULE DEBUG|DATA-PREP"`
+2. 📊 Monitor logs: `gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=vibeswitch-backend" --limit=50 --format=json --freshness=10m | grep -E "GIT MODULE|AI MODULE DEBUG|DATA-PREP"`
 3. ✅ If repoData is correct: Issue is in file loading (GitHub API)
 4. ❌ If repoData is missing fields: Issue is in event forwarding/parsing
 5. 🔧 Apply appropriate fix based on findings

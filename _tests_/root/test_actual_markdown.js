@@ -1,5 +1,5 @@
 // Test what the actual AI response looks like
-const testResponse = `The module in the EventStorm.me application appears to be responsible for managing the core functionality of a docs-based app
+const testResponse = `The module in the VibeSwitch application appears to be responsible for managing the core functionality of a docs-based app
 cation. The key points about how the
 
 \`\`\`text

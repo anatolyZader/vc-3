@@ -1,7 +1,7 @@
 // test_semantic_preprocessing.js
 "use strict";
 
-const SemanticPreprocessor = require('/home/myzader/eventstorm/backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/semanticPreprocessor');
+const SemanticPreprocessor = require('/home/myzader/vibeswitch/backend/business_modules/ai/infrastructure/ai/rag_pipelines/context/enhancers/semanticPreprocessor');
 
 async function testSemanticPreprocessing() {
   console.log('🧪 Testing Semantic Preprocessing...\n');
@@ -98,7 +98,7 @@ describe('UserService', () => {
       console.log('🧠 Enhanced Metadata:');
       console.log(`  • Semantic Role: ${enhancedChunk.metadata.semantic_role}`);
       console.log(`  • Architectural Layer: ${enhancedChunk.metadata.layer}`);
-      console.log(`  • EventStorm Module: ${enhancedChunk.metadata.eventstorm_module}`);
+      console.log(`  • VibeSwitch Module: ${enhancedChunk.metadata.vibeswitch_module}`);
       console.log(`  • Is Entry Point: ${enhancedChunk.metadata.is_entrypoint}`);
       console.log(`  • Complexity: ${enhancedChunk.metadata.complexity}`);
       console.log(`  • Enhanced: ${enhancedChunk.metadata.enhanced}`);

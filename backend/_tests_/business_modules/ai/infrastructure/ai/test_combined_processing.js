@@ -204,7 +204,7 @@ module.exports = UserController;
     metadata: {
       source: 'backend/business_modules/user/input/UserController.js',
       userId: 'test-user',
-      repoId: 'eventstorm',
+      repoId: 'vibeswitch',
       fileType: 'JavaScript'
     }
   };
@@ -217,7 +217,7 @@ module.exports = UserController;
   console.log(`✅ Semantic preprocessing complete:`);
   console.log(`   Role: ${semanticallyEnhanced.metadata.semantic_role}`);
   console.log(`   Layer: ${semanticallyEnhanced.metadata.layer}`);
-  console.log(`   Module: ${semanticallyEnhanced.metadata.eventstorm_module}`);
+  console.log(`   Module: ${semanticallyEnhanced.metadata.vibeswitch_module}`);
   console.log(`   Entry Point: ${semanticallyEnhanced.metadata.is_entrypoint}`);
   console.log(`   Complexity: ${semanticallyEnhanced.metadata.complexity}`);
   
@@ -235,7 +235,7 @@ module.exports = UserController;
   astChunks.forEach((chunk, index) => {
     console.log(`\n📦 Chunk ${index + 1}/${astChunks.length}:`);
     console.log(`   🏷️  Source: ${chunk.metadata.source}`);
-    console.log(`   🧠 Semantic: ${chunk.metadata.semantic_role} | ${chunk.metadata.layer} | ${chunk.metadata.eventstorm_module}`);
+    console.log(`   🧠 Semantic: ${chunk.metadata.semantic_role} | ${chunk.metadata.layer} | ${chunk.metadata.vibeswitch_module}`);
     console.log(`   🌳 AST: ${chunk.metadata.chunk_type} | ${chunk.metadata.semantic_unit} | ${chunk.metadata.function_name}`);
     console.log(`   📏 Size: ${chunk.pageContent.length} chars | Lines: ${chunk.metadata.start_line}-${chunk.metadata.end_line}`);
     console.log(`   📚 Includes Imports: ${chunk.metadata.includes_imports}`);
@@ -328,7 +328,7 @@ async function testWithRealFile() {
   });
   
   // Test with actual aiService.js file
-  const realFilePath = '/home/myzader/eventstorm/backend/business_modules/ai/application/services/aiService.js';
+  const realFilePath = '/home/myzader/vibeswitch/backend/business_modules/ai/application/services/aiService.js';
   
   try {
     if (fs.existsSync(realFilePath)) {
@@ -339,7 +339,7 @@ async function testWithRealFile() {
         metadata: {
           source: 'backend/business_modules/ai/application/services/aiService.js',
           userId: 'test-user',
-          repoId: 'eventstorm',
+          repoId: 'vibeswitch',
           fileType: 'JavaScript'
         }
       };
@@ -354,7 +354,7 @@ async function testWithRealFile() {
       console.log(`\n✅ Results:`);
       console.log(`   Semantic Role: ${enhanced.metadata.semantic_role}`);
       console.log(`   Architectural Layer: ${enhanced.metadata.layer}`);
-      console.log(`   EventStorm Module: ${enhanced.metadata.eventstorm_module}`);
+      console.log(`   VibeSwitch Module: ${enhanced.metadata.vibeswitch_module}`);
       console.log(`   AST Chunks Created: ${chunks.length}`);
       
       chunks.forEach((chunk, index) => {

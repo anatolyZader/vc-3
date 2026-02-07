@@ -116,7 +116,7 @@ ${contextData.context}
     const hasGeneralPattern = PromptConfig.keywords.general.some(keyword => questionLower.includes(keyword));
     
     // Special check for app-specific mentions
-    const mentionsApp = questionLower.includes('eventstorm') || 
+    const mentionsApp = questionLower.includes('vibeswitch') || 
                       questionLower.includes('this app') || 
                       questionLower.includes('the app') ||
                       questionLower.includes('your app') ||

@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 async function checkData() {
   const pool = new Pool({
     host: process.env.DB_HOST || '127.0.0.1',
-    database: process.env.DB_NAME || 'eventstorm_db',
+    database: process.env.DB_NAME || 'vibeswitch_db',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD
   });

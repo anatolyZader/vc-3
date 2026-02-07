@@ -181,7 +181,7 @@ class ContextPipelineUtils {
       if (pattern.test(filePath)) return false;
     }
     
-    // Focus on backend files for EventStorm
+    // Focus on backend files for VibeSwitch
     if (filePath.includes('backend/')) {
       const sourceExtensions = /\.(js|ts|jsx|tsx|json|md|sql|yaml|yml|txt|env)$/i;
       return sourceExtensions.test(filePath);
@@ -376,7 +376,7 @@ class ContextPipelineUtils {
       const headers = {};
       if (process.env.GITHUB_TOKEN) {
         headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
-        headers['User-Agent'] = 'eventstorm-context-pipeline';
+        headers['User-Agent'] = 'vibeswitch-context-pipeline';
       }
       
       // Get repository info

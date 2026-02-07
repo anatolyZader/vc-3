@@ -10,7 +10,7 @@ jest.mock(
     connect: jest.fn(async () => ({})),
     createVectorStore: jest.fn(async () => ({})),
     client: {
-      listIndexes: jest.fn(async () => ({ indexes: [{ name: 'eventstorm-index' }] })),
+      listIndexes: jest.fn(async () => ({ indexes: [{ name: 'vibeswitch-index' }] })),
       createIndex: jest.fn(async () => ({})),
       index: jest.fn(() => ({}))
     }

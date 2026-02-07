@@ -18,7 +18,7 @@ async function emptyPineconeIndex() {
       apiKey: process.env.PINECONE_API_KEY
     });
     
-    const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+    const indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
     console.log(`📊 Targeting index: ${indexName}`);
     
     const index = pinecone.index(indexName);

@@ -60,7 +60,7 @@ async function testQueryPipelineNamespaceFix() {
     console.log('\n🔍 Testing vector search...');
     
     const searchResults = await queryPipeline.performVectorSearch(
-      'What is dependency injection in eventstorm.me app?',
+      'What is dependency injection in vibeswitch app?',
       vectorStore,
       null, // traceData
       'test-user',

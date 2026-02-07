@@ -7,7 +7,7 @@ async function forceRepoReprocessing() {
   console.log('🔄 FORCE REPROCESSING: Triggering repository reprocessing to activate cloud-native loader');
   console.log('=' .repeat(70));
   
-  const baseUrl = process.env.BASE_URL || 'https://eventstorm.me';
+  const baseUrl = process.env.BASE_URL || 'https://vibeswitch.me';
   const userId = 'anatolyzader'; // Use consistent owner identifier  
   const repoId = 'vc-3'; // Remove owner prefix to match expected pattern
   
@@ -97,7 +97,7 @@ async function forceRepoReprocessing() {
       if (result.success) {
         console.log('\n🎉 SUCCESS! Repository has been reprocessed with cloud-native loader');
         console.log('💡 Backend files should now be accessible to AI responses');
-        console.log('🧪 Test by asking: "How is dependency injection implemented in EventStorm modules?"');
+        console.log('🧪 Test by asking: "How is dependency injection implemented in VibeSwitch modules?"');
       } else {
         console.log('\n❌ FAILED: Repository reprocessing failed');
         console.log('🔧 Check the logs above for error details');

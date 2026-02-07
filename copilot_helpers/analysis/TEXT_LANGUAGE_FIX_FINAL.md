@@ -77,7 +77,7 @@ if (!inline && isSingle && isInertLang && codeText.length <= 80) {
 
 ### Before (Bug):
 ```
-The module in EventStorm.me:
+The module in VibeSwitch:
 - The
   ┌──────────┐
   │ TEXT     │  ← Dark code block
@@ -95,7 +95,7 @@ The module in EventStorm.me:
 
 ### After (Fixed):
 ```
-The module in EventStorm.me:
+The module in VibeSwitch:
 - The `docs` module works
 
 1. Architecture:

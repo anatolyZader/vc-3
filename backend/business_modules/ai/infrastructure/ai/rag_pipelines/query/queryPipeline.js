@@ -150,7 +150,7 @@ class QueryPipeline {
           this.performVectorSearch.bind(this),
           {
             name: 'QueryPipeline.performVectorSearch',
-            project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+            project_name: process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace',
             metadata: { component: 'QueryPipeline', phase: 'retrieval' },
             tags: ['rag', 'retrieval']
           }
@@ -159,7 +159,7 @@ class QueryPipeline {
           this.respondToPrompt.bind(this),
           {
             name: 'QueryPipeline.respondToPrompt',
-            project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+            project_name: process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace',
             metadata: { component: 'QueryPipeline' },
             tags: ['rag', 'pipeline']
           }
@@ -1265,7 +1265,7 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
 
 ---
 **Analysis Generated**: ${new Date().toISOString()}  
-**LangSmith Project**: ${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'}  
+**LangSmith Project**: ${process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace'}  
 **Environment**: ${process.env.NODE_ENV || 'development'}
 **Auto-Generated**: true
 `;
@@ -1554,7 +1554,7 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
 - **Total Duration**: ${traceData.totalDuration ? `${traceData.totalDuration}ms` : 'Calculating...'}
 
 ## 🔗 LangSmith Trace Information
-- **Project**: ${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'}
+- **Project**: ${process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace'}
 - **Tracing Enabled**: ${process.env.LANGSMITH_TRACING === 'true' ? '✅ Yes' : '❌ No'}
 - **Trace ID**: ${traceData.traceId || (traceData.tracingIssue ? `⚠️  Not captured (${traceData.tracingIssue})` : (traceData.tracingError ? `❌ Error: ${traceData.tracingError}` : '⚠️  Not captured'))}
 - **Run ID**: ${traceData.runId || '⚠️  Not captured'}
@@ -1836,7 +1836,7 @@ The query was ${searchResults.length > 0 ? 'successfully processed' : 'not well 
 
 ---
 **Generated**: ${new Date().toISOString()}  
-**LangSmith Project**: ${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'}  
+**LangSmith Project**: ${process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace'}  
 **Trace Type**: Comprehensive RAG Analysis
 **Auto-Generated**: true
 `;

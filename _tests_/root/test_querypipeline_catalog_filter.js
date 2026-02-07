@@ -23,7 +23,7 @@ async function testQueryPipelineCatalogFilter() {
     const simulatedResults = [
       // JSON Catalogs (contamination source)
       {
-        pageContent: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "title": "Eventstorm.me Architecture Catalog",\n  "description": "Architectural patterns",\n  "businessModules": {\n    "chat": {\n      "name": "Chat Module"',
+        pageContent: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "title": "VibeSwitch Architecture Catalog",\n  "description": "Architectural patterns",\n  "businessModules": {\n    "chat": {\n      "name": "Chat Module"',
         metadata: { 
           source: 'anatolyZader/vc-3/architecture.json', 
           type: 'github-file',
@@ -31,7 +31,7 @@ async function testQueryPipelineCatalogFilter() {
         }
       },
       {
-        pageContent: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "title": "Ubiquitous Language Dictionary",\n  "businessTerms": {\n    "eventstorm": {\n      "name": "EventStorm"',
+        pageContent: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "title": "Ubiquitous Language Dictionary",\n  "businessTerms": {\n    "vibeswitch": {\n      "name": "VibeSwitch"',
         metadata: { 
           source: 'anatolyZader/vc-3/ul_dictionary.json', 
           type: 'github-file',

@@ -383,7 +383,7 @@ const getBaseURL = () => {
     return 'http://localhost:3000';
   }
   
-  // In production, use the current origin (https://eventstorm.me)
+  // In production, use the current origin (https://vibeswitch.me)
   return window.location.origin;
 };
 

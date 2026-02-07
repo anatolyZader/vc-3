@@ -360,7 +360,7 @@ class VectorSearchOrchestrator {
       orConditions.push({ fileType: { $regex: `.*${keyword}.*` } });
       
       // Search in module names
-      orConditions.push({ eventstorm_module: { $regex: `.*${keyword}.*` } });
+      orConditions.push({ vibeswitch_module: { $regex: `.*${keyword}.*` } });
       
       // Search in semantic roles
       orConditions.push({ semantic_role: { $regex: `.*${keyword}.*` } });

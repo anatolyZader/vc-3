@@ -21,7 +21,7 @@ async function analyzeVectorContamination() {
       apiKey: process.env.PINECONE_API_KEY
     });
     
-    const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+    const indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
     const index = pinecone.index(indexName);
     const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
     
@@ -149,10 +149,10 @@ console.log(`
 To test AI contamination in production:
 
 1. Use this curl command to test AI responses:
-   curl -X POST https://eventstorm.me/api/ai/respond \\
+   curl -X POST https://vibeswitch.me/api/ai/respond \\
      -H "Content-Type: application/json" \\
      -H "Authorization: Bearer YOUR_TOKEN" \\
-     -d '{"prompt": "explain the usage of di in eventstorm.me app in details"}'
+     -d '{"prompt": "explain the usage of di in vibeswitch app in details"}'
 
 2. Check if response contains:
    ✅ Actual DI code from diPlugin.js, containerResolver.js

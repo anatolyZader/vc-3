@@ -6,11 +6,11 @@ const path = require('path');
 // Mock repository job for testing
 const testRepositoryJob = {
   userId: 'test_user_123',
-  repoId: 'eventstorm_test',
-  repoUrl: 'https://github.com/myzader/eventstorm',
+  repoId: 'vibeswitch_test',
+  repoUrl: 'https://github.com/myzader/vibeswitch',
   branch: 'main',
   githubOwner: 'myzader',
-  repoName: 'eventstorm',
+  repoName: 'vibeswitch',
   commitInfo: {
     hash: 'test_commit_hash',
     message: 'Test commit for horizontal scaling'

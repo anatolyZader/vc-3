@@ -80,7 +80,7 @@ class DocsLangchainAdapter extends IDocsAiPort {
         });
         
         // Use wiki-specific index if available, fallback to main index
-        this.pineconeIndexName = process.env.PINECONE_WIKI_INDEX_NAME || process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+        this.pineconeIndexName = process.env.PINECONE_WIKI_INDEX_NAME || process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
         console.log(`[${new Date().toISOString()}] 📊 DocsLangchainAdapter: Using Pinecone index: ${this.pineconeIndexName}`);
       } else {
         console.warn(`[${new Date().toISOString()}] No Pinecone API key found, vector search will be unavailable`);

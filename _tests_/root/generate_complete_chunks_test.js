@@ -473,7 +473,7 @@ fastify.setErrorHandler(async (error, request, reply) => {
 
 module.exports = fastify;
     `.trim(),
-    metadata: { source: '/api/routes/users.js', eventstorm_module: 'api' }
+    metadata: { source: '/api/routes/users.js', vibeswitch_module: 'api' }
   }
 ];
 

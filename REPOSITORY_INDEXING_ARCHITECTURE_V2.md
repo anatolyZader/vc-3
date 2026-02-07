@@ -2,7 +2,7 @@
 
 ## Overview
 
-EventStorm uses a **single-path architecture** for automatic repository indexing. When code is pushed to GitHub, it flows through the Git Module to the AI Module for RAG (Retrieval-Augmented Generation) indexing.
+VibeSwitch uses a **single-path architecture** for automatic repository indexing. When code is pushed to GitHub, it flows through the Git Module to the AI Module for RAG (Retrieval-Augmented Generation) indexing.
 
 ---
 
@@ -119,7 +119,7 @@ EventStorm uses a **single-path architecture** for automatic repository indexing
 ### Topic
 - **Name:** `git-topic`
 - **Purpose:** Central message broker for Git/AI inter-module communication
-- **Project:** eventstorm-1
+- **Project:** vibeswitch-1
 
 ### Subscriptions
 
@@ -217,7 +217,7 @@ This will:
 ```bash
 # Check Cloud Run logs for Git Module
 gcloud logging read "resource.type=cloud_run_revision AND textPayload:persistRepoRequest" \
-  --limit=10 --project=eventstorm-1
+  --limit=10 --project=vibeswitch-1
 ```
 
 **Check 3: Git Module Published repoPushed**
@@ -241,7 +241,7 @@ gcloud logging read "resource.type=cloud_run_revision AND textPayload:persistRep
 
 **Issue:** No logs from Git Module  
 **Cause:** `git-module-sub` subscription doesn't exist  
-**Fix:** `gcloud pubsub subscriptions create git-module-sub --topic=git-topic --project=eventstorm-1`
+**Fix:** `gcloud pubsub subscriptions create git-module-sub --topic=git-topic --project=vibeswitch-1`
 
 **Issue:** AI Module says "0 chunks found"  
 **Cause:** Repository never indexed  

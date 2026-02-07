@@ -14,7 +14,7 @@ const { Pinecone } = require('@pinecone-database/pinecone');
 class DeepVectorCleaner {
   constructor() {
     this.pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-    this.indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+    this.indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
     this.namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
   }
 

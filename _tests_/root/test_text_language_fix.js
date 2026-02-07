@@ -102,7 +102,7 @@ console.log('');
 
 // Test 6: The complete pipeline
 console.log('TEST 6: Complete pipeline (inlineShortFenced + renderer)');
-const completeTest = `The module in the EventStorm.me application:
+const completeTest = `The module in the VibeSwitch application:
 - The \`\`\`text
 docs
 \`\`\` module works are:

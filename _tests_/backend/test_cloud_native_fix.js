@@ -87,7 +87,7 @@ async function testRepoStructure() {
     const response = await fetch('https://api.github.com/repos/anatolyZader/vc-3/git/trees/main?recursive=1', {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'eventstorm-test'
+        'User-Agent': 'vibeswitch-test'
       }
     });
 

@@ -12,8 +12,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const PROJECT_ID = 'eventstorm-1';
-const SERVICE_NAME = 'eventstorm-backend';
+const PROJECT_ID = 'vibeswitch-1';
+const SERVICE_NAME = 'vibeswitch-backend';
 
 function main() {
   console.log(`🚀 RAG Chunks Export Tool - Enhanced`);

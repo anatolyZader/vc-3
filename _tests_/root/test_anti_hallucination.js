@@ -13,7 +13,7 @@ const mockValidation = {
 };
 
 // Test validation with the exact problematic response from the user
-const problematicResponse = `Based on the information provided in the code repository, the EventStorm.me application uses a custom dependency injection (DI) framework to manage the dependencies between its various modules and services. The specific details of the DI implementation can be found in the src/core/di directory of the code repository.`;
+const problematicResponse = `Based on the information provided in the code repository, the VibeSwitch application uses a custom dependency injection (DI) framework to manage the dependencies between its various modules and services. The specific details of the DI implementation can be found in the src/core/di directory of the code repository.`;
 
 const mockContextData = {
   sourceAnalysis: {

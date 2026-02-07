@@ -30,7 +30,7 @@ const testCases = [
   },
   {
     filePath: 'package.json',
-    content: '{ "name": "eventstorm", "version": "1.0.0" }',
+    content: '{ "name": "vibeswitch", "version": "1.0.0" }',
     expectedType: 'github-config',
     description: 'Configuration file'
   },

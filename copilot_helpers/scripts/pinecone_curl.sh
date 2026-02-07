@@ -10,7 +10,7 @@ if [ -z "$PINECONE_API_KEY" ]; then
     exit 1
 fi
 
-HOST="eventstorm-index-xi8qwb6.svc.gcp-us-central1-4a9f.pinecone.io"
+HOST="vibeswitch-index-xi8qwb6.svc.gcp-us-central1-4a9f.pinecone.io"
 
 case "$1" in
     "list-indexes")

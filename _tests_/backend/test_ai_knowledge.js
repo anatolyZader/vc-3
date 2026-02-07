@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 
 /**
- * Test EventStorm AI Chat
- * Tests if AI can now access EventStorm implementation details
+ * Test VibeSwitch AI Chat
+ * Tests if AI can now access VibeSwitch implementation details
  */
 
 require('dotenv').config();
 
-async function testEventStormAI() {
-  console.log('🧪 TESTING EVENTSTORM AI KNOWLEDGE');
+async function testVibeSwitchAI() {
+  console.log('🧪 TESTING VIBESWITCH AI KNOWLEDGE');
   console.log('=' .repeat(50));
   
   const testQueries = [
-    "What is the role of logPlugin.js file in eventstorm.me app?",
-    "How is dependency injection implemented in EventStorm modules?",
-    "What does diPlugin.js do in the EventStorm backend?",
-    "Explain the purpose of fastify plugins in EventStorm",
+    "What is the role of logPlugin.js file in vibeswitch.me app?",
+    "How is dependency injection implemented in VibeSwitch modules?",
+    "What does diPlugin.js do in the VibeSwitch backend?",
+    "Explain the purpose of fastify plugins in VibeSwitch",
   ];
   
   for (const query of testQueries) {
@@ -23,7 +23,7 @@ async function testEventStormAI() {
     console.log('-'.repeat(60));
     
     try {
-      const response = await fetch('https://eventstorm.me/api/ai/respond', {
+      const response = await fetch('https://vibeswitch.me/api/ai/respond', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -43,17 +43,17 @@ async function testEventStormAI() {
       const result = await response.json();
       const message = result.message || result.content || 'No response content';
       
-      // Check if response contains EventStorm-specific details
+      // Check if response contains VibeSwitch-specific details
       const hasSpecificDetails = [
-        'logPlugin', 'diPlugin', 'fastify', 'eventstorm', 'backend',
+        'logPlugin', 'diPlugin', 'fastify', 'vibeswitch', 'backend',
         'aop_modules', 'business_modules', 'infrastructure'
       ].some(keyword => message.toLowerCase().includes(keyword));
       
       if (hasSpecificDetails) {
-        console.log('✅ SPECIFIC RESPONSE (has EventStorm details)');
+        console.log('✅ SPECIFIC RESPONSE (has VibeSwitch details)');
         console.log(message.substring(0, 200) + '...');
       } else {
-        console.log('❌ GENERIC RESPONSE (no EventStorm details)');
+        console.log('❌ GENERIC RESPONSE (no VibeSwitch details)');
         console.log(message.substring(0, 200) + '...');
       }
       
@@ -67,11 +67,11 @@ async function testEventStormAI() {
   
   console.log('\n📊 SUMMARY:');
   console.log('If responses are still generic, repository processing is not complete.');
-  console.log('If responses contain EventStorm-specific details, the fix worked!');
+  console.log('If responses contain VibeSwitch-specific details, the fix worked!');
 }
 
 if (require.main === module) {
-  testEventStormAI();
+  testVibeSwitchAI();
 }
 
-module.exports = testEventStormAI;
+module.exports = testVibeSwitchAI;

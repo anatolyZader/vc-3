@@ -39,7 +39,7 @@ async function testCatalogDominanceFix() {
     const simulatedResults = [
       // JSON Catalogs (the contamination source)
       {
-        pageContent: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "title": "Eventstorm.me Architecture Catalog",\n  "description": "Architectural patterns, layers, and design principles",\n  "businessModules": {\n    "chat": {\n      "name": "Chat Module"',
+        pageContent: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "title": "VibeSwitch Architecture Catalog",\n  "description": "Architectural patterns, layers, and design principles",\n  "businessModules": {\n    "chat": {\n      "name": "Chat Module"',
         metadata: { 
           source: 'anatolyZader/vc-3/architecture.json', 
           type: 'github-file',
@@ -47,7 +47,7 @@ async function testCatalogDominanceFix() {
         }
       },
       {
-        pageContent: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "title": "Ubiquitous Language Dictionary",\n  "businessTerms": {\n    "eventstorm": {\n      "name": "EventStorm",\n      "description": "The application name"',
+        pageContent: '{\n  "$schema": "http://json-schema.org/draft-07/schema#",\n  "title": "Ubiquitous Language Dictionary",\n  "businessTerms": {\n    "vibeswitch": {\n      "name": "VibeSwitch",\n      "description": "The application name"',
         metadata: { 
           source: 'anatolyZader/vc-3/ul_dictionary.json', 
           type: 'github-file',

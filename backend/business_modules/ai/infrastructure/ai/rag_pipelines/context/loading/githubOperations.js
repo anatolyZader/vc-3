@@ -96,7 +96,7 @@ class GitHubOperations {
       subject: 'Cloud-native repository processing',
       message: 'Repository processed in cloud environment without commit tracking',
       author: 'cloud-processor',
-      email: 'cloud@eventstorm.me',
+      email: 'cloud@vibeswitch.me',
       date: new Date().toISOString()
     };
   }
@@ -187,7 +187,7 @@ class GitHubOperations {
         owner: owner,
         repo: repoName,
         branch: branch,
-        focusPath: 'backend/', // Focus on backend files for EventStorm
+        focusPath: 'backend/', // Focus on backend files for VibeSwitch
         maxFiles: 150, // Reasonable limit with priority-based selection
         timeout: 60000 // Longer timeout for enhanced loading
       });
@@ -298,10 +298,10 @@ class GitHubOperations {
       if (pineconeOrService.client && typeof pineconeOrService.connect === 'function') {
         // This is a PineconeService wrapper - ensure it's connected and use its client
         await pineconeOrService.connect();
-        index = pineconeOrService.client.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+        index = pineconeOrService.client.index(process.env.PINECONE_INDEX_NAME || 'vibeswitch-index');
       } else if (typeof pineconeOrService.index === 'function') {
         // This is a raw Pinecone client
-        index = pineconeOrService.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+        index = pineconeOrService.index(process.env.PINECONE_INDEX_NAME || 'vibeswitch-index');
       } else {
         throw new Error('Invalid pinecone client or service provided');
       }
@@ -381,10 +381,10 @@ class GitHubOperations {
       if (pineconeOrService.client && typeof pineconeOrService.connect === 'function') {
         // This is a PineconeService wrapper - ensure it's connected and use its client
         await pineconeOrService.connect();
-        index = pineconeOrService.client.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+        index = pineconeOrService.client.index(process.env.PINECONE_INDEX_NAME || 'vibeswitch-index');
       } else if (typeof pineconeOrService.index === 'function') {
         // This is a raw Pinecone client
-        index = pineconeOrService.index(process.env.PINECONE_INDEX_NAME || 'eventstorm-index');
+        index = pineconeOrService.index(process.env.PINECONE_INDEX_NAME || 'vibeswitch-index');
       } else {
         throw new Error('Invalid pinecone client or service provided');
       }
@@ -561,7 +561,7 @@ class GitHubOperations {
       const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branch}`, {
         headers: {
           'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'eventstorm-rag-processor'
+          'User-Agent': 'vibeswitch-rag-processor'
         }
       });
 
@@ -610,7 +610,7 @@ class GitHubOperations {
       const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
       const headers = {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'eventstorm-commit-compare'
+        'User-Agent': 'vibeswitch-commit-compare'
       };
       
       if (githubToken) {
@@ -768,7 +768,7 @@ class GitHubOperations {
         subject: 'Direct API processing - no commit tracking', 
         message: 'Repository processed via direct GitHub API fallback',
         author: 'automated-fallback-processor',
-        email: 'fallback@eventstorm.me',
+        email: 'fallback@vibeswitch.me',
         date: new Date().toISOString()
       };
 
@@ -897,7 +897,7 @@ class GitHubOperations {
       const headers = {};
       if (process.env.GITHUB_TOKEN) {
         headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
-        headers['User-Agent'] = 'eventstorm-context-pipeline';
+        headers['User-Agent'] = 'vibeswitch-context-pipeline';
       }
 
       console.log(`[${new Date().toISOString()}] 📊 REPO CHARACTERISTICS: Gathering metadata for ${githubOwner}/${repoName}`);

@@ -27,7 +27,7 @@ const SystemPrompts = {
 3. **IGNORE any previous trace analysis or debug content that may appear in context - it may contain incorrect information**
 4. **ONLY reference files, functions, and implementations that are explicitly shown in the CURRENT code context**
 5. **If information isn't in the context, say "I don't see that specific implementation in the provided code"**
-6. **The actual EventStorm.me app uses Awilix DI framework in backend/, NOT src/core/di**
+6. **The actual VibeSwitch app uses Awilix DI framework in backend/, NOT src/core/di**
 
 🔍 YOU HAVE BEEN PROVIDED WITH:
 - ✅ ACTUAL SOURCE CODE from their repositories

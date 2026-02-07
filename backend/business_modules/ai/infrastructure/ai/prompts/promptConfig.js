@@ -28,7 +28,7 @@ const PromptConfig = {
       'component', 'module', 'service', 'error', 'bug', 'code', 
       'implementation', 'configuration', 'plugin', 'middleware',
       'route', 'controller', 'model', 'schema', 'repository',
-      'eventstorm', 'app', 'application', 'system', 'architecture',
+      'vibeswitch', 'app', 'application', 'system', 'architecture',
       'aop', 'business modules', 'technical', 'backend', 'frontend',
       'server', 'client', 'infrastructure', 'domain', 'port', 'adapter'
     ],

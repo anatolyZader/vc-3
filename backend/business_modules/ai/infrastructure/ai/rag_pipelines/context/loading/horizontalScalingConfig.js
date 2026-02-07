@@ -208,7 +208,7 @@ const HorizontalScalingConfig = {
     // Test repository settings
     testRepo: {
       owner: 'myzader',
-      name: 'eventstorm',
+      name: 'vibeswitch',
       branch: 'main',
       maxTestFiles: 10
     }

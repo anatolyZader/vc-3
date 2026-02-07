@@ -75,7 +75,7 @@ class AILangchainAdapter extends IAIPort {
       this.enableTracing = process.env.LANGSMITH_TRACING === 'true';
       if (this.enableTracing) {
         console.log(`[${new Date().toISOString()}] [TRACE] LangSmith tracing enabled (adapter level)`);
-        console.log(`[${new Date().toISOString()}] [TRACE] LangSmith env summary: project=${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID} organizationName=${process.env.LANGSMITH_ORGANIZATION_NAME || 'n/a'}`);
+        console.log(`[${new Date().toISOString()}] [TRACE] LangSmith env summary: project=${process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace'} apiKeySet=${!!process.env.LANGSMITH_API_KEY} workspaceIdSet=${!!process.env.LANGSMITH_WORKSPACE_ID} organizationName=${process.env.LANGSMITH_ORGANIZATION_NAME || 'n/a'}`);
       }
 
       // Attempt to wrap underlying OpenAI client if available & tracing enabled
@@ -403,7 +403,7 @@ class AILangchainAdapter extends IAIPort {
       try {
         const traced = traceable(exec, {
           name: 'AIAdapter.respondToPrompt',
-            project_name: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+            project_name: process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace',
             metadata: { userId, conversationId },
             tags: ['rag', 'adapter', 'query']
         });

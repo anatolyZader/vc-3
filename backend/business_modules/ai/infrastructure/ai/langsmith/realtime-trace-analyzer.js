@@ -30,12 +30,12 @@ async function analyzeLatestTrace() {
 
     console.log('✅ Connected to LangSmith API');
     console.log(`🔑 API Key: ${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}`);
-    console.log(`📁 Project: ${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'}\n`);
+    console.log(`📁 Project: ${process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace'}\n`);
 
     // Get the most recent runs
     console.log('📊 Fetching latest traces...');
     const runs = await client.listRuns({
-      projectName: process.env.LANGCHAIN_PROJECT || 'eventstorm-trace',
+      projectName: process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace',
       limit: 10,
       order: 'desc'
     });
@@ -166,7 +166,7 @@ async function analyzeLatestTrace() {
 
     console.log(`\n✅ Real-time trace analysis complete!`);
     console.log(`\n💡 To view full trace details:`);
-    console.log(`   Visit: https://smith.langchain.com/o/${process.env.LANGSMITH_ORGANIZATION_NAME || 'your-org'}/projects/p/${process.env.LANGCHAIN_PROJECT || 'eventstorm-trace'}`);
+    console.log(`   Visit: https://smith.langchain.com/o/${process.env.LANGSMITH_ORGANIZATION_NAME || 'your-org'}/projects/p/${process.env.LANGCHAIN_PROJECT || 'vibeswitch-trace'}`);
     console.log(`   Trace ID: ${latestQueryRun.id}`);
 
   } catch (error) {

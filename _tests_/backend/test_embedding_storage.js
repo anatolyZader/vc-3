@@ -20,7 +20,7 @@ async function testEmbeddingStorage() {
       apiKey: process.env.OPENAI_API_KEY
     });
     
-    const index = pinecone.index('eventstorm-index');
+    const index = pinecone.index('vibeswitch-index');
     const namespace = 'anatolyzader_vc-3_main';
     
     console.log('📊 Current namespace stats:');
@@ -31,7 +31,7 @@ async function testEmbeddingStorage() {
     
     // Create a test embedding
     console.log('✨ Creating test embedding...');
-    const testText = 'This is a test document for EventStorm repository embeddings.';
+    const testText = 'This is a test document for VibeSwitch repository embeddings.';
     
     const embeddingResponse = await openai.embeddings.create({
       model: 'text-embedding-3-large',

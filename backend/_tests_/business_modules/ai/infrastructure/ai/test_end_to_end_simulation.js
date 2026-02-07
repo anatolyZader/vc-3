@@ -34,7 +34,7 @@ module.exports = ChatController;
       metadata: {
         source: 'backend/business_modules/chat/input/ChatController.js',
         userId: 'user123',
-        repoId: 'eventstorm'
+        repoId: 'vibeswitch'
       }
     },
     {
@@ -61,7 +61,7 @@ module.exports = User;
       metadata: {
         source: 'backend/business_modules/user/domain/entities/User.js',
         userId: 'user123',
-        repoId: 'eventstorm'
+        repoId: 'vibeswitch'
       }
     },
     {
@@ -86,7 +86,7 @@ class AILangchainAdapter {
       metadata: {
         source: 'backend/business_modules/ai/infrastructure/ai/aiLangchainAdapter.js',
         userId: 'user123',
-        repoId: 'eventstorm'
+        repoId: 'vibeswitch'
       }
     },
     {
@@ -117,7 +117,7 @@ describe('UserService', () => {
       metadata: {
         source: 'backend/__tests__/business_modules/user/UserService.test.js',
         userId: 'user123',
-        repoId: 'eventstorm'
+        repoId: 'vibeswitch'
       }
     },
     {
@@ -142,7 +142,7 @@ module.exports = {
       metadata: {
         source: 'backend/fastify.config.js',
         userId: 'user123',
-        repoId: 'eventstorm'
+        repoId: 'vibeswitch'
       }
     }
   ];
@@ -160,7 +160,7 @@ module.exports = {
     // Collect stats
     const role = enhanced.metadata.semantic_role;
     const layer = enhanced.metadata.layer;
-    const module = enhanced.metadata.eventstorm_module;
+    const module = enhanced.metadata.vibeswitch_module;
     
     semanticStats.roles[role] = (semanticStats.roles[role] || 0) + 1;
     semanticStats.layers[layer] = (semanticStats.layers[layer] || 0) + 1;
@@ -185,7 +185,7 @@ module.exports = {
   const testQueries = [
     {
       query: "How do I send a chat message?",
-      expectedFilters: { eventstorm_module: 'chatModule', semantic_role: 'controller' }
+      expectedFilters: { vibeswitch_module: 'chatModule', semantic_role: 'controller' }
     },
     {
       query: "Show me the User domain entity",
@@ -193,7 +193,7 @@ module.exports = {
     },
     {
       query: "How does AI processing work?",
-      expectedFilters: { eventstorm_module: 'aiModule' }
+      expectedFilters: { vibeswitch_module: 'aiModule' }
     },
     {
       query: "I'm getting errors with user validation",
@@ -217,11 +217,11 @@ module.exports = {
       let isRelevant = true;
       
       if (queryLower.includes('chat') || queryLower.includes('message')) {
-        isRelevant = metadata.eventstorm_module === 'chatModule' || metadata.semantic_role === 'controller';
+        isRelevant = metadata.vibeswitch_module === 'chatModule' || metadata.semantic_role === 'controller';
       } else if (queryLower.includes('user') && queryLower.includes('entity')) {
         isRelevant = metadata.layer === 'domain' && metadata.semantic_role === 'entity';
       } else if (queryLower.includes('ai') || queryLower.includes('processing')) {
-        isRelevant = metadata.eventstorm_module === 'aiModule';
+        isRelevant = metadata.vibeswitch_module === 'aiModule';
       } else if (queryLower.includes('error') || queryLower.includes('validation')) {
         isRelevant = metadata.is_entrypoint || metadata.semantic_role === 'entity';
       } else if (queryLower.includes('test')) {
@@ -251,7 +251,7 @@ module.exports = {
   
   console.log(`\n🏷️  Enhanced Metadata:`);
   Object.entries(sampleDoc.metadata).forEach(([key, value]) => {
-    if (key.includes('semantic_') || key === 'layer' || key === 'eventstorm_module' || 
+    if (key.includes('semantic_') || key === 'layer' || key === 'vibeswitch_module' || 
         key === 'is_entrypoint' || key === 'complexity') {
       console.log(`   ${key}: ${value}`);
     }
@@ -265,7 +265,7 @@ function mockDetermineSearchStrategy(query) {
   if (queryLower.includes('chat') || queryLower.includes('message')) {
     return {
       strategy: 'Chat Module Query',
-      userFilters: { eventstorm_module: 'chatModule' },
+      userFilters: { vibeswitch_module: 'chatModule' },
       coreFilters: { type: 'module_documentation' }
     };
   } else if (queryLower.includes('entity') || queryLower.includes('domain')) {
@@ -277,7 +277,7 @@ function mockDetermineSearchStrategy(query) {
   } else if (queryLower.includes('ai') || queryLower.includes('embedding')) {
     return {
       strategy: 'AI Module Query',
-      userFilters: { eventstorm_module: 'aiModule' },
+      userFilters: { vibeswitch_module: 'aiModule' },
       coreFilters: { type: 'module_documentation' }
     };
   } else if (queryLower.includes('error') || queryLower.includes('debug')) {

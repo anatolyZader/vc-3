@@ -5,7 +5,7 @@ temp/
 # ================================================
 
 # Backup directories with sensitive data
-eventstorm-backup-*/
+vibeswitch-backup-*/
 *backup*/
 *.backup-*
 
