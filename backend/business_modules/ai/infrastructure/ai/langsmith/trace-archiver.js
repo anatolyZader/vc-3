@@ -113,7 +113,7 @@ class TraceArchiver {
 
 ---
 **Analysis Status**: In Progress  
-**LangSmith Project**: eventstorm-trace  
+**LangSmith Project**: vibeswitch-trace  
 **Auto-Generated**: ${timestamp}
 `;
   }

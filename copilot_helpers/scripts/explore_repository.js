@@ -91,7 +91,7 @@ async function exploreRepository() {
       console.log('This appears to be a small test repository with mostly root files.');
       console.log('The "2 files bug" was likely caused by the original Git errors, not batch filtering.');
       console.log('\nTo test with a real backend repository, try:');
-      console.log('- https://github.com/anatolyZader/eventstorm (your main project)');
+      console.log('- https://github.com/anatolyZader/vibeswitch (your main project)');
       console.log('- Any repository with actual backend/ directory');
     }
     

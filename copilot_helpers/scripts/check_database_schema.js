@@ -15,8 +15,8 @@ async function checkDatabaseSchema() {
   // Database configuration using Cloud SQL Auth Proxy
   const dbConfig = {
     user: process.env.PG_USER || 'postgres',
-    host: `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME || 'eventstorm-1:me-west1:eventstorm-pg-instance-1'}`,
-    database: process.env.PG_DATABASE || 'eventstorm_db',
+    host: `/cloudsql/${process.env.CLOUD_SQL_CONNECTION_NAME || 'vibeswitch-1:me-west1:vibeswitch-pg-instance-1'}`,
+    database: process.env.PG_DATABASE || 'vibeswitch_db',
     password: process.env.PG_PASSWORD,
     port: 5432,
   };

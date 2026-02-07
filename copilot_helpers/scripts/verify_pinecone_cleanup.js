@@ -18,7 +18,7 @@ async function verifyPineconeCleanup() {
   console.log('   - Look for any remaining "branch": "amber" metadata');
   console.log('');
   console.log('2. **Test RAG System**:');
-  console.log('   - Ask a question in EventStorm chat');
+  console.log('   - Ask a question in VibeSwitch chat');
   console.log('   - Check trace analysis for branch metadata');
   console.log('   - Should see "branch": "main" or no old amber chunks');
   console.log('');
@@ -37,7 +37,7 @@ async function verifyPineconeCleanup() {
   
   console.log('⚠️  IF ISSUES PERSIST:');
   console.log('- Clear browser cache');
-  console.log('- Restart EventStorm server');
+  console.log('- Restart VibeSwitch server');
   console.log('- Check for local vector store caches');
   console.log('- Verify Pinecone API key and project settings');
   console.log('');

@@ -12,7 +12,7 @@ const { PubSub } = require('@google-cloud/pubsub');
 async function triggerRepoReprocessing() {
   console.log('🚀 Manually triggering repository reprocessing...\n');
 
-  const projectId = process.env.GCP_PROJECT_ID || 'eventstorm-1';
+  const projectId = process.env.GCP_PROJECT_ID || 'vibeswitch-1';
   const topicName = 'git-topic';
   
   const userId = 'd41402df-182a-41ec-8f05-153118bf2718';

@@ -11,8 +11,8 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 
 // Configuration
-const PROJECT_ID = 'eventstorm-1';
-const SERVICE_NAME = 'eventstorm-backend';
+const PROJECT_ID = 'vibeswitch-1';
+const SERVICE_NAME = 'vibeswitch-backend';
 
 async function analyzeLatestQuery() {
   console.log(`🔍 Real-time RAG Analysis - Looking for latest query...`);

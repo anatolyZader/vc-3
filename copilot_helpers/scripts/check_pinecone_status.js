@@ -2,7 +2,7 @@
 
 /**
  * Check Pinecone Index Status
- * Verifies if EventStorm repository content has been indexed
+ * Verifies if VibeSwitch repository content has been indexed
  */
 
 require('dotenv').config();
@@ -34,8 +34,8 @@ async function checkPineconeStatus() {
       }
     }
     
-    // Test query for EventStorm content
-    console.log('\n🔍 Testing for EventStorm content...');
+    // Test query for VibeSwitch content
+    console.log('\n🔍 Testing for VibeSwitch content...');
     const queryResponse = await index.query({
       vector: new Array(1536).fill(0.1), // Dummy vector for testing
       topK: 5,
@@ -46,7 +46,7 @@ async function checkPineconeStatus() {
     });
     
     console.log(`\n📋 EVENTSTORM CONTENT CHECK:`);
-    console.log(`Found ${queryResponse.matches.length} EventStorm documents`);
+    console.log(`Found ${queryResponse.matches.length} VibeSwitch documents`);
     
     if (queryResponse.matches.length > 0) {
       console.log('\n📄 SAMPLE DOCUMENTS:');
@@ -56,7 +56,7 @@ async function checkPineconeStatus() {
         console.log(`   Score: ${match.score?.toFixed(3) || 'N/A'}`);
       });
     } else {
-      console.log('❌ No EventStorm repository content found in index');
+      console.log('❌ No VibeSwitch repository content found in index');
       console.log('💡 This indicates repository processing is not complete');
     }
     

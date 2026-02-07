@@ -13,7 +13,7 @@ async function triggerRepoProcessing() {
   
   try {
     console.log('📡 Calling manual processing endpoint...');
-    const response = await fetch('https://eventstorm.me/api/ai/manual-process-repo-direct', {
+    const response = await fetch('https://vibeswitch.me/api/ai/manual-process-repo-direct', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

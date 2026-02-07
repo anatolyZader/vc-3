@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Eventstorm.me Architecture Catalog",
-  "description": "Architectural patterns, layers, and design principles for the EventStorm.me platform",
+  "title": "VibeSwitch Architecture Catalog",
+  "description": "Architectural patterns, layers, and design principles for the VibeSwitch platform",
   "version": "1.0.0",
   "lastUpdated": "2025-10-11",
   "architecture": {

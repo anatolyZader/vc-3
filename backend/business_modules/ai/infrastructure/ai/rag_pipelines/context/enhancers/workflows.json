@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Eventstorm.me Workflows Catalog", 
-  "description": "High-level business processes and workflows for the EventStorm.me platform",
+  "title": "VibeSwitch Workflows Catalog", 
+  "description": "High-level business processes and workflows for the VibeSwitch platform",
   "version": "1.0.0",
   "lastUpdated": "2025-10-11",
   "workflows": {

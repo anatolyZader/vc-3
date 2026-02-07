@@ -10,7 +10,7 @@ async function analyzeChunking() {
   console.log('📊 Analyzing vector chunking patterns...');
   
   const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-  const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+  const indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
   const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
   
   const index = pinecone.index(indexName);

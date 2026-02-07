@@ -21,7 +21,7 @@ const { PubSub } = require('@google-cloud/pubsub');
 
 // Configuration
 const CONFIG = {
-  projectId: process.env.GCP_PROJECT_ID || 'eventstorm-1',
+  projectId: process.env.GCP_PROJECT_ID || 'vibeswitch-1',
   topicName: 'git-topic',
   userId: 'd41402df-182a-41ec-8f05-153118bf2718',
   repoId: 'anatolyZader/vc-3',

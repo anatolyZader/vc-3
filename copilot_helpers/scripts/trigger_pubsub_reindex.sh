@@ -3,7 +3,7 @@
 
 set -e
 
-PROJECT_ID="eventstorm-1"
+PROJECT_ID="vibeswitch-1"
 TOPIC="git-topic"
 USER_ID="d41402df-182a-41ec-8f05-153118bf2718"
 REPO_ID="anatolyZader/vc-3"

@@ -12,7 +12,7 @@ async function populateRepoDataFromPinecone() {
   const pinecone = new Pinecone({
     apiKey: process.env.PINECONE_API_KEY
   });
-  const index = pinecone.index('eventstorm-index');
+  const index = pinecone.index('vibeswitch-index');
   
   // Initialize PostgreSQL
   const pool = new Pool({

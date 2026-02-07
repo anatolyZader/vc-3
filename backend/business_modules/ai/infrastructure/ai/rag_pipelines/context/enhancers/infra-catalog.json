@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Eventstorm.me Infrastructure Catalog",
+  "title": "VibeSwitch Infrastructure Catalog",
   "description": "Infrastructure components, cloud services, databases, and technical dependencies",
   "version": "1.0.0",
   "lastUpdated": "2025-10-11",

@@ -16,7 +16,7 @@ async function diagnoseVectorDuplicates() {
     
     try {
         const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-        const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+        const indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
         const namespace = 'd41402df-182a-41ec-8f05-153118bf2718_anatolyzader_vc-3';
         
         console.log(`📊 Target: ${indexName} -> ${namespace}`);
@@ -124,7 +124,7 @@ async function diagnoseVectorDuplicates() {
         allSamples.forEach(match => {
             const content = match.metadata?.text || match.metadata?.content || '';
             if (content.includes('"openapi": "3.0.3"') || 
-                content.includes('"title": "EventStorm.me API"') ||
+                content.includes('"title": "VibeSwitch API"') ||
                 content.includes('PINECONE_API_KEY') ||
                 content.includes('"additionalProperties": false')) {
                 openApiDuplicates.push({

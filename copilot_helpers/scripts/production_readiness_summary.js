@@ -31,7 +31,7 @@ console.log('━━━━━━━━━━━━━━━━━━━━━━�
 console.log('   BEFORE: Limited context (13KB, 10 sources)');
 console.log('   AFTER:  Rich context (380+ chunks, semantic units)');
 console.log('');
-console.log('   🤖 The eventstorm.me AI assistant should now provide');
+console.log('   🤖 The vibeswitch AI assistant should now provide');
 console.log('      comprehensive answers about DI usage and other');
 console.log('      code architecture questions with full context.');
 
@@ -43,5 +43,5 @@ console.log('   3. Verify repository processing creates multiple chunks');
 console.log('   4. Confirm Pinecone operations work without errors');
 
 console.log('\n✨ PROBLEM RESOLUTION COMPLETE ✨');
-console.log('The original issue "explain the usage of di in eventstorm.me app in details"');
+console.log('The original issue "explain the usage of di in vibeswitch app in details"');
 console.log('should now receive comprehensive, detailed responses from the AI assistant.');

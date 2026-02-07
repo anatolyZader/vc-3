@@ -13,7 +13,7 @@ async function triggerCloudIndexing() {
   console.log('=' .repeat(70));
   
   // Configuration
-  const baseUrl = process.env.BASE_URL || 'https://eventstorm.me';
+  const baseUrl = process.env.BASE_URL || 'https://vibeswitch.me';
   const hostname = baseUrl.replace('https://', '').replace('http://', '');
   
   const repoData = {

@@ -20,7 +20,7 @@ async function migrateNamespace() {
             throw new Error('Failed to initialize Pinecone client');
         }
         
-        const indexName = process.env.PINECONE_INDEX_NAME || 'eventstorm-index';
+        const indexName = process.env.PINECONE_INDEX_NAME || 'vibeswitch-index';
         const sourceNamespace = 'anatolyzader_vc-3_main';
         const targetNamespace = 'anatolyzader_vc-3';
         

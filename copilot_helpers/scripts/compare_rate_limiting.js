@@ -2,7 +2,7 @@
 
 /**
  * Rate Limit Comparison Test
- * Compare LangChain vs EventStorm custom loader
+ * Compare LangChain vs VibeSwitch custom loader
  */
 
 require('dotenv').config();
@@ -50,8 +50,8 @@ async function compareRateLimiting() {
     }
   }
 
-  // Test 2: EventStorm Custom Loader (should handle rate limits gracefully)  
-  console.log('\n🧪 TEST 2: EventStorm CloudNativeRepoLoader');
+  // Test 2: VibeSwitch Custom Loader (should handle rate limits gracefully)  
+  console.log('\n🧪 TEST 2: VibeSwitch CloudNativeRepoLoader');
   console.log('-' .repeat(50));
   
   try {
@@ -65,24 +65,24 @@ async function compareRateLimiting() {
       maxFiles: 20 // Limit for demo
     };
     
-    console.log('⏳ Loading with EventStorm custom loader (rate limit safe)...');
+    console.log('⏳ Loading with VibeSwitch custom loader (rate limit safe)...');
     const startTime = Date.now();
     
     const loader = new CloudNativeRepoLoader(customOptions);
     const documents = await loader.load();
     
     const endTime = Date.now();
-    console.log(`✅ EventStorm: Loaded ${documents.length} docs in ${endTime - startTime}ms`);
+    console.log(`✅ VibeSwitch: Loaded ${documents.length} docs in ${endTime - startTime}ms`);
     console.log('🛡️ Custom loader handled rate limits gracefully');
     
   } catch (error) {
-    console.log(`❌ EventStorm failed: ${error.message}`);
+    console.log(`❌ VibeSwitch failed: ${error.message}`);
   }
 
   console.log('\n📊 CONCLUSION:');
   console.log('LangChain: Fast but fragile (hits rate limits)');
-  console.log('EventStorm: Slower but reliable (handles rate limits)');
-  console.log('\n💡 Recommendation: Keep EventStorm\'s custom approach for production');
+  console.log('VibeSwitch: Slower but reliable (handles rate limits)');
+  console.log('\n💡 Recommendation: Keep VibeSwitch\'s custom approach for production');
 }
 
 if (require.main === module) {

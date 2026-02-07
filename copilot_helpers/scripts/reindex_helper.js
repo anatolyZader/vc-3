@@ -25,7 +25,7 @@ console.log('   git push origin main\n');
 
 console.log('2️⃣  DEPLOY TO PRODUCTION:');
 console.log('   # Option A: If using Cloud Run');
-console.log('   gcloud run deploy eventstorm-backend --source . --region us-central1\n');
+console.log('   gcloud run deploy vibeswitch-backend --source . --region us-central1\n');
 console.log('   # Option B: If using other deployment');
 console.log('   # Follow your standard deployment process\n');
 
